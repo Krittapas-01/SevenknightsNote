@@ -42,10 +42,10 @@ export default function GuildPage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-white/50">กิลด์</p>
-          <h1 className="text-3xl font-bold">{data.guild.name}</h1>
+      <div className="guild-banner flex flex-wrap items-end justify-between gap-5">
+        <div className="relative min-w-0">
+          <p className="eyebrow mb-3">GUILD HEADQUARTERS</p>
+          <h1 className="gold-title break-words text-3xl font-extrabold sm:text-5xl">{data.guild.name}</h1>
           <p className="mt-1 text-sm text-white/55">
             {data.plans.length} แผนวอร์ · {data.targets.length} ทีมเป้าหมาย {!canEdit && '· ดูอย่างเดียว'}
           </p>
@@ -166,11 +166,11 @@ function PlanList({ gid, plans, canEdit, activeId }: { gid: string; plans: Plan[
       {plans.map((p) => {
         const used = p.data.slots.filter((s) => s.options.length)
         return (
-          <Link key={p.id} to={`/g/${gid}/p/${p.id}`} className={`panel ${p.id === activeId ? 'panel-gold' : ''} block p-5 transition hover:-translate-y-1`}>
+          <Link key={p.id} to={`/g/${gid}/p/${p.id}`} className={`plan-card panel ${p.id === activeId ? 'panel-gold' : ''} block p-5 transition hover:-translate-y-1`}>
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 {p.id === activeId && <span className="mb-1 inline-block rounded-full bg-gold px-2 text-xs font-semibold text-ink">ใช้อยู่ตอนนี้</span>}
-                <h3 className="text-2xl font-bold">{p.title}</h3>
+                <h3 className="break-words text-2xl font-bold">{p.title}</h3>
                 <p className="text-sm text-white/50">
                   อัปเดต {new Date(p.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
                 </p>

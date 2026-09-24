@@ -37,7 +37,7 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
     <section className="panel panel-gold mt-6 p-4 sm:p-5">
       {/* วันนี้ + ตารางสัปดาห์ */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <CalendarDays className="h-5 w-5 text-gold" />
           <span className="text-lg font-semibold">วัน{DAYS[today]}</span>
           <span className={`rounded-full border px-3 py-0.5 text-sm font-semibold ${DAY_TYPE[todayType].cls}`}>{DAY_TYPE[todayType].label}</span>
@@ -45,12 +45,12 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
             เปลี่ยนเป็นวัน{DAYS[(today + 1) % 7]} ({DAY_TYPE[data.schedule[(today + 1) % 7] ?? 'rest'].label}) ใน {resetLabel(now)} · 07:00
           </span>
         </div>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="war-week ml-auto flex w-full items-center gap-1 sm:w-auto">
           {data.schedule.map((t, i) => (
             <div
               key={i}
               title={`${DAYS[i]} · ${DAY_TYPE[t].label}`}
-              className={`flex w-10 flex-col items-center rounded-lg border py-1 text-[11px] leading-tight sm:w-12 ${DAY_TYPE[t].cls} ${i === today ? 'ring-2 ring-gold' : ''}`}
+              className={`flex min-w-0 flex-1 flex-col items-center rounded-lg border py-2 text-[11px] leading-tight sm:w-12 sm:flex-none ${DAY_TYPE[t].cls} ${i === today ? 'ring-2 ring-gold' : ''}`}
             >
               <span className="font-semibold">{DAYS_SHORT[i]}</span>
               <span>{DAY_TYPE[t].short}</span>

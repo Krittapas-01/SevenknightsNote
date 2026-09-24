@@ -7,17 +7,23 @@ export default function Layout() {
   const gid = m?.params.gid
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#161c2e]/80 backdrop-blur">
+      <header className="site-header sticky top-0 z-40 border-b border-gold/15 bg-[#0c1425]/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
-          <Link to="/" className="flex items-center gap-2 text-lg font-bold">
-            <span className="text-gold">✦</span> 7K Note
+          <Link to="/" className="flex items-center gap-3 text-lg font-bold tracking-wide">
+            <span className="brand-mark" aria-hidden="true">✦</span> 7K <span className="font-normal text-gold">Note</span>
           </Link>
+          <span className="ml-auto text-[10px] font-medium tracking-[.2em] text-white/45 sm:text-xs">GUILD WAR COMPANION</span>
         </div>
       </header>
       {gid && <AnnouncementBar key={gid} gid={gid} />}
       <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
         <Outlet />
       </main>
+      <footer className="mx-auto max-w-6xl px-4 pb-8 pt-10 text-center text-xs leading-relaxed text-white/40">
+        <p className="mb-2 text-gold/65" aria-hidden="true">— ✦ —</p>
+        <p>7K Note · เครื่องมือวางแผนของผู้เล่น Seven Knights Re:BIRTH</p>
+        <p className="mt-1">ภาพตัวละคร © Netmarble Corp. & Netmarble Nexus Inc. · <a className="underline underline-offset-4 hover:text-gold" href="https://sena.netmarble.com/en/pcplay" target="_blank" rel="noreferrer">เว็บไซต์เกมทางการ</a></p>
+      </footer>
     </div>
   )
 }

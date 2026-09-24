@@ -205,7 +205,8 @@ export default function PlanPage() {
       </Link>
 
       {/* ---------- หัวแผน ---------- */}
-      <header className="mt-6 text-center">
+      <header className="plan-heading mt-6 text-center">
+        <p className="eyebrow mb-4">GUILD WAR · BATTLE PLAN</p>
         {editing ? (
           <input
             value={title}
@@ -215,7 +216,7 @@ export default function PlanPage() {
             className="w-full max-w-xl border-b-2 border-gold/60 bg-transparent text-center text-4xl font-bold outline-none focus:border-gold sm:text-5xl"
           />
         ) : (
-          <h1 className="vs-text inline-block pr-3 text-5xl sm:text-6xl">{viewTitle}</h1>
+          <h1 className="gold-title break-words text-4xl font-extrabold sm:text-6xl">{viewTitle}</h1>
         )}
         {!editing && plan && activePlanId(data) === plan.id && (
           <p className="mt-3"><span className="rounded-full bg-gold px-3 py-0.5 text-sm font-semibold text-ink">แผนที่ใช้อยู่ตอนนี้</span></p>
