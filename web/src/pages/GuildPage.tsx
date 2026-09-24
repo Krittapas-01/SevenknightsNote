@@ -1,0 +1,203 @@
+import { Check, ClipboardList, Link2, Pencil, Plus, Search, Shield, Swords } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router'
+import TeamPanel from '../components/TeamPanel'
+import UnitCard from '../components/UnitCard'
+import WarBoard from '../components/WarBoard'
+import { activePlanId } from '../lib/war'
+import { getUnit } from '../data/heroes'
+import { getEditKey } from '../lib/api'
+import type { Plan, Target, Team } from '../lib/types'
+import { useGuild } from '../lib/useGuild'
+import NotFound from './NotFound'
+
+const names = (t: Team) => t.slots.map((id) => getUnit(id)?.name ?? '').join(' ')
+const matches = (t: Target, q: string) =>
+  [names(t.team), ...t.counters.map((c) => names(c.team)), t.note, ...t.tags].join(' ').toLowerCase().includes(q)
+
+export default function GuildPage() {
+  const { gid = '' } = useParams()
+  const { data, error, canEdit, reload } = useGuild(gid)
+  const [q, setQ] = useState('')
+  const [tag, setTag] = useState<string | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
+  const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') === 'targets' ? 'targets' : 'plans'
+
+  const allTags = useMemo(() => [...new Set(data?.targets.flatMap((t) => t.tags) ?? [])], [data])
+  const list = useMemo(() => {
+    const s = q.trim().toLowerCase()
+    return (data?.targets ?? []).filter((t) => (!tag || t.tags.includes(tag)) && (!s || matches(t, s)))
+  }, [data, q, tag])
+
+  if (error) return <NotFound message={error} />
+  if (!data) return <p className="py-24 text-center text-white/50">กำลังโหลด...</p>
+
+  async function copy(kind: 'view' | 'edit') {
+    const url = `${location.origin}/g/${gid}` + (kind === 'edit' ? `?key=${getEditKey(gid)}` : '')
+    await navigator.clipboard.writeText(url).catch(() => prompt('คัดลอกลิงก์นี้', url))
+    setCopied(kind)
+    setTimeout(() => setCopied(null), 1500)
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm text-white/50">กิลด์</p>
+          <h1 className="text-3xl font-bold">{data.guild.name}</h1>
+          <p className="mt-1 text-sm text-white/55">
+            {data.plans.length} แผนวอร์ · {data.targets.length} ทีมเป้าหมาย {!canEdit && '· ดูอย่างเดียว'}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => copy('view')} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
+            {copied === 'view' ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />} ลิงก์ดูอย่างเดียว
+          </button>
+          {canEdit && (
+            <button onClick={() => copy('edit')} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
+              {copied === 'edit' ? <Check className="h-4 w-4 text-green-400" /> : <Pencil className="h-4 w-4" />} ลิงก์สำหรับแก้ไข
+            </button>
+          )}
+        </div>
+      </div>
+
+      <WarBoard gid={gid} data={data} canEdit={canEdit} reload={reload} />
+
+      {/* แท็บ */}
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+        <div className="pill flex p-1">
+          {([
+            ['plans', 'แผนวอร์', ClipboardList],
+            ['targets', 'จดทีมศัตรู', Swords],
+          ] as const).map(([k, label, Icon]) => (
+            <button
+              key={k}
+              onClick={() => setParams(k === 'plans' ? {} : { tab: k }, { replace: true })}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 sm:px-5 ${tab === k ? 'bg-gradient-to-b from-[#fff1c9] to-[#e2bf72] font-semibold text-ink' : 'text-white/70 hover:bg-white/10'}`}
+            >
+              <Icon className="h-4 w-4" /> {label}
+            </button>
+          ))}
+        </div>
+        {canEdit && (
+          <Link to={tab === 'plans' ? `/g/${gid}/p/new` : `/g/${gid}/t/new`} className="btn-gold flex items-center gap-1.5 px-4 py-2 text-sm">
+            <Plus className="h-4 w-4" /> {tab === 'plans' ? 'สร้างแผนวอร์' : 'เพิ่มทีมเป้าหมาย'}
+          </Link>
+        )}
+      </div>
+
+      {tab === 'plans' ? (
+        <PlanList gid={gid} plans={data.plans} canEdit={canEdit} activeId={activePlanId(data)} />
+      ) : (
+        <>
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <label className="pill flex min-w-60 flex-1 items-center gap-2 px-4 py-2">
+          <Search className="h-4 w-4 text-white/50" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาชื่อฮีโร่, โน้ต, แท็ก..." className="w-full bg-transparent outline-none placeholder:text-white/40" />
+        </label>
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <TagChip active={!tag} onClick={() => setTag(null)}>ทั้งหมด</TagChip>
+            {allTags.map((t) => (
+              <TagChip key={t} active={tag === t} onClick={() => setTag(tag === t ? null : t)}>{t}</TagChip>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {list.length === 0 ? (
+        <div className="panel mt-8 p-10 text-center text-white/60">
+          {data.targets.length === 0 ? (canEdit ? 'ยังไม่มีทีม กด “เพิ่มทีมเป้าหมาย” เพื่อเริ่มจด' : 'ยังไม่มีทีมที่จดไว้') : 'ไม่พบทีมที่ค้นหา'}
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((t) => (
+            <Link key={t.id} to={`/g/${gid}/t/${t.id}`} className="group block transition hover:-translate-y-1">
+              <TeamPanel
+                variant="enemy"
+                size="sm"
+                team={t.team}
+                className="group-hover:border-gold"
+                title={
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="flex flex-wrap gap-1">
+                      {t.tags.length ? t.tags.map((x) => (
+                        <span key={x} className="rounded-full bg-sky-400/20 px-2 text-xs text-sky-200">{x}</span>
+                      )) : <span className="text-white/50">ทีมเป้าหมาย</span>}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1 text-xs font-normal text-gold">
+                      <Swords className="h-3.5 w-3.5" /> {t.counters.length} ทีมแก้
+                    </span>
+                  </span>
+                }
+              />
+              {t.note && <p className="mt-3 line-clamp-1 px-2 text-sm text-white/55">{t.note}</p>}
+            </Link>
+          ))}
+        </div>
+      )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function TagChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1 text-sm ${active ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70 hover:bg-white/5'}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function PlanList({ gid, plans, canEdit, activeId }: { gid: string; plans: Plan[]; canEdit: boolean; activeId: string | null }) {
+  if (plans.length === 0)
+    return (
+      <div className="panel mt-6 p-10 text-center text-white/60">
+        {canEdit ? 'ยังไม่มีแผนวอร์ กด “สร้างแผนวอร์” เพื่อจัดทีม 5 ไม้ให้กิลด์' : 'ยังไม่มีแผนวอร์'}
+      </div>
+    )
+  return (
+    <div className="mt-6 grid gap-6 md:grid-cols-2">
+      {plans.map((p) => {
+        const used = p.data.slots.filter((s) => s.options.length)
+        return (
+          <Link key={p.id} to={`/g/${gid}/p/${p.id}`} className={`panel ${p.id === activeId ? 'panel-gold' : ''} block p-5 transition hover:-translate-y-1`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                {p.id === activeId && <span className="mb-1 inline-block rounded-full bg-gold px-2 text-xs font-semibold text-ink">ใช้อยู่ตอนนี้</span>}
+                <h3 className="text-2xl font-bold">{p.title}</h3>
+                <p className="text-sm text-white/50">
+                  อัปเดต {new Date(p.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
+                </p>
+              </div>
+              {p.data.op.length > 0 && (
+                <div className="flex -space-x-2">
+                  {p.data.op.slice(0, 4).map((id) => (
+                    <span key={id} className="h-9 w-9 rounded-full ring-2 ring-[#232c46]" style={{ fontSize: 9 }}>
+                      <UnitCard id={id} shape="round" />
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <ul className="mt-4 space-y-1.5 text-sm">
+              {used.length === 0 && <li className="text-white/40">ยังไม่มีทีม</li>}
+              {used.map((s) => (
+                <li key={s.name} className="flex items-center gap-2 text-white/80">
+                  {s.kind === 'attack' ? <Swords className="h-4 w-4 text-red-300" /> : <Shield className="h-4 w-4 text-sky-300" />}
+                  <span className="truncate">{s.name}</span>
+                  <span className="ml-auto shrink-0 text-white/45">{s.options.length} แบบ</span>
+                </li>
+              ))}
+            </ul>
+          </Link>
+        )
+      })}
+    </div>
+  )
+}

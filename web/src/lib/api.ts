@@ -1,0 +1,86 @@
+import type { Announcement, Counter, DayType, GuildData, Plan, PlanData, SkillStep, Target, Team } from './types'
+
+export type Pulse = {
+  guildName: string
+  latest: Announcement | null
+  activePlan: { id: string; title: string } | null
+  schedule: DayType[]
+}
+
+/** ตอน production ตั้ง VITE_API_URL=https://7k-note-api.<you>.workers.dev */
+const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+
+// ---------- edit key & recent guilds (เก็บในเครื่องผู้ใช้) ----------
+const KEYS = '7knote:keys'
+const RECENT = '7knote:recent'
+
+function readJson<T>(k: string, fallback: T): T {
+  try {
+    return JSON.parse(localStorage.getItem(k) ?? '') as T
+  } catch {
+    return fallback
+  }
+}
+function writeJson(k: string, v: unknown) {
+  try {
+    localStorage.setItem(k, JSON.stringify(v))
+  } catch {
+    /* private mode */
+  }
+}
+
+export const getEditKey = (gid: string) => readJson<Record<string, string>>(KEYS, {})[gid] ?? null
+export function saveEditKey(gid: string, key: string) {
+  writeJson(KEYS, { ...readJson<Record<string, string>>(KEYS, {}), [gid]: key })
+}
+
+export type Recent = { id: string; name: string }
+export const getRecent = () => readJson<Recent[]>(RECENT, [])
+export function pushRecent(r: Recent) {
+  writeJson(RECENT, [r, ...getRecent().filter((x) => x.id !== r.id)].slice(0, 8))
+}
+
+// ---------- fetch ----------
+async function req<T>(path: string, init: RequestInit & { gid?: string } = {}): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (init.gid) {
+    const key = getEditKey(init.gid)
+    if (key) headers['X-Edit-Key'] = key
+  }
+  const res = await fetch(BASE + path, { ...init, headers })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error ?? `HTTP ${res.status}`)
+  return data as T
+}
+
+export const api = {
+  createGuild: (name: string) =>
+    req<{ id: string; name: string; editKey: string }>('/api/guild', { method: 'POST', body: JSON.stringify({ name }) }),
+  getGuild: (gid: string) => req<GuildData>(`/api/guild/${gid}`),
+  pulse: (gid: string) => req<Pulse>(`/api/guild/${gid}/pulse`),
+  checkEdit: (gid: string) => req<{ canEdit: boolean }>(`/api/guild/${gid}/check`, { gid }),
+
+  createTarget: (gid: string, body: { team: Team; tags: string[]; note: string }) =>
+    req<Target>(`/api/guild/${gid}/targets`, { method: 'POST', body: JSON.stringify(body), gid }),
+  updateTarget: (gid: string, tid: string, body: { team: Team; tags: string[]; note: string }) =>
+    req(`/api/guild/${gid}/targets/${tid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
+  deleteTarget: (gid: string, tid: string) => req(`/api/guild/${gid}/targets/${tid}`, { method: 'DELETE', gid }),
+
+  createCounter: (gid: string, tid: string, body: { team: Team; skills: SkillStep[]; note: string }) =>
+    req<Counter>(`/api/guild/${gid}/targets/${tid}/counters`, { method: 'POST', body: JSON.stringify(body), gid }),
+  updateCounter: (gid: string, cid: string, body: { team: Team; skills: SkillStep[]; note: string }) =>
+    req(`/api/guild/${gid}/counters/${cid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
+  deleteCounter: (gid: string, cid: string) => req(`/api/guild/${gid}/counters/${cid}`, { method: 'DELETE', gid }),
+
+  createPlan: (gid: string, body: { title: string; data: PlanData }) =>
+    req<Plan>(`/api/guild/${gid}/plans`, { method: 'POST', body: JSON.stringify(body), gid }),
+  updatePlan: (gid: string, pid: string, body: { title: string; data: PlanData }) =>
+    req(`/api/guild/${gid}/plans/${pid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
+  deletePlan: (gid: string, pid: string) => req(`/api/guild/${gid}/plans/${pid}`, { method: 'DELETE', gid }),
+
+  announce: (gid: string, body: { body: string; planId: string | null; opponent: string }) =>
+    req<Announcement>(`/api/guild/${gid}/announcements`, { method: 'POST', body: JSON.stringify(body), gid }),
+  deleteAnnouncement: (gid: string, aid: string) => req(`/api/guild/${gid}/announcements/${aid}`, { method: 'DELETE', gid }),
+  saveSchedule: (gid: string, schedule: DayType[]) =>
+    req<{ schedule: DayType[] }>(`/api/guild/${gid}/schedule`, { method: 'PUT', body: JSON.stringify({ schedule }), gid }),
+}

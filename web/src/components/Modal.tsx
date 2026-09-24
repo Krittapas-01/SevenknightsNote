@@ -1,0 +1,38 @@
+import { X } from 'lucide-react'
+import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+
+export default function Modal({ open, title, onClose, children, wide }: { open: boolean; title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean }) {
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [open, onClose])
+
+  if (!open) return null
+  // portal ไปที่ body: ถ้าอยู่ใน .panel (มี backdrop-filter) ตำแหน่ง fixed จะเพี้ยน
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
+      <div
+        className={`panel panel-gold flex max-h-[88vh] w-full ${wide ? 'max-w-6xl' : 'max-w-2xl'} flex-col rounded-b-none bg-[#1f2640] sm:rounded-b-[18px]`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+          <h2 className="text-lg font-semibold text-gold">{title}</h2>
+          <button type="button" onClick={onClose} className="rounded-full p-1.5 hover:bg-white/10" aria-label="ปิด">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="scrollbar-thin overflow-y-auto p-5">{children}</div>
+      </div>
+    </div>
+  ,
+    document.body,
+  )
+}
