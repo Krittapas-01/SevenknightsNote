@@ -1,4 +1,5 @@
 import { Circle, HeartPulse, PawPrint, Shield, Sparkles, Swords } from 'lucide-react'
+import { useState, type CSSProperties } from 'react'
 import { HERO_TYPES, baseName, getUnit, isAwake, type HeroType } from '../data/heroes'
 
 const TYPE_ICON: Record<HeroType, typeof Swords> = {
@@ -24,6 +25,7 @@ type Props = {
 }
 
 export default function UnitCard({ id, shape = 'hero', className = '', showName = true }: Props) {
+  const [failedImage, setFailedImage] = useState<string | null>(null)
   const u = getUnit(id)
   if (!u) return null
   const color = u.type ? HERO_TYPES[u.type].color : shape === 'pet' ? '#c58b3d' : '#7c86a8'
@@ -34,20 +36,14 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
 
   return (
     <div
-      className={`relative h-full w-full overflow-hidden ${round ? 'rounded-full' : 'rounded-[10px]'} ${className}`}
-      style={{
-        border: `2px solid ${color}`,
-        background: `radial-gradient(circle at 50% 30%, ${color}66, transparent 70%), linear-gradient(180deg, #3a4262, #1d2236)`,
-        boxShadow: awake
-          ? `0 0 0 1px #f4d58d, 0 0 10px rgba(244,213,141,.6), inset 0 0 12px ${color}33`
-          : `0 0 0 1px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.35), inset 0 0 12px ${color}33`,
-      }}
+      className={`unit-card relative h-full w-full overflow-hidden ${awake ? 'unit-awake' : ''} ${round ? 'rounded-full' : 'rounded-[10px]'} ${className}`}
+      style={{ '--unit-color': color } as CSSProperties}
       title={u.name}
     >
-      {u.img ? (
-        <img src={u.img} alt={u.name} className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+      {u.img && failedImage !== u.img ? (
+        <img src={u.img} alt={u.name} className="absolute inset-0 h-full w-full object-cover" draggable={false} loading="lazy" decoding="async" onError={() => setFailedImage(u.img!)} />
       ) : (
-        <div className="absolute inset-0 grid place-items-center pb-[18%] font-bold text-white/90"
+        <div className="unit-monogram absolute inset-0 grid place-items-center pb-[18%] font-bold text-white/90"
           style={{ fontSize: round ? '0.8em' : '1.15em', textShadow: '0 2px 4px rgba(0,0,0,.6)' }}>
           {shape === 'pet' ? <PawPrint className="h-[40%] w-[40%] opacity-80" /> : initials(label)}
         </div>
@@ -67,7 +63,7 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
       )}
 
       {showName && !round && (
-        <div className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/90 via-black/60 to-transparent px-1 pb-0.5 pt-2 text-center text-[0.62em] font-medium leading-tight text-white">
+        <div className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-[#080d19] via-[#080d19]/85 to-transparent px-1 pb-1 pt-3 text-center text-[0.68em] font-medium leading-tight text-white">
           {label}
         </div>
       )}

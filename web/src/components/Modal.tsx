@@ -18,9 +18,9 @@ export default function Modal({ open, title, onClose, children, wide }: { open: 
   if (!open) return null
   // portal ไปที่ body: ถ้าอยู่ใน .panel (มี backdrop-filter) ตำแหน่ง fixed จะเพี้ยน
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
       <div
-        className={`panel panel-gold flex max-h-[88vh] w-full ${wide ? 'max-w-6xl' : 'max-w-2xl'} flex-col rounded-b-none bg-[#1f2640] sm:rounded-b-[18px]`}
+        className={`modal-surface panel panel-gold flex max-h-[88dvh] w-full ${wide ? 'max-w-6xl' : 'max-w-2xl'} flex-col rounded-b-none sm:rounded-b-[18px]`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">

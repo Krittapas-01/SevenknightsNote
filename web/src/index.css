@@ -16,31 +16,42 @@ body {
 }
 body {
   background:
-    radial-gradient(1200px 600px at 50% -10%, #34406a 0%, transparent 60%),
-    radial-gradient(900px 500px at 50% 110%, #2a2442 0%, transparent 60%),
-    linear-gradient(180deg, #1c2338 0%, #161c2e 100%);
+    radial-gradient(ellipse 85% 650px at 50% 0%, #26375580, transparent),
+    repeating-linear-gradient(120deg, #b6c9ff03 0 1px, transparent 1px 48px),
+    linear-gradient(180deg, #0c1425 0%, #131a2c 60%, #0d1321 100%);
   min-height: 100dvh;
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
 }
+
+::selection { background: #f4d58d40; color: #fff1cb; }
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid #f4d58d;
+  outline-offset: 4px;
+}
+button:not(:disabled), a { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled) { cursor: pointer; }
+h1, h2, h3 { text-wrap: balance; }
 
 /* ---------- panel แบบในเกม ---------- */
 .panel {
   position: relative;
-  border-radius: 18px;
-  border: 2px solid rgba(160, 170, 210, 0.45);
-  background: linear-gradient(180deg, rgba(92, 104, 142, 0.42) 0%, rgba(44, 52, 78, 0.55) 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 10px 30px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(6px);
+  border-radius: 16px;
+  border: 1px solid #8292bc40;
+  background: linear-gradient(150deg, #25334c 0%, #192337 45%, #131c2e 100%);
+  box-shadow: inset 0 0 0 4px #0a102533, inset 0 1px 0 #ffffff0d, 0 12px 32px #05091540;
 }
 .panel-gold {
-  border-color: #eccb7f;
+  border-color: #c9a35a99;
   box-shadow:
-    0 0 0 1px rgba(255, 226, 150, 0.35),
-    0 0 24px rgba(244, 213, 141, 0.35),
-    inset 0 0 30px rgba(244, 213, 141, 0.08);
+    inset 0 0 0 3px #0a102580,
+    inset 0 0 0 4px #f4d58d1c,
+    0 12px 36px #05091555, 0 0 32px #f4d58d08;
 }
 .panel-enemy {
-  border-color: #b3a6d8;
-  background: linear-gradient(180deg, rgba(112, 100, 150, 0.42) 0%, rgba(58, 50, 84, 0.55) 100%);
+  border-color: #b3a6d880;
+  background: linear-gradient(150deg, #39324f 0%, #25233b 50%, #1c1d32 100%);
+  box-shadow: inset 0 0 0 3px #11112580, inset 0 0 0 4px #b3a6d81c, 0 12px 36px #05091555;
 }
 /* ลาย ✦ บน/ล่างกลางกรอบ */
 .panel::before,
@@ -49,25 +60,23 @@ body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 20px;
+  font-size: 15px;
   line-height: 1;
-  color: #e9ecf5;
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
+  color: #b2bdd6;
   pointer-events: none;
 }
-.panel::before { top: -12px; }
-.panel::after { bottom: -12px; }
+.panel::before { top: -8px; }
+.panel::after { bottom: -8px; }
 .panel-gold::before,
 .panel-gold::after { color: #fff1c9; text-shadow: 0 0 8px rgba(244, 213, 141, 0.9); }
 
 /* ช่องฮีโร่ว่าง */
 .slot-empty {
   border-radius: 10px;
-  border: 1px solid rgba(200, 208, 235, 0.25);
+  border: 1px solid #9cb4d52e;
   background:
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0 18%, transparent 19%),
-    conic-gradient(from 45deg, rgba(255,255,255,.05) 0 12.5%, transparent 12.5% 25%, rgba(255,255,255,.05) 25% 37.5%, transparent 37.5% 50%, rgba(255,255,255,.05) 50% 62.5%, transparent 62.5% 75%, rgba(255,255,255,.05) 75% 87.5%, transparent 87.5%),
-    linear-gradient(180deg, rgba(120, 132, 170, 0.35), rgba(70, 80, 112, 0.35));
+    radial-gradient(circle at center, transparent 29%, #b5c9ec0d 30% 31%, transparent 32% 40%, #b5c9ec08 41% 42%, transparent 43%),
+    linear-gradient(135deg, #b5c9ec09, transparent 50%), #101a2b80;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
@@ -80,19 +89,33 @@ body {
 /* ปุ่มแคปซูลแบบ Preset */
 .pill {
   border-radius: 9999px;
-  border: 1px solid rgba(220, 225, 245, 0.35);
-  background: linear-gradient(180deg, rgba(40, 46, 70, 0.85), rgba(26, 30, 48, 0.9));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid #c9a35a40;
+  background: linear-gradient(180deg, #263148, #172033);
+  box-shadow: inset 0 0 0 2px #0b122566, inset 0 0 0 3px #f4d58d08;
+  transition: border-color 180ms ease, background-color 180ms ease;
 }
 .btn-gold {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid #f9e5b4;
   border-radius: 12px;
   color: #2a2213;
   font-weight: 700;
-  background: linear-gradient(180deg, #fff1c9 0%, #f4d58d 45%, #c9a35a 100%);
-  box-shadow: 0 0 0 1px #fbe7b3 inset, 0 4px 14px rgba(244, 213, 141, 0.35);
+  background: linear-gradient(115deg, #cfa959 0%, #fae4ac 45%, #e1bd73 100%);
+  box-shadow: inset 0 0 0 2px #a2783680, inset 0 0 0 3px #fff1c980, 0 4px 18px #c9a35a24;
+  transition: transform 180ms ease, filter 180ms ease;
 }
-.btn-gold:hover { filter: brightness(1.06); }
-.btn-gold:disabled { filter: grayscale(0.6) brightness(0.8); }
+.btn-gold::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 25%, #fff8de66 50%, transparent 75%);
+  transform: translateX(-130%);
+}
+.btn-gold:disabled { filter: saturate(.4); opacity: .55; cursor: not-allowed; }
+.pill:focus-within { border-color: #f4d58d; }
 
 /* VS */
 .vs-text {
@@ -111,10 +134,9 @@ body {
 }
 .vs-glow {
   background:
-    radial-gradient(closest-side, rgba(255, 230, 150, 0.55), transparent 70%),
-    radial-gradient(60% 40% at 15% 50%, rgba(60, 110, 255, 0.55), transparent 70%),
-    radial-gradient(60% 40% at 85% 50%, rgba(235, 50, 70, 0.55), transparent 70%);
-  filter: blur(6px);
+    radial-gradient(ellipse at center, #ffe6962e, transparent 65%),
+    radial-gradient(ellipse at 15% 45%, #427dff45, transparent 65%),
+    radial-gradient(ellipse at 85% 55%, #ed49633b, transparent 65%);
 }
 
 .scrollbar-thin::-webkit-scrollbar { height: 6px; width: 6px; }
@@ -124,10 +146,6 @@ body {
 .slot-selected > * {
   border-radius: 12px;
   box-shadow: 0 0 0 2px #fff3c4, 0 0 14px 4px rgba(255, 214, 110, 0.85), 0 0 28px 8px rgba(255, 190, 60, 0.45);
-  animation: glow-pulse 1.2s ease-in-out infinite;
-}
-@keyframes glow-pulse {
-  50% { box-shadow: 0 0 0 2px #fff3c4, 0 0 8px 2px rgba(255, 214, 110, 0.6), 0 0 18px 4px rgba(255, 190, 60, 0.3); }
 }
 /* ทีมที่กำลังใส่ตัวจากแถบล่าง */
 .panel-focused {
@@ -151,4 +169,55 @@ body {
 .dock-fade {
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+}
+
+/* Portrait frames use the existing class/awakening data. */
+.unit-card {
+  border: 1px solid var(--unit-color);
+  background: radial-gradient(ellipse at 50% 10%, color-mix(in srgb, var(--unit-color) 35%, transparent), transparent 80%), #141d30;
+  box-shadow: 0 3px 8px #03081466, inset 0 0 0 2px #080e1d80;
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+.unit-card::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1px solid #fff1cb24;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.unit-awake {
+  border-color: #f4d58d;
+  box-shadow: 0 0 0 1px #8e693f, 0 4px 12px #05081480, 0 0 14px #f4d58d16;
+}
+.unit-monogram::before {
+  content: "";
+  position: absolute;
+  width: 52%;
+  aspect-ratio: 1;
+  border: 1px solid #ffffff13;
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 5px #ffffff03;
+}
+.team-panel .unit-card { animation: card-arrive 240ms ease-out; }
+.modal-backdrop { animation: fade-in 160ms ease-out; }
+.modal-surface { background: linear-gradient(145deg, #26344d, #141d30); animation: modal-arrive 220ms ease-out; }
+.queue-star { animation: star-twinkle 2.8s ease-in-out 2; }
+.hero-dock { box-shadow: 0 -12px 40px #05091580, inset 0 2px 0 #f4d58d0d; padding-bottom: env(safe-area-inset-bottom); }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes card-arrive { from { opacity: .4; scale: .9; } to { opacity: 1; scale: 1; } }
+@keyframes modal-arrive { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes star-twinkle { 50% { opacity: .55; } }
+@keyframes gold-sheen { to { transform: translateX(130%); } }
+
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover > .unit-card { transform: translateY(-3px); border-color: #fff0c5; }
+  .btn-gold:not(:disabled):hover, a.btn-gold:hover { transform: translateY(-1px); filter: brightness(1.05); }
+  .btn-gold:not(:disabled):hover::after { animation: gold-sheen 650ms ease-out; }
+  button.pill:not(:disabled):hover, a.pill:hover { border-color: #f4d58d99; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }

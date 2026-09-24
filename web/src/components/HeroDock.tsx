@@ -62,7 +62,7 @@ export default function HeroDock({ bottom = 0 }: { bottom?: number }) {
 
   return (
     <>
-      <div className="fixed inset-x-0 z-30 border-t border-gold/30 bg-gradient-to-b from-[#1d2438]/95 to-[#121726]/95 backdrop-blur" style={{ bottom }}>
+      <div className="hero-dock fixed inset-x-0 z-30 border-t border-gold/30 bg-gradient-to-b from-[#1d2438]/95 to-[#121726]/95 backdrop-blur" style={{ bottom }}>
         {/* ปุ่มเก็บแถบตรงกลางแบบในเกม */}
         <button
           onClick={() => hub.setDockOpen(false)}
@@ -75,7 +75,7 @@ export default function HeroDock({ bottom = 0 }: { bottom?: number }) {
             <path d="M60 3 C61 8 62 9 67 10 C62 11 61 12 60 17 C59 12 58 11 53 10 C58 9 59 8 60 3Z" fill="#fff4d0" />
           </svg>
         </button>
-        <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 pt-2">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-3 pt-2">
           <RoundBtn title="ดูทั้งหมด" onClick={() => setModal('grid')}><LayoutGrid className="h-5 w-5" /></RoundBtn>
           <RoundBtn title="ค้นหาชื่อ" onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
           {tab === 'hero' && (
@@ -305,4 +305,3 @@ function FilterBtn({ children, active, onClick, color }: { children: ReactNode; 
     </button>
   )
 }
-

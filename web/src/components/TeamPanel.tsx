@@ -177,7 +177,7 @@ export default function TeamPanel({
     <div
       style={style}
       onPointerDown={() => active && hub?.setFocused(panelId)}
-      className={`panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col ${isSm ? 'px-3 pb-3 pt-2.5' : 'px-4 pb-4 pt-3 sm:px-5'} ${
+      className={`team-panel panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col ${isSm ? 'px-3 pb-3 pt-2.5' : 'px-4 pb-4 pt-3 sm:px-5'} ${
         focused && active ? 'panel-focused' : ''
       } ${className}`}
     >
@@ -208,10 +208,10 @@ export default function TeamPanel({
               value={team.speed || ''}
               placeholder="0"
               onChange={(e) => onSpeed(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-              className="w-16 bg-transparent text-right font-semibold text-gold outline-none placeholder:text-gold/60"
+              className="w-16 bg-transparent text-right font-bold tabular-nums text-gold outline-none placeholder:text-gold/60"
             />
           ) : (
-            <span className="min-w-6 text-right font-semibold text-gold">{team.speed || 0}</span>
+            <span className="min-w-6 text-right font-bold tabular-nums text-gold">{team.speed || 0}</span>
           )}
         </label>
       </div>
@@ -439,12 +439,13 @@ function QueueStars({ lit }: { lit: number }) {
         return (
           <path
             key={i}
+            className={on ? 'queue-star' : undefined}
             transform={`translate(${x} ${y})`}
             d={star}
             fill={on ? '#ffd45c' : '#2a2e40'}
             stroke={on ? '#fff6d0' : '#555a70'}
             strokeWidth="1.2"
-            style={on ? { filter: 'drop-shadow(0 0 5px rgba(255,205,80,.95))' } : undefined}
+            style={on ? { filter: 'drop-shadow(0 0 5px rgba(255,205,80,.95))', animationDelay: `${i * 180}ms` } : undefined}
           />
         )
       })}
