@@ -83,7 +83,8 @@ const imageFor = (name: string) => {
 }
 
 export const baseName = (name: string) => name.replace(/ awake.*$/, '')
-export const isAwake = (name: string) => / awake/.test(name)
+// The existing Eileene entry uses her awakened portrait without changing its saved ID.
+export const isAwake = (name: string) => name === 'ไอลีน' || / awake/.test(name)
 
 const uniq = (arr: string[]) => [...new Set(arr)]
 
