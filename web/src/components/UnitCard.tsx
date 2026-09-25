@@ -1,14 +1,19 @@
-import { Circle, HeartPulse, PawPrint, Shield, Swords } from 'lucide-react'
+import { PawPrint } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import awakeningMedal from '../assets/ui/awakening-medal.webp'
 import magicRole from '../assets/ui/magic-role.webp'
+import attackRole from '../assets/ui/attack-role.webp'
+import defenseRole from '../assets/ui/defense-role.webp'
+import supportRole from '../assets/ui/support-role.webp'
+import universalRole from '../assets/ui/universal-role.webp'
 import { HERO_TYPES, baseName, getUnit, isAwake, type HeroType } from '../data/heroes'
 
-const TYPE_ICON: Partial<Record<HeroType, typeof Swords>> = {
-  attack: Swords,
-  defense: Shield,
-  support: HeartPulse,
-  universal: Circle,
+const ROLE_BADGE: Record<HeroType, { image: string; tone: string }> = {
+  attack: { image: attackRole, tone: '#a82d30' },
+  magic: { image: magicRole, tone: '#245c98' },
+  defense: { image: defenseRole, tone: '#79512f' },
+  support: { image: supportRole, tone: '#367246' },
+  universal: { image: universalRole, tone: '#643897' },
 }
 
 const seg = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter('th', { granularity: 'grapheme' }) : null
@@ -30,7 +35,7 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
   const u = getUnit(id)
   if (!u) return null
   const color = u.type ? HERO_TYPES[u.type].color : shape === 'pet' ? '#c58b3d' : '#7c86a8'
-  const Icon = u.type ? TYPE_ICON[u.type] : null
+  const roleBadge = u.type ? ROLE_BADGE[u.type] : null
   const round = shape === 'round'
   const awake = isAwake(u.name)
   const label = baseName(u.name)
@@ -50,12 +55,10 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
         </div>
       )}
 
-      {u.type && !round && (
-        <div className="absolute left-0.5 top-0.5 grid h-[22%] w-[22%] min-h-3 min-w-3 place-items-center rounded-[4px]"
-          style={{ background: color }} title={HERO_TYPES[u.type].label}>
-          {u.type === 'magic' ? (
-            <img src={magicRole} alt="เวทย์" className="h-full w-full object-contain brightness-0 invert" draggable={false} />
-          ) : Icon ? <Icon className="h-[70%] w-[70%] text-white" strokeWidth={2.5} /> : null}
+      {u.type && roleBadge && !round && (
+        <div className="unit-role-badge" style={{ '--role-tone': roleBadge.tone } as CSSProperties}
+          title={HERO_TYPES[u.type].label}>
+          <img src={roleBadge.image} alt={HERO_TYPES[u.type].label} draggable={false} />
         </div>
       )}
 
