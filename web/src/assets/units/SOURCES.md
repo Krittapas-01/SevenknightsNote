@@ -166,3 +166,48 @@ the remaining entries use `s6`. Klahan matches the English source name
 | กวนอู.webp | Guan Yu | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_101616Big.webp |
 | เนีย.webp | Nia | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_100856Big.webp |
 | ซีค.webp | Sieg | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_100886Big.webp |
+
+## Rare roster portraits (2026-09-25)
+
+Added 36 portraits for the expanded Rare roster from the same Atlas metadata.
+Heavenia uses her awakened portrait; the other 35 use six-star base portraits.
+Transparent compressed WebP originals are loaded locally with the existing lazy loading.
+
+| Local file | Source name | Form | Source image |
+| --- | --- | --- | --- |
+| แบล็คโรส.webp | Black Rose | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_101116Big.webp |
+| แคทตี้.webp | Catty | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_101156Big.webp |
+| เฮฟเว่นเนีย awake.webp | Heavenia | awk | images/heroes/thumb/R/AWK/Tex_HeroIcon_400677Big.webp |
+| โฮกิ้น.webp | Hokin | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100076Big.webp |
+| เจน.webp | Jane | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100926Big.webp |
+| จิน.webp | Jin | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_101166Big.webp |
+| จูพี้.webp | Jupy | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100746Big.webp |
+| ลีโอ.webp | Leo | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100216Big.webp |
+| เมย์.webp | May | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100946Big.webp |
+| เรย์.webp | Rei | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_101186Big.webp |
+| สนิปเปอร์.webp | Snipper | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100736Big.webp |
+| โซอี.webp | Soi | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100716Big.webp |
+| เสี่ยว.webp | Xiao | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_101856Big.webp |
+| จูล่ง.webp | Zhao Yun | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_101596Big.webp |
+| เอเรียล.webp | Ariel | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100656Big.webp |
+| เบน.webp | Bane | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100286Big.webp |
+| คลีโอ.webp | Cleo | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100356Big.webp |
+| โจ๊กเกอร์.webp | Joker | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100776Big.webp |
+| หลิงหลิง.webp | Ling Ling | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_101496Big.webp |
+| โนโฮ.webp | Noho | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100986Big.webp |
+| เซร่า.webp | Sera | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100936Big.webp |
+| ซิลเวีย.webp | Sylvia | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100826Big.webp |
+| ยูริ.webp | Yuri | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100186Big.webp |
+| อีวาน.webp | Evan | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100756Big.webp |
+| ลี.webp | Li | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100646Big.webp |
+| ยูจินโฮ.webp | Yoo Jinho | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_101756Big.webp |
+| โคลอี้.webp | Chloe | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100976Big.webp |
+| คาริน.webp | Karin | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100766Big.webp |
+| คารอน.webp | Karon | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100786Big.webp |
+| อีจูฮี.webp | Lee Joohee | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_101766Big.webp |
+| ลูซี่.webp | Lucy | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100806Big.webp |
+| ซาร่า.webp | Sarah | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100486Big.webp |
+| ยูอิ.webp | Yui | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100836Big.webp |
+| อสุรา.webp | Asura | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100996Big.webp |
+| ลาเนีย.webp | Lania | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100426Big.webp |
+| วิคตอเรีย.webp | Victoria | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100796Big.webp |
