@@ -133,3 +133,36 @@ Image URLs below start with `https://7katlas.com/images/pets/raw/`.
 | ครี.webp | Kree | L/Tex_PetIcon_10040Card.webp |
 | จีฟ.webp | Jeb | L/Tex_PetIcon_10340Card.webp |
 | เดลโล่.webp | Dello | L/Tex_PetIcon_10060Card.webp |
+
+## Additional roster portraits (2026-09-25)
+
+Added the 23 missing portraits from the same Atlas metadata and compressed
+`images/heroes/thumb/` source. Knox and Velika use their `awk` portraits;
+the remaining entries use `s6`. Klahan matches the English source name
+(Thai source alias: พยัคฆ์เมฆา). Local filenames match the existing roster IDs.
+
+| Local file | Source name | Form | Source image |
+| --- | --- | --- | --- |
+| โคลท์.webp | Colt | s6 | images/heroes/thumb/L+/6/Tex_HeroIcon_101136Big.webp |
+| คลาฮาน.webp | Klahan | s6 | images/heroes/thumb/L+/6/Tex_HeroIcon_101376Big.webp |
+| ไป่หลง.webp | Bai Long | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_101546Big.webp |
+| พีดัม.webp | Bi Dam | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_100706Big.webp |
+| ชาแฮอิน.webp | Cha Hae-in | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_101746Big.webp |
+| เซอิน.webp | Shane | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_100876Big.webp |
+| ทากะ.webp | Taka | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_101146Big.webp |
+| ซองจินอู.webp | Sung Jinwoo | s6 | images/heroes/thumb/L+/6/Tex_HeroIcon_101736Big.webp |
+| เดซี่.webp | Daisy | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_101176Big.webp |
+| เอสปาด้า.webp | Espada | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_100866Big.webp |
+| มิโฮะ.webp | Miho | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_101396Big.webp |
+| ปาสคาล.webp | Pascal | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_101006Big.webp |
+| ลูลี่.webp | Ruri | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_100846Big.webp |
+| เบลลีก้า awake.webp | Velika | awk | images/heroes/thumb/L/AWK/Tex_HeroIcon_400817Big.webp |
+| เสี่ยวเฉียว.webp | Xiao Qiao | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_101526Big.webp |
+| อารากอน.webp | Aragon | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_100966Big.webp |
+| น็อกซ์ awake.webp | Knox | awk | images/heroes/thumb/L/AWK/Tex_HeroIcon_400497Big.webp |
+| บิสกิต.webp | Biscuit | s6 | images/heroes/thumb/L+/6/Tex_HeroIcon_101106Big.webp |
+| ออร์ลี่.webp | Orly | s6 | images/heroes/thumb/L+/6/Tex_HeroIcon_101266Big.webp |
+| ไป๋เจียว.webp | Bai Jiao | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_101556Big.webp |
+| กวนอู.webp | Guan Yu | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_101616Big.webp |
+| เนีย.webp | Nia | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_100856Big.webp |
+| ซีค.webp | Sieg | s6 | images/heroes/thumb/L/6/Tex_HeroIcon_100886Big.webp |
