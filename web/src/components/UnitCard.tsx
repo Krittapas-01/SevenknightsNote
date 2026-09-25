@@ -41,7 +41,7 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
       title={u.name}
     >
       {u.img && failedImage !== u.img ? (
-        <img src={u.img} alt={u.name} className="absolute inset-0 h-full w-full object-cover" draggable={false} loading="lazy" decoding="async" onError={() => setFailedImage(u.img!)} />
+        <img src={u.img} alt={u.name} className={`absolute inset-0 h-full w-full object-cover ${shape === 'hero' ? 'origin-[50%_24%] scale-[1.6]' : ''}`} draggable={false} loading="lazy" decoding="async" onError={() => setFailedImage(u.img!)} />
       ) : (
         <div className="unit-monogram absolute inset-0 grid place-items-center pb-[18%] font-bold text-white/90"
           style={{ fontSize: round ? '0.8em' : '1.15em', textShadow: '0 2px 4px rgba(0,0,0,.6)' }}>

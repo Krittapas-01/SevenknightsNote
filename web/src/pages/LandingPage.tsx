@@ -6,7 +6,7 @@ import VsArena from '../components/VsArena'
 import { api, getRecent, pushRecent, saveEditKey } from '../lib/api'
 import type { Team } from '../lib/types'
 
-const DEMO_ALLY: Team = { front: 2, slots: ['ลูดี้', null, 'ยอนฮี', 'เรเชล', null], pet: 'อีรีน', extras: ['เจโอ', null, null, null], speed: 210 }
+const DEMO_ALLY: Team = { front: 2, slots: ['ลูดี้ awake', null, 'ยอนฮี', 'เรเชล', null], pet: 'อีรีน', extras: ['เจโอ', null, null, null], speed: 210 }
 const DEMO_ENEMY: Team = { front: 2, slots: ['เดลโลนส์', 'ไอลีน', null, 'วาเนสซา', null], pet: 'ยอนจี', extras: ['ยู', 'โยรัง', 'เจโอ', null], speed: 198 }
 const DEMO_SKILLS = [{ slot: 2, skill: 1 as const }, { slot: 2, skill: 2 as const }, { slot: 3, skill: 1 as const }]
 

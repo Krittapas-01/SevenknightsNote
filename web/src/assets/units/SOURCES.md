@@ -1,140 +1,135 @@
 # Unit portrait sources
 
-## Heroes — GameWith Re:BIRTH guide
+Retrieved 2026-09-25 from [7K Atlas Hero Codex](https://7katlas.com/codex.html)
+and [Pet Codex](https://7katlas.com/pets.html), a fan reference site by
+7KDreamer Plays & castiel, not an official Netmarble site.
+Game artwork © Netmarble Corp. & Netmarble Nexus Inc. Source attribution
+does not change ownership of these assets.
 
-Retrieved 2026-09-25 from the [GameWith character list](https://gamewith.jp/sevenknights-rebirth/513424)
-and the individual character pages linked below. GameWith is a third-party guide,
-not an official Netmarble image source. These replace the earlier Netmarble
-website portraits so hero and pet thumbnails share the same in-game card style.
+These original transparent WebP images replace the earlier framed GameWith
+thumbnails. They contain no baked-in rarity background, card border, star row,
+or upper-right sparkle. They are stored locally and loaded lazily; there are no
+runtime requests to the source site, generated artwork, or added dependencies.
 
-Original 100 × 100 PNG thumbnails are served locally and loaded lazily.
-No generated character art, external runtime image requests, or new dependencies.
-Copyright © Netmarble Corp. & Netmarble Nexus Inc. All Rights Reserved.
-Source attribution does not change ownership of these assets.
+Hero images use the site's compressed `images/heroes/thumb/` variants
+(512 × 512, under 70 KB each). Pet images use its transparent card portraits
+(256 × 256, under 53 KB each). Original alpha channels are preserved.
+The UI frames hero portraits closer using CSS, without altering the source art.
 
-### Form matching
+## Form matching
 
-- Base and awakened portraits are separate files. The image lookup never falls
-  back from an awakened name to a base portrait.
-- Awakened images were checked against the explicit 覚醒 / ★6 portrait labels
-  on each character page, rather than the main list (which often omits the form).
-- `Rudy.png` is the base portrait; `Rudy awake.png` is the awakened portrait.
-- By the user's explicit preference, the existing ไอลีน entry uses awakened
-  Eileene (`chara_527.png`). No catalog IDs or saved formations were changed.
-- The user confirmed เกล is shorthand for เกลลิดัส. Both use `Gelidus.png`.
-- แทโอ and เทโอ use the same `Teo.png` portrait.
-- `Silvesta.png` retains the base portrait for the existing image alias, while
-  the catalog's ซิลเวสตา awake uses `Silvesta awake.png`.
-- Characters and pets without an exact verified portrait retain initials/paw icons.
+- Source fields `name_th` / `name_jp` were matched to the verified catalog names.
+- Hero `portraits.s6` is used for the base form and `portraits.awk` for awakening.
+  Awakened names never fall back to a base portrait.
+- `Rudy.webp` is base Rudy; `Rudy awake.webp` is awakened Rudy. The landing
+  page demonstration selects `ลูดี้ awake`.
+- By the user's explicit preference, existing ไอลีน uses awakened Eileene.
+- เกล and เกลลิดัส share `Gelidus.webp`; แทโอ and เทโอ share `Teo.webp`.
+- The user chose the transparent pet set even where its appearance differs
+  from the prior GameWith six-star image (for example, Ruu).
+- จีฟ is Jeb; รีเซล maps to Richel (รีเชล in the source).
+- No saved guild formations, catalog IDs, API, or drag-and-drop logic changed.
 
-Image URLs below start with
-`https://img.gamewith.jp/article_tools/sevenknights-rebirth/gacha/`.
-“Base” means the non-awakened six-star portrait.
+## Heroes
 
-| Local file | Catalog name / alias | Source name | Form | Image | Reference |
-| --- | --- | --- | --- | --- | --- |
-| Clemyth awake.png | เคลมิส awake | クレミス | Awakened | chara_484.png | [Character page](https://gamewith.jp/sevenknights-rebirth/563335) |
-| Sun Wukong.png | ซุนหงอคง | 孫悟空 | Base | chara_393.png | [Character page](https://gamewith.jp/sevenknights-rebirth/536898) |
-| โอม๊ก.png | โอม๊ก | 烏目 | Base | chara_472.png | [Character page](https://gamewith.jp/sevenknights-rebirth/559577) |
-| Radgrid.png | แร็ดกริด | ラーズグリーズ | Base | chara_435.png | [Character page](https://gamewith.jp/sevenknights-rebirth/545430) |
-| Silvesta awake.png | ซิลเวสตา awake | シルベスター | Awakened | chara_480.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513523) |
-| Lu Bu.png | ลิโป้ | 呂布 | Base | chara_426.png | [Character page](https://gamewith.jp/sevenknights-rebirth/543481) |
-| Skuld awake.png | สกัลด์ awake | スクルド | Awakened | chara_479.png | [Character page](https://gamewith.jp/sevenknights-rebirth/561872) |
-| Melia.png | มิเลีย | ミリア | Base | chara_399.png | [Character page](https://gamewith.jp/sevenknights-rebirth/536900) |
-| Dellons awake.png | เดลโลนส์ awake | デロンズ | Awakened | chara_485.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513520) |
-| Freyja.png | เฟรย่า | フレイヤ | Base | chara_390.png | [Character page](https://gamewith.jp/sevenknights-rebirth/534006) |
-| เรกินเลฟ.png | เรกินเลฟ | レギンレイヴ | Base | chara_444.png | [Character page](https://gamewith.jp/sevenknights-rebirth/547114) |
-| Randgrid.png | แรนด์กริด | ランドグリーズ | Base | chara_462.png | [Character page](https://gamewith.jp/sevenknights-rebirth/552235) |
-| Sunran awake.png | ซอรัน awake | ソンラン | Awakened | chara_500.png | [Character page](https://gamewith.jp/sevenknights-rebirth/569228) |
-| Branze & Bransel.png | บรันซ์ & บรันเซล | ブランズ＆ブランセル | Base | chara_402.png | [Character page](https://gamewith.jp/sevenknights-rebirth/539678) |
-| พาลานอส.png | พาลานอส | パラヌス | Base | chara_408.png | [Character page](https://gamewith.jp/sevenknights-rebirth/541143) |
-| Karl Heron.png | คาร์ล เฮรอน | カール・ヘロン | Base | chara_475.png | [Character page](https://gamewith.jp/sevenknights-rebirth/560568) |
-| Gelidus.png | เกลลิดัส / เกล | ゲリドゥス | Base | chara_396.png | [Character page](https://gamewith.jp/sevenknights-rebirth/536899) |
-| Hellenia awake epic.png | เฮเลเนีย awake epic | エレニア | Awakened | chara_490.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513531) |
-| เตียวเสี้ยน.png | เตียวเสี้ยน | 貂蝉 | Base | chara_411.png | [Character page](https://gamewith.jp/sevenknights-rebirth/541149) |
-| Aris awake.png | อาริส awake | エリス | Awakened | chara_495.png | [Character page](https://gamewith.jp/sevenknights-rebirth/567489) |
-| Yoongun awake.png | ยุนกอน awake | ユンゴン | Awakened | chara_521.png | [Character page](https://gamewith.jp/sevenknights-rebirth/572956) |
-| Rudy awake.png | ลูดี้ awake | ルディ | Awakened | chara_496.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513514) |
-| Rin.png | ริน | リン | Base | chara_339.png | [Character page](https://gamewith.jp/sevenknights-rebirth/516855) |
-| Dongyoung awake.png | โดยอง awake | ドンヨン | Awakened | chara_516.png | [Character page](https://gamewith.jp/sevenknights-rebirth/571386) |
-| ไพร์.png | ไพร์ | ファイ | Base | chara_315.png | [Character page](https://gamewith.jp/sevenknights-rebirth/516848) |
-| Hayeon.png | อีจูฉี | ハヨン | Base | chara_524.png | [Character page](https://gamewith.jp/sevenknights-rebirth/574670) |
-| Trude.png | ธรูด | トゥルード | Base | chara_384.png | [Character page](https://gamewith.jp/sevenknights-rebirth/531670) |
-| Yeonhee.png | ยอนฮี | 結絆 | Base | chara_330.png | [Character page](https://gamewith.jp/sevenknights-rebirth/516853) |
-| มิสต์.png | มิสต์ | ミスト | Base | chara_466.png | [Character page](https://gamewith.jp/sevenknights-rebirth/555898) |
-| Kyle.png | ไคล์ | カイル | Base | chara_372.png | [Character page](https://gamewith.jp/sevenknights-rebirth/524413) |
-| เอซ.png | เอซ | エース | Base | chara_33.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513522) |
-| Orkah awake.png | ออร์ก้า awake | オルカ | Awakened | chara_489.png | [Character page](https://gamewith.jp/sevenknights-rebirth/565170) |
-| เมลคีร์.png | เมลคีร์ | メルキル | Base | chara_333.png | [Character page](https://gamewith.jp/sevenknights-rebirth/516854) |
-| เพลตัน.png | เพลตัน | プラトン | Base | chara_345.png | [Character page](https://gamewith.jp/sevenknights-rebirth/517513) |
-| อลิซ.png | อลิซ | アリス | Base | chara_45.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513526) |
-| รีน่า.png | รีน่า | リナ | Base | chara_147.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513560) |
-| เอมิเลีย.png | เอมิเลีย | アメリア | Base | chara_366.png | [Character page](https://gamewith.jp/sevenknights-rebirth/521627) |
-| Aquila.png | อากีลา | アキラ | Base | chara_375.png | [Character page](https://gamewith.jp/sevenknights-rebirth/524414) |
-| Juri.png | จูริ | ジュリ | Base | chara_321.png | [Character page](https://gamewith.jp/sevenknights-rebirth/516850) |
-| Teo.png | แทโอ / เทโอ | テオ | Base | chara_324.png | [Character page](https://gamewith.jp/sevenknights-rebirth/516851) |
-| คางุระ.png | คางุระ | 神楽 | Base | chara_369.png | [Character page](https://gamewith.jp/sevenknights-rebirth/521628) |
-| Rosie.png | โรซี่ | ロージー | Base | chara_318.png | [Character page](https://gamewith.jp/sevenknights-rebirth/516849) |
-| เอลิเซีย.png | เอลิเซีย | エリシア | Base | chara_381.png | [Character page](https://gamewith.jp/sevenknights-rebirth/529224) |
-| บาลิสต้า.png | บาลิสต้า | バリスタ | Base | chara_120.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513551) |
-| แรคคูน.png | แรคคูน | ラクーン | Base | chara_297.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513610) |
-| Hellenia.png | เฮเลเนีย | エレニア | Base | chara_60.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513531) |
-| Jave.png | เจฟ | ジェイブ | Base | chara_21.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513518) |
-| Spike.png | สไปค์ | スパイク | Base | chara_18.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513517) |
-| Knox.png | น็อกซ์ | ノックス | Base | chara_111.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513548) |
-| คริส.png | คริส | クリス | Base | chara_24.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513519) |
-| นาจา.png | นาจา | ナタ | Base | chara_469.png | [Character page](https://gamewith.jp/sevenknights-rebirth/555899) |
-| ลุค.png | ลุค | ルーク | Base | chara_150.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513561) |
-| ชานชะเลอร์.png | ชานชะเลอร์ | チャンスラー | Base | chara_105.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513546) |
-| เฟิงเยี่ยน.png | เฟิงเยี่ยน | 風燕 | Base | chara_171.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513568) |
-| คิริเอล.png | คิริเอล | キリエル | Base | chara_378.png | [Character page](https://gamewith.jp/sevenknights-rebirth/526711) |
-| Rudy.png | ลูดี้ | ルディ | Base | chara_9.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513514) |
-| ไรอัน.png | ไรอัน | ライアン | Base | chara_387.png | [Character page](https://gamewith.jp/sevenknights-rebirth/531671) |
-| Vanessa.png | วาเนสซา | ヴァネッサ | Base | chara_30.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513521) |
-| Sunran.png | ซอรัน | ソンラン | Base | chara_499.png | [Character page](https://gamewith.jp/sevenknights-rebirth/569228) |
-| Clemyth.png | เคลมิส | クレミス | Base | chara_483.png | [Character page](https://gamewith.jp/sevenknights-rebirth/563335) |
-| Aris.png | อาริส | エリス | Base | chara_494.png | [Character page](https://gamewith.jp/sevenknights-rebirth/567489) |
-| Yoongun.png | ยุนกอน | ユンゴン | Base | chara_520.png | [Character page](https://gamewith.jp/sevenknights-rebirth/572956) |
-| Dongyoung.png | โดยอง | ドンヨン | Base | chara_515.png | [Character page](https://gamewith.jp/sevenknights-rebirth/571386) |
-| Skuld.png | สกัลด์ | スクルド | Base | chara_478.png | [Character page](https://gamewith.jp/sevenknights-rebirth/561872) |
-| Dellons.png | เดลโลนส์ | デロンズ | Base | chara_27.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513520) |
-| Orkah.png | ออร์ก้า | オルカ | Base | chara_488.png | [Character page](https://gamewith.jp/sevenknights-rebirth/565170) |
-| ยูชิน.png | ยูชิน | 勇翔 | Base | chara_174.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513569) |
-| Rachel.png | เรเชล | レイチェル | Base | chara_12.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513515) |
-| Eileene.png | ไอลีน | アイリーン | Awakened | chara_527.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513516) |
-| Karma.png | คาร์มา | カルマ | Base | chara_342.png | [Character page](https://gamewith.jp/sevenknights-rebirth/516856) |
-| Silvesta.png | ซิลเวสตา | シルベスター | Base | chara_36.png | [Character page](https://gamewith.jp/sevenknights-rebirth/513523) |
+Source metadata: [Rare](https://7katlas.com/COMBINE/heroes-R.js),
+[Legendary](https://7katlas.com/COMBINE/heroes-L.js),
+[Legendary+](https://7katlas.com/COMBINE/heroes-Lplus.js),
+[Legendary++](https://7katlas.com/COMBINE/heroes-Lpp.js).
+Image URLs below start with `https://7katlas.com/images/heroes/thumb/`.
 
-## Pets — GameWith Re:BIRTH guide
+| Local file | Catalog name / alias | Source name | Form | Source image |
+| --- | --- | --- | --- | --- |
+| Clemyth awake.webp | เคลมิส awake | [Clemyth](https://7katlas.com/codex.html?hero=clemyth) | awakened | L+/AWK/Tex_HeroIcon_401797Big.webp |
+| Sun Wukong.webp | ซุนหงอคง | [Sun Wukong](https://7katlas.com/codex.html?hero=sun-wukong) | base | L+/6/Tex_HeroIcon_101476Big.webp |
+| โอม๊ก.webp | โอม๊ก | [O'Mok](https://7katlas.com/codex.html?hero=omok) | base | L+/6/Tex_HeroIcon_101776Big.webp |
+| Radgrid.webp | แร็ดกริด | [Radgrid](https://7katlas.com/codex.html?hero=radgrid) | base | L+/6/Tex_HeroIcon_101696Big.webp |
+| Silvesta awake.webp | ซิลเวสตา awake | [Silvesta](https://7katlas.com/codex.html?hero=silvesta) | awakened | L+/AWK/Tex_HeroIcon_400557Big.webp |
+| Lu Bu.webp | ลิโป้ | [Lu Bu](https://7katlas.com/codex.html?hero=lu-bu) | base | L+/6/Tex_HeroIcon_101486Big.webp |
+| Skuld awake.webp | สกัลด์ awake | [Skuld](https://7katlas.com/codex.html?hero=skuld) | awakened | L+/AWK/Tex_HeroIcon_401687Big.webp |
+| Melia.webp | มิเลีย | [Melia](https://7katlas.com/codex.html?hero=melia) | base | L++/6/Tex_HeroIcon_101206Big.webp |
+| Dellons awake.webp | เดลโลนส์ awake | [Dellons](https://7katlas.com/codex.html?hero=dellons) | awakened | L+/AWK/Tex_HeroIcon_400587Big.webp |
+| Freyja.webp | เฟรย่า | [Freyja](https://7katlas.com/codex.html?hero=freyja) | base | L+/6/Tex_HeroIcon_101316Big.webp |
+| เรกินเลฟ.webp | เรกินเลฟ | [Reginleif](https://7katlas.com/codex.html?hero=reginleif) | base | L+/6/Tex_HeroIcon_101706Big.webp |
+| Randgrid.webp | แรนด์กริด | [Randgrid](https://7katlas.com/codex.html?hero=randgrid) | base | L+/6/Tex_HeroIcon_101716Big.webp |
+| Sunran awake.webp | ซอรัน awake | [Sunran](https://7katlas.com/codex.html?hero=sunran) | awakened | L+/AWK/Tex_HeroIcon_401877Big.webp |
+| Branze & Bransel.webp | บรันซ์ & บรันเซล | [Branze & Bransel](https://7katlas.com/codex.html?hero=branze-bransel) | base | L+/6/Tex_HeroIcon_101456Big.webp |
+| พาลานอส.webp | พาลานอส | [Pallanus](https://7katlas.com/codex.html?hero=pallanus) | base | L+/6/Tex_HeroIcon_101466Big.webp |
+| Karl Heron.webp | คาร์ล เฮรอน | [Karl Heron](https://7katlas.com/codex.html?hero=karl-heron) | base | L+/6/Tex_HeroIcon_101786Big.webp |
+| Gelidus.webp | เกลลิดัส / เกล | [Gelidus](https://7katlas.com/codex.html?hero=gelidus) | base | L++/6/Tex_HeroIcon_101196Big.webp |
+| Hellenia awake epic.webp | เฮเลเนีย awake epic | [Hellenia](https://7katlas.com/codex.html?hero=hellenia) | awakened | R/AWK/Tex_HeroIcon_400667Big.webp |
+| เตียวเสี้ยน.webp | เตียวเสี้ยน | [Diaochan](https://7katlas.com/codex.html?hero=diaochan) | base | L/6/Tex_HeroIcon_101606Big.webp |
+| Aris awake.webp | อาริส awake | [Aris](https://7katlas.com/codex.html?hero=aris) | awakened | L+/AWK/Tex_HeroIcon_401827Big.webp |
+| Yoongun awake.webp | ยุนกอน awake | [Yoongun](https://7katlas.com/codex.html?hero=yoongun) | awakened | L+/AWK/Tex_HeroIcon_401907Big.webp |
+| Rudy awake.webp | ลูดี้ awake | [Rudy](https://7katlas.com/codex.html?hero=rudy) | awakened | L+/AWK/Tex_HeroIcon_400567Big.webp |
+| Rin.webp | ริน | [Rin](https://7katlas.com/codex.html?hero=rin) | base | L+/6/Tex_HeroIcon_101416Big.webp |
+| Dongyoung awake.webp | โดยอง awake | [Dongyoung](https://7katlas.com/codex.html?hero=dongyoung) | awakened | L+/AWK/Tex_HeroIcon_401897Big.webp |
+| ไพร์.webp | ไพร์ | [Fai](https://7katlas.com/codex.html?hero=fai) | base | L++/6/Tex_HeroIcon_101216Big.webp |
+| Hayeon.webp | อีจูฉี | [Hayeon](https://7katlas.com/codex.html?hero=hayeon) | base | L+/6/Tex_HeroIcon_101886Big.webp |
+| Trude.webp | ธรูด | [Trude](https://7katlas.com/codex.html?hero=trude) | base | L+/6/Tex_HeroIcon_101306Big.webp |
+| Yeonhee.webp | ยอนฮี | [Yeonhee](https://7katlas.com/codex.html?hero=yeonhee) | base | L+/6/Tex_HeroIcon_100536Big.webp |
+| มิสต์.webp | มิสต์ | [Mist](https://7katlas.com/codex.html?hero=mist) | base | L+/6/Tex_HeroIcon_101726Big.webp |
+| Kyle.webp | ไคล์ | [Kyle](https://7katlas.com/codex.html?hero=kyle) | base | L+/6/Tex_HeroIcon_101436Big.webp |
+| เอซ.webp | เอซ | [Ace](https://7katlas.com/codex.html?hero=ace) | base | L+/6/Tex_HeroIcon_100516Big.webp |
+| Orkah awake.webp | ออร์ก้า awake | [Orkah](https://7katlas.com/codex.html?hero=orkah) | awakened | L+/AWK/Tex_HeroIcon_401807Big.webp |
+| เมลคีร์.webp | เมลคีร์ | [Mercure](https://7katlas.com/codex.html?hero=mercure) | base | L+/6/Tex_HeroIcon_101126Big.webp |
+| เพลตัน.webp | เพลตัน | [Platin](https://7katlas.com/codex.html?hero=platin) | base | L+/6/Tex_HeroIcon_100546Big.webp |
+| อลิซ.webp | อลิซ | [Alice](https://7katlas.com/codex.html?hero=alice) | base | L/6/Tex_HeroIcon_100956Big.webp |
+| รีน่า.webp | รีน่า | [Lina](https://7katlas.com/codex.html?hero=lina) | base | L/6/Tex_HeroIcon_100726Big.webp |
+| เอมิเลีย.webp | เอมิเลีย | [Amelia](https://7katlas.com/codex.html?hero=amelia) | base | L/6/Tex_HeroIcon_101406Big.webp |
+| Aquila.webp | อากีลา | [Aquila](https://7katlas.com/codex.html?hero=aquila) | base | L+/6/Tex_HeroIcon_101446Big.webp |
+| Juri.webp | จูริ | [Juri](https://7katlas.com/codex.html?hero=juri) | base | L++/6/Tex_HeroIcon_101256Big.webp |
+| Teo.webp | แทโอ / เทโอ | [Teo](https://7katlas.com/codex.html?hero=teo) | base | L+/6/Tex_HeroIcon_100526Big.webp |
+| คางุระ.webp | คางุระ | [Kagura](https://7katlas.com/codex.html?hero=kagura) | base | L+/6/Tex_HeroIcon_101386Big.webp |
+| Rosie.webp | โรซี่ | [Rosie](https://7katlas.com/codex.html?hero=rosie) | base | L++/6/Tex_HeroIcon_101226Big.webp |
+| เอลิเซีย.webp | เอลิเซีย | [Elysia](https://7katlas.com/codex.html?hero=elysia) | base | L+/6/Tex_HeroIcon_101276Big.webp |
+| บาลิสต้า.webp | บาลิสต้า | [Ballista](https://7katlas.com/codex.html?hero=ballista) | base | L/6/Tex_HeroIcon_100916Big.webp |
+| แรคคูน.webp | แรคคูน | [Rahkun](https://7katlas.com/codex.html?hero=rahkun) | base | R/6/Tex_HeroIcon_100146Big.webp |
+| Hellenia.webp | เฮเลเนีย | [Hellenia](https://7katlas.com/codex.html?hero=hellenia) | base | R/6/Tex_HeroIcon_100666Big.webp |
+| Jave.webp | เจฟ | [Jave](https://7katlas.com/codex.html?hero=jave) | base | L+/6/Tex_HeroIcon_100616Big.webp |
+| Spike.webp | สไปค์ | [Spike](https://7katlas.com/codex.html?hero=spike) | base | L+/6/Tex_HeroIcon_100626Big.webp |
+| Knox.webp | น็อกซ์ | [Knox](https://7katlas.com/codex.html?hero=knox) | base | L/6/Tex_HeroIcon_100496Big.webp |
+| คริส.webp | คริส | [Kris](https://7katlas.com/codex.html?hero=kris) | base | L+/6/Tex_HeroIcon_100576Big.webp |
+| นาจา.webp | นาจา | [Nezha](https://7katlas.com/codex.html?hero=nezha) | base | L+/6/Tex_HeroIcon_101566Big.webp |
+| ลุค.webp | ลุค | [Rook](https://7katlas.com/codex.html?hero=rook) | base | L/6/Tex_HeroIcon_100896Big.webp |
+| ชานชะเลอร์.webp | ชานชะเลอร์ | [Chancellor](https://7katlas.com/codex.html?hero=chancellor) | base | L/6/Tex_HeroIcon_100906Big.webp |
+| เฟิงเยี่ยน.webp | เฟิงเยี่ยน | [Feng Yan](https://7katlas.com/codex.html?hero=feng-yan) | base | R/6/Tex_HeroIcon_100686Big.webp |
+| คิริเอล.webp | คิริเอล | [Kyrielle](https://7katlas.com/codex.html?hero=kyrielle) | base | L+/6/Tex_HeroIcon_101286Big.webp |
+| Rudy.webp | ลูดี้ | [Rudy](https://7katlas.com/codex.html?hero=rudy) | base | L+/6/Tex_HeroIcon_100566Big.webp |
+| ไรอัน.webp | ไรอัน | [Ryan](https://7katlas.com/codex.html?hero=ryan) | base | L+/6/Tex_HeroIcon_101296Big.webp |
+| Vanessa.webp | วาเนสซา | [Vanessa](https://7katlas.com/codex.html?hero=vanessa) | base | L+/6/Tex_HeroIcon_100636Big.webp |
+| Sunran.webp | ซอรัน | [Sunran](https://7katlas.com/codex.html?hero=sunran) | base | L+/6/Tex_HeroIcon_101876Big.webp |
+| Clemyth.webp | เคลมิส | [Clemyth](https://7katlas.com/codex.html?hero=clemyth) | base | L+/6/Tex_HeroIcon_101796Big.webp |
+| Aris.webp | อาริส | [Aris](https://7katlas.com/codex.html?hero=aris) | base | L+/6/Tex_HeroIcon_101826Big.webp |
+| Yoongun.webp | ยุนกอน | [Yoongun](https://7katlas.com/codex.html?hero=yoongun) | base | L+/6/Tex_HeroIcon_101906Big.webp |
+| Dongyoung.webp | โดยอง | [Dongyoung](https://7katlas.com/codex.html?hero=dongyoung) | base | L+/6/Tex_HeroIcon_101896Big.webp |
+| Skuld.webp | สกัลด์ | [Skuld](https://7katlas.com/codex.html?hero=skuld) | base | L+/6/Tex_HeroIcon_101686Big.webp |
+| Dellons.webp | เดลโลนส์ | [Dellons](https://7katlas.com/codex.html?hero=dellons) | base | L+/6/Tex_HeroIcon_100586Big.webp |
+| Orkah.webp | ออร์ก้า | [Orkah](https://7katlas.com/codex.html?hero=orkah) | base | L+/6/Tex_HeroIcon_101806Big.webp |
+| ยูชิน.webp | ยูชิน | [Yu Shin](https://7katlas.com/codex.html?hero=yu-shin) | base | L/6/Tex_HeroIcon_100696Big.webp |
+| Rachel.webp | เรเชล | [Rachel](https://7katlas.com/codex.html?hero=rachel) | base | L+/6/Tex_HeroIcon_100606Big.webp |
+| Eileene.webp | ไอลีน | [Eileene](https://7katlas.com/codex.html?hero=eileene) | awakened | L+/AWK/Tex_HeroIcon_400597Big.webp |
+| Karma.webp | คาร์มา | [Karma](https://7katlas.com/codex.html?hero=karma) | base | L+/6/Tex_HeroIcon_101426Big.webp |
+| Silvesta.webp | ซิลเวสตา | [Silvesta](https://7katlas.com/codex.html?hero=silvesta) | base | L+/6/Tex_HeroIcon_100556Big.webp |
 
-Retrieved 2026-09-25 from the pet listings on the
-[GameWith Japanese Re:BIRTH guide](https://gamewith.jp/sevenknights-rebirth/)
-and checked against its [pet list](https://gamewith.jp/sevenknights-rebirth/534775)
-and [English pet guide](https://gamewith.net/sevenknights-rebirth/70753).
-GameWith is a third-party guide, not an official Netmarble image source.
+## Pets
 
-These original 100 × 100 PNG thumbnails are stored locally and use the existing
-lazy-loading image lookup. No runtime requests to GameWith are needed.
-The game artwork remains the property of its respective rights holders.
+Source metadata: [Legendary pets](https://7katlas.com/COMBINE/pets-L.js).
+Image URLs below start with `https://7katlas.com/images/pets/raw/`.
 
-All pet source URLs start with
-`https://img.gamewith.jp/article_tools/sevenknights-rebirth/gacha/`.
-Japanese names below are the source image labels. The user confirmed that
-the catalog's จีฟ refers to Jeb (ジェブ).
-
-| Local file | Source pet label | Source path |
+| Local file | Source name | Source image |
 | --- | --- | --- |
-| ลู.png | ルー | pet_1.png |
-| อีรีน.png | イリン | pet_2.png |
-| รีเซล.png | リチェル | pet_3.png |
-| ครี.png | クリ | pet_4.png |
-| ไพค์.png | パイク | pet_5.png |
-| เดลโล่.png | デロ | pet_6.png |
-| ยอนจี.png | ヨンジ | pet_7.png |
-| ยู.png | ユウ | pet_78.png |
-| วินดี้.png | ウィンディ | pet_79.png |
-| คารัม.png | カラム | pet_80.png |
-| เมลแปร์โรว์.png | メルパロ | pet_81.png |
-| เจโอ.png | ジェオ | pet_93.png |
-| โยรัง.png | ヨラン | pet_96.png |
-| จีฟ.png | ジェブ | pet_99.png |
+| ยอนจี.webp | Yeonji | L/Tex_PetIcon_10070Card.webp |
+| เจโอ.webp | Jeo | L/Tex_PetIcon_10380Card.webp |
+| ยู.webp | Yu | L/Tex_PetIcon_10360Card.webp |
+| อีรีน.webp | Eirin | L/Tex_PetIcon_10020Card.webp |
+| ลู.webp | Ruu | L/Tex_PetIcon_10010Card.webp |
+| คารัม.webp | Karam | L/Tex_PetIcon_10490Card.webp |
+| โยรัง.webp | Yorang | L/Tex_PetIcon_10450Card.webp |
+| ไพค์.webp | Pike | L/Tex_PetIcon_10050Card.webp |
+| เมลแปร์โรว์.webp | Merparrow | L/Tex_PetIcon_10370Card.webp |
+| วินดี้.webp | Windy | L/Tex_PetIcon_10350Card.webp |
+| รีเซล.webp | Richel | L/Tex_PetIcon_10030Card.webp |
+| ครี.webp | Kree | L/Tex_PetIcon_10040Card.webp |
+| จีฟ.webp | Jeb | L/Tex_PetIcon_10340Card.webp |
+| เดลโล่.webp | Dello | L/Tex_PetIcon_10060Card.webp |
