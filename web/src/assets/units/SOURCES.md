@@ -1,4 +1,6 @@
-# Character portrait sources
+# Unit portrait sources
+
+## Heroes — official Netmarble website
 
 Retrieved 2026-09-25 from the Characters section of the official
 [Seven Knights Re:BIRTH website](https://sena.netmarble.com/en).
@@ -33,3 +35,37 @@ where the existing English-name lookup has no entry. The existing lookup also
 uses a base portrait for an awakened unit when no awakened portrait is available;
 the AW badge distinguishes that state. Characters and pets without a verified
 portrait retain their initials/paw icon rather than displaying another character.
+
+## Pets — GameWith Re:BIRTH guide
+
+Retrieved 2026-09-25 from the pet listings on the
+[GameWith Japanese Re:BIRTH guide](https://gamewith.jp/sevenknights-rebirth/)
+and checked against its [pet list](https://gamewith.jp/sevenknights-rebirth/534775)
+and [English pet guide](https://gamewith.net/sevenknights-rebirth/70753).
+GameWith is a third-party guide, not an official Netmarble image source.
+
+These original 100 × 100 PNG thumbnails are stored locally and use the existing
+lazy-loading image lookup. No runtime requests to GameWith are needed.
+The game artwork remains the property of its respective rights holders.
+
+All pet source URLs start with
+`https://img.gamewith.jp/article_tools/sevenknights-rebirth/gacha/`.
+Japanese names below are the source image labels. The user confirmed that
+the catalog's จีฟ refers to Jeb (ジェブ).
+
+| Local file | Source pet label | Source path |
+| --- | --- | --- |
+| ลู.png | ルー | pet_1.png |
+| อีรีน.png | イリン | pet_2.png |
+| รีเซล.png | リチェル | pet_3.png |
+| ครี.png | クリ | pet_4.png |
+| ไพค์.png | パイク | pet_5.png |
+| เดลโล่.png | デロ | pet_6.png |
+| ยอนจี.png | ヨンジ | pet_7.png |
+| ยู.png | ユウ | pet_78.png |
+| วินดี้.png | ウィンディ | pet_79.png |
+| คารัม.png | カラム | pet_80.png |
+| เมลแปร์โรว์.png | メルパロ | pet_81.png |
+| เจโอ.png | ジェオ | pet_93.png |
+| โยรัง.png | ヨラン | pet_96.png |
+| จีฟ.png | ジェブ | pet_99.png |
