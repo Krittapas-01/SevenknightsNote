@@ -1,0 +1,54 @@
+# 7K Note - one-click deploy to Cloudflare (free)
+# Run in PowerShell:  cd C:\Dev\7k-note ; powershell -ExecutionPolicy Bypass -File .\deploy.ps1
+$ErrorActionPreference = "Stop"
+$root = $PSScriptRoot
+$project = "7k-note"
+
+function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Yellow }
+
+# ---------- API ----------
+Set-Location "$root\api"
+Step "Installing API packages"
+npm install --no-audit --no-fund | Out-Null
+
+Step "Checking Cloudflare login (a browser window may open - click Allow)"
+$who = (npx wrangler whoami 2>&1) -join "`n"
+if ($who -match "not authenticated|You are not") { npx wrangler login }
+
+$toml = Get-Content "$root\api\wrangler.toml" -Raw
+if ($toml -match '00000000-0000-0000-0000-000000000000') {
+  Step "Creating D1 database"
+  $out = (npx wrangler d1 create $project 2>&1) -join "`n"
+  Write-Host $out
+  if ($out -match '([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})') {
+    $toml = $toml -replace '00000000-0000-0000-0000-000000000000', $Matches[1]
+    [IO.File]::WriteAllText("$root\api\wrangler.toml", $toml)
+  } else { throw "Could not read database_id. If the database already exists, run: npx wrangler d1 list  and paste the id into api\wrangler.toml" }
+}
+
+Step "Creating tables (safe to re-run, data is kept)"
+npx wrangler d1 execute $project --remote --file=schema.sql -y
+
+Step "Deploying API"
+$dep = (npx wrangler deploy 2>&1) -join "`n"
+Write-Host $dep
+if ($dep -notmatch '(https://[\w\.-]+\.workers\.dev)') { throw "API deploy failed (see above)" }
+$apiUrl = $Matches[1]
+Write-Host "API: $apiUrl" -ForegroundColor Green
+
+# ---------- WEB ----------
+Set-Location "$root\web"
+Step "Building web"
+[IO.File]::WriteAllText("$root\web\.env.production", "VITE_API_URL=$apiUrl`n")
+npm install --no-audit --no-fund | Out-Null
+npm run build
+
+Step "Deploying web to Cloudflare Pages"
+npx wrangler pages project create $project --production-branch main 2>&1 | Out-Null
+$pages = (npx wrangler pages deploy dist --project-name $project --branch main --commit-dirty=true 2>&1) -join "`n"
+Write-Host $pages
+
+Set-Location $root
+Write-Host "`nDONE!" -ForegroundColor Green
+Write-Host "Website : https://$project.pages.dev  (may take ~1 min the first time)" -ForegroundColor Green
+Write-Host "API     : $apiUrl" -ForegroundColor Green
