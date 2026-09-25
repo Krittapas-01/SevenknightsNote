@@ -12,7 +12,7 @@ const ROLE_BADGE: Record<HeroType, { image: string; tone: string }> = {
   attack: { image: attackRole, tone: '#a82d30' },
   magic: { image: magicRole, tone: '#245c98' },
   defense: { image: defenseRole, tone: '#79512f' },
-  support: { image: supportRole, tone: '#367246' },
+  support: { image: supportRole, tone: '#b68a18' },
   universal: { image: universalRole, tone: '#643897' },
 }
 

@@ -20,7 +20,7 @@ export const HERO_TYPES: Record<HeroType, { label: string; color: string }> = {
   attack: { label: 'โจมตี', color: '#e5484d' },
   magic: { label: 'เวทย์', color: '#3e8ef7' },
   defense: { label: 'ป้องกัน', color: '#d9a23b' },
-  support: { label: 'สนับสนุน', color: '#30a46c' },
+  support: { label: 'สนับสนุน', color: '#e7bd35' },
   universal: { label: 'สมดุล', color: '#8e4ec6' },
 }
 
