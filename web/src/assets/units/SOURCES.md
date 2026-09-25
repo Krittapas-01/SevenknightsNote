@@ -65,7 +65,7 @@ Image URLs below start with `https://7katlas.com/images/heroes/thumb/`.
 | Rin.webp | ริน | [Rin](https://7katlas.com/codex.html?hero=rin) | base | L+/6/Tex_HeroIcon_101416Big.webp |
 | Dongyoung awake.webp | โดยอง awake | [Dongyoung](https://7katlas.com/codex.html?hero=dongyoung) | awakened | L+/AWK/Tex_HeroIcon_401897Big.webp |
 | ไพร์.webp | ไพร์ | [Fai](https://7katlas.com/codex.html?hero=fai) | base | L++/6/Tex_HeroIcon_101216Big.webp |
-| Hayeon.webp | อีจูฉี | [Hayeon](https://7katlas.com/codex.html?hero=hayeon) | base | L+/6/Tex_HeroIcon_101886Big.webp |
+| Hayeon.webp | ฮายอน / อีจูฉี | [Hayeon](https://7katlas.com/codex.html?hero=hayeon) | awakened | L+/AWK/Tex_HeroIcon_401887Big.webp |
 | Trude.webp | ธรูด | [Trude](https://7katlas.com/codex.html?hero=trude) | base | L+/6/Tex_HeroIcon_101306Big.webp |
 | Yeonhee.webp | ยอนฮี | [Yeonhee](https://7katlas.com/codex.html?hero=yeonhee) | base | L+/6/Tex_HeroIcon_100536Big.webp |
 | มิสต์.webp | มิสต์ | [Mist](https://7katlas.com/codex.html?hero=mist) | base | L+/6/Tex_HeroIcon_101726Big.webp |

@@ -83,8 +83,8 @@ const imageFor = (name: string) => {
 }
 
 export const baseName = (name: string) => name.replace(/ awake.*$/, '')
-// The existing Eileene entry uses her awakened portrait without changing its saved ID.
-export const isAwake = (name: string) => name === 'ไอลีน' || / awake/.test(name)
+// Eileene and Hayeon use awakened portraits while preserving their saved IDs.
+export const isAwake = (name: string) => ['ไอลีน', 'ฮายอน', 'อีจูฉี'].includes(name) || / awake/.test(name)
 
 const uniq = (arr: string[]) => [...new Set(arr)]
 
