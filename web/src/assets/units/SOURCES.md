@@ -211,3 +211,9 @@ Transparent compressed WebP originals are loaded locally with the existing lazy 
 | อสุรา.webp | Asura | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100996Big.webp |
 | ลาเนีย.webp | Lania | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100426Big.webp |
 | วิคตอเรีย.webp | Victoria | s6 | images/heroes/thumb/R/6/Tex_HeroIcon_100796Big.webp |
+
+## Deo / แทอู๊ด (2026-09-26)
+
+- `แทอู๊ด.webp`: [Deo](https://7katlas.com/codex.html?hero=deo), matched to source Thai name แทอู๊ด.
+- Base six-star transparent portrait: [original WebP](https://7katlas.com/images/heroes/thumb/L/6/Tex_HeroIcon_101866Big.webp).
+- Distinct from แทโอ (Teo) and แรคคูน (Rahkun).
