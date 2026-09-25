@@ -9,6 +9,7 @@ import OptionCard from '../components/OptionCard'
 import type { SlotKind } from '../components/TeamPanel'
 import UnitCard from '../components/UnitCard'
 import UnitPicker from '../components/UnitPicker'
+import VersusMark from '../components/VersusMark'
 import { baseName, getUnit } from '../data/heroes'
 import { api } from '../lib/api'
 import {
@@ -371,7 +372,7 @@ export default function PlanPage() {
                       </div>
                     )}
                   </div>
-                  <div className="vs-text mt-6 text-center text-5xl">VS</div>
+                  <VersusMark className="mx-auto mt-4 w-56 max-w-full" />
                   <h3 className="mt-2 text-center text-lg font-semibold">
                     <Swords className="mr-1 inline h-5 w-5 text-gold" /> ทีมที่ใช้ตีได้
                     {slot.options.length > 1 && <span className="ml-2 text-sm font-normal text-white/50">เลือกใช้ 1 จาก {slot.options.length} ทีม</span>}

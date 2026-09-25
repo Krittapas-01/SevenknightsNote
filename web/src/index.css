@@ -117,31 +117,6 @@ h1, h2, h3 { text-wrap: balance; }
 .btn-gold:disabled { filter: saturate(.4); opacity: .55; cursor: not-allowed; }
 .pill:focus-within { border-color: #f4d58d; }
 
-/* VS */
-.vs-text {
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 700;
-  font-style: italic;
-  letter-spacing: 0.025em;
-  line-height: 1.1;
-  background: linear-gradient(180deg, #fff5d6 15%, #f4d58d 45%, #bf9149 85%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  /* Keep italic overhang visible and center the mark in both arena and plan views. */
-  display: block;
-  width: fit-content;
-  margin-inline: auto;
-  padding: 0.06em 0.16em 0.1em 0.08em;
-  filter: drop-shadow(0 2px 1px #56391f) drop-shadow(0 0 12px #f4d58d38);
-}
-.vs-glow {
-  background:
-    radial-gradient(ellipse at center, #ffe6962e, transparent 65%),
-    radial-gradient(ellipse at 15% 45%, #427dff45, transparent 65%),
-    radial-gradient(ellipse at 85% 55%, #ed49633b, transparent 65%);
-}
-
 .scrollbar-thin::-webkit-scrollbar { height: 6px; width: 6px; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 9999px; }
 
@@ -190,8 +165,9 @@ h1, h2, h3 { text-wrap: balance; }
   pointer-events: none;
 }
 .unit-awake {
-  border-color: #f4d58d;
-  box-shadow: 0 0 0 1px #8e693f, 0 4px 12px #05081480, 0 0 14px #f4d58d16;
+  /* ร่าง awake = กรอบม่วงแบบในเกม */
+  border-color: #c79bff;
+  box-shadow: 0 0 0 1px #6a3fb0, 0 4px 12px #05081480, 0 0 14px #b57cff66;
 }
 .unit-monogram::before {
   content: "";
