@@ -1,10 +1,11 @@
-import { Circle, HeartPulse, PawPrint, Shield, Sparkles, Swords } from 'lucide-react'
+import { Circle, HeartPulse, PawPrint, Shield, Swords } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
+import awakeningMedal from '../assets/ui/awakening-medal.webp'
+import magicRole from '../assets/ui/magic-role.webp'
 import { HERO_TYPES, baseName, getUnit, isAwake, type HeroType } from '../data/heroes'
 
-const TYPE_ICON: Record<HeroType, typeof Swords> = {
+const TYPE_ICON: Partial<Record<HeroType, typeof Swords>> = {
   attack: Swords,
-  magic: Sparkles,
   defense: Shield,
   support: HeartPulse,
   universal: Circle,
@@ -49,17 +50,19 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
         </div>
       )}
 
-      {Icon && !round && (
+      {u.type && !round && (
         <div className="absolute left-0.5 top-0.5 grid h-[22%] w-[22%] min-h-3 min-w-3 place-items-center rounded-[4px]"
-          style={{ background: color }}>
-          <Icon className="h-[70%] w-[70%] text-white" strokeWidth={2.5} />
+          style={{ background: color }} title={HERO_TYPES[u.type].label}>
+          {u.type === 'magic' ? (
+            <img src={magicRole} alt="เวทย์" className="h-full w-full object-contain brightness-0 invert" draggable={false} />
+          ) : Icon ? <Icon className="h-[70%] w-[70%] text-white" strokeWidth={2.5} /> : null}
         </div>
       )}
 
       {awake && !round && (
-        <div className="absolute right-0.5 top-0.5 rounded-[4px] bg-gradient-to-b from-[#fff1c9] to-[#c9a35a] px-1 text-[0.55em] font-bold leading-[1.5] text-[#2a2213]" title="awake">
-          AW
-        </div>
+        <img src={awakeningMedal} alt="อเวค" title="อเวค"
+          className="pointer-events-none absolute right-0.5 top-0.5 h-auto w-[28%] min-w-4 drop-shadow-sm"
+          draggable={false} />
       )}
 
       {showName && !round && (
