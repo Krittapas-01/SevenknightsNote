@@ -57,7 +57,7 @@ export const EN_NAME: Record<string, string> = {
   เฮเลเนีย: 'Hellenia', แทโอ: 'Teo', เทโอ: 'Teo', ไคล์: 'Kyle', วาเนสซา: 'Vanessa', ยอนฮี: 'Yeonhee', ธรูด: 'Trude',
   เฟรย่า: 'Freyja', ริน: 'Rin', 'บรันซ์ & บรันเซล': 'Branze & Bransel', เจฟ: 'Jave', คาร์มา: 'Karma',
   แรนด์กริด: 'Randgrid', อากีลา: 'Aquila', เรเชล: 'Rachel', สไปค์: 'Spike', ซุนหงอคง: 'Sun Wukong',
-  'คาร์ล เฮรอน': 'Karl Heron', เจโอ: 'Jeo',
+  'คาร์ล เฮรอน': 'Karl Heron', เจโอ: 'Jeo', เกล: 'Gelidus',
 }
 
 /**
@@ -76,7 +76,8 @@ const imageFor = (name: string) => {
   const base = name.replace(/ awake.*$/, '')
   const en = EN_NAME[base]
   const suffix = name.slice(base.length) // เช่น " awake"
-  const keys = [name, en && en + suffix, suffix ? base : null, suffix && en ? en : null]
+  // Match the exact form: a base portrait must not stand in for an awakened one.
+  const keys = [name, en && en + suffix]
   for (const k of keys) if (k && IMAGES[k.toLowerCase()]) return IMAGES[k.toLowerCase()]
   return undefined
 }
