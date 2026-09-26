@@ -33,6 +33,11 @@ button:not(:disabled), a { -webkit-tap-highlight-color: transparent; }
 button:not(:disabled) { cursor: pointer; }
 h1, h2, h3 { text-wrap: balance; }
 
+:root {
+  --motion-out: cubic-bezier(.16, 1, .3, 1);
+  --motion-settle: cubic-bezier(.22, .8, .3, 1);
+}
+
 /* ---------- panel แบบในเกม ---------- */
 .panel {
   position: relative;
@@ -92,7 +97,7 @@ h1, h2, h3 { text-wrap: balance; }
   border: 1px solid #c9a35a40;
   background: linear-gradient(180deg, #263148, #172033);
   box-shadow: inset 0 0 0 2px #0b122566, inset 0 0 0 3px #f4d58d08;
-  transition: border-color 180ms ease, background-color 180ms ease;
+  transition: transform 160ms var(--motion-out), border-color 180ms ease, background-color 180ms ease;
 }
 .btn-gold {
   position: relative;
@@ -104,7 +109,7 @@ h1, h2, h3 { text-wrap: balance; }
   font-weight: 700;
   background: linear-gradient(115deg, #cfa959 0%, #fae4ac 45%, #e1bd73 100%);
   box-shadow: inset 0 0 0 2px #a2783680, inset 0 0 0 3px #fff1c980, 0 4px 18px #c9a35a24;
-  transition: transform 180ms ease, filter 180ms ease;
+  transition: transform 180ms var(--motion-out);
 }
 .btn-gold::after {
   content: "";
@@ -154,7 +159,7 @@ h1, h2, h3 { text-wrap: balance; }
   border: 1px solid var(--unit-color);
   background: radial-gradient(ellipse at 50% 10%, color-mix(in srgb, var(--unit-color) 35%, transparent), transparent 80%), #141d30;
   box-shadow: 0 3px 8px #03081466, inset 0 0 0 2px #080e1d80;
-  transition: transform 180ms ease, border-color 180ms ease;
+  transition: transform 200ms var(--motion-out), border-color 180ms ease;
 }
 .unit-card::after {
   content: "";
@@ -203,11 +208,24 @@ h1, h2, h3 { text-wrap: balance; }
   transform: rotate(45deg);
   box-shadow: 0 0 0 5px #ffffff03;
 }
-.team-panel .unit-card { animation: card-arrive 240ms ease-out; }
+.team-panel button:not(:disabled) > .unit-card { animation: card-arrive 240ms var(--motion-settle); }
 .modal-backdrop { animation: fade-in 160ms ease-out; }
-.modal-surface { background: linear-gradient(145deg, #26344d, #141d30); animation: modal-arrive 220ms ease-out; }
-.queue-star { animation: star-twinkle 2.8s ease-in-out 2; }
+.modal-surface { background: linear-gradient(145deg, #26344d, #141d30); animation: modal-arrive 280ms var(--motion-out); }
+.queue-star { animation: star-twinkle 900ms ease-in-out 2; }
 .hero-dock { box-shadow: 0 -12px 40px #05091580, inset 0 2px 0 #f4d58d0d; padding-bottom: env(safe-area-inset-bottom); }
+/* Fade the dock as one surface; never move its draggable coordinate space. */
+.hero-dock { animation: fade-in 180ms ease-out; }
+.landing-hero > .eyebrow,
+.landing-hero > .hero-crest { animation: content-arrive 360ms var(--motion-out) backwards; }
+.landing-hero > h1 { animation: content-arrive 420ms var(--motion-out) 60ms backwards; }
+.landing-hero > h1 + p { animation: content-arrive 420ms var(--motion-out) 100ms backwards; }
+.landing-hero > form { animation: content-arrive 420ms var(--motion-out) 140ms backwards; }
+.guild-banner { animation: content-arrive 320ms var(--motion-out); }
+details[open] > div { animation: fade-in 180ms ease-out; }
+a.plan-card { transition: transform 220ms var(--motion-out), border-color 180ms ease; }
+.btn-gold:not(:disabled):active,
+button.pill:not(:disabled):active,
+a.pill:active { transform: scale(.98); }
 
 .brand-mark {
   display: grid;
@@ -291,19 +309,26 @@ h1, h2, h3 { text-wrap: balance; }
   .guild-banner { padding: 22px 18px; }
   .hero-dock .pill { white-space: nowrap; }
   .modal-surface { padding-bottom: env(safe-area-inset-bottom); }
+  .modal-surface { animation-name: sheet-arrive; }
+  /* Opaque dimming is cheaper than blurring a scrolling roster on phones. */
+  .modal-backdrop, .hero-dock { backdrop-filter: none; }
 }
 
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes card-arrive { from { opacity: .4; scale: .9; } to { opacity: 1; scale: 1; } }
-@keyframes modal-arrive { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
-@keyframes star-twinkle { 50% { opacity: .55; } }
+@keyframes card-arrive { from { opacity: .35; transform: scale(.95); } to { opacity: 1; transform: none; } }
+@keyframes content-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes modal-arrive { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes sheet-arrive { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes star-twinkle { 50% { opacity: .65; } }
 @keyframes gold-sheen { to { transform: translateX(130%); } }
 
 @media (hover: hover) and (pointer: fine) {
-  button:not(:disabled):hover > .unit-card { transform: translateY(-3px); border-color: #fff0c5; }
-  .btn-gold:not(:disabled):hover, a.btn-gold:hover { transform: translateY(-1px); filter: brightness(1.05); }
-  .btn-gold:not(:disabled):hover::after { animation: gold-sheen 650ms ease-out; }
+  button:not(:disabled):hover > .unit-card { transform: translateY(-2px); border-color: #fff0c5; }
+  .btn-gold:not(:disabled):hover, a.btn-gold:hover { transform: translateY(-1px); }
+  .btn-gold:not(:disabled):hover::after, a.btn-gold:hover::after { animation: gold-sheen 520ms var(--motion-settle); }
   button.pill:not(:disabled):hover, a.pill:hover { border-color: #f4d58d99; }
+  a.plan-card:hover { transform: translateY(-2px); }
+  .btn-gold:not(:disabled):active, a.btn-gold:active, a.plan-card:active { transform: scale(.985); }
 }
 
 @media (prefers-reduced-motion: reduce) {
