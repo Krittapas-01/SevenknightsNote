@@ -1,6 +1,8 @@
 import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Library, Star, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import EquipmentLoadout from './EquipmentLoadout'
+import EquipmentEditor from './EquipmentEditor'
+import AddHeroNote from './AddHeroNote'
 import { baseName, getUnit } from '../data/heroes'
 import { changeFormation, moveSlot, placeUnit, type HeroNote, type WarOption } from '../lib/types'
 import TeamPanel, { type SlotKind } from './TeamPanel'
@@ -133,7 +135,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
         </p>
       ))}
 
-      {heroNotes.length > 0 && (
+      {(heroNotes.length > 0 || editing) && (
         <div className="mt-3">
           {!editing && (
             <button type="button" onClick={() => setShowGear((v) => !v)} className="flex items-center gap-1 text-sm text-white/60 hover:text-white">
@@ -153,6 +155,8 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
               ))}
             </ul>
           )}
+          {editing && <AddHeroNote team={option.team.slots} have={heroNotes.map((n) => n.hero)}
+            onAdd={(hero) => set({ heroNotes: [...heroNotes, { hero, text: '', sets: [], rings: [] }].slice(0, 5) })} />}
         </div>
       )}
 
@@ -202,7 +206,9 @@ function GearNote({ note, editing, onChange, onRemove }: { note: HeroNote; editi
       ) : (
         note.text && <p className="mt-1 text-white/80">{note.text}</p>
       )}
-      <EquipmentLoadout sets={note.sets} rings={note.rings} />
+      {editing
+        ? <EquipmentEditor sets={note.sets} rings={note.rings} onChange={(sets, rings) => onChange({ ...note, sets, rings })} />
+        : <EquipmentLoadout sets={note.sets} rings={note.rings} />}
     </li>
   )
 }

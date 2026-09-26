@@ -15,3 +15,11 @@ export const equipmentNames = [
   ...Object.keys(images).filter((name) => name.startsWith('ring-')).map((name) => name.slice(5)),
   ...Object.keys(RING_ALIASES),
 ].sort((a, b) => b.length - a.length)
+
+/** รายชื่อสำหรับเลือก (หน้าแก้ของรายตัว) */
+export const SET_NAMES = Object.keys(SETS)
+const RING_BACK = Object.fromEntries(Object.entries(RING_ALIASES).map(([name, file]) => [file, name]))
+export const RING_NAMES = Object.keys(images)
+  .filter((name) => name.startsWith('ring-'))
+  .map((name) => RING_BACK[name.slice(5)] ?? name.slice(5))
+  .sort((a, b) => a.localeCompare(b, 'th'))

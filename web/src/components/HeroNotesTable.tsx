@@ -3,19 +3,27 @@ import { baseName, getUnit } from '../data/heroes'
 import { ringImage, setImages } from '../data/equipment'
 import type { HeroNote } from '../lib/types'
 import UnitCard from './UnitCard'
+import EquipmentEditor from './EquipmentEditor'
+import AddHeroNote from './AddHeroNote'
 
 /**
  * ของ/สเตตัสรายตัว แบบตารางใน 7k-combo:
  * [ตัวละคร] [แหวน 3 ช่อง / เซ็ตไอเทม 3 ช่อง] [รายละเอียด]
  * editing = แก้ข้อความรายละเอียดได้ + ลบแถวได้ (แหวน/เซ็ตมาจากคลังคอมพ์)
  */
-export default function HeroNotesTable({ notes, editing, onChange }: {
+export default function HeroNotesTable({ notes, editing, onChange, team }: {
   notes: HeroNote[]
   editing?: boolean
   onChange?: (n: HeroNote[]) => void
+  /** ทีม (ใช้ปุ่มเพิ่มแถวตอนแก้ไข) */
+  team?: (string | null)[]
 }) {
-  if (!notes.length) return null
+  const addRow = editing && team && (
+    <AddHeroNote team={team} have={notes.map((n) => n.hero)} onAdd={(hero) => onChange?.([...notes, { hero, text: '', sets: [], rings: [] }].slice(0, 5))} />
+  )
+  if (!notes.length) return addRow || null
   return (
+    <>
     <div className="overflow-hidden rounded-2xl border border-white/10">
       <div className="grid grid-cols-[auto_1fr] bg-white/5 text-sm font-semibold text-white/70 sm:grid-cols-[minmax(0,17rem)_1fr]">
         <div className="border-r border-white/10 px-4 py-2 text-center">ตัวละคร</div>
@@ -28,10 +36,17 @@ export default function HeroNotesTable({ notes, editing, onChange }: {
               <div className="aspect-[4/5] w-16 text-[12px]"><UnitCard id={n.hero} /></div>
               <div className="mt-1 truncate text-xs text-white/60">{baseName(getUnit(n.hero)?.name ?? n.hero)}</div>
             </div>
-            <div className="min-w-0 space-y-1.5">
-              <Slots label="แหวน" items={n.rings.map((r) => ({ name: r, src: ringImage(r) }))} />
-              <Slots label="เซ็ตไอเทม" items={n.sets.map((s) => ({ name: `ชุด${s}`, src: setImages(s)[0] }))} />
-            </div>
+            {editing ? (
+              <div className="min-w-0">
+                <EquipmentEditor sets={n.sets} rings={n.rings}
+                  onChange={(sets, rings) => onChange?.(notes.map((x, j) => (j === i ? { ...x, sets, rings } : x)))} />
+              </div>
+            ) : (
+              <div className="min-w-0 space-y-1.5">
+                <Slots label="แหวน" items={n.rings.map((r) => ({ name: r, src: ringImage(r) }))} />
+                <Slots label="เซ็ตไอเทม" items={n.sets.map((s) => ({ name: `ชุด${s}`, src: setImages(s)[0] }))} />
+              </div>
+            )}
           </div>
           <div className="relative p-3 text-[15px] leading-relaxed text-white/85">
             {editing ? (
@@ -55,6 +70,8 @@ export default function HeroNotesTable({ notes, editing, onChange }: {
         </div>
       ))}
     </div>
+    {addRow}
+    </>
   )
 }
 

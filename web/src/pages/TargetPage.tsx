@@ -286,12 +286,10 @@ export default function TargetPage() {
               placeholder="โน้ต เช่น ทำช้า, ต้องมีของดี, แนะนำตัวนี้มากกว่าไคล์"
               className="mt-4 w-full rounded-xl border border-white/15 bg-black/20 p-3 outline-none focus:border-gold"
             />
-            {cDraft.heroNotes.length > 0 && (
-              <div className="mt-4">
-                <p className="mb-2 text-sm text-white/60">ของ/สเตตัสรายตัว</p>
-                <HeroNotesTable notes={cDraft.heroNotes} editing onChange={(heroNotes) => setCDraft((d) => ({ ...d, heroNotes }))} />
-              </div>
-            )}
+            <div className="mt-4">
+              <p className="mb-2 text-sm text-white/60">ของ/สเตตัสรายตัว</p>
+              <HeroNotesTable notes={cDraft.heroNotes} editing team={cDraft.team.slots} onChange={(heroNotes) => setCDraft((d) => ({ ...d, heroNotes }))} />
+            </div>
             <Actions busy={busy} onSave={saveCounter} onCancel={cancel} onDelete={cDraft.id ? deleteCounter : undefined} />
           </div>
         )}
