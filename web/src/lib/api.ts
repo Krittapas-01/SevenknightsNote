@@ -1,4 +1,4 @@
-import type { Announcement, Counter, DayType, GuildData, Plan, PlanData, SkillStep, Target, Team } from './types'
+import type { Announcement, Counter, DayType, GuildData, HeroNote, Plan, PlanData, SkillStep, Target, Team } from './types'
 
 export type Pulse = {
   guildName: string
@@ -66,9 +66,9 @@ export const api = {
     req(`/api/guild/${gid}/targets/${tid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
   deleteTarget: (gid: string, tid: string) => req(`/api/guild/${gid}/targets/${tid}`, { method: 'DELETE', gid }),
 
-  createCounter: (gid: string, tid: string, body: { team: Team; skills: SkillStep[]; note: string }) =>
+  createCounter: (gid: string, tid: string, body: { team: Team; skills: SkillStep[]; note: string; heroNotes?: HeroNote[] }) =>
     req<Counter>(`/api/guild/${gid}/targets/${tid}/counters`, { method: 'POST', body: JSON.stringify(body), gid }),
-  updateCounter: (gid: string, cid: string, body: { team: Team; skills: SkillStep[]; note: string }) =>
+  updateCounter: (gid: string, cid: string, body: { team: Team; skills: SkillStep[]; note: string; heroNotes?: HeroNote[] }) =>
     req(`/api/guild/${gid}/counters/${cid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
   deleteCounter: (gid: string, cid: string) => req(`/api/guild/${gid}/counters/${cid}`, { method: 'DELETE', gid }),
 

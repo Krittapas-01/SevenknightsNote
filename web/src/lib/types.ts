@@ -27,6 +27,8 @@ export type Counter = {
   team: Team
   skills: SkillStep[]
   note: string
+  /** ของ/สเตตัสรายตัว */
+  heroNotes?: HeroNote[]
   createdAt: number
   updatedAt: number
 }
@@ -63,6 +65,8 @@ export type WarSlot = {
   vsTag?: string
   /** id บ้านในคลังคอมพ์ (ใช้เปิดทีมแก้ของบ้านนั้น) */
   vsId?: string
+  /** ไม้บุก: index ทีมหลักที่จะใช้จริง (ไม่ใส่ = ทีมแรก) */
+  main?: number
   options: WarOption[]
 }
 export const MAX_OPTIONS = 8

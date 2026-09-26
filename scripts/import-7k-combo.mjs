@@ -15,13 +15,16 @@ const src = await res.json()
 
 const TYPE = { magic: 'เวทย์', physical: 'กายภาพ', tanky: 'ถึก', other: 'อื่นๆ' }
 const SLOT_COUNT = 5
+// ชื่อเก่าใน 7k-combo → ชื่อปัจจุบันในเกม
+const RENAME = { 'อีจูฉี': 'ฮายอน' }
+const nm = (n) => (n ? RENAME[n] ?? n : n)
 
 /** แปลงทีมของ 7k-combo → Team ของเรา (+ ลำดับสกิล + โน้ตรายตัว) */
 function convert(t) {
   const front = t.front.characters
   const back = t.back.characters
   const f = Math.min(4, Math.max(1, front.length))
-  const slots = [...front.slice(0, f), ...back].map((c) => c.name || null)
+  const slots = [...front.slice(0, f), ...back].map((c) => nm(c.name) || null)
   while (slots.length < SLOT_COUNT) slots.push(null)
   slots.length = SLOT_COUNT
 
@@ -38,13 +41,13 @@ function convert(t) {
   const heroNotes = chars
     .filter((c) => c.name && (c.description || c.equip?.sets?.length || c.equip?.rings?.length))
     .map((c) => ({
-      hero: c.name,
+      hero: nm(c.name),
       text: (c.description ?? '').trim(),
       sets: c.equip?.sets ?? [],
       rings: c.equip?.rings ?? [],
     }))
 
-  const pets = t.pets.map((p) => p.name || null)
+  const pets = t.pets.map((p) => nm(p.name) || null)
   return {
     team: {
       front: f,

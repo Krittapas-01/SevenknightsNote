@@ -16,7 +16,8 @@ function EquipmentItem({ name, kind }: { name: string; kind: 'set' | 'ring' }) {
   if (!images.length) return <span className="rounded-lg bg-white/10 px-2 py-1 text-xs text-white/80">{label}</span>
   const slots = ['อาวุธกายภาพ', 'อาวุธเวทย์', 'เกราะ']
   return (
-    <span className={`inline-flex flex-col items-center gap-1 rounded-lg border border-gold/20 bg-black/20 p-1.5 align-middle ${kind === 'set' ? 'w-36' : 'w-20'}`} title={label}>
+    // มีรูปแล้วไม่ต้องโชว์ชื่อ (ทุกคนรู้จากรูป) — ชี้เมาส์ค้างดูชื่อได้
+    <span className="inline-flex items-center rounded-lg border border-gold/20 bg-black/20 p-1 align-middle" title={label}>
       <span className="flex gap-1">
         {images.map((src, index) => (
           <img key={src} src={src} alt={kind === 'set' ? `${label} · ${slots[index]}` : label}
@@ -24,7 +25,6 @@ function EquipmentItem({ name, kind }: { name: string; kind: 'set' | 'ring' }) {
             className="h-10 w-10 rounded-md object-contain" />
         ))}
       </span>
-      <span className="w-full break-words text-center text-[11px] leading-snug text-gold">{label}</span>
     </span>
   )
 }

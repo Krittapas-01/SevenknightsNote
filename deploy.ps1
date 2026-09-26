@@ -29,6 +29,20 @@ if ($toml -match '00000000-0000-0000-0000-000000000000') {
 Step "Creating tables (safe to re-run, data is kept)"
 npx wrangler d1 execute $project --remote --file=schema.sql -y
 
+Step "Applying database updates (migrations)"
+$env:CI = "true"   # skip the y/n prompt
+npx wrangler d1 migrations apply $project --remote
+Remove-Item Env:CI
+
+# Pandoara comps: seed only once (re-running would bring back teams you already deleted)
+if (-not (Test-Path "$root\api\.pandoara-seeded")) {
+  Step "Adding guild Pandoara with all comps (first time only)"
+  node "$root\scripts\seed-pandoara.mjs"
+  npx wrangler d1 execute $project --remote --file=seed-pandoara.sql -y
+  if ($LASTEXITCODE -eq 0) { Set-Content "$root\api\.pandoara-seeded" "done" }
+}
+$pandoaraKey = if (Test-Path "$root\api\.pandoara-key") { (Get-Content "$root\api\.pandoara-key" -Raw).Trim() } else { "" }
+
 Step "Deploying API"
 $dep = (npx wrangler deploy 2>&1) -join "`n"
 Write-Host $dep
@@ -52,3 +66,7 @@ Set-Location $root
 Write-Host "`nDONE!" -ForegroundColor Green
 Write-Host "Website : https://$project.pages.dev  (may take ~1 min the first time)" -ForegroundColor Green
 Write-Host "API     : $apiUrl" -ForegroundColor Green
+if ($pandoaraKey) {
+  Write-Host "Pandoara (edit): https://$project.pages.dev/g/pandoara?key=$pandoaraKey" -ForegroundColor Cyan
+  Write-Host "Pandoara (view): https://$project.pages.dev/g/pandoara" -ForegroundColor Cyan
+}

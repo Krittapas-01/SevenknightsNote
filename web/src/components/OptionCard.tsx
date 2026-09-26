@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Library, Trash2, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Library, Star, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import EquipmentLoadout from './EquipmentLoadout'
 import { baseName, getUnit } from '../data/heroes'
@@ -19,12 +19,21 @@ type Props = {
   onLibrary?: () => void
   /** ไม้บุก: ทุกทีมเท่ากัน เลือกใช้ทีมไหนก็ได้ */
   attack?: boolean
+  /** แยกส่วน: panel = หัว+ทีม (ใช้ในแถว VS), details = โน้ต/ของ/คำเตือน (วางใต้แถว VS) */
+  part?: 'all' | 'panel' | 'details'
+  /** ไม้บุก: ทีมนี้คือทีมหลักที่จะใช้จริง */
+  main?: boolean
+  onMakeMain?: () => void
+  /** ตัวในทีมนี้ที่ชนกับทีมหลักของไม้อื่น */
+  conflicts?: { id: string; name: string; slots: number[] }[]
+  /** ตัวที่ใช้ในไม้อื่นแล้ว (ส่งต่อให้แถบตัวละคร) */
+  blocked?: Record<string, string>
 }
 
 const baseId = (id: string) => baseName(getUnit(id)?.name ?? id)
 
 /** ทางเลือก 1 ทีมในไม้นั้น ๆ */
-export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack }: Props) {
+export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack, main, onMakeMain, conflicts = [], blocked, part = 'all' }: Props) {
   const [showGear, setShowGear] = useState(false)
   const heroNotes = option.heroNotes ?? []
   const inTeam = new Set(option.team.slots.filter(Boolean).map((id) => baseId(id!)))
@@ -33,12 +42,28 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
   const set = (patch: Partial<WarOption>) => onChange?.({ ...option, ...patch })
 
   return (
-    <div className="flex flex-col">
+    <div className={`flex flex-col transition ${part === 'panel' ? 'h-full' : ''} ${attack && !main && part === 'all' ? 'opacity-75 hover:opacity-100' : ''}`}>
+      {part !== 'details' && (<>
       {/* หัวการ์ด: ลำดับทางเลือก + เงื่อนไข */}
       <div className="mb-4 flex min-h-8 items-center gap-2">
-        <span className={`shrink-0 rounded-full px-3 py-0.5 text-sm font-semibold ${index === 0 && !attack ? 'bg-gold text-ink' : 'bg-white/10 text-white/80'}`}>
-          {attack ? `ทีมบุก ${index + 1}` : index === 0 ? 'ทางเลือกหลัก' : `ทางเลือก ${index + 1}`}
-        </span>
+        {attack ? (
+          main ? (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold px-3 py-0.5 text-sm font-semibold text-ink shadow-[0_0_12px_rgba(244,213,141,.5)]">
+              <Star className="h-3.5 w-3.5 fill-current" /> ทีมหลัก
+            </span>
+          ) : editing && onMakeMain ? (
+            <button type="button" onClick={onMakeMain} title="ใช้ทีมนี้เป็นทีมหลักของไม้นี้"
+              className="flex shrink-0 items-center gap-1 rounded-full border border-gold/60 px-3 py-0.5 text-sm text-gold hover:bg-gold/15">
+              <Star className="h-3.5 w-3.5" /> ใช้ทีมนี้
+            </button>
+          ) : (
+            <span className="shrink-0 rounded-full bg-white/10 px-3 py-0.5 text-sm font-semibold text-white/80">สำรอง {index + 1}</span>
+          )
+        ) : (
+          <span className={`shrink-0 rounded-full px-3 py-0.5 text-sm font-semibold ${index === 0 ? 'bg-gold text-ink' : 'bg-white/10 text-white/80'}`}>
+            {index === 0 ? 'ทางเลือกหลัก' : `ทางเลือก ${index + 1}`}
+          </span>
+        )}
         {editing ? (
           <input
             value={option.condition}
@@ -61,12 +86,14 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
 
       <TeamPanel
         variant="ally"
+        className={part === 'panel' ? 'flex-1' : ''}
         team={option.team}
         skills={option.skills}
         editable={editing}
         title={teamTitle(option)}
         label={`${attack ? 'ทีมบุก' : 'ทางเลือก'} ${index + 1}`}
         onSlotClick={onPick}
+        blocked={blocked}
         onReset={() => set({ team: { ...option.team, slots: [null, null, null, null, null], pet: null, extras: [null, null, null, null] }, skills: [] })}
         onFormation={(front) => set(changeFormation(option.team, option.skills, front))}
         onMove={(from, to) => set(moveSlot(option.team, option.skills, from, to))}
@@ -77,7 +104,9 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
           if (r) set(r)
         }}
       />
+      </>)}
 
+      {part !== 'panel' && (<>
       {editing && onLibrary && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {(
@@ -86,6 +115,16 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
             </button>
           )}
         </div>
+      )}
+
+      {conflicts.length > 0 && (
+        <p className={`mt-3 flex items-start gap-1.5 rounded-lg px-3 py-1.5 text-sm ${main ? 'bg-red-500/20 text-red-100' : 'bg-amber-500/10 text-amber-100/90'}`}>
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            {main ? 'ใช้ตัวซ้ำกับไม้อื่น: ' : 'ถ้าใช้ทีมนี้จะชน: '}
+            {conflicts.map((c) => `${c.name} (${c.slots.map((s) => `ไม้ ${s + 1}`).join(', ')})`).join(' · ')}
+          </span>
+        </p>
       )}
 
       {badCombos.map((g, i) => (
@@ -137,6 +176,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
           </ul>
         )
       )}
+      </>)}
     </div>
   )
 }

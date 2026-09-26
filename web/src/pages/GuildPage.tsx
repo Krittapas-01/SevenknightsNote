@@ -1,4 +1,5 @@
 import { Check, ClipboardList, Link2, Pencil, Plus, Search, Shield, Swords } from 'lucide-react'
+import { tagColor, tagStyle } from '../lib/tags'
 import { useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
@@ -113,17 +114,17 @@ export default function GuildPage() {
       ) : (
         <div className="mt-8 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((t) => (
-            <Link key={t.id} to={`/g/${gid}/t/${t.id}`} className="group block transition hover:-translate-y-1">
+            <Link key={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex flex-col transition hover:-translate-y-1" style={t.tags[0] ? ({ '--tag': tagColor(t.tags[0]) } as React.CSSProperties) : undefined}>
               <TeamPanel
                 variant="enemy"
                 size="sm"
                 team={t.team}
-                className="group-hover:border-gold"
+                className={`flex-1 group-hover:border-gold ${t.tags[0] ? 'tag-accent' : ''}`}
                 title={
                   <span className="flex items-center justify-between gap-2">
                     <span className="flex flex-wrap gap-1">
                       {t.tags.length ? t.tags.map((x) => (
-                        <span key={x} className="rounded-full bg-sky-400/20 px-2 text-xs text-sky-200">{x}</span>
+                        <span key={x} className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={tagStyle(x)}>{x}</span>
                       )) : <span className="text-white/50">ทีมเป้าหมาย</span>}
                     </span>
                     <span className="flex shrink-0 items-center gap-1 text-xs font-normal text-gold">

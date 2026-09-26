@@ -1,15 +1,18 @@
-import { Check, ChevronLeft, Library, Pencil, Plus, Shield, Swords, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, ChevronLeft, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
+import { tagStyle } from '../lib/tags'
+import type { WarSlot } from '../lib/types'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import CompLibrary, { type Comp, type Defense } from '../components/CompLibrary'
 import TeamPanel from '../components/TeamPanel'
-import { DndHub, HideWhileDock } from '../components/DndHub'
+import { DndHub, HideWhileDock, useListTarget } from '../components/DndHub'
+import { autoAssign, blockedFor, conflictCount, conflictsOf, heroKey, heroUsage, heroesOf, mainIndex, mainOption } from '../lib/allocation'
 import HeroDock from '../components/HeroDock'
 import OptionCard from '../components/OptionCard'
 import type { SlotKind } from '../components/TeamPanel'
 import UnitCard from '../components/UnitCard'
 import UnitPicker from '../components/UnitPicker'
-import VersusMark from '../components/VersusMark'
+import VsArena from '../components/VsArena'
 import { baseName, getUnit } from '../data/heroes'
 import { api } from '../lib/api'
 import {
@@ -51,6 +54,9 @@ export default function PlanPage() {
   /** เปิดคลังเพื่อเลือกบ้านที่จะตีของไม้ s */
   const [vsLibrary, setVsLibrary] = useState<number | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  // ไม้บุก: ปกติโชว์แค่ทีมหลัก กดขยายถึงเห็นคอมพ์อื่น
+  const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const toggleExpand = (s: number) => setExpanded((x) => { const n = new Set(x); if (n.has(s)) n.delete(s); else n.add(s); return n })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -69,6 +75,21 @@ export default function PlanPage() {
 
   // หน้าใหม่: รอบแรกก่อน useEffect เปิดโหมดแก้ไข ยังไม่มี plan ให้ใช้ draft ไปก่อน
   const view: PlanData = editing || !plan ? draft : plan.data
+  /** จัดให้อัตโนมัติ: เลือกทีมหลักทุกไม้บุกให้ตัวไม่ซ้ำ */
+  function runAuto() {
+    const { mains, unresolved } = autoAssign(draft.slots, draft.banned)
+    if (!mains.size && !unresolved.length) return flash('ยังไม่มีไม้บุกที่มีทีม — เพิ่มทีมบุกก่อน')
+    setDraft((d) => ({ ...d, slots: d.slots.map((x, i) => (mains.has(i) ? { ...x, main: mains.get(i) } : x)) }))
+    flash(unresolved.length
+      ? `จัดได้ ${mains.size} ไม้ · ${unresolved.map((i) => `ไม้ ${i + 1}`).join(', ')} หาทีมที่ไม่ชนไม่ได้ — ลองเพิ่มทีมสำรอง`
+      : `จัดครบ ${mains.size} ไม้ ไม่มีตัวซ้ำ ✓`)
+  }
+  function flash(msg: string) {
+    setToast(msg)
+    setTimeout(() => setToast(null), 4500)
+  }
+  // ตัวละครที่ทีมหลักของแต่ละไม้บุกใช้ (ใช้ได้รอบเดียว)
+  const use = heroUsage(view.slots)
   const viewTitle = editing || !plan ? title : plan.title
 
   // ---------- edit helpers ----------
@@ -242,17 +263,16 @@ export default function PlanPage() {
           label="ตัวที่ OP ที่สุดตอนนี้"
           ids={view.op}
           editing={editing}
-          onAdd={() => setPicker({ target: 'op' })}
+          onAdd={(id) => setDraft((d) => ({ ...d, op: d.op.includes(id) ? d.op : [...d.op, id].slice(0, 20) }))}
           onRemove={(id) => setDraft((d) => ({ ...d, op: d.op.filter((x) => x !== id) }))}
         />
         <BannedRow
           groups={view.banned}
           editing={editing}
-          onAddGroup={() => {
-            setDraft((d) => ({ ...d, banned: [...d.banned, []].slice(0, 10) }))
-            setPicker({ target: 'banned', g: draft.banned.length })
-          }}
-          onAddHero={(g) => setPicker({ target: 'banned', g })}
+          onAddGroup={() => setDraft((d) => ({ ...d, banned: [...d.banned, []].slice(0, 10) }))}
+          onAddHero={(g, id) =>
+            setDraft((d) => ({ ...d, banned: d.banned.map((grp, i) => (i === g && !grp.includes(id) ? [...grp, id].slice(0, 5) : grp)) }))
+          }
           onRemoveHero={(g, id) => setDraft((d) => ({ ...d, banned: d.banned.map((x, i) => (i === g ? x.filter((y) => y !== id) : x)) }))}
           onRemoveGroup={(g) => setDraft((d) => ({ ...d, banned: d.banned.filter((_, i) => i !== g) }))}
         />
@@ -271,13 +291,77 @@ export default function PlanPage() {
       </section>
       )}
 
+      {/* ---------- สรุปการจัดสรรตัวละคร (ไม้บุก) ---------- */}
+      <AllocationBar slots={view.slots} use={use} onAuto={editing ? runAuto : undefined} />
+
       {/* ---------- 5 ไม้ ---------- */}
       <div className="mt-12 space-y-14">
         {view.slots.map((slot, s) => {
           if (!editing && slot.options.length === 0 && !slot.vs) return null
           const Icon = slot.kind === 'attack' ? Swords : Shield
+          const isAtk = slot.kind === 'attack'
+          const main = mainIndex(slot)
+          const others = isAtk ? slot.options.length - 1 : 0
+          const card = (opt: WarOption, o: number, part: 'all' | 'panel' | 'details' = 'all') => (
+            <OptionCard
+              key={o}
+              part={part}
+              option={opt}
+              index={o}
+              total={slot.options.length}
+              editing={editing}
+              banned={view.banned}
+              onChange={(n) => patchOption(s, o, n)}
+              onRemove={() => patchSlot(s, (x) => {
+                const m = mainIndex(x)
+                return { ...x, options: x.options.filter((_, i) => i !== o), main: o < m ? m - 1 : o === m ? 0 : m }
+              })}
+              onMove={(dir) =>
+                patchSlot(s, (x) => {
+                  const arr = [...x.options]
+                  const j = o + dir
+                  ;[arr[o], arr[j]] = [arr[j], arr[o]]
+                  const m = mainIndex(x)
+                  return { ...x, options: arr, main: m === o ? j : m === j ? o : m }
+                })
+              }
+              onPick={(kind, index) => setPicker({ target: 'opt', s, o, kind, index })}
+              onLibrary={() => setLibrary({ s, o })}
+              attack={slot.kind === 'attack'}
+              main={slot.kind === 'attack' && o === mainIndex(slot)}
+              onMakeMain={() => patchSlot(s, (x) => ({ ...x, main: o }))}
+              conflicts={slot.kind === 'attack' ? conflictsOf(opt, s, use) : []}
+              blocked={slot.kind === 'attack' ? blockedFor(s, use) : undefined}
+            />
+          )
+          const addBtns = editing && slot.options.length < MAX_OPTIONS ? (
+            <div className="grid min-h-60 grid-rows-2 gap-3">
+              <button
+                onClick={() => setLibrary({ s, o: null })}
+                title={slot.kind === 'attack' && slot.vsId ? 'เปิดที่ทีมแก้ของบ้านนี้' : undefined}
+                className="flex flex-col items-center justify-center gap-1 rounded-[18px] border-2 border-dashed border-sky-300/40 text-sky-100/80 hover:border-sky-300 hover:text-sky-100"
+              >
+                <Library className="h-7 w-7" />
+                {slot.kind === 'attack'
+                  ? 'เพิ่มทีมบุกจากคลังคอมพ์'
+                  : slot.options.length ? 'เลือกทางเลือกสำรองจากคลังคอมพ์' : 'เลือกจากคลังคอมพ์'}
+              </button>
+              <button
+                onClick={() =>
+                  patchSlot(s, (x) => ({
+                    ...x,
+                    options: [...x.options, { ...emptyOption(), condition: x.kind === 'defense' && x.options.length ? 'ถ้าไม่มีทีมบน' : '' }],
+                  }))
+                }
+                className="flex flex-col items-center justify-center gap-1 rounded-[18px] border-2 border-dashed border-white/20 text-white/60 hover:border-gold hover:text-gold"
+              >
+                <Plus className="h-7 w-7" />
+                จัดทีมเอง
+              </button>
+            </div>
+          ) : null
           return (
-            <section key={s}>
+            <section key={s} id={`slot-${s}`} className="scroll-mt-28">
               <div className="mb-6 flex flex-wrap items-center gap-3 border-b border-white/10 pb-3">
                 <span className="btn-gold rounded-lg px-3 py-1 text-sm">ไม้ {s + 1}</span>
                 {editing ? (
@@ -316,16 +400,21 @@ export default function PlanPage() {
                 )}
               </div>
 
-              {slot.kind === 'attack' && (
-                <div className="mb-10">
-                  <div className="mx-auto max-w-sm">
-                    <div className="mb-3 flex items-center justify-center gap-2">
+              {isAtk ? (
+                <>
+                  {/* ซ้าย = ทีมหลักของเรา · กลาง VS · ขวา = บ้านที่จะตี */}
+                  <VsArena
+                    left={main >= 0 ? card(slot.options[main], main, 'panel') : addBtns ?? <p className="py-10 text-center text-white/40">ยังไม่มีทีมบุก</p>}
+                    right={
+                  <div className="flex h-full flex-col">
+                    <div className="mb-4 flex min-h-8 items-center justify-center gap-2">
                       <span className="text-lg font-semibold text-red-200">บ้านที่จะตี</span>
-                      {slot.vsTag && <span className="rounded-full bg-sky-400/20 px-2.5 py-0.5 text-sm text-sky-100">{slot.vsTag}</span>}
+                      {slot.vsTag && <span className="rounded-full px-2.5 py-0.5 text-sm font-semibold" style={tagStyle(slot.vsTag)}>{slot.vsTag}</span>}
                     </div>
                     {slot.vs ? (
                       <TeamPanel
                         variant="enemy"
+                        className="flex-1"
                         team={slot.vs}
                         editable={editing}
                         title={teamNames(slot.vs) || 'ทีมศัตรู'}
@@ -358,8 +447,16 @@ export default function PlanPage() {
                     ) : (
                       <p className="text-center text-white/40">ยังไม่ได้ระบุบ้าน</p>
                     )}
+                  </div>
+                    }
+                  />
+                  {/* รายละเอียด (โน้ต/ของ/ปุ่มเปลี่ยนบ้าน) อยู่ใต้แถว VS — กางแล้ว VS ไม่เลื่อน */}
+                  <div className="mt-4 flex flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center lg:gap-0">
+                    <div className="w-full max-w-[400px] lg:w-[380px]">{main >= 0 && card(slot.options[main], main, 'details')}</div>
+                    <div className="hidden lg:block lg:w-56 lg:shrink-0" />
+                    <div className="w-full max-w-[400px] lg:w-[380px]">
                     {editing && slot.vs && (
-                      <div className="mt-4 flex justify-center gap-2 text-sm">
+                      <div className="flex justify-center gap-2 text-sm">
                         <button onClick={() => setVsLibrary(s)} className="pill flex items-center gap-1 px-3 py-1 hover:border-gold">
                           <Library className="h-4 w-4" /> เปลี่ยนบ้านจากคลัง
                         </button>
@@ -371,66 +468,30 @@ export default function PlanPage() {
                         </button>
                       </div>
                     )}
+                    </div>
                   </div>
-                  <VersusMark className="mx-auto mt-4 w-56 max-w-full" />
-                  <h3 className="mt-2 text-center text-lg font-semibold">
-                    <Swords className="mr-1 inline h-5 w-5 text-gold" /> ทีมที่ใช้ตีได้
-                    {slot.options.length > 1 && <span className="ml-2 text-sm font-normal text-white/50">เลือกใช้ 1 จาก {slot.options.length} ทีม</span>}
-                  </h3>
+                  {others > 0 && (
+                    <div className="mt-6 flex justify-center">
+                      <button type="button" onClick={() => toggleExpand(s)}
+                        className="pill flex items-center gap-1.5 px-4 py-1.5 text-sm text-white/80 hover:border-gold hover:text-gold">
+                        <ChevronDown className={`h-4 w-4 transition ${expanded.has(s) ? 'rotate-180' : ''}`} />
+                        {expanded.has(s) ? 'ซ่อนคอมพ์อื่น' : `ดูคอมพ์อื่น (${others})`}
+                      </button>
+                    </div>
+                  )}
+                  {(expanded.has(s) || (editing && others === 0 && main >= 0)) && (
+                    <div className="mt-8 grid gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                      {slot.options.map((opt, o) => o !== main && card(opt, o))}
+                      {main >= 0 && addBtns}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="grid gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                  {slot.options.map((opt, o) => card(opt, o))}
+                  {addBtns}
                 </div>
               )}
-
-              <div className="grid gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                {slot.options.map((opt, o) => (
-                  <OptionCard
-                    key={o}
-                    option={opt}
-                    index={o}
-                    total={slot.options.length}
-                    editing={editing}
-                    banned={view.banned}
-                    onChange={(n) => patchOption(s, o, n)}
-                    onRemove={() => patchSlot(s, (x) => ({ ...x, options: x.options.filter((_, i) => i !== o) }))}
-                    onMove={(dir) =>
-                      patchSlot(s, (x) => {
-                        const arr = [...x.options]
-                        const j = o + dir
-                        ;[arr[o], arr[j]] = [arr[j], arr[o]]
-                        return { ...x, options: arr }
-                      })
-                    }
-                    onPick={(kind, index) => setPicker({ target: 'opt', s, o, kind, index })}
-                    onLibrary={() => setLibrary({ s, o })}
-                    attack={slot.kind === 'attack'}
-                  />
-                ))}
-                {editing && slot.options.length < MAX_OPTIONS && (
-                  <div className="grid min-h-60 grid-rows-2 gap-3">
-                    <button
-                      onClick={() => setLibrary({ s, o: null })}
-                      title={slot.kind === 'attack' && slot.vsId ? 'เปิดที่ทีมแก้ของบ้านนี้' : undefined}
-                      className="flex flex-col items-center justify-center gap-1 rounded-[18px] border-2 border-dashed border-sky-300/40 text-sky-100/80 hover:border-sky-300 hover:text-sky-100"
-                    >
-                      <Library className="h-7 w-7" />
-                      {slot.kind === 'attack'
-                        ? 'เพิ่มทีมบุกจากคลังคอมพ์'
-                        : slot.options.length ? 'เลือกทางเลือกสำรองจากคลังคอมพ์' : 'เลือกจากคลังคอมพ์'}
-                    </button>
-                    <button
-                      onClick={() =>
-                        patchSlot(s, (x) => ({
-                          ...x,
-                          options: [...x.options, { ...emptyOption(), condition: x.kind === 'defense' && x.options.length ? 'ถ้าไม่มีทีมบน' : '' }],
-                        }))
-                      }
-                      className="flex flex-col items-center justify-center gap-1 rounded-[18px] border-2 border-dashed border-white/20 text-white/60 hover:border-gold hover:text-gold"
-                    >
-                      <Plus className="h-7 w-7" />
-                      จัดทีมเอง
-                    </button>
-                  </div>
-                )}
-              </div>
             </section>
           )
         })}
@@ -504,10 +565,11 @@ function HeroRow({
   label: string
   ids: string[]
   editing: boolean
-  onAdd: () => void
+  onAdd: (id: string) => void
   onRemove: (id: string) => void
   danger?: boolean
 }) {
+  const dock = useListTarget('list:op', editing ? { label, used: ids, full: ids.length >= 20, onAdd } : null)
   if (!editing && ids.length === 0) return null
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -528,7 +590,7 @@ function HeroRow({
           </span>
         ))}
         {editing && (
-          <button onClick={onAdd} className="flex items-center gap-1 rounded-full border border-dashed border-white/30 px-3 py-1 text-sm text-white/70 hover:border-gold hover:text-gold">
+          <button onClick={dock.open} className={`flex items-center gap-1 rounded-full border border-dashed px-3 py-1 text-sm hover:border-gold hover:text-gold ${dock.active ? 'border-gold text-gold shadow-[0_0_12px_rgba(244,213,141,.6)]' : 'border-white/30 text-white/70'}`}>
             <Plus className="h-4 w-4" /> เพิ่ม
           </button>
         )}
@@ -543,10 +605,15 @@ function BannedRow({
   groups: string[][]
   editing: boolean
   onAddGroup: () => void
-  onAddHero: (g: number) => void
+  onAddHero: (g: number, id: string) => void
   onRemoveHero: (g: number, id: string) => void
   onRemoveGroup: (g: number) => void
 }) {
+  const [cur, setCur] = useState(0)
+  const grp = groups[cur] ?? []
+  const dock = useListTarget('list:banned', editing ? {
+    label: `ยกเลิกบ้าน ชุด ${cur + 1}`, used: grp, full: grp.length >= 5, onAdd: (id) => onAddHero(cur, id),
+  } : null)
   if (!editing && groups.length === 0) return null
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -554,7 +621,7 @@ function BannedRow({
       <span className="text-lg font-semibold">ยกเลิกบ้าน</span>
       <div className="flex flex-wrap items-center gap-2">
         {groups.map((g, gi) => (
-          <span key={gi} className="flex flex-wrap items-center gap-1 rounded-full border border-red-400/40 bg-red-500/10 py-0.5 pl-0.5 pr-2">
+          <span key={gi} className={`flex flex-wrap items-center gap-1 rounded-full border bg-red-500/10 py-0.5 pl-0.5 pr-2 ${dock.active && cur === gi ? 'border-gold shadow-[0_0_12px_rgba(244,213,141,.5)]' : 'border-red-400/40'}`}>
             {g.map((id, i) => (
               <span key={id} className="flex items-center gap-1">
                 {i > 0 && <span className="text-red-300/70">+</span>}
@@ -568,23 +635,73 @@ function BannedRow({
               </span>
             ))}
             {editing && g.length < 5 && (
-              <button onClick={() => onAddHero(gi)} className="ml-1 rounded-full border border-dashed border-red-300/50 px-2 text-xs text-red-200 hover:bg-red-500/20">
+              <button onClick={() => { setCur(gi); dock.open() }} className="ml-1 rounded-full border border-dashed border-red-300/50 px-2 text-xs text-red-200 hover:bg-red-500/20">
                 + ตัว
               </button>
             )}
             {editing && (
-              <button onClick={() => onRemoveGroup(gi)} className="ml-1 rounded-full p-1 text-red-300 hover:bg-red-500/20" title="ลบชุดนี้">
+              <button onClick={() => { onRemoveGroup(gi); if (cur >= gi && cur > 0) setCur(cur - 1) }} className="ml-1 rounded-full p-1 text-red-300 hover:bg-red-500/20" title="ลบชุดนี้">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             )}
           </span>
         ))}
         {editing && (
-          <button onClick={onAddGroup} className="flex items-center gap-1 rounded-full border border-dashed border-white/30 px-3 py-1 text-sm text-white/70 hover:border-gold hover:text-gold">
+          <button onClick={() => { if (groups.length >= 10) return; setCur(groups.length); onAddGroup(); dock.open() }} className="flex items-center gap-1 rounded-full border border-dashed border-white/30 px-3 py-1 text-sm text-white/70 hover:border-gold hover:text-gold">
             <Plus className="h-4 w-4" /> เพิ่มชุดที่ยกเลิก
           </button>
         )}
       </div>
     </div>
+  )
+}
+
+/** แถบสรุป: ไม้บุกแต่ละไม้ใช้ทีมไหน ตัวไหนซ้ำ */
+function AllocationBar({ slots, use, onAuto }: { slots: WarSlot[]; use: Map<string, number[]>; onAuto?: () => void }) {
+  const attacks = slots.map((slot, s) => ({ slot, s })).filter(({ slot }) => slot.kind === 'attack' && (slot.options.length > 0 || slot.vs))
+  if (!attacks.length) return null
+  const total = use.size
+  const dup = conflictCount(use)
+  return (
+    <section className="panel mx-auto mt-8 max-w-4xl p-4 sm:p-5">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Swords className="h-5 w-5 text-gold" />
+        <span className="text-lg font-semibold">จัดสรรตัวละคร</span>
+        <span className="text-sm text-white/50">ใช้ไป {total} ตัว</span>
+        {onAuto && (
+          <button type="button" onClick={onAuto} title="เลือกทีมหลักทุกไม้ให้ตัวไม่ซ้ำ (เลือกทีมลำดับต้นก่อน)"
+            className="btn-gold ml-auto flex items-center gap-1 px-3 py-1 text-sm">
+            <Wand2 className="h-4 w-4" /> จัดให้อัตโนมัติ
+          </button>
+        )}
+        <span className={`${onAuto ? '' : 'ml-auto '}flex items-center gap-1 rounded-full px-3 py-0.5 text-sm font-semibold ${dup ? 'bg-red-500/25 text-red-100' : 'bg-green-500/20 text-green-100'}`}>
+          {dup ? <><AlertTriangle className="h-4 w-4" /> ตัวซ้ำ {dup} ตัว</> : <><Check className="h-4 w-4" /> ไม่มีตัวซ้ำ</>}
+        </span>
+      </div>
+      <div className="space-y-1.5">
+        {attacks.map(({ slot, s }) => {
+          const heroes = heroesOf(mainOption(slot))
+          return (
+            <a key={s} href={`#slot-${s}`} className="flex items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-white/5">
+              <span className="w-12 shrink-0 text-sm font-semibold text-gold">ไม้ {s + 1}</span>
+              <span className="w-16 shrink-0">
+                {slot.vsTag && <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={tagStyle(slot.vsTag)}>{slot.vsTag}</span>}
+              </span>
+              <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                {heroes.length ? heroes.map((id) => {
+                  const clash = (use.get(heroKey(id))?.length ?? 0) > 1
+                  return (
+                    <span key={id} className={`flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-sm ${clash ? 'bg-red-500/25 text-red-100 ring-1 ring-red-400' : 'bg-white/5'}`}>
+                      <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={id} shape="round" /></span>
+                      {heroKey(id)}
+                    </span>
+                  )
+                }) : <span className="text-sm text-white/40">ยังไม่ได้เลือกทีม</span>}
+              </span>
+            </a>
+          )
+        })}
+      </div>
+    </section>
   )
 }

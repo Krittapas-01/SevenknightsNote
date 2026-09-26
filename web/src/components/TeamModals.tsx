@@ -1,4 +1,5 @@
 import { RotateCcw } from 'lucide-react'
+import { queueStyle } from '../lib/queue'
 import { FORMATIONS, MAX_SKILL_QUEUE, SLOT_COUNT, type SkillStep, type Team } from '../lib/types'
 import { baseName, getUnit } from '../data/heroes'
 import Modal from './Modal'
@@ -66,21 +67,26 @@ export function FormationModal({ open, front, onSelect, onClose }: { open: boole
 /** จองสกิล: กดสกิลตามลำดับที่ต้องการ (กดซ้ำ = ยกเลิก) สูงสุด MAX_SKILL_QUEUE */
 export function SkillQueueModal({
   open, team, skills, onChange, onClose,
-}: { open: boolean; team: Team; skills: SkillStep[]; onChange: (s: SkillStep[]) => void; onClose: () => void }) {
+}: { open: boolean; team: Team; skills: SkillStep[]; onChange?: (s: SkillStep[]) => void; onClose: () => void }) {
+  // ไม่ส่ง onChange = ดูอย่างเดียว
+  const readOnly = !onChange
   const heroes = team.slots.map((id, slot) => ({ id, slot })).filter((h) => h.id) as { id: string; slot: number }[]
   const full = skills.length >= MAX_SKILL_QUEUE
   function toggle(slot: number, skill: 1 | 2) {
     const i = skills.findIndex((s) => s.slot === slot && s.skill === skill)
+    if (!onChange) return
     if (i >= 0) onChange(skills.filter((_, j) => j !== i))
     else if (!full) onChange([...skills, { slot, skill }])
   }
   return (
-    <Modal open={open} title="จองสกิล (Skill Queue)" onClose={onClose}>
-      <div className="mb-3 flex items-center justify-between">
+    <Modal open={open} title={readOnly ? 'ลำดับจองสกิล (Skill Queue)' : 'จองสกิล (Skill Queue)'} onClose={onClose}>
+      <div className="mb-3 flex min-h-8 items-center justify-between">
         <span className="text-sm text-white/60">จองแล้ว {skills.length}/{MAX_SKILL_QUEUE}</span>
-        <button onClick={() => onChange([])} className="pill flex items-center gap-1.5 px-4 py-1 text-sm">
-          <RotateCcw className="h-4 w-4" /> รีเซ็ต
-        </button>
+        {!readOnly && (
+          <button onClick={() => onChange([])} className="pill flex items-center gap-1.5 px-4 py-1 text-sm">
+            <RotateCcw className="h-4 w-4" /> รีเซ็ต
+          </button>
+        )}
       </div>
       {heroes.length === 0 ? (
         <p className="py-8 text-center text-white/45">ใส่ฮีโร่ในทีมก่อน</p>
@@ -98,14 +104,15 @@ export function SkillQueueModal({
                     <button
                       key={k}
                       onClick={() => toggle(h.slot, k)}
-                      disabled={q < 0 && full}
+                      disabled={readOnly || (q < 0 && full)}
                       className={`relative h-10 w-16 rounded-lg border-2 text-xs font-semibold transition ${
-                        q >= 0 ? 'border-gold bg-gradient-to-b from-[#5b64d8] to-[#2b2f7a] text-white shadow-[0_0_10px_rgba(244,213,141,.6)]' : 'border-white/20 bg-white/5 text-white/60 hover:border-white/50 disabled:opacity-30'
+                        q >= 0 ? 'border-gold bg-gradient-to-b from-[#5b64d8] to-[#2b2f7a] text-white shadow-[0_0_10px_rgba(244,213,141,.6)]'
+                          : readOnly ? 'border-white/15 bg-white/5 text-white/35' : 'border-white/20 bg-white/5 text-white/60 hover:border-white/50 disabled:opacity-30'
                       }`}
                     >
                       {k === 1 ? 'สกิลบน' : 'สกิลล่าง'}
                       {q >= 0 && (
-                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#1d2a55] px-1.5 text-[10px] text-white ring-1 ring-white/40">
+                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 text-[10px] font-bold ring-1 ring-white/60" style={queueStyle(q + 1)}>
                           ลำดับ {q + 1}
                         </span>
                       )}
@@ -122,7 +129,7 @@ export function SkillQueueModal({
           {skills.map((s, i) => `${i + 1}. ${baseName(getUnit(team.slots[s.slot])?.name ?? '')} ${s.skill === 1 ? 'บน' : 'ล่าง'}`).join('  →  ')}
         </p>
       )}
-      <button onClick={onClose} className="btn-gold mt-5 w-full py-2">เสร็จ</button>
+      <button onClick={onClose} className="btn-gold mt-5 w-full py-2">{readOnly ? 'ปิด' : 'เสร็จ'}</button>
     </Modal>
   )
 }

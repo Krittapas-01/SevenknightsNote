@@ -2,7 +2,7 @@ import { useDraggable } from '@dnd-kit/core'
 import { Filter, LayoutGrid, Search, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { MAX_HEROES } from '../lib/types'
-import { HEROES, HERO_TYPES, PETS, matchUnit, type HeroType, type Unit } from '../data/heroes'
+import { HEROES, HERO_TYPES, PETS, TIERS, baseName, matchUnit, tierOf, type HeroType, type Tier, type Unit } from '../data/heroes'
 import { useDndHub } from './DndHub'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
@@ -27,16 +27,29 @@ export default function HeroDock({ bottom = 0 }: { bottom?: number }) {
   const setTab = (t: 'hero' | 'pet') => hub?.setDockTab(t)
   const [query, setQuery] = useState('')
   const [types, setTypes] = useState<HeroType[]>([])
+  const [tiers, setTiers] = useState<Tier[]>([])
   const [modal, setModal] = useState<'grid' | 'search' | 'filter' | null>(null)
   const strip = useRef<HTMLDivElement>(null)
   const dragScroll = useDragScroll(strip)
+  const gridRef = useRef<HTMLDivElement>(null)
+  const gridScroll = useDragScroll(gridRef, 'y')
 
   const used = new Set(hub?.usedInFocused() ?? [])
+  // ตัวที่ใช้ในไม้อื่นแล้ว → หรี่ + ป้ายไม้ (ยังกดใส่ได้ ถ้าตั้งใจ)
+  const blocked = tab === 'hero' ? hub?.blockedInFocused() ?? {} : {}
+  const usedIn = (u: Unit) => blocked[baseName(u.name)]
   const list = useMemo(() => {
     const src = tab === 'hero' ? HEROES : PETS
-    return src.filter((u) => matchUnit(u, query) && (tab === 'pet' || !types.length || (u.type && types.includes(u.type))))
-  }, [tab, query, types])
+    return src.filter((u) => matchUnit(u, query) && (tab === 'pet' || ((!types.length || (u.type && types.includes(u.type))) && (!tiers.length || tiers.includes(tierOf(u.name)!)))))
+  }, [tab, query, types, tiers])
   const visible = list.filter((u) => !used.has(u.id))
+  // หน้าใหญ่: แยกเป็นหมวดตาม tier (สัตว์เลี้ยง = หมวดเดียว)
+  const groups = useMemo(() => {
+    if (tab !== 'hero') return list.length ? [{ key: 'pet', tier: null as Tier | null, units: list }] : []
+    return (Object.keys(TIERS) as Tier[])
+      .map((t) => ({ key: t, tier: t as Tier | null, units: list.filter((u) => tierOf(u.name) === t) }))
+      .filter((g) => g.units.length)
+  }, [tab, list])
 
   // ใส่ครบแล้วเก็บแถบเอง: ฮีโร่ครบ → ไปแท็บสัตว์เลี้ยง (ถ้ายังไม่มี) → ครบหมด → เก็บ
   const st = hub?.statusOfFocused() ?? null
@@ -79,7 +92,7 @@ export default function HeroDock({ bottom = 0 }: { bottom?: number }) {
           <RoundBtn title="ดูทั้งหมด" onClick={() => setModal('grid')}><LayoutGrid className="h-5 w-5" /></RoundBtn>
           <RoundBtn title="ค้นหาชื่อ" onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
           {tab === 'hero' && (
-            <RoundBtn title="กรองประเภท" onClick={() => setModal('filter')} active={types.length > 0}><Filter className="h-5 w-5" /></RoundBtn>
+            <RoundBtn title="กรองประเภท" onClick={() => setModal('filter')} active={types.length + tiers.length > 0}><Filter className="h-5 w-5" /></RoundBtn>
           )}
           <div className="pill ml-1 flex p-0.5 text-sm">
             {(['hero', 'pet'] as const).map((k) => (
@@ -108,7 +121,7 @@ export default function HeroDock({ bottom = 0 }: { bottom?: number }) {
           className="no-scrollbar dock-fade mx-auto flex max-w-6xl cursor-grab select-none gap-2 overflow-x-auto px-3 pb-3 pt-2 active:cursor-grabbing"
         >
           {visible.map((u) => (
-            <RosterCard key={u.id} unit={u} kind={tab} onClick={() => add(u)} />
+            <RosterCard key={u.id} unit={u} kind={tab} onClick={() => add(u)} usedIn={usedIn(u)} />
           ))}
           {visible.length === 0 && <p className="py-6 text-sm text-white/45">ไม่พบตัวละคร</p>}
         </div>
@@ -117,32 +130,63 @@ export default function HeroDock({ bottom = 0 }: { bottom?: number }) {
       {/* ตารางใหญ่ตรงกลาง */}
       <Modal open={modal === 'grid'} title={`${tab === 'hero' ? 'ฮีโร่' : 'สัตว์เลี้ยง'}ทั้งหมด · ใส่ใน ${hub.focusedLabel ?? '—'}`} onClose={() => setModal(null)} wide>
         <div className="mb-3 flex gap-2">
-          <RoundBtn title="กรองประเภท" onClick={() => setModal('filter')} active={types.length > 0} hidden={tab !== 'hero'}><Filter className="h-5 w-5" /></RoundBtn>
+          <RoundBtn title="กรองประเภท" onClick={() => setModal('filter')} active={types.length + tiers.length > 0} hidden={tab !== 'hero'}><Filter className="h-5 w-5" /></RoundBtn>
           <RoundBtn title="ค้นหาชื่อ" onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
           {query && <span className="self-center text-sm text-white/60">ค้นหา: “{query}”</span>}
         </div>
-        <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6 lg:grid-cols-10">
-          {list.map((u) => {
-            const inTeam = used.has(u.id)
-            return (
-              <button
-                key={u.id}
-                onClick={() => !inTeam && add(u)}
-                className={`relative aspect-[4/5] text-[13px] transition ${inTeam ? 'opacity-35' : 'hover:-translate-y-0.5'}`}
-                title={inTeam ? 'อยู่ในทีมแล้ว' : `ใส่ ${u.name}`}
-              >
-                <UnitCard id={u.id} shape={tab === 'hero' ? 'hero' : 'pet'} />
-                {inTeam && <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-black/60 py-0.5 text-center text-xs">ในทีม</span>}
-              </button>
-            )
-          })}
+        <div ref={gridRef} {...gridScroll} className="cursor-grab select-none space-y-5 active:cursor-grabbing">
+          {groups.map((g) => (
+            <section key={g.key}>
+              {g.tier && (
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="h-4 w-1.5 rounded-full" style={{ background: TIERS[g.tier].color }} />
+                  <span className="font-semibold" style={{ color: TIERS[g.tier].color }}>{TIER_TITLE[g.tier]}</span>
+                  <span className="text-xs text-white/45">{g.units.length} ตัว</span>
+                  <span className="h-px flex-1 bg-white/10" />
+                </div>
+              )}
+              <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6 lg:grid-cols-10">
+                {g.units.map((u) => {
+                  const inTeam = used.has(u.id)
+                  return (
+                    <button
+                      key={u.id}
+                      onClick={() => !inTeam && add(u)}
+                      className={`relative aspect-[4/5] text-[13px] transition ${inTeam ? 'opacity-35' : usedIn(u) ? 'opacity-60 hover:opacity-90' : 'hover:-translate-y-0.5'}`}
+                      title={inTeam ? 'อยู่ในทีมแล้ว' : `ใส่ ${u.name}`}
+                    >
+                      <UnitCard id={u.id} shape={tab === 'hero' ? 'hero' : 'pet'} />
+                      {inTeam && <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-black/60 py-0.5 text-center text-xs">ในทีม</span>}
+                      {!inTeam && usedIn(u) && <UsedBadge label={usedIn(u)!} />}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          ))}
+          {!groups.length && <p className="py-8 text-center text-white/50">ไม่พบตัวละคร</p>}
         </div>
       </Modal>
 
       <SearchModal open={modal === 'search'} onClose={() => setModal(null)} onSearch={(q) => { setQuery(q); setModal(null) }} />
 
-      {/* กรองประเภท (อย่างเดียว) */}
-      <Modal open={modal === 'filter'} title="กรองประเภท" onClose={() => setModal(null)}>
+      {/* กรอง: ระดับ (tier) + ธาตุ */}
+      <Modal open={modal === 'filter'} title="กรองตัวละคร" onClose={() => setModal(null)}>
+        <div className="mb-1.5 text-xs text-white/55">ระดับ</div>
+        <div className="mb-4 grid grid-cols-3 gap-2">
+          <FilterBtn active={!tiers.length} onClick={() => setTiers([])}>ทั้งหมด</FilterBtn>
+          {(Object.keys(TIERS) as Tier[]).map((t) => (
+            <FilterBtn
+              key={t}
+              active={tiers.includes(t)}
+              onClick={() => setTiers((x) => (x.includes(t) ? x.filter((y) => y !== t) : [...x, t]))}
+              color={TIERS[t].color}
+            >
+              {TIERS[t].label}
+            </FilterBtn>
+          ))}
+        </div>
+        <div className="mb-1.5 text-xs text-white/55">ธาตุ</div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <FilterBtn active={!types.length} onClick={() => setTypes([])}>ทั้งหมด</FilterBtn>
           {(Object.keys(HERO_TYPES) as HeroType[]).map((t) => (
@@ -167,23 +211,30 @@ export default function HeroDock({ bottom = 0 }: { bottom?: number }) {
  * ลากแถบด้วยเมาส์เหมือนในเกม (ลากไปซ้าย = เลื่อนไปขวา) + ไถลต่อนิดหน่อยตอนปล่อย
  * มือถือใช้การปัดของเบราว์เซอร์อยู่แล้ว
  */
-function useDragScroll(ref: React.RefObject<HTMLDivElement | null>) {
-  const st = useRef({ down: false, x: 0, left: 0, moved: 0, v: 0, lastX: 0, lastT: 0, raf: 0 })
+function useDragScroll(ref: React.RefObject<HTMLDivElement | null>, axis: 'x' | 'y' = 'x') {
+  const st = useRef({ down: false, p: 0, start: 0, moved: 0, v: 0, last: 0, lastT: 0, raf: 0 })
+  // แนวตั้ง: เลื่อนกล่องที่ห่อ (เนื้อหาใน Modal) / แนวนอน: เลื่อนตัวเอง
+  const target = () => (axis === 'y' ? (ref.current?.closest('.overflow-y-auto') as HTMLElement | null) : ref.current)
+  const pos = (e: React.PointerEvent) => (axis === 'y' ? e.clientY : e.clientX)
+  const get = (el: HTMLElement) => (axis === 'y' ? el.scrollTop : el.scrollLeft)
+  const set = (el: HTMLElement, v: number) => (axis === 'y' ? (el.scrollTop = v) : (el.scrollLeft = v))
   return {
     onPointerDown: (e: React.PointerEvent) => {
-      if (e.pointerType !== 'mouse' || e.button !== 0 || !ref.current) return
+      const el = target()
+      if (e.pointerType !== 'mouse' || e.button !== 0 || !el) return
       cancelAnimationFrame(st.current.raf)
-      Object.assign(st.current, { down: true, x: e.clientX, left: ref.current.scrollLeft, moved: 0, v: 0, lastX: e.clientX, lastT: performance.now() })
+      Object.assign(st.current, { down: true, p: pos(e), start: get(el), moved: 0, v: 0, last: pos(e), lastT: performance.now() })
     },
     onPointerMove: (e: React.PointerEvent) => {
       const s = st.current
-      if (!s.down || !ref.current) return
-      const dx = e.clientX - s.x
-      s.moved = Math.max(s.moved, Math.abs(dx))
-      ref.current.scrollLeft = s.left - dx
+      const el = target()
+      if (!s.down || !el) return
+      const d = pos(e) - s.p
+      s.moved = Math.max(s.moved, Math.abs(d))
+      set(el, s.start - d)
       const now = performance.now()
-      s.v = (e.clientX - s.lastX) / Math.max(1, now - s.lastT)
-      s.lastX = e.clientX
+      s.v = (pos(e) - s.last) / Math.max(1, now - s.lastT)
+      s.last = pos(e)
       s.lastT = now
     },
     onPointerUp: () => {
@@ -193,8 +244,9 @@ function useDragScroll(ref: React.RefObject<HTMLDivElement | null>) {
       // ไถลต่อ (momentum)
       let v = -s.v * 16
       const step = () => {
-        if (!ref.current || Math.abs(v) < 0.5) return
-        ref.current.scrollLeft += v
+        const el = target()
+        if (!el || Math.abs(v) < 0.5) return
+        set(el, get(el) + v)
         v *= 0.92
         s.raf = requestAnimationFrame(step)
       }
@@ -212,7 +264,15 @@ function useDragScroll(ref: React.RefObject<HTMLDivElement | null>) {
   }
 }
 
-function RosterCard({ unit, kind, onClick }: { unit: Unit; kind: 'hero' | 'pet'; onClick: () => void }) {
+function UsedBadge({ label }: { label: string }) {
+  return (
+    <span className="pointer-events-none absolute inset-x-0 top-[38%] bg-red-600/85 py-0.5 text-center text-[11px] font-semibold text-white shadow">
+      ใช้แล้ว · {label}
+    </span>
+  )
+}
+
+function RosterCard({ unit, kind, onClick, usedIn }: { unit: Unit; kind: 'hero' | 'pet'; onClick: () => void; usedIn?: string }) {
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: `roster|${kind}|${unit.id}` })
   return (
     <button
@@ -222,11 +282,12 @@ function RosterCard({ unit, kind, onClick }: { unit: Unit; kind: 'hero' | 'pet';
       onClick={onClick}
       data-roster
       draggable={false}
-      className={`relative w-[68px] shrink-0 text-[13px] sm:w-[80px] ${isDragging ? 'opacity-30' : 'hover:-translate-y-1'} transition`}
+      className={`relative w-[68px] shrink-0 text-[13px] sm:w-[80px] ${isDragging ? 'opacity-30' : usedIn ? 'opacity-55 hover:opacity-90' : 'hover:-translate-y-1'} transition`}
       style={{ aspectRatio: '4 / 5', touchAction: 'pan-x' }}
       title={unit.name}
     >
       <UnitCard id={unit.id} shape={kind === 'hero' ? 'hero' : 'pet'} />
+      {usedIn && <UsedBadge label={usedIn} />}
     </button>
   )
 }
@@ -292,6 +353,13 @@ function RoundBtn({ children, onClick, title, active, hidden }: { children: Reac
       {children}
     </button>
   )
+}
+
+const TIER_TITLE: Record<Tier, string> = {
+  o7k: 'O7K · Seven Knights of Old',
+  lp: 'ทองบน (L+)',
+  l: 'ทองล่าง (L)',
+  r: 'ม่วง (Rare)',
 }
 
 function FilterBtn({ children, active, onClick, color }: { children: ReactNode; active: boolean; onClick: () => void; color?: string }) {

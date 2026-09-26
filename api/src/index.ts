@@ -90,7 +90,7 @@ type PlanData = {
   op: string[]
   banned: string[][] // ชุดทีมที่ยกเลิก เช่น [['gale','klemis','mist']]
   note: string
-  slots: { name: string; kind: 'attack' | 'defense'; vs: Team | null; vsTag: string; vsId: string; options: { team: Team; skills: SkillStep[]; condition: string; notes: string; heroNotes: HeroNote[] }[] }[]
+  slots: { name: string; kind: 'attack' | 'defense'; vs: Team | null; vsTag: string; vsId: string; main: number; options: { team: Team; skills: SkillStep[]; condition: string; notes: string; heroNotes: HeroNote[] }[] }[]
 }
 function parsePlan(raw: any): PlanData | null {
   if (!raw || typeof raw !== 'object') return null
@@ -107,6 +107,7 @@ function parsePlan(raw: any): PlanData | null {
       vs: s.vs ? parseTeam(s.vs) : null, // บ้านที่จะตี (ไม้บุก)
       vsTag: str(s.vsTag, 20),
       vsId: str(s.vsId, 80),
+      main: Number.isInteger(s.main) && s.main >= 0 && s.main < options.length ? s.main : 0,
       options,
     }
   })
@@ -143,6 +144,7 @@ const toCounter = (r: any) => ({
   team: JSON.parse(r.team),
   skills: JSON.parse(r.skills),
   note: r.note,
+  heroNotes: JSON.parse(r.hero_notes ?? '[]'),
   createdAt: r.created_at,
   updatedAt: r.updated_at,
 })
@@ -252,9 +254,9 @@ app.post('/api/guild/:id/targets/:tid/counters', async (c) => {
   const team = parseTeam(body.team)
   if (!team) return c.json({ error: 'ข้อมูลทีมไม่ถูกต้อง' }, 400)
   const now = Date.now()
-  const row = { id: randomId(10), target_id: tid, team: JSON.stringify(team), skills: JSON.stringify(parseSkills(body.skills, team)), note: str(body.note, 500) }
-  await c.env.DB.prepare('INSERT INTO counters (id, target_id, guild_id, team, skills, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(row.id, tid, gid, row.team, row.skills, row.note, now, now)
+  const row = { id: randomId(10), target_id: tid, team: JSON.stringify(team), skills: JSON.stringify(parseSkills(body.skills, team)), note: str(body.note, 500), hero_notes: JSON.stringify(parseHeroNotes(body.heroNotes)) }
+  await c.env.DB.prepare('INSERT INTO counters (id, target_id, guild_id, team, skills, note, hero_notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(row.id, tid, gid, row.team, row.skills, row.note, row.hero_notes, now, now)
     .run()
   await c.env.DB.prepare('UPDATE targets SET updated_at = ? WHERE id = ?').bind(now, tid).run()
   return c.json(toCounter({ ...row, created_at: now, updated_at: now }), 201)
@@ -267,9 +269,14 @@ app.put('/api/guild/:id/counters/:cid', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const team = parseTeam(body.team)
   if (!team) return c.json({ error: 'ข้อมูลทีมไม่ถูกต้อง' }, 400)
-  const res = await c.env.DB.prepare('UPDATE counters SET team = ?, skills = ?, note = ?, updated_at = ? WHERE id = ? AND guild_id = ?')
-    .bind(JSON.stringify(team), JSON.stringify(parseSkills(body.skills, team)), str(body.note, 500), Date.now(), c.req.param('cid'), gid)
-    .run()
+  // heroNotes ไม่ได้ส่งมา = ไม่แตะของเดิม
+  const res = Array.isArray(body.heroNotes)
+    ? await c.env.DB.prepare('UPDATE counters SET team = ?, skills = ?, note = ?, hero_notes = ?, updated_at = ? WHERE id = ? AND guild_id = ?')
+        .bind(JSON.stringify(team), JSON.stringify(parseSkills(body.skills, team)), str(body.note, 500), JSON.stringify(parseHeroNotes(body.heroNotes)), Date.now(), c.req.param('cid'), gid)
+        .run()
+    : await c.env.DB.prepare('UPDATE counters SET team = ?, skills = ?, note = ?, updated_at = ? WHERE id = ? AND guild_id = ?')
+        .bind(JSON.stringify(team), JSON.stringify(parseSkills(body.skills, team)), str(body.note, 500), Date.now(), c.req.param('cid'), gid)
+        .run()
   if (!res.meta.changes) return c.json({ error: 'ไม่พบทีม' }, 404)
   return c.json({ ok: true })
 })

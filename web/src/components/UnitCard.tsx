@@ -6,7 +6,7 @@ import attackRole from '../assets/ui/attack-role.webp'
 import defenseRole from '../assets/ui/defense-role.webp'
 import supportRole from '../assets/ui/support-role.webp'
 import universalRole from '../assets/ui/universal-role.webp'
-import { HERO_TYPES, baseName, getUnit, isAwake, type HeroType } from '../data/heroes'
+import { HERO_TYPES, baseName, getUnit, isAwake, type HeroType, RARE } from '../data/heroes'
 
 const ROLE_BADGE: Record<HeroType, { image: string; tone: string }> = {
   attack: { image: attackRole, tone: '#a82d30' },
@@ -42,7 +42,7 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
 
   return (
     <div
-      className={`unit-card relative h-full w-full overflow-hidden ${awake ? 'unit-awake' : ''} ${round ? 'rounded-full' : 'rounded-[10px]'} ${className}`}
+      className={`unit-card relative h-full w-full overflow-hidden ${awake ? 'unit-awake' : RARE.has(label) ? 'unit-rare' : ''} ${round ? 'rounded-full' : 'rounded-[10px]'} ${className}`}
       style={{ '--unit-color': color } as CSSProperties}
       title={u.name}
     >

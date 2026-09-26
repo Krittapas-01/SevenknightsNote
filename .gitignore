@@ -5,3 +5,7 @@ dist/
 !.env.example
 *.log
 *.tsbuildinfo
+api/.pandoara-key
+api/seed-*.sql
+api/.pandoara-seeded
+api/upgrade-*.sql

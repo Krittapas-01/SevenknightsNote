@@ -1,4 +1,5 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
+import { queueStyle } from '../lib/queue'
 import { Footprints, PawPrint, Plus, RotateCcw } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
@@ -34,14 +35,18 @@ type Props = {
   onMove?: (from: SlotRef, to: SlotRef) => void
   /** ใส่ตัวละครลงช่อง (null = เอาออก) */
   onPlace?: (ref: SlotRef, unit: string | null) => void
+  /** ตัวที่ใช้ในไม้อื่นแล้ว (ชื่อฐาน → ป้าย) */
+  blocked?: Record<string, string>
   className?: string
 }
 
 const GAP = 8
+/** ระยะห่างการ์ดฮีโร่บน-ล่าง */
+const ROW_GAP = GAP
 
 export default function TeamPanel({
   team, variant, title, label, size = 'md', editable, onSlotClick, onReset, onFormation, onSpeed,
-  skills = [], onSkills, onMove, onPlace, className = '',
+  skills = [], onSkills, onMove, onPlace, blocked, className = '',
 }: Props) {
   const hub = useDndHub()
   const panelId = useId().replace(/[:|]/g, '')
@@ -77,8 +82,8 @@ export default function TeamPanel({
     r.kind === 'hero' ? team.slots[r.index] ?? null : r.kind === 'pet' ? team.pet : team.extras[r.index] ?? null
 
   // ลงทะเบียนกับศูนย์ลากวาง (เก็บค่าล่าสุดใน ref จะได้ไม่ต้องลงทะเบียนใหม่ทุกครั้งที่ทีมเปลี่ยน)
-  const latest = useRef({ team, onMove, onPlace, label })
-  latest.current = { team, onMove, onPlace, label }
+  const latest = useRef({ team, onMove, onPlace, label, blocked })
+  latest.current = { team, onMove, onPlace, label, blocked }
   useEffect(() => {
     if (!hub || !active) return
     const units = () => {
@@ -111,6 +116,7 @@ export default function TeamPanel({
         if (r) latest.current.onPlace?.(r, u)
         setPending(null)
       },
+      blocked: () => latest.current.blocked ?? {},
       status: () => {
         const t = latest.current.team
         return { heroes: t.slots.filter(Boolean).length, pet: !!t.pet }
@@ -149,7 +155,7 @@ export default function TeamPanel({
     }
   }
 
-  const S = size === 'md' ? 'clamp(58px, 17vw, 84px)' : 'clamp(40px, 11vw, 50px)'
+  const S = size === 'md' ? 'clamp(58px, 17vw, 84px)' : 'clamp(54px, 15vw, 68px)'
   const style = { '--s': S } as CSSProperties
 
   const frontIdx = Array.from({ length: team.front }, (_, i) => i)
@@ -161,7 +167,7 @@ export default function TeamPanel({
     : [{ key: 'front', label: 'หน้า', idx: frontIdx }, { key: 'back', label: 'หลัง', idx: backIdx }]
 
   /** ลำดับจองสกิลของช่องนี้ เช่น [1, 3] */
-  const queueOf = (slot: number) => skills.map((s, i) => (s.slot === slot ? i + 1 : 0)).filter(Boolean)
+  const queueOf = (slot: number) => skills.map((s, i) => ({ n: i + 1, skill: s.skill, slot: s.slot })).filter((q) => q.slot === slot)
   const lit = Math.min(skills.length, MAX_SKILL_QUEUE)
   const hasExtras = team.extras.some(Boolean)
   const isSm = size === 'sm'
@@ -217,12 +223,17 @@ export default function TeamPanel({
       </div>
 
       {/* body */}
-      <div className={`flex flex-1 items-start justify-center ${isSm ? 'mt-2 gap-2' : 'mt-3 gap-2.5 sm:gap-3'}`}>
+      {/* การ์ดเล็ก (หน้ารายการ): จองความสูงไว้ 4 แถวเสมอ ทุกค่ายกลจะได้สูงเท่ากัน */}
+      <div
+        className={`flex flex-1 justify-center ${isSm ? 'mt-2 items-center gap-2' : 'mt-3 items-start gap-2.5 sm:gap-3'}`}
+        style={isSm ? { minHeight: `calc(var(--s) * 4 + ${ROW_GAP * 3}px)` } : undefined}
+      >
         {cols.map((col) => (
           <div
             key={col.key}
             className="flex flex-col items-center"
-            style={{ gap: GAP, paddingTop: `calc((var(--s) + ${GAP}px) * ${(maxLen - col.idx.length) / 2})` }}
+            // การ์ดเล็กจัดกลางด้วย items-center อยู่แล้ว → ไม่ต้องดันลงอีก (ไม่งั้นแถวที่มีช่องน้อยจะตกต่ำกว่ากลาง)
+            style={{ gap: ROW_GAP, paddingTop: isSm ? 0 : `calc((var(--s) + ${ROW_GAP}px) * ${(maxLen - col.idx.length) / 2})` }}
           >
             {col.idx.map((i) => {
               const r: SlotRef = { kind: 'hero', index: i }
@@ -278,9 +289,9 @@ export default function TeamPanel({
 
           <button
             type="button"
-            disabled={!active || !onSkills}
+            disabled={!(active && onSkills) && (skills.length === 0 || isSm)}
             onClick={() => setModal('skills')}
-            title={skills.length ? `จองสกิล ${skills.length} ครั้ง` : 'จองสกิล'}
+            title={skills.length ? `จองสกิล ${skills.length} ครั้ง — กดดู` : 'จองสกิล'}
             className="orb mt-4 grid place-items-center"
             style={{ width: 'var(--s)', height: 'var(--s)' }}
           >
@@ -290,11 +301,12 @@ export default function TeamPanel({
       </div>
 
       {/* สัตว์เลี้ยงสำรอง (ใช้แทนได้) */}
-      {(active || hasExtras) && (
-        <div className={`flex items-center justify-center gap-1.5 ${isSm ? 'mt-2' : 'mt-3'}`}>
+      {/* การ์ดเล็ก: ไม่มีสัตว์สำรองก็เว้นที่ไว้ (ซ่อน) ทุกใบจะได้สูงเท่ากัน */}
+      {(active || hasExtras || isSm) && (
+        <div className={`flex items-center justify-center gap-1.5 ${isSm ? 'mt-2' : 'mt-3'} ${!active && !hasExtras ? 'invisible' : ''}`} aria-hidden={!active && !hasExtras}>
           <span className="text-[11px] text-white/45">สัตว์เลี้ยงสำรอง</span>
           {Array.from({ length: EXTRA_COUNT }, (_, i) => team.extras[i] ?? null).map((x, i) => (
-            <div key={i} style={{ width: isSm ? 22 : 30 }}>
+            <div key={i} style={{ width: isSm ? 28 : 30 }}>
               <DnDSlot {...slotProps({ kind: 'extra', index: i })} round>
                 <button
                   type="button"
@@ -302,7 +314,7 @@ export default function TeamPanel({
                   onClick={() => clickSlot({ kind: 'extra', index: i })}
                   title={x ? getName(x) : `สัตว์เลี้ยงสำรอง ${i + 1}`}
                   className="block aspect-square w-full"
-                  style={{ fontSize: isSm ? 7 : 9 }}
+                  style={{ fontSize: isSm ? 8 : 9 }}
                 >
                   {x ? (
                     <UnitCard id={x} shape="round" />
@@ -322,8 +334,8 @@ export default function TeamPanel({
       <div className={isSm ? 'h-1' : 'h-2'} />
 
       {onFormation && <FormationModal open={modal === 'formation'} front={team.front} onSelect={onFormation} onClose={() => setModal(null)} />}
-      {onSkills && (
-        <SkillQueueModal open={modal === 'skills'} team={team} skills={skills} onChange={onSkills} onClose={() => setModal(null)} />
+      {(onSkills || skills.length > 0) && (
+        <SkillQueueModal open={modal === 'skills'} team={team} skills={skills} onChange={active ? onSkills : undefined} onClose={() => setModal(null)} />
       )}
     </div>
   )
@@ -360,9 +372,23 @@ function HeroSlot({ id, editable, onClick, queue, side }: {
   id: string | null
   editable: boolean
   onClick: () => void
-  queue: number[]
+  /** จองสกิลของช่องนี้: n = ลำดับ, skill = บน(1)/ล่าง(2) */
+  queue: { n: number; skill: 1 | 2 }[]
   side: 'left' | 'right'
 }) {
+  // เลขอยู่ตามตำแหน่งสกิลแบบในเกม: สกิลบน = ป้ายบน, สกิลล่าง = ป้ายล่าง
+  const top = queue.filter((q) => q.skill === 1).map((q) => q.n)
+  const bottom = queue.filter((q) => q.skill === 2).map((q) => q.n)
+  // ป้ายยื่นออกข้างการ์ด · สกิลบน = มุมบน · สกิลล่าง = มุมล่าง (ขยับเข้าในนิดนึง ไม่ให้ชนการ์ดบน/ล่าง)
+  const badge = (nums: number[], pos: string, label: string) => (
+    <span className={`pointer-events-none absolute ${pos} z-10 flex gap-0.5`} title={`${label} ลำดับ ${nums.join(', ')}`}>
+      {nums.map((n) => (
+        <span key={n} className="grid h-[18px] w-[18px] place-items-center rounded-full border border-white/90 text-[11px] font-bold leading-none shadow-[0_1px_3px_rgba(0,0,0,.6)]" style={queueStyle(n)}>
+          {n}
+        </span>
+      ))}
+    </span>
+  )
   return (
     <div className="relative" style={{ width: 'var(--s)', height: 'var(--s)', fontSize: 'calc(var(--s) * 0.22)' }}>
       <button type="button" disabled={!editable} onClick={onClick} className="block h-full w-full">
@@ -374,15 +400,9 @@ function HeroSlot({ id, editable, onClick, queue, side }: {
           </div>
         )}
       </button>
-      {/* ป้ายแดงแบบในเกม = ตัวนี้ถูกจองสกิล (ตัวเลข = ลำดับ) */}
-      {id && queue.length > 0 && (
-        <span
-          className={`pointer-events-none absolute -top-1.5 ${side === 'left' ? '-left-1.5' : '-right-1.5'} grid h-5 min-w-5 place-items-center rounded-full border border-white/80 bg-gradient-to-b from-[#ff5a5a] to-[#c3121f] px-1 text-[11px] font-bold leading-none text-white shadow`}
-          title={`จองสกิลลำดับ ${queue.join(', ')}`}
-        >
-          {queue.join(',')}
-        </span>
-      )}
+      {/* ป้ายแดงแบบในเกม = ลำดับจองสกิล (บน = สกิลบน, ล่าง = สกิลล่าง) */}
+      {id && top.length > 0 && badge(top, `top-0 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, 'สกิลบน')}
+      {id && bottom.length > 0 && badge(bottom, `bottom-0 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, 'สกิลล่าง')}
     </div>
   )
 }

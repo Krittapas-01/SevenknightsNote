@@ -1,4 +1,6 @@
 import { ChevronLeft, Eraser, Library, ListOrdered, Pencil, Plus, Trash2, Undo2, X } from 'lucide-react'
+import { queueStyle } from '../lib/queue'
+import { tagColor, tagStyle } from '../lib/tags'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import TeamPanel, { type SlotKind } from '../components/TeamPanel'
@@ -9,10 +11,13 @@ import CompLibrary, { type Comp } from '../components/CompLibrary'
 import VsArena from '../components/VsArena'
 import { PRESET_TAGS, getUnit } from '../data/heroes'
 import { api } from '../lib/api'
-import { MAX_HEROES, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type SkillStep, type Team } from '../lib/types'
+import { MAX_HEROES, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import NotFound from './NotFound'
 import { EquipmentNoteText } from '../components/EquipmentLoadout'
+import HeroNotesTable from '../components/HeroNotesTable'
+
+const copyNotes = (n?: HeroNote[]) => (n ?? []).map((x) => ({ ...x, sets: [...x.sets], rings: [...x.rings] }))
 
 type Mode = 'view' | 'target' | 'counter'
 type Picker = { side: 'target' | 'counter'; kind: SlotKind; index: number } | null
@@ -29,7 +34,7 @@ export default function TargetPage() {
   const [sel, setSel] = useState(0)
   const [mode, setMode] = useState<Mode>('view')
   const [tDraft, setTDraft] = useState({ team: emptyTeam(), tags: [] as string[], note: '' })
-  const [cDraft, setCDraft] = useState({ id: null as string | null, team: emptyTeam(), skills: [] as SkillStep[], note: '' })
+  const [cDraft, setCDraft] = useState({ id: null as string | null, team: emptyTeam(), skills: [] as SkillStep[], note: '', heroNotes: [] as HeroNote[] })
   const [picker, setPicker] = useState<Picker>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -56,8 +61,8 @@ export default function TargetPage() {
     setMode('target')
   }
   function editCounter(isAdd: boolean) {
-    if (isAdd || !current) setCDraft({ id: null, team: emptyTeam(), skills: [], note: '' })
-    else setCDraft({ id: current.id, team: clone(current.team), skills: [...current.skills], note: current.note })
+    if (isAdd || !current) setCDraft({ id: null, team: emptyTeam(), skills: [], note: '', heroNotes: [] })
+    else setCDraft({ id: current.id, team: clone(current.team), skills: [...current.skills], note: current.note, heroNotes: copyNotes(current.heroNotes) })
     setErr(null)
     setMode('counter')
   }
@@ -129,7 +134,7 @@ export default function TargetPage() {
   const saveCounter = () =>
     run(async () => {
       if (heroCount(cDraft.team) === 0) throw new Error('ใส่ฮีโร่อย่างน้อย 1 ตัว')
-      const body = { team: cDraft.team, skills: cDraft.skills, note: cDraft.note }
+      const body = { team: cDraft.team, skills: cDraft.skills, note: cDraft.note, heroNotes: cDraft.heroNotes }
       if (cDraft.id) {
         await api.updateCounter(gid, cDraft.id, body)
         await reload()
@@ -153,8 +158,7 @@ export default function TargetPage() {
   function pickComp(c: Comp) {
     if (library === 'target') setTDraft((d) => ({ ...d, team: clone(c.team), note: d.note || c.note }))
     else if (library === 'counter') {
-      const gear = c.heroNotes.map((n) => `${getUnit(n.hero)?.name ?? n.hero}: ${[n.text, ...n.sets.map((x) => 'ชุด' + x), ...n.rings].filter(Boolean).join(' · ')}`)
-      setCDraft((d) => ({ ...d, team: clone(c.team), skills: [...c.skills], note: [c.note, ...gear].filter(Boolean).join('\n').slice(0, 500) }))
+      setCDraft((d) => ({ ...d, team: clone(c.team), skills: [...c.skills], note: c.note.slice(0, 500), heroNotes: copyNotes(c.heroNotes) }))
     }
     setLibrary(null)
   }
@@ -282,6 +286,12 @@ export default function TargetPage() {
               placeholder="โน้ต เช่น ทำช้า, ต้องมีของดี, แนะนำตัวนี้มากกว่าไคล์"
               className="mt-4 w-full rounded-xl border border-white/15 bg-black/20 p-3 outline-none focus:border-gold"
             />
+            {cDraft.heroNotes.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-sm text-white/60">ของ/สเตตัสรายตัว</p>
+                <HeroNotesTable notes={cDraft.heroNotes} editing onChange={(heroNotes) => setCDraft((d) => ({ ...d, heroNotes }))} />
+              </div>
+            )}
             <Actions busy={busy} onSave={saveCounter} onCancel={cancel} onDelete={cDraft.id ? deleteCounter : undefined} />
           </div>
         )}
@@ -296,7 +306,7 @@ export default function TargetPage() {
             <p className="text-sm text-white/60">แท็ก (สูงสุด 5)</p>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {tDraft.tags.map((t) => (
-                <span key={t} className="flex items-center gap-1 rounded-full bg-sky-400/20 py-0.5 pl-3 pr-1 text-sm text-sky-100">
+                <span key={t} className="flex items-center gap-1 rounded-full py-0.5 pl-3 pr-1 text-sm font-semibold" style={tagStyle(t)}>
                   {t}
                   <button onClick={() => setTDraft((d) => ({ ...d, tags: d.tags.filter((x) => x !== t) }))} className="rounded-full p-0.5 hover:bg-white/10">
                     <X className="h-3.5 w-3.5" />
@@ -359,11 +369,17 @@ export default function TargetPage() {
               </div>
               {target.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {target.tags.map((t) => <span key={t} className="rounded-full bg-sky-400/20 px-3 py-0.5 text-sm text-sky-100">{t}</span>)}
+                  {target.tags.map((t) => <span key={t} className="rounded-full px-3 py-0.5 text-sm font-semibold" style={tagStyle(t)}>{t}</span>)}
                 </div>
               )}
               <p className="mt-3 whitespace-pre-wrap text-white/80">{target.note || <span className="text-white/40">ไม่มีโน้ต</span>}</p>
             </div>
+            {current && (current.heroNotes?.length ?? 0) > 0 && (
+              <div className="panel p-4 md:col-span-2 sm:p-5">
+                <h3 className="mb-3 font-semibold text-gold">ของ/สเตตัสรายตัว · ทีมแก้ #{Math.min(sel, counters.length - 1) + 1}</h3>
+                <HeroNotesTable notes={current.heroNotes!} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -393,7 +409,7 @@ function SkillOrder({ team, skills }: { team: Team; skills: SkillStep[] }) {
       {skills.map((s, i) => (
         <li key={i} className="flex items-center gap-1.5">
           <span className="flex items-center gap-1.5 rounded-full bg-black/30 py-0.5 pl-0.5 pr-3">
-            <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-ink">{i + 1}</span>
+            <span className="grid h-5 w-5 place-items-center rounded-full text-xs font-bold" style={queueStyle(i + 1)}>{i + 1}</span>
             {getUnit(team.slots[s.slot])?.name} · S{s.skill}
           </span>
           {i < skills.length - 1 && <span className="text-white/40">→</span>}

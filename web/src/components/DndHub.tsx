@@ -2,7 +2,7 @@ import {
   DndContext, DragOverlay, MouseSensor, PointerSensor, TouchSensor, pointerWithin, rectIntersection, useSensor, useSensors,
   type CollisionDetection, type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core'
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { SlotRef } from '../lib/types'
 import UnitCard from './UnitCard'
@@ -29,6 +29,8 @@ export type PanelHandlers = {
   onQuickAdd?: (kind: 'hero' | 'pet', unitId: string) => void
   /** จำนวนฮีโร่ในทีม + มีสัตว์เลี้ยงหลักหรือยัง (ใช้เก็บแถบอัตโนมัติ) */
   status: () => { heroes: number; pet: boolean }
+  /** ตัวที่ใช้ในไม้อื่นแล้ว (ชื่อฐาน → ป้าย) ใช้หรี่ในแถบ */
+  blocked?: () => Record<string, string>
 }
 
 type Hub = {
@@ -42,6 +44,7 @@ type Hub = {
   /** มีทีมที่แก้ไขได้อยู่ในหน้าไหม */
   hasPanels: boolean
   statusOfFocused: () => { heroes: number; pet: boolean } | null
+  blockedInFocused: () => Record<string, string>
   /** แถบตัวละครด้านล่าง: เปิด/เก็บ + แท็บ */
   dockOpen: boolean
   setDockOpen: (v: boolean) => void
@@ -159,6 +162,7 @@ export function DndHub({ children }: { children: ReactNode }) {
       usedInFocused: () => (focused ? panels.current.get(focused)?.used() ?? [] : []),
       hasPanels: panels.current.size > 0,
       statusOfFocused: () => (focused ? panels.current.get(focused)?.status() ?? null : null),
+      blockedInFocused: () => (focused ? panels.current.get(focused)?.blocked?.() ?? {} : {}),
       dockOpen,
       setDockOpen,
       dockTab,
@@ -194,4 +198,43 @@ export function DndHub({ children }: { children: ReactNode }) {
 export function HideWhileDock({ children }: { children: ReactNode }) {
   const hub = useDndHub()
   return hub?.dockOpen ? null : <>{children}</>
+}
+
+/**
+ * เป้าหมายแบบรายชื่อ (เช่น ตัว OP / ชุดที่ยกเลิก) — ใช้แถบตัวละครด้านล่างแทนหน้าต่างเลือก
+ * h = null → ไม่ลงทะเบียน (เช่น ไม่ได้อยู่ในโหมดแก้ไข)
+ */
+export function useListTarget(
+  id: string,
+  h: { label: string; used: string[]; full: boolean; onAdd: (unit: string) => void } | null,
+) {
+  const hub = useDndHub()
+  const latest = useRef(h)
+  latest.current = h
+  const register = hub?.register
+  const enabled = !!h
+  useEffect(() => {
+    if (!register || !enabled) return
+    return register(id, {
+      label: () => latest.current?.label ?? '',
+      used: () => latest.current?.used ?? [],
+      valueOf: () => null,
+      onQuickAdd: (kind, unit) => {
+        const c = latest.current
+        if (kind !== 'hero' || !c || c.full || c.used.includes(unit)) return
+        c.onAdd(unit)
+      },
+      // ครบแล้ว → ให้แถบเก็บตัวเอง
+      status: () => (latest.current?.full ? { heroes: 99, pet: true } : { heroes: 0, pet: false }),
+    })
+  }, [register, id, enabled])
+  return {
+    open: () => {
+      if (!hub) return
+      hub.setFocused(id)
+      hub.setDockTab('hero')
+      hub.setDockOpen(true)
+    },
+    active: !!hub?.dockOpen && hub.focused === id,
+  }
 }
