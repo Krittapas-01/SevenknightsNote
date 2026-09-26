@@ -90,7 +90,7 @@ type PlanData = {
   op: string[]
   banned: string[][] // ชุดทีมที่ยกเลิก เช่น [['gale','klemis','mist']]
   note: string
-  slots: { name: string; kind: 'attack' | 'defense'; vs: Team | null; vsTag: string; vsId: string; main: number; options: { team: Team; skills: SkillStep[]; condition: string; notes: string; heroNotes: HeroNote[] }[] }[]
+  slots: { name: string; kind: 'attack' | 'defense'; vs: Team | null; vsTag: string; vsId: string; main: number; options: { team: Team; skills: SkillStep[]; condition: string; notes: string; heroNotes: HeroNote[]; custom?: true; logged?: true }[] }[]
 }
 function parsePlan(raw: any): PlanData | null {
   if (!raw || typeof raw !== 'object') return null
@@ -99,7 +99,10 @@ function parsePlan(raw: any): PlanData | null {
     const options = (Array.isArray(s.options) ? s.options : []).slice(0, MAX_OPTIONS).flatMap((o: any) => {
       const team = parseTeam(o?.team)
       if (!team) return []
-      return [{ team, skills: parseSkills(o.skills, team), condition: str(o.condition, 60), notes: str(o.notes, 1000), heroNotes: parseHeroNotes(o.heroNotes) }]
+      return [{
+        team, skills: parseSkills(o.skills, team), condition: str(o.condition, 60), notes: str(o.notes, 1000), heroNotes: parseHeroNotes(o.heroNotes),
+        ...(o.custom === true ? { custom: true as const } : {}), ...(o.logged === true ? { logged: true as const } : {}),
+      }]
     })
     return {
       name: str(s.name, 40),

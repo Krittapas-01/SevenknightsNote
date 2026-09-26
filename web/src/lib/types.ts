@@ -55,6 +55,10 @@ export type WarOption = {
   /** โน้ต ขึ้นบรรทัดใหม่ = ข้อใหม่ */
   notes: string
   heroNotes?: HeroNote[]
+  /** จัดทีมเองในแผน (ไม่ได้มาจากคลังคอมพ์) */
+  custom?: boolean
+  /** ถามเรื่องจดลงจดทีมศัตรูแล้ว */
+  logged?: boolean
 }
 export type WarSlot = {
   name: string

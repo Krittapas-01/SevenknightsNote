@@ -6,6 +6,8 @@ import { Link, useNavigate, useParams } from 'react-router'
 import CompLibrary, { type Comp, type Defense } from '../components/CompLibrary'
 import TeamPanel from '../components/TeamPanel'
 import { DndHub, HideWhileDock, useListTarget } from '../components/DndHub'
+import { findLogItems, logToTargets, markLogged, type LogItem } from '../lib/logTargets'
+import Modal from '../components/Modal'
 import { autoAssign, blockedFor, conflictCount, conflictsOf, heroKey, heroUsage, heroesOf, mainIndex, mainOption } from '../lib/allocation'
 import HeroDock from '../components/HeroDock'
 import OptionCard from '../components/OptionCard'
@@ -54,6 +56,9 @@ export default function PlanPage() {
   /** เปิดคลังเพื่อเลือกบ้านที่จะตีของไม้ s */
   const [vsLibrary, setVsLibrary] = useState<number | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  // ถามหลังบันทึกแผน: จดทีมที่จัดเองลงจดทีมศัตรูด้วยไหม
+  const [logAsk, setLogAsk] = useState<{ items: LogItem[]; planId: string; body: { title: string; data: PlanData }; picked: boolean[] } | null>(null)
+  const [logBusy, setLogBusy] = useState(false)
   // ไม้บุก: ปกติโชว์แค่ทีมหลัก กดขยายถึงเห็นคอมพ์อื่น
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const toggleExpand = (s: number) => setExpanded((x) => { const n = new Set(x); if (n.has(s)) n.delete(s); else n.add(s); return n })
@@ -186,13 +191,36 @@ export default function PlanPage() {
     }
   }
 
+  async function answerLog(save: boolean) {
+    if (!logAsk) return
+    setLogBusy(true)
+    const chosen = logAsk.items.filter((_, i) => logAsk.picked[i])
+    let msg = ''
+    if (save && chosen.length) {
+      const r = await logToTargets(gid, chosen)
+      msg = r.errors.length ? `จดแล้ว ${r.ok} ทีม · ไม่สำเร็จ: ${r.errors.join(' / ')}` : `จดลงจดทีมศัตรูแล้ว ${r.ok} ทีม ✓`
+    }
+    // ถามแล้ว = ไม่ถามซ้ำ (ทั้งที่จดและไม่จด)
+    try {
+      await api.updatePlan(gid, logAsk.planId, { ...logAsk.body, data: markLogged(logAsk.body.data, logAsk.items) })
+    } catch { /* ไม่เป็นไร รอบหน้าถามใหม่ */ }
+    await reload()
+    setLogBusy(false)
+    setLogAsk(null)
+    if (msg) flash(msg)
+  }
+
   async function save() {
     setBusy(true)
     setErr(null)
     try {
       const body = { title: title.trim() || 'แผนวอร์', data: { ...draft, banned: draft.banned.filter((g) => g.length) } }
+      // ทีมที่จัดเองในแผน → เดี๋ยวถามว่าจะจดลงจดทีมศัตรูด้วยไหม
+      const items = findLogItems(body.data, data?.targets ?? [])
+      let planId = pid
       if (isNew) {
         const p = await api.createPlan(gid, body)
+        planId = p.id
         await reload()
         nav(`/g/${gid}/p/${p.id}`, { replace: true })
       } else {
@@ -200,6 +228,7 @@ export default function PlanPage() {
         await reload()
       }
       setEditing(false)
+      if (items.length) setLogAsk({ items, planId, body, picked: items.map(() => true) })
     } catch (e) {
       setErr((e as Error).message)
     } finally {
@@ -350,7 +379,7 @@ export default function PlanPage() {
                 onClick={() =>
                   patchSlot(s, (x) => ({
                     ...x,
-                    options: [...x.options, { ...emptyOption(), condition: x.kind === 'defense' && x.options.length ? 'ถ้าไม่มีทีมบน' : '' }],
+                    options: [...x.options, { ...emptyOption(), custom: true, condition: x.kind === 'defense' && x.options.length ? 'ถ้าไม่มีทีมบน' : '' }],
                   }))
                 }
                 className="flex flex-col items-center justify-center gap-1 rounded-[18px] border-2 border-dashed border-white/20 text-white/60 hover:border-gold hover:text-gold"
@@ -525,6 +554,33 @@ export default function PlanPage() {
         onPickDefense={pickDefense}
         onClose={() => setVsLibrary(null)}
       />
+
+      <Modal open={!!logAsk} title="จดลงจดทีมศัตรูด้วยไหม?" onClose={() => !logBusy && answerLog(false)}>
+        <p className="mb-3 text-sm text-white/70">ทีมที่จัดเองในแผนนี้ยังไม่มีในจดทีมศัตรู — เลือกทีมที่จะจดเป็น "ทีมแก้" ของบ้านนั้น</p>
+        <div className="space-y-2">
+          {logAsk?.items.map((it, i) => (
+            <label key={i} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${logAsk.picked[i] ? 'border-gold/60 bg-gold/10' : 'border-white/10 bg-black/20'}`}>
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-[#f4d58d]" checked={logAsk.picked[i]}
+                onChange={() => setLogAsk((x) => x && { ...x, picked: x.picked.map((v, j) => (j === i ? !v : v)) })} />
+              <span className="min-w-0 text-sm">
+                <span className="font-semibold text-gold">ไม้ {it.s + 1}</span>{' '}
+                <span>{teamNames(it.opt.team)}</span>
+                <span className="mx-1.5 text-white/40">vs</span>
+                <span className="text-red-200">{teamNames(it.vs)}</span>
+                <span className="mt-0.5 block text-xs text-white/50">
+                  {it.target ? 'เพิ่มเป็นทีมแก้ของบ้านที่มีอยู่แล้ว' : 'บ้านนี้ยังไม่มี → สร้างบ้านใหม่ + ทีมแก้'}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <div className="mt-5 flex gap-2">
+          <button disabled={logBusy || !logAsk?.picked.some(Boolean)} onClick={() => answerLog(true)} className="btn-gold flex-1 py-2">
+            {logBusy ? 'กำลังจด...' : 'จดลงจดทีมศัตรู'}
+          </button>
+          <button disabled={logBusy} onClick={() => answerLog(false)} className="pill px-5 py-2">ไม่ต้อง</button>
+        </div>
+      </Modal>
 
       {toast && (
         <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-gold px-5 py-2 text-sm font-semibold text-ink shadow-lg">{toast}</div>
