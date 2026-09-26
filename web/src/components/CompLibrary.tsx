@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getUnit } from '../data/heroes'
 import type { HeroNote, SkillStep, Team } from '../lib/types'
 import Modal from './Modal'
+import EquipmentLoadout from './EquipmentLoadout'
 import TeamPanel from './TeamPanel'
 
 export type Comp = { id: string; team: Team; skills: SkillStep[]; note: string; heroNotes: HeroNote[] }
@@ -127,6 +128,20 @@ export default function CompLibrary({ open, initialTab, onPick, onPickDefense, f
                   </p>
                 )}
                 {comp.note && <p className="mt-2 line-clamp-2 text-sm text-white/80">{comp.note}</p>}
+                {comp.heroNotes.length > 0 && (
+                  <details className="mt-3 rounded-xl border border-gold/15 bg-black/15 p-3">
+                    <summary className="cursor-pointer text-sm text-gold">แหวน / เซ็ต / สเตตัสรายตัว</summary>
+                    <div className="mt-3 space-y-3">
+                      {comp.heroNotes.map((note, index) => (
+                        <div key={index}>
+                          <p className="text-sm font-semibold text-gold">{getUnit(note.hero)?.name ?? note.hero}</p>
+                          {note.text && <p className="mt-1 text-xs text-white/75">{note.text}</p>}
+                          <EquipmentLoadout sets={note.sets} rings={note.rings} />
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
                 <div className="mt-auto flex gap-2 pt-3">
                   {onPickDefense && def ? (
                     <button onClick={() => onPickDefense(def)} className="btn-gold flex-1 px-3 py-1.5 text-sm">

@@ -1,5 +1,6 @@
 import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Library, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
+import EquipmentLoadout from './EquipmentLoadout'
 import { baseName, getUnit } from '../data/heroes'
 import { changeFormation, moveSlot, placeUnit, type HeroNote, type WarOption } from '../lib/types'
 import TeamPanel, { type SlotKind } from './TeamPanel'
@@ -161,12 +162,7 @@ function GearNote({ note, editing, onChange, onRemove }: { note: HeroNote; editi
       ) : (
         note.text && <p className="mt-1 text-white/80">{note.text}</p>
       )}
-      {(note.sets.length > 0 || note.rings.length > 0) && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {note.sets.map((x) => <span key={x} className="rounded-full bg-sky-400/15 px-2 text-xs text-sky-100">ชุด{x}</span>)}
-          {note.rings.map((x) => <span key={x} className="rounded-full bg-amber-400/15 px-2 text-xs text-amber-100">{x}</span>)}
-        </div>
-      )}
+      <EquipmentLoadout sets={note.sets} rings={note.rings} />
     </li>
   )
 }

@@ -12,6 +12,7 @@ import { api } from '../lib/api'
 import { MAX_HEROES, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import NotFound from './NotFound'
+import { EquipmentNoteText } from '../components/EquipmentLoadout'
 
 type Mode = 'view' | 'target' | 'counter'
 type Picker = { side: 'target' | 'counter'; kind: SlotKind; index: number } | null
@@ -341,7 +342,7 @@ export default function TargetPage() {
               {current ? (
                 <>
                   <SkillOrder team={current.team} skills={current.skills} />
-                  <p className="mt-3 whitespace-pre-wrap text-white/80">{current.note || <span className="text-white/40">ไม่มีโน้ต</span>}</p>
+                  {current.note ? <EquipmentNoteText text={current.note} /> : <p className="mt-3 text-white/40">ไม่มีโน้ต</p>}
                 </>
               ) : (
                 <p className="mt-2 text-white/50">{canEdit ? 'กด “เพิ่มทีมแก้” ด้านบนเพื่อจดทีมที่ใช้ตีทีมนี้' : 'ยังไม่มีใครจดทีมแก้'}</p>
