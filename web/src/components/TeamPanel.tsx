@@ -84,13 +84,16 @@ export default function TeamPanel({
   // ลงทะเบียนกับศูนย์ลากวาง (เก็บค่าล่าสุดใน ref จะได้ไม่ต้องลงทะเบียนใหม่ทุกครั้งที่ทีมเปลี่ยน)
   const latest = useRef({ team, onMove, onPlace, label, blocked })
   latest.current = { team, onMove, onPlace, label, blocked }
+  // ลงทะเบียนครั้งเดียว (ผูกกับ register ที่ไม่เปลี่ยน) — ถ้าผูกกับ hub ทั้งก้อน ทุกครั้งที่เปลี่ยนทีมที่เลือก
+  // ทุกทีมจะลงทะเบียนใหม่ แล้วโฟกัสเด้งไปทีมแรกของหน้า → กดตัวละครแล้วไปเข้าทีมอื่น
+  const register = hub?.register
   useEffect(() => {
-    if (!hub || !active) return
+    if (!register || !active) return
     const units = () => {
       const t = latest.current.team
       return [...t.slots, t.pet, ...t.extras].filter(Boolean) as string[]
     }
-    return hub.register(panelId, {
+    return register(panelId, {
       label: () => latest.current.label ?? 'ทีมนี้',
       valueOf: (r) => {
         const t = latest.current.team
@@ -122,7 +125,7 @@ export default function TeamPanel({
         return { heroes: t.slots.filter(Boolean).length, pet: !!t.pet }
       },
     })
-  }, [hub, active, panelId])
+  }, [register, active, panelId])
 
   function clickSlot(r: SlotRef) {
     if (!active) return
