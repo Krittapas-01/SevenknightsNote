@@ -160,7 +160,6 @@ export default function TeamPanel({
 
   const frontIdx = Array.from({ length: team.front }, (_, i) => i)
   const backIdx = Array.from({ length: SLOT_COUNT - team.front }, (_, i) => team.front + i)
-  const maxLen = Math.max(frontIdx.length, backIdx.length)
   // ฝั่งเรา: [หลัง][หน้า] (หน้าอยู่ใกล้ VS) — ฝั่งศัตรู: [หน้า][หลัง]
   const cols = variant === 'ally'
     ? [{ key: 'back', label: 'หลัง', idx: backIdx }, { key: 'front', label: 'หน้า', idx: frontIdx }]
@@ -223,17 +222,17 @@ export default function TeamPanel({
       </div>
 
       {/* body */}
-      {/* การ์ดเล็ก (หน้ารายการ): จองความสูงไว้ 4 แถวเสมอ ทุกค่ายกลจะได้สูงเท่ากัน */}
+      {/* จองความสูงไว้ 4 แถวเสมอ (+ป้าย หน้า/หลัง) ทุกค่ายกลจะได้สูงเท่ากัน แล้วจัดกลางแนวตั้ง */}
       <div
-        className={`flex flex-1 justify-center ${isSm ? 'mt-2 items-center gap-2' : 'mt-3 items-start gap-2.5 sm:gap-3'}`}
-        style={isSm ? { minHeight: `calc(var(--s) * 4 + ${ROW_GAP * 3}px)` } : undefined}
+        className={`flex flex-1 items-center justify-center ${isSm ? 'mt-2 gap-2' : 'mt-3 gap-2.5 sm:gap-3'}`}
+        style={{ minHeight: `calc(var(--s) * 4 + ${ROW_GAP * 3}px${isSm ? '' : ' + 20px'})` }}
       >
         {cols.map((col) => (
           <div
             key={col.key}
             className="flex flex-col items-center"
-            // การ์ดเล็กจัดกลางด้วย items-center อยู่แล้ว → ไม่ต้องดันลงอีก (ไม่งั้นแถวที่มีช่องน้อยจะตกต่ำกว่ากลาง)
-            style={{ gap: ROW_GAP, paddingTop: isSm ? 0 : `calc((var(--s) + ${ROW_GAP}px) * ${(maxLen - col.idx.length) / 2})` }}
+            // จัดกลางด้วย items-center ของแถว (ไม่ต้องดันลงเอง)
+            style={{ gap: ROW_GAP }}
           >
             {col.idx.map((i) => {
               const r: SlotRef = { kind: 'hero', index: i }
@@ -302,7 +301,8 @@ export default function TeamPanel({
 
       {/* สัตว์เลี้ยงสำรอง (ใช้แทนได้) */}
       {/* การ์ดเล็ก: ไม่มีสัตว์สำรองก็เว้นที่ไว้ (ซ่อน) ทุกใบจะได้สูงเท่ากัน */}
-      {(active || hasExtras || isSm) && (
+      {(
+
         <div className={`flex items-center justify-center gap-1.5 ${isSm ? 'mt-2' : 'mt-3'} ${!active && !hasExtras ? 'invisible' : ''}`} aria-hidden={!active && !hasExtras}>
           <span className="text-[11px] text-white/45">สัตว์เลี้ยงสำรอง</span>
           {Array.from({ length: EXTRA_COUNT }, (_, i) => team.extras[i] ?? null).map((x, i) => (
