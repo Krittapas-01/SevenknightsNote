@@ -74,7 +74,10 @@ export type WarSlot = {
   options: WarOption[]
 }
 export const MAX_OPTIONS = 8
+export type PlanKind = 'attack' | 'defense'
 export type PlanData = {
+  /** แผนบุก / แผนกัน (ทุกไม้ในแผนเป็นแบบเดียวกัน) */
+  kind?: PlanKind
   op: string[]
   /** ชุดทีมที่ยกเลิก (ตั้งพร้อมกันครบชุดถึงจะนับว่าผิด) */
   banned: string[][]
@@ -96,12 +99,19 @@ export type GuildData = {
   schedule: DayType[]
 }
 
-export const emptyPlan = (): PlanData => ({
+export const emptyPlan = (kind: PlanKind = 'attack'): PlanData => ({
+  kind,
   op: [],
   banned: [],
   note: '',
-  slots: Array.from({ length: WAR_SLOTS }, (_, i) => ({ name: `ไม้ ${i + 1}`, kind: 'attack' as const, vs: null, vsTag: '', vsId: '', options: [] })),
+  slots: Array.from({ length: WAR_SLOTS }, (_, i) => ({ name: `ไม้ ${i + 1}`, kind, vs: null, vsTag: '', vsId: '', options: [] })),
 })
+/** ชนิดแผน (แผนเก่าที่ยังไม่มี kind → ดูจากไม้ส่วนใหญ่) */
+export const planKind = (d: PlanData): PlanKind =>
+  d.kind ?? (d.slots.filter((s) => s.kind === 'defense').length > d.slots.filter((s) => s.kind === 'attack').length ? 'defense' : 'attack')
+export const PLAN_KIND_LABEL: Record<PlanKind, string> = { attack: 'แผนบุก', defense: 'แผนกัน' }
+/** เปลี่ยนชนิดแผน = ทุกไม้เปลี่ยนตาม */
+export const withPlanKind = (d: PlanData, kind: PlanKind): PlanData => ({ ...d, kind, slots: d.slots.map((s) => ({ ...s, kind })) })
 export const emptyOption = (): WarOption => ({ team: emptyTeam(), skills: [], condition: '', notes: '' })
 
 export const emptyTeam = (): Team => ({

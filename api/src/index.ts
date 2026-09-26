@@ -87,6 +87,7 @@ function parseHeroNotes(raw: any): HeroNote[] {
     .filter((n) => n.hero)
 }
 type PlanData = {
+  kind: 'attack' | 'defense'
   op: string[]
   banned: string[][] // ชุดทีมที่ยกเลิก เช่น [['gale','klemis','mist']]
   note: string
@@ -114,11 +115,16 @@ function parsePlan(raw: any): PlanData | null {
       options,
     }
   })
+  // แผนบุก / แผนกัน: ทุกไม้เป็นแบบเดียวกัน (แผนเก่าไม่มี kind → ดูจากไม้ส่วนใหญ่)
+  const kind: 'attack' | 'defense' = raw.kind === 'defense' || raw.kind === 'attack'
+    ? raw.kind
+    : slots.filter((s) => s.kind === 'defense').length > slots.filter((s) => s.kind === 'attack').length ? 'defense' : 'attack'
+  for (const s of slots) s.kind = kind
   const banned = (Array.isArray(raw.banned) ? raw.banned : [])
     .map((g: any) => idList(typeof g === 'string' ? [g] : g, 5))
     .filter((g: string[]) => g.length)
     .slice(0, 10)
-  return { op: idList(raw.op), banned, note: str(raw.note, 1000), slots }
+  return { kind, op: idList(raw.op), banned, note: str(raw.note, 1000), slots }
 }
 const toPlan = (r: any) => ({ id: r.id, title: r.title, data: JSON.parse(r.data), createdAt: r.created_at, updatedAt: r.updated_at })
 

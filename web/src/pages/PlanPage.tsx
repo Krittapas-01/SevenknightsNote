@@ -2,7 +2,7 @@ import { AlertTriangle, Check, ChevronDown, ChevronLeft, Library, Pencil, Plus, 
 import { tagStyle } from '../lib/tags'
 import type { WarSlot } from '../lib/types'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import CompLibrary, { type Comp, type Defense } from '../components/CompLibrary'
 import TeamPanel from '../components/TeamPanel'
 import { DndHub, HideWhileDock, useListTarget } from '../components/DndHub'
@@ -18,7 +18,7 @@ import VsArena from '../components/VsArena'
 import { baseName, getUnit } from '../data/heroes'
 import { api } from '../lib/api'
 import {
-  MAX_HEROES, MAX_OPTIONS, changeFormation, emptyOption, emptyPlan, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type PlanData, type Team, type WarOption,
+  MAX_HEROES, MAX_OPTIONS, changeFormation, emptyOption, emptyPlan, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type PlanData, type PlanKind, type Team, type WarOption, PLAN_KIND_LABEL, planKind, withPlanKind,
 } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import { activePlanId } from '../lib/war'
@@ -42,6 +42,8 @@ const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v))
 
 export default function PlanPage() {
   const { gid = '', pid = '' } = useParams()
+  const [search] = useSearchParams()
+  const newKind: PlanKind = search.get('kind') === 'defense' ? 'defense' : 'attack'
   const nav = useNavigate()
   const isNew = pid === 'new'
   const { data, error, canEdit, reload } = useGuild(gid)
@@ -67,11 +69,11 @@ export default function PlanPage() {
 
   useEffect(() => {
     if (isNew && canEdit) {
-      setTitle('Update GVG')
-      setDraft(emptyPlan())
+      setTitle(PLAN_KIND_LABEL[newKind])
+      setDraft(emptyPlan(newKind))
       setEditing(true)
     }
-  }, [isNew, canEdit])
+  }, [isNew, canEdit, newKind])
 
   if (error) return <NotFound message={error} />
   if (!data) return <p className="py-24 text-center text-white/50">กำลังโหลด...</p>
@@ -269,6 +271,22 @@ export default function PlanPage() {
         ) : (
           <h1 className="gold-title break-words text-4xl font-extrabold sm:text-6xl">{viewTitle}</h1>
         )}
+        <div className="mt-3 flex justify-center">
+          {editing ? (
+            <div className="pill flex p-0.5 text-sm">
+              {(['attack', 'defense'] as const).map((k) => (
+                <button key={k} type="button" onClick={() => setDraft((d) => withPlanKind(d, k))}
+                  className={`flex items-center gap-1 rounded-full px-4 py-1 ${planKind(draft) === k ? 'bg-gold font-semibold text-ink' : 'text-white/70'}`}>
+                  {k === 'attack' ? <Swords className="h-4 w-4" /> : <Shield className="h-4 w-4" />} {PLAN_KIND_LABEL[k]}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span className={`flex items-center gap-1 rounded-full px-3 py-0.5 text-sm font-semibold ${planKind(view) === 'attack' ? 'bg-red-500/20 text-red-200' : 'bg-sky-400/20 text-sky-100'}`}>
+              {planKind(view) === 'attack' ? <Swords className="h-4 w-4" /> : <Shield className="h-4 w-4" />} {PLAN_KIND_LABEL[planKind(view)]}
+            </span>
+          )}
+        </div>
         {!editing && plan && activePlanId(data) === plan.id && (
           <p className="mt-3"><span className="rounded-full bg-gold px-3 py-0.5 text-sm font-semibold text-ink">แผนที่ใช้อยู่ตอนนี้</span></p>
         )}
@@ -402,19 +420,6 @@ export default function PlanPage() {
                       placeholder="ชื่อไม้ เช่น บ้านกันทีมที่ 1 / ไม้กายภาพ"
                       className="min-w-0 flex-1 border-b border-white/20 bg-transparent py-1 text-xl font-semibold outline-none focus:border-gold"
                     />
-                    <div className="pill flex p-0.5 text-sm">
-                      {(['defense', 'attack'] as const).map((k) => (
-                        <button
-                          key={k}
-                          onClick={() => patchSlot(s, (x) => ({ ...x, kind: k }))}
-                          type="button"
-                          className={`flex items-center gap-1 rounded-full px-3 py-1 ${slot.kind === k ? 'bg-gold font-semibold text-ink' : 'text-white/70'}`}
-                        >
-                          {k === 'defense' ? <Shield className="h-4 w-4" /> : <Swords className="h-4 w-4" />}
-                          {k === 'defense' ? 'ไม้กัน' : 'ไม้บุก'}
-                        </button>
-                      ))}
-                    </div>
                   </>
                 ) : (
                   <>

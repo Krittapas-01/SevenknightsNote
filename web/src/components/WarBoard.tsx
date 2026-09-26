@@ -1,4 +1,5 @@
 import { CalendarDays, ChevronDown, ClipboardList, Megaphone, Settings2, Swords, Trash2 } from 'lucide-react'
+import { PLAN_KIND_LABEL, planKind } from '../lib/types'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { api } from '../lib/api'
@@ -184,10 +185,14 @@ function ComposeModal({ open, onClose, gid, data, activeId, reload }: { open: bo
         className="mt-1 w-full rounded-xl border border-white/15 bg-[#161c2e] px-3 py-2 outline-none focus:border-gold"
       >
         <option value="">— ไม่เปลี่ยนแผน —</option>
-        {data.plans.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.title} {p.id === activeId ? '(ใช้อยู่)' : ''}
-          </option>
+        {(['attack', 'defense'] as const).map((k) => (
+          <optgroup key={k} label={PLAN_KIND_LABEL[k]}>
+            {data.plans.filter((p) => planKind(p.data) === k).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title} {p.id === activeId ? '(ใช้อยู่)' : ''}
+              </option>
+            ))}
+          </optgroup>
         ))}
       </select>
 

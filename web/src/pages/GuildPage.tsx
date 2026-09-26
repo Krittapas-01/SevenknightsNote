@@ -8,7 +8,7 @@ import WarBoard from '../components/WarBoard'
 import { activePlanId } from '../lib/war'
 import { getUnit } from '../data/heroes'
 import { getEditKey } from '../lib/api'
-import type { Plan, Target, Team } from '../lib/types'
+import { PLAN_KIND_LABEL, planKind, type Plan, type PlanKind, type Target, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import NotFound from './NotFound'
 
@@ -81,15 +81,34 @@ export default function GuildPage() {
             </button>
           ))}
         </div>
-        {canEdit && (
-          <Link to={tab === 'plans' ? `/g/${gid}/p/new` : `/g/${gid}/t/new`} className="btn-gold flex items-center gap-1.5 px-4 py-2 text-sm">
-            <Plus className="h-4 w-4" /> {tab === 'plans' ? 'สร้างแผนวอร์' : 'เพิ่มทีมเป้าหมาย'}
+        {canEdit && (tab === 'plans' ? (
+          <div className="flex flex-wrap gap-2">
+            <Link to={`/g/${gid}/p/new?kind=attack`} className="btn-gold flex items-center gap-1.5 px-4 py-2 text-sm">
+              <Swords className="h-4 w-4" /> สร้างแผนบุก
+            </Link>
+            <Link to={`/g/${gid}/p/new?kind=defense`} className="btn-gold flex items-center gap-1.5 px-4 py-2 text-sm">
+              <Shield className="h-4 w-4" /> สร้างแผนกัน
+            </Link>
+          </div>
+        ) : (
+          <Link to={`/g/${gid}/t/new`} className="btn-gold flex items-center gap-1.5 px-4 py-2 text-sm">
+            <Plus className="h-4 w-4" /> เพิ่มทีมเป้าหมาย
           </Link>
-        )}
+        ))}
       </div>
 
       {tab === 'plans' ? (
-        <PlanList gid={gid} plans={data.plans} canEdit={canEdit} activeId={activePlanId(data)} />
+        <div className="space-y-10">
+          {(['attack', 'defense'] as const).map((k) => (
+            <section key={k}>
+              <h2 className={`mt-8 flex items-center gap-2 text-xl font-bold ${k === 'attack' ? 'text-red-200' : 'text-sky-100'}`}>
+                {k === 'attack' ? <Swords className="h-5 w-5" /> : <Shield className="h-5 w-5" />} {PLAN_KIND_LABEL[k]}
+                <span className="text-sm font-normal text-white/45">{data.plans.filter((p) => planKind(p.data) === k).length} แผน</span>
+              </h2>
+              <PlanList gid={gid} kind={k} plans={data.plans.filter((p) => planKind(p.data) === k)} canEdit={canEdit} activeId={activePlanId(data)} />
+            </section>
+          ))}
+        </div>
       ) : (
         <>
       <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -155,15 +174,15 @@ function TagChip({ active, onClick, children }: { active: boolean; onClick: () =
   )
 }
 
-function PlanList({ gid, plans, canEdit, activeId }: { gid: string; plans: Plan[]; canEdit: boolean; activeId: string | null }) {
+function PlanList({ gid, kind, plans, canEdit, activeId }: { gid: string; kind: PlanKind; plans: Plan[]; canEdit: boolean; activeId: string | null }) {
   if (plans.length === 0)
     return (
-      <div className="panel mt-6 p-10 text-center text-white/60">
-        {canEdit ? 'ยังไม่มีแผนวอร์ กด “สร้างแผนวอร์” เพื่อจัดทีม 5 ไม้ให้กิลด์' : 'ยังไม่มีแผนวอร์'}
+      <div className="panel mt-4 p-8 text-center text-white/60">
+        {canEdit ? `ยังไม่มี${PLAN_KIND_LABEL[kind]} กด “สร้าง${PLAN_KIND_LABEL[kind]}” เพื่อจัดทีม 5 ไม้` : `ยังไม่มี${PLAN_KIND_LABEL[kind]}`}
       </div>
     )
   return (
-    <div className="mt-6 grid gap-6 md:grid-cols-2">
+    <div className="mt-4 grid gap-6 md:grid-cols-2">
       {plans.map((p) => {
         const used = p.data.slots.filter((s) => s.options.length)
         return (
