@@ -426,7 +426,7 @@ app.get('/api/guild/:id/pulse', async (c) => {
     c.env.DB.prepare(
       'SELECT a.plan_id, p.title FROM announcements a JOIN plans p ON p.id = a.plan_id WHERE a.guild_id = ? ORDER BY a.created_at DESC LIMIT 1',
     ).bind(gid),
-    c.env.DB.prepare('SELECT schedule FROM guild_settings WHERE guild_id = ?').bind(gid),
+    c.env.DB.prepare('SELECT schedule, season_start, season_end FROM guild_settings WHERE guild_id = ?').bind(gid),
   ])
   const guild = (g.results as any[])[0]
   if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
@@ -439,6 +439,7 @@ app.get('/api/guild/:id/pulse', async (c) => {
     latest: a ? toAnnouncement(a) : null,
     activePlan: p ? { id: p.plan_id, title: p.title } : null,
     schedule: s ? JSON.parse(s.schedule) : DEFAULT_SCHEDULE,
+    season: { start: s?.season_start ?? '', end: s?.season_end ?? '' },
   })
 })
 

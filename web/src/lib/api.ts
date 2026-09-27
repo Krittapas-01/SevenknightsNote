@@ -6,6 +6,7 @@ export type Pulse = {
   latest: Announcement | null
   activePlan: { id: string; title: string } | null
   schedule: DayType[]
+  season?: { start: string; end: string }
 }
 
 /** ตอน production ตั้ง VITE_API_URL=https://7k-note-api.<you>.workers.dev */

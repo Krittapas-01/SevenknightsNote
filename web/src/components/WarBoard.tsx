@@ -5,10 +5,9 @@ import { Link } from 'react-router'
 import { api } from '../lib/api'
 import { notifyGuildChanged } from '../lib/usePulse'
 import type { Announcement, DayType, GuildData } from '../lib/types'
-import { DAYS, DAYS_SHORT, DAY_TYPE, activePlanId, dateKey, dayIndex, fmtTime, isToday } from '../lib/war'
+import { DAYS, DAYS_SHORT, DAY_TYPE, activePlanId, dayIndex, fmtTime, isToday } from '../lib/war'
 import DiscordSettings from './DiscordSettings'
 import Modal from './Modal'
-import { currentSeason, warRound } from '../lib/season'
 
 type Props = { gid: string; data: GuildData; canEdit: boolean; reload: () => Promise<void> }
 
@@ -30,7 +29,6 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
     return () => clearInterval(t)
   }, [])
   const today = dayIndex(now)
-  const season = currentSeason(data.season?.start ?? '', data.season?.end ?? '', dateKey(now))
   const todayType = data.schedule[today] ?? 'rest'
   const activeId = activePlanId(data)
   const activePlan = data.plans.find((p) => p.id === activeId)
@@ -45,7 +43,6 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
           <CalendarDays className="h-5 w-5 text-gold" />
           <span className="text-lg font-semibold">วัน{DAYS[today]}</span>
           <span className={`rounded-full border px-3 py-0.5 text-sm font-semibold ${DAY_TYPE[todayType].cls}`}>{DAY_TYPE[todayType].label}</span>
-          {season && <SeasonChip s={season} round={warRound(season, data.schedule, dateKey(now))} />}
         </div>
         <div className="war-week ml-auto flex w-full items-center gap-1 sm:w-auto">
           {data.schedule.map((t, i) => (
@@ -243,20 +240,7 @@ function ComposeModal({ open, onClose, gid, data, activeId, reload }: { open: bo
   )
 }
 
-const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
-const thDate = (key: string) => `${+key.slice(8, 10)} ${TH_MONTHS[+key.slice(5, 7) - 1]}`
 
-function SeasonChip({ s, round }: { s: NonNullable<ReturnType<typeof currentSeason>>; round: ReturnType<typeof warRound> }) {
-  const text = s.phase === 'in'
-    ? `Season${round ? ` · รอบ ${round.round}/${round.total}` : ''} · ${s.daysLeft === 1 ? 'วันสุดท้าย' : `เหลือ ${s.daysLeft} วัน (จบ ${thDate(s.end)})`}`
-    : `พักระหว่าง Season · เริ่ม ${thDate(s.nextStart)}`
-  return (
-    <span title={s.projected ? 'นับต่อจาก Season ที่ตั้งไว้ (จบแล้วพัก 1 สัปดาห์ ยาวเท่าเดิม)' : undefined}
-      className={`rounded-full border px-3 py-0.5 text-sm ${s.phase === 'in' ? 'border-gold/40 text-gold' : 'border-white/15 text-white/55'}`}>
-      {text}{s.projected ? ' *' : ''}
-    </span>
-  )
-}
 
 function ScheduleModal({ open, onClose, gid, schedule, auto, season, reload }: { open: boolean; onClose: () => void; gid: string; schedule: DayType[]; auto: boolean; season: { start: string; end: string }; reload: () => Promise<void> }) {
   const [draft, setDraft] = useState<DayType[]>(schedule)
