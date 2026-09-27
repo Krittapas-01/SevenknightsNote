@@ -8,6 +8,8 @@ import {
 import { FormationModal, SkillQueueModal } from './TeamModals'
 import { groupOfKey, keyOf, parseDndId, refOf, useDndHub } from './DndHub'
 import UnitCard from './UnitCard'
+import HeroDetailModal from './HeroDetailModal'
+import type { HeroNote } from '../lib/types'
 import { getUnit } from '../data/heroes'
 
 const getName = (id: string) => getUnit(id)?.name ?? id
@@ -22,6 +24,7 @@ type Props = {
   label?: string
   size?: 'md' | 'sm'
   editable?: boolean
+  heroNotes?: HeroNote[]
   /** กดช่องว่าง → เปิดหน้าเลือก */
   onSlotClick?: (kind: SlotKind, index: number) => void
   onReset?: () => void
@@ -46,11 +49,12 @@ const ROW_GAP = GAP
 
 export default function TeamPanel({
   team, variant, title, label, size = 'md', editable, onSlotClick, onReset, onFormation, onSpeed,
-  skills = [], onSkills, onMove, onPlace, blocked, className = '',
+  skills = [], onSkills, onMove, onPlace, blocked, heroNotes, className = '',
 }: Props) {
   const hub = useDndHub()
   const panelId = useId().replace(/[:|]/g, '')
   const active = !!editable
+  const [detailHero, setDetailHero] = useState<string | null>(null)
   const [modal, setModal] = useState<'formation' | 'skills' | null>(null)
   const dnd = active && !!hub
   const focused = hub?.focused === panelId
@@ -244,7 +248,8 @@ export default function TeamPanel({
                   <HeroSlot
                     id={team.slots[i]}
                     editable={active}
-                    onClick={() => clickSlot(r)}
+                    inspectable={!active && heroNotes !== undefined && !!team.slots[i]}
+                    onClick={() => active ? clickSlot(r) : setDetailHero(team.slots[i])}
                     queue={queueOf(i)}
                     side={variant === 'ally' ? 'left' : 'right'}
                   />
@@ -335,6 +340,10 @@ export default function TeamPanel({
 
 
       <div className={isSm ? 'h-1' : 'h-2'} />
+      {!active && heroNotes !== undefined && <p className="mt-2 text-center text-[11px] text-white/45">กดตัวละครเพื่อดูสเตตัสและของ</p>}
+      {!active && detailHero && heroNotes !== undefined && (
+        <HeroDetailModal hero={detailHero} notes={heroNotes} onClose={() => setDetailHero(null)} />
+      )}
 
       {onFormation && <FormationModal open={modal === 'formation'} front={team.front} onSelect={onFormation} onClose={() => setModal(null)} />}
       {(onSkills || skills.length > 0) && (
@@ -371,9 +380,10 @@ function DnDSlot({ id, enabled, filled, selected, round, children }: { id: strin
   )
 }
 
-function HeroSlot({ id, editable, onClick, queue, side }: {
+function HeroSlot({ id, editable, inspectable, onClick, queue, side }: {
   id: string | null
   editable: boolean
+  inspectable?: boolean
   onClick: () => void
   /** จองสกิลของช่องนี้: n = ลำดับ, skill = บน(1)/ล่าง(2) */
   queue: { n: number; skill: 1 | 2 }[]
@@ -394,7 +404,9 @@ function HeroSlot({ id, editable, onClick, queue, side }: {
   )
   return (
     <div className="relative" style={{ width: 'var(--s)', height: 'var(--s)', fontSize: 'calc(var(--s) * 0.22)' }}>
-      <button type="button" disabled={!editable} onClick={onClick} className="block h-full w-full">
+      <button type="button" disabled={!editable && !inspectable} onClick={onClick}
+        aria-label={inspectable && id ? `ดูรายละเอียด ${getName(id)}` : undefined}
+        className="block h-full w-full rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
         {id ? (
           <UnitCard id={id} />
         ) : (

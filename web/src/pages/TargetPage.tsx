@@ -228,6 +228,7 @@ export default function TargetPage() {
             <TeamPanel
               variant="ally"
               team={leftTeam}
+              heroNotes={editingC ? cDraft.heroNotes : current?.heroNotes ?? []}
               title={leftTitle}
               skills={leftSkills}
               editable={editingC}

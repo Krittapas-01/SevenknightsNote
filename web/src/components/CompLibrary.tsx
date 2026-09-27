@@ -121,7 +121,7 @@ export default function CompLibrary({ open, initialTab, onPick, onPickDefense, f
           <div className="mt-4 grid gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
             {list.slice(0, limit).map(({ comp, vs: against, def }: { comp: Comp; vs: Defense | null; def?: Defense }) => (
               <div key={comp.id} className="flex flex-col">
-                <TeamPanel variant={tab === 'defense' && !vs ? 'enemy' : 'ally'} size="sm" team={comp.team} skills={comp.skills} />
+                <TeamPanel variant={tab === 'defense' && !vs ? 'enemy' : 'ally'} size="sm" team={comp.team} skills={comp.skills} heroNotes={comp.heroNotes} />
                 {against && !vs && (
                   <p className="mt-3 truncate text-xs text-white/55">
                     แก้บ้าน: {against.team.slots.filter(Boolean).map((id) => getUnit(id)?.name).join(' · ')}

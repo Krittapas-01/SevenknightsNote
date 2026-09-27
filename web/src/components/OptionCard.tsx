@@ -90,6 +90,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
         variant="ally"
         className={part === 'panel' ? 'flex-1' : ''}
         team={option.team}
+        heroNotes={heroNotes}
         skills={option.skills}
         editable={editing}
         title={teamTitle(option)}

@@ -1,11 +1,16 @@
 import { X } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 export default function Modal({ open, title, onClose, children, wide }: { open: boolean; title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean }) {
+  const surface = useRef<HTMLDivElement>(null)
+  const titleId = useId()
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const onKey = (e: KeyboardEvent) => {
+      const dialogs = document.querySelectorAll('[data-app-modal]')
+      if (e.key === 'Escape' && dialogs[dialogs.length - 1] === surface.current) onClose()
+    }
     window.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -20,11 +25,12 @@ export default function Modal({ open, title, onClose, children, wide }: { open: 
   return createPortal(
     <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
       <div
+        ref={surface} data-app-modal role="dialog" aria-modal="true" aria-labelledby={titleId}
         className={`modal-surface panel panel-gold flex max-h-[88dvh] w-full ${wide ? 'max-w-6xl' : 'max-w-2xl'} flex-col rounded-b-none sm:rounded-b-[18px]`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
-          <h2 className="text-lg font-semibold text-gold">{title}</h2>
+          <h2 id={titleId} className="text-lg font-semibold text-gold">{title}</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 hover:bg-white/10" aria-label="ปิด">
             <X className="h-5 w-5" />
           </button>
