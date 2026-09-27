@@ -414,6 +414,7 @@ export default function PlanPage() {
               onMakeMain={() => patchSlot(s, (x) => ({ ...x, main: o }))}
               conflicts={slot.kind === 'attack' ? conflictsOf(opt, s, use) : []}
               blocked={slot.kind === 'attack' ? blockedFor(s, use) : undefined}
+              shot={!editing && !isAtk ? { guild: data?.guild.name ?? '', plan: viewTitle, heading: /^ไม้\s*\d+$/.test(slot.name?.trim() ?? '') || !slot.name?.trim() ? `บ้านกันทีมที่ ${s + 1}` : slot.name.trim() } : undefined}
             />
           )
           const addBtns = editing && slot.options.length < MAX_OPTIONS ? (

@@ -5,6 +5,15 @@ import { domToPng } from 'modern-screenshot'
  * - ใส่ data-noexport ที่ปุ่ม/ส่วนที่ไม่อยากให้ติดในรูป
  * - มือถือ: เปิดหน้าแชร์ (ส่งเข้าไลน์/ดิสคอร์ดได้เลย) · คอม: ดาวน์โหลดไฟล์
  */
+/** รอรูปใน element โหลดเสร็จ (กันรูปฮีโร่หายในภาพ) */
+export async function waitImages(el: HTMLElement, timeoutMs = 8000) {
+  const imgs = [...el.querySelectorAll('img')].filter((i) => !i.complete)
+  await Promise.race([
+    Promise.all(imgs.map((i) => new Promise((r) => { i.addEventListener('load', r, { once: true }); i.addEventListener('error', r, { once: true }) }))),
+    new Promise((r) => setTimeout(r, timeoutMs)),
+  ])
+}
+
 export async function exportPng(el: HTMLElement, filename: string) {
   const url = await domToPng(el, {
     scale: 2,

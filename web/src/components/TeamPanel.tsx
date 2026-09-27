@@ -212,7 +212,7 @@ export default function TeamPanel({
       </div>
 
       {/* speed */}
-      <div className={`flex justify-end ${isSm ? 'mt-1.5' : 'mt-2.5'}`}>
+      <div data-noexport={!team.speed && !editable ? '' : undefined} className={`flex justify-end ${isSm ? 'mt-1.5' : 'mt-2.5'}`}>
         <label className={`pill flex items-center gap-1.5 border-gold-deep/60 ${isSm ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-base'}`}>
           <Footprints className={isSm ? 'h-3.5 w-3.5 text-gold' : 'h-5 w-5 text-gold'} />
           {editable && onSpeed ? (
@@ -343,7 +343,7 @@ export default function TeamPanel({
 
 
       <div className={isSm ? 'h-1' : 'h-2'} />
-      {!active && heroNotes !== undefined && <p className="mt-2 text-center text-[11px] text-white/45">กดตัวละครเพื่อดูสเตตัสและของ</p>}
+      {!active && heroNotes !== undefined && <p data-noexport className="mt-2 text-center text-[11px] text-white/45">กดตัวละครเพื่อดูสเตตัสและของ</p>}
       {!active && detailHero && heroNotes !== undefined && (
         <HeroDetailModal hero={detailHero} notes={heroNotes} onClose={() => setDetailHero(null)} onSaveStats={onSaveHeroStats} />
       )}

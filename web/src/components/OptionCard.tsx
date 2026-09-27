@@ -1,7 +1,9 @@
-import { AlertTriangle, ChevronLeft, ChevronRight, Library, Star, Trash2, Users, X } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, ImageDown, Library, Loader2, Star, Trash2, Users, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { exportPng, waitImages } from '../lib/exportImage'
 import type { HeroStats } from '../lib/stats'
 import { StatsGrid, StatsImport, upsertStats } from './HeroStats'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import EquipmentLoadout from './EquipmentLoadout'
 import EquipmentEditor from './EquipmentEditor'
 import Modal from './Modal'
@@ -37,13 +39,37 @@ type Props = {
   conflicts?: { id: string; name: string; slots: number[] }[]
   /** ตัวที่ใช้ในไม้อื่นแล้ว (ส่งต่อให้แถบตัวละคร) */
   blocked?: Record<string, string>
+  /** ส่งมา = มีปุ่มบันทึกคอมพ์นี้เป็นรูป (ทีม + โน้ต + รายละเอียดรายตัว) */
+  shot?: { guild: string; plan: string; heading: string }
 }
 
 const baseId = (id: string) => baseName(getUnit(id)?.name ?? id)
 
 /** ทางเลือก 1 ทีมในไม้นั้น ๆ */
-export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack, main, onMakeMain, conflicts = [], blocked, part = 'all', onSaveHeroStats }: Props) {
+export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack, main, onMakeMain, conflicts = [], blocked, part = 'all', onSaveHeroStats, shot }: Props) {
   const [showGear, setShowGear] = useState(false)
+  // บันทึกคอมพ์นี้เป็นรูป: render การ์ดแบบเว็บนอกจอ → รอรูปโหลด → ถ่าย
+  const shotRef = useRef<HTMLDivElement>(null)
+  const [shooting, setShooting] = useState(false)
+  useEffect(() => {
+    if (!shooting || !shot) return
+    let alive = true
+    ;(async () => {
+      await new Promise((r) => requestAnimationFrame(() => r(null)))
+      try {
+        if (shotRef.current) {
+          await waitImages(shotRef.current)
+          await exportPng(shotRef.current, `${shot.guild} - ${shot.heading} - ${teamTitle(option)}`)
+        }
+      } catch (e) {
+        alert('สร้างรูปไม่สำเร็จ: ' + (e as Error).message)
+      } finally {
+        if (alive) setShooting(false)
+      }
+    })()
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shooting])
   const heroNotes = option.heroNotes ?? []
   const teamHeroes = option.team.slots.filter((id): id is string => !!id)
   const inTeam = new Set(option.team.slots.filter(Boolean).map((id) => baseId(id!)))
@@ -84,6 +110,41 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
           />
         ) : (
           option.condition && <span className="min-w-0 truncate text-sm text-gold">{option.condition}</span>
+        )}
+        {!editing && shot && teamHeroes.length > 0 && (
+          <button type="button" onClick={() => setShooting(true)} disabled={shooting} title="บันทึกคอมพ์นี้เป็นรูป (ทีม + รายละเอียด 3 ตัว)"
+            className="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-white/15 px-2.5 py-1 text-xs text-white/70 hover:border-gold hover:text-gold disabled:opacity-50">
+            {shooting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageDown className="h-3.5 w-3.5" />} รูป
+          </button>
+        )}
+        {shooting && shot && createPortal(
+          <div aria-hidden className="pointer-events-none fixed left-[-20000px] top-0">
+            <div ref={shotRef} className="w-[1180px] bg-[#101626] p-8 text-white">
+              <div className="mb-5 flex items-end justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="eyebrow mb-1">{shot.guild} · {shot.plan}</p>
+                  <h2 className="gold-title text-4xl font-extrabold">{shot.heading}</h2>
+                </div>
+                <span className="flex shrink-0 items-center gap-2 font-bold"><span className="brand-mark" aria-hidden="true">✦</span> 7K <span className="font-normal text-gold">Note</span></span>
+              </div>
+              {option.condition && <p className="mb-3 text-lg font-semibold text-gold">{option.condition}</p>}
+              <TeamPanel variant="ally" team={option.team} skills={option.skills} title={teamTitle(option)} heroNotes={heroNotes} />
+              {notes.length > 0 && (
+                <ul className="mt-5 space-y-1.5">
+                  {notes.map((n, i) => (
+                    <li key={i} className="flex gap-2 text-lg text-white/90"><span className="font-bold text-red-400">!</span> {n}</li>
+                  ))}
+                </ul>
+              )}
+              <ul className="mt-6 grid grid-cols-3 items-start gap-4">
+                {teamHeroes.map((hero, i) => (
+                  <GearNote key={`${hero}-${i}`} note={{ ...(noteFor(hero, heroNotes) ?? { text: '', sets: [], rings: [] }), hero }} editing={false}
+                    onChange={() => {}} onRemove={() => {}} />
+                ))}
+              </ul>
+            </div>
+          </div>,
+          document.body,
         )}
         {editing && (
           <div className="ml-auto flex shrink-0 items-center">
