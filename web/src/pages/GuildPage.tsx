@@ -1,7 +1,8 @@
-import { Check, ChevronLeft, ChevronRight, ClipboardList, LayoutGrid, Link2, Minimize2, Plus, Search, Shield, Swords } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, ClipboardList, LayoutGrid, Link2, Plus, Search, Shield, Swords } from 'lucide-react'
 import { tagColor, tagStyle } from '../lib/tags'
 import { useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
+import Modal from '../components/Modal'
 import TeamPanel from '../components/TeamPanel'
 import UnitCard from '../components/UnitCard'
 import WarBoard from '../components/WarBoard'
@@ -79,20 +80,11 @@ export default function GuildPage() {
             </button>
           ))}
         </div>
-        {canEdit && (tab === 'plans' ? (
-          <div className="flex flex-wrap gap-2">
-            <Link to={`/g/${gid}/p/new?kind=attack`} className="btn-gold flex items-center gap-1.5 px-4 py-2 text-sm">
-              <Swords className="h-4 w-4" /> สร้างแผนบุก
-            </Link>
-            <Link to={`/g/${gid}/p/new?kind=defense`} className="btn-gold flex items-center gap-1.5 px-4 py-2 text-sm">
-              <Shield className="h-4 w-4" /> สร้างแผนกัน
-            </Link>
-          </div>
-        ) : (
+        {canEdit && tab !== 'plans' && (
           <Link to={`/g/${gid}/t/new`} className="btn-gold flex items-center gap-1.5 px-4 py-2 text-sm">
             <Plus className="h-4 w-4" /> เพิ่มทีมเป้าหมาย
           </Link>
-        ))}
+        )}
       </div>
 
       {tab === 'plans' ? (
@@ -102,6 +94,11 @@ export default function GuildPage() {
               <h2 className={`mt-8 flex items-center gap-2 text-xl font-bold ${k === 'attack' ? 'text-red-200' : 'text-sky-100'}`}>
                 {k === 'attack' ? <Swords className="h-5 w-5" /> : <Shield className="h-5 w-5" />} {PLAN_KIND_LABEL[k]}
                 <span className="text-sm font-normal text-white/45">{data.plans.filter((p) => planKind(p.data) === k).length} แผน</span>
+                {canEdit && (
+                  <Link to={`/g/${gid}/p/new?kind=${k}`} className="btn-gold ml-auto flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold">
+                    <Plus className="h-4 w-4" /> สร้าง{PLAN_KIND_LABEL[k]}
+                  </Link>
+                )}
               </h2>
               <PlanList gid={gid} kind={k} plans={data.plans.filter((p) => planKind(p.data) === k)} canEdit={canEdit} activeId={activePlanId(data)} usedAt={lastUsed(data.announcements)} />
             </section>
@@ -202,19 +199,17 @@ function PlanList({ gid, kind, plans, canEdit, activeId, usedAt }: { gid: string
   return (
     <div className="mt-4">
       <div className="mb-3 flex items-center justify-end gap-2">
-        {!showAll && (
-          <>
-            <button type="button" onClick={() => scroll(-1)} aria-label="แผนก่อนหน้า" className="pill p-1.5 hover:border-gold"><ChevronLeft className="h-4 w-4" /></button>
-            <button type="button" onClick={() => scroll(1)} aria-label="แผนถัดไป" className="pill p-1.5 hover:border-gold"><ChevronRight className="h-4 w-4" /></button>
-          </>
-        )}
-        <button type="button" onClick={() => setShowAll((v) => !v)} className="pill flex items-center gap-1.5 px-3 py-1 text-sm hover:border-gold">
-          {showAll ? <><Minimize2 className="h-4 w-4" /> ย่อเป็นแถวเลื่อน</> : <><LayoutGrid className="h-4 w-4" /> ดูทั้งหมด ({plans.length})</>}
+        <button type="button" onClick={() => scroll(-1)} aria-label="แผนก่อนหน้า" className="pill p-1.5 hover:border-gold"><ChevronLeft className="h-4 w-4" /></button>
+        <button type="button" onClick={() => scroll(1)} aria-label="แผนถัดไป" className="pill p-1.5 hover:border-gold"><ChevronRight className="h-4 w-4" /></button>
+        <button type="button" onClick={() => setShowAll(true)} className="pill flex items-center gap-1.5 px-3 py-1 text-sm hover:border-gold">
+          <LayoutGrid className="h-4 w-4" /> ดูทั้งหมด ({plans.length})
         </button>
       </div>
-      {showAll ? (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">{cards}</div>
-      ) : (
+      {/* ดูทั้งหมด = หน้าต่างใหม่ (แบบดูรายละเอียดทั้งทีม) */}
+      <Modal open={showAll} wide title={`${PLAN_KIND_LABEL[kind]}ทั้งหมด (${plans.length})`} onClose={() => setShowAll(false)}>
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{cards}</div>
+        <button type="button" onClick={() => setShowAll(false)} className="btn-gold mt-5 w-full">ปิด</button>
+      </Modal>
         <div
           ref={rail}
           className="plan-rail -mx-1 flex snap-x snap-mandatory gap-6 overflow-x-auto px-1 pb-3 [scrollbar-width:thin] [&>*]:w-[85%] [&>*]:shrink-0 [&>*]:snap-start md:[&>*]:w-[calc(50%-48px)]"
@@ -245,7 +240,6 @@ function PlanList({ gid, kind, plans, canEdit, activeId, usedAt }: { gid: string
         >
           {cards}
         </div>
-      )}
     </div>
   )
 }
