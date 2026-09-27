@@ -24,12 +24,12 @@ $who = Capture { npx wrangler whoami }
 if ($who -match "not authenticated|You are not") { npx wrangler login }
 
 $toml = Get-Content "$root\api\wrangler.toml" -Raw -Encoding UTF8
-if ($toml -match '00000000-0000-0000-0000-000000000000') {
+if ($toml -match '(?m)^database_id = "00000000-0000-0000-0000-000000000000"') {
   Step "Creating D1 database"
   $out = Capture { npx wrangler d1 create $project }
   Write-Host $out
   if ($out -match '([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})') {
-    $toml = $toml -replace '00000000-0000-0000-0000-000000000000', $Matches[1]
+    $toml = $toml -replace '(?m)^database_id = "00000000-0000-0000-0000-000000000000"', "database_id = `"$($Matches[1])`""
     [IO.File]::WriteAllText("$root\api\wrangler.toml", $toml)
   } else { throw "Could not read database_id. If the database already exists, run: npx wrangler d1 list  and paste the id into api\wrangler.toml" }
 }
