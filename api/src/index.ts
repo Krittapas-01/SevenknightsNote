@@ -529,6 +529,7 @@ async function notifyDiscord(env: Env, gid: string, a: { body: string; planId: s
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       username: '7K Note',
+      avatar_url: site ? `${site}/logo-1024.png` : undefined, // โลโก้เว็บแทนรูป Discord เริ่มต้น
       content: test ? undefined : mention || undefined,
       allowed_mentions: row.mention === 'everyone' || row.mention === 'here' ? { parse: ['everyone'] } : { parse: [], roles: row.mention ? [row.mention] : [] },
       embeds: [{
