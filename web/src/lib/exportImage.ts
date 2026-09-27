@@ -7,6 +7,8 @@ import { domToPng } from 'modern-screenshot'
  */
 /** รอรูปใน element โหลดเสร็จ (กันรูปฮีโร่หายในภาพ) */
 export async function waitImages(el: HTMLElement, timeoutMs = 8000) {
+  // รูป loading="lazy" ที่อยู่นอกจอจะไม่โหลดเลย (ค้างจนหมดเวลา) → สั่งโหลดทันที
+  el.querySelectorAll('img[loading="lazy"]').forEach((i) => { (i as HTMLImageElement).loading = 'eager' })
   const imgs = [...el.querySelectorAll('img')].filter((i) => !i.complete)
   await Promise.race([
     Promise.all(imgs.map((i) => new Promise((r) => { i.addEventListener('load', r, { once: true }); i.addEventListener('error', r, { once: true }) }))),
