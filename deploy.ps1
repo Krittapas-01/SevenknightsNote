@@ -77,7 +77,11 @@ npm install --no-audit --no-fund | Out-Null
 npm run build
 
 Step "Deploying web to Cloudflare Pages"
-Capture { npx wrangler pages project create $project --production-branch main } | Out-Null
+# Create the Pages project only the first time (skip if it already exists)
+$projects = Capture -Quiet { npx wrangler pages project list }
+if ($projects -notmatch "(?m)\b$([regex]::Escape($project))\b") {
+  Capture { npx wrangler pages project create $project --production-branch main } | Out-Null
+}
 $pages = Capture { npx wrangler pages deploy dist --project-name $project --branch main --commit-dirty=true }
 
 Set-Location $root
