@@ -1,6 +1,4 @@
 import { AlertTriangle, Check, ChevronDown, ChevronLeft, ClipboardPaste, ImageDown, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
-import { upsertStats } from '../components/HeroStats'
-import type { HeroStats } from '../lib/stats'
 import { tagStyle } from '../lib/tags'
 import type { WarSlot } from '../lib/types'
 import { useEffect, useRef, useState } from 'react'
@@ -232,17 +230,6 @@ export default function PlanPage() {
     if (msg) flash(msg)
   }
 
-  /** ดูแผนอยู่ (ไม่ได้กดแก้ไข) แต่มีสิทธิ์: บันทึกสเตตัสจากรูปลงแผนทันที */
-  async function saveHeroStats(s: number, o: number, hero: string, stats: HeroStats) {
-    if (!plan) return
-    const next = clone(plan.data)
-    const opt = next.slots[s]?.options[o]
-    if (!opt) return
-    opt.heroNotes = upsertStats(opt.heroNotes ?? [], hero, stats)
-    await api.updatePlan(gid, plan.id, { title: plan.title, data: next })
-    await reload()
-  }
-
   async function save() {
     setBusy(true)
     setErr(null)
@@ -400,7 +387,6 @@ export default function PlanPage() {
           const card = (opt: WarOption, o: number, part: 'all' | 'panel' | 'details' = 'all') => (
             <OptionCard
               key={o}
-              onSaveHeroStats={!editing && canEdit && plan ? (hero, stats) => saveHeroStats(s, o, hero, stats) : undefined}
               part={part}
               option={opt}
               index={o}

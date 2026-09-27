@@ -51,7 +51,7 @@ export default function HeroDetailModal({ hero, notes, onClose, onSaveStats }: {
         <p className={`mt-3 whitespace-pre-wrap break-words text-base leading-relaxed ${note?.text.trim() ? 'text-white/90' : 'text-white/45'}`}>
           {note?.text.trim() ? note.text : hasStats(note?.stats) ? '' : 'ยังไม่ได้ระบุสเตตัสในคอมพ์นี้'}
         </p>
-        <StatsGrid stats={note?.stats} className="mt-3" />
+        <StatsGrid stats={note?.stats} className="mt-4" size="lg" />
         {onSaveStats && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <StatsImport team={[hero]} onApply={(h, s) => { void save(h, s) }} />

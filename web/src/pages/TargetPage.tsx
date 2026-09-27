@@ -1,5 +1,4 @@
 import { ChevronLeft, Eraser, Library, ListOrdered, Pencil, Plus, Trash2, Undo2, X } from 'lucide-react'
-import { upsertStats } from '../components/HeroStats'
 import { queueStyle } from '../lib/queue'
 import { tagColor, tagStyle } from '../lib/tags'
 import { useEffect, useState } from 'react'
@@ -230,10 +229,6 @@ export default function TargetPage() {
               variant="ally"
               team={leftTeam}
               heroNotes={editingC ? cDraft.heroNotes : current?.heroNotes ?? []}
-              onSaveHeroStats={!editingC && canEdit && current ? async (hero, stats) => {
-                await api.updateCounter(gid, current.id, { team: current.team, skills: current.skills, note: current.note, heroNotes: upsertStats(current.heroNotes ?? [], hero, stats) })
-                await reload()
-              } : undefined}
               title={leftTitle}
               skills={leftSkills}
               editable={editingC}

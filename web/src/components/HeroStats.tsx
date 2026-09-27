@@ -8,17 +8,20 @@ import Modal from './Modal'
 import UnitCard from './UnitCard'
 
 /** ตารางสเตตัส 2 คอลัมน์แบบหน้าเกม (โชว์เฉพาะค่าที่มี) */
-export function StatsGrid({ stats, className = '' }: { stats?: HeroStats; className?: string }) {
+export function StatsGrid({ stats, className = '', size = 'sm' }: { stats?: HeroStats; className?: string; size?: 'sm' | 'lg' }) {
   if (!hasStats(stats)) return null
   const rows = STATS.filter((s) => stats![s.key] !== undefined)
+  const lg = size === 'lg'
   return (
     <div className={`mt-2 ${className}`}>
-      {stats!.level && <div className="mb-1 text-[11px] text-white/45">LV.{stats!.level}</div>}
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[13px]">
+      {/* lg = แบบหน้าข้อมูลฮีโร่ในเกม: แถวสูง ตัวใหญ่ ค่าชิดขวา */}
+      <dl className={lg ? 'grid grid-cols-2 gap-x-2 gap-y-1' : 'grid grid-cols-2 gap-x-3 gap-y-1 text-[13px]'}>
         {rows.map((s) => (
-          <div key={s.key} className="flex items-center justify-between gap-2 rounded-md bg-white/[.04] px-2 py-0.5">
-            <dt className="truncate text-white/60">{s.key === 'atk' && stats!.magic ? 'โจมตีเวทย์' : s.th}</dt>
-            <dd className="font-semibold tabular-nums text-white">{fmtStat(s.key, stats![s.key]!)}</dd>
+          <div key={s.key} className={lg
+            ? 'flex items-center justify-between gap-2 rounded-full bg-black/35 px-3 py-1 ring-1 ring-white/5'
+            : 'flex items-center justify-between gap-2 rounded-md bg-white/[.04] px-2 py-0.5'}>
+            <dt className={lg ? 'truncate text-[15px] text-white/80' : 'truncate text-white/60'}>{s.key === 'atk' && stats!.magic ? 'โจมตีเวทย์' : s.th}</dt>
+            <dd className={lg ? 'text-base font-bold tabular-nums text-white' : 'font-semibold tabular-nums text-white'}>{fmtStat(s.key, stats![s.key]!)}</dd>
           </div>
         ))}
       </dl>
