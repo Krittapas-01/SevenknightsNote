@@ -9,6 +9,8 @@ crons = ["0 0 * * *"]
 [vars]
 # โดเมนของเว็บที่อนุญาตให้เรียก API (ใส่ * ตอน dev ได้)
 ALLOWED_ORIGIN = "*"
+# ลิงก์เว็บ (ใช้ทำลิงก์ในข้อความ Discord)
+SITE_URL = "https://7k-note.pages.dev"
 
 [[d1_databases]]
 binding = "DB"

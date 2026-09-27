@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 
-type Env = { DB: D1Database; ALLOWED_ORIGIN: string }
+type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string }
 
 type Team = {
   front: number // จำนวนช่องแถวหน้า (1-4) ที่เหลือเป็นแถวหลัง รวม 5 ช่อง
@@ -222,7 +222,7 @@ app.get('/api/guild/:id', async (c) => {
     c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY created_at ASC').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
-    c.env.DB.prepare('SELECT schedule, auto_announce FROM guild_settings WHERE guild_id = ?').bind(id),
+    c.env.DB.prepare('SELECT schedule, auto_announce, discord_webhook, discord_mention FROM guild_settings WHERE guild_id = ?').bind(id),
     // ประกาศล่าสุดที่เลือกแผน (= แผนที่ใช้อยู่) — ต้องมีเสมอ แม้จะเก่ากว่า 30 อันล่าสุด (ประกาศอัตโนมัติรายวันดันตกไป)
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? AND plan_id IS NOT NULL ORDER BY created_at DESC LIMIT 1').bind(id),
   ])
@@ -232,12 +232,13 @@ app.get('/api/guild/:id', async (c) => {
   const settings = (st.results as any[])[0]
   const schedule = settings ? JSON.parse(settings.schedule) : DEFAULT_SCHEDULE
   const autoAnnounce = settings ? !!settings.auto_announce : true
+  const discord = { connected: !!settings?.discord_webhook, mention: settings?.discord_mention ?? '' } // ไม่ส่ง URL ออกไป
   const counters = (k.results as any[]).map(toCounter)
   const targets = (t.results as any[]).map((r) => ({
     ...toTarget(r),
     counters: counters.filter((x) => x.targetId === r.id),
   }))
-  return c.json({ guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce })
+  return c.json({ guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce, discord })
 })
 
 // ตรวจว่า key ใช้แก้ไขได้ไหม
@@ -445,8 +446,74 @@ app.post('/api/guild/:id/announcements', async (c) => {
       'DELETE FROM announcements WHERE guild_id = ? AND id NOT IN (SELECT id FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?)',
     ).bind(gid, gid, MAX_ANNOUNCEMENTS),
   ])
+  c.executionCtx.waitUntil(notifyDiscord(c.env, gid, { body: text, planId, opponent }).catch((e) => console.error('discord', e)))
   return c.json({ id, body: text, planId, opponent, createdAt: now }, 201)
 })
+
+// ---- Discord webhook ----
+const WEBHOOK_RE = /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/
+const MENTION_RE = /^(?:|everyone|here|\d{5,25})$/
+
+app.put('/api/guild/:id/discord', async (c) => {
+  const gid = c.req.param('id')
+  const auth = await checkKey(c, gid)
+  if (auth !== 'ok') return deny(c, auth)
+  const body = await c.req.json().catch(() => ({}))
+  const mention = typeof body.mention === 'string' ? body.mention.trim().replace(/^<@&(\d+)>$/, '$1').replace(/^@/, '') : ''
+  if (!MENTION_RE.test(mention)) return c.json({ error: 'ยศที่แท็กไม่ถูกต้อง (ใส่ Role ID เป็นตัวเลข)' }, 400)
+  // webhook: undefined = ไม่เปลี่ยน, '' = ยกเลิกการเชื่อม
+  const webhook = typeof body.webhook === 'string' ? body.webhook.trim() : undefined
+  if (webhook && !WEBHOOK_RE.test(webhook) && !c.env.DISCORD_ALLOW_ANY) return c.json({ error: 'ลิงก์ Webhook ไม่ถูกต้อง (ต้องเป็น https://discord.com/api/webhooks/...)' }, 400)
+  await c.env.DB.prepare(
+    `INSERT INTO guild_settings (guild_id, schedule, discord_webhook, discord_mention) VALUES (?, ?, ?, ?)
+     ON CONFLICT(guild_id) DO UPDATE SET discord_mention = excluded.discord_mention${webhook === undefined ? '' : ', discord_webhook = excluded.discord_webhook'}`,
+  ).bind(gid, JSON.stringify(DEFAULT_SCHEDULE), webhook ?? '', mention).run()
+  const row = await c.env.DB.prepare('SELECT discord_webhook, discord_mention FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
+  return c.json({ connected: !!row?.discord_webhook, mention: row?.discord_mention ?? '' })
+})
+
+app.post('/api/guild/:id/discord/test', async (c) => {
+  const gid = c.req.param('id')
+  const auth = await checkKey(c, gid)
+  if (auth !== 'ok') return deny(c, auth)
+  const r = await notifyDiscord(c.env, gid, { body: 'ทดสอบการเชื่อมต่อจาก 7K Note ✅', planId: null, opponent: '' }, true)
+  if (r === 'none') return c.json({ error: 'ยังไม่ได้ใส่ลิงก์ Webhook' }, 400)
+  if (r !== 'ok') return c.json({ error: `Discord ตอบกลับ ${r} — ลิงก์อาจถูกลบหรือผิด` }, 502)
+  return c.json({ ok: true })
+})
+
+/** ส่งประกาศเข้า Discord (ถ้ากิลด์เชื่อมไว้) → 'none' | 'ok' | HTTP status */
+async function notifyDiscord(env: Env, gid: string, a: { body: string; planId: string | null; opponent: string; auto?: boolean }, test = false) {
+  const row = await env.DB.prepare(
+    `SELECT s.discord_webhook AS url, s.discord_mention AS mention, g.name, p.title AS plan_title
+     FROM guilds g JOIN guild_settings s ON s.guild_id = g.id LEFT JOIN plans p ON p.id = ? AND p.guild_id = g.id WHERE g.id = ?`,
+  ).bind(a.planId, gid).first<any>()
+  if (!row?.url) return 'none'
+  const site = (env.SITE_URL || '').replace(/\/$/, '')
+  const mention = row.mention === 'everyone' ? '@everyone' : row.mention === 'here' ? '@here' : row.mention ? `<@&${row.mention}>` : ''
+  const fields = [
+    row.plan_title && { name: 'แผนที่ใช้', value: site ? `[${row.plan_title}](${site}/g/${gid}/p/${a.planId})` : row.plan_title, inline: true },
+    a.opponent && { name: 'เจอกิลด์', value: a.opponent, inline: true },
+  ].filter(Boolean)
+  const res = await fetch(row.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username: '7K Note',
+      content: test ? undefined : mention || undefined,
+      allowed_mentions: row.mention === 'everyone' || row.mention === 'here' ? { parse: ['everyone'] } : { parse: [], roles: row.mention ? [row.mention] : [] },
+      embeds: [{
+        title: `📢 ประกาศ ${row.name}`,
+        description: a.body || undefined,
+        url: site ? `${site}/g/${gid}` : undefined,
+        color: 0xe2bf72,
+        fields,
+        footer: a.auto ? { text: 'ประกาศอัตโนมัติ 07:00' } : undefined,
+      }],
+    }),
+  })
+  return res.ok ? 'ok' : String(res.status)
+}
 
 app.delete('/api/guild/:id/announcements/:aid', async (c) => {
   const gid = c.req.param('id')
@@ -509,6 +576,7 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
         'DELETE FROM announcements WHERE guild_id = ? AND id NOT IN (SELECT id FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?)',
       ).bind(g.id, g.id, MAX_ANNOUNCEMENTS),
     ])
+    await notifyDiscord(env, g.id, { body: dailyAnnouncement(schedule[today] ?? 'rest', DAY_NAMES[today]), planId: null, opponent: '', auto: true }).catch((e) => console.error('discord', e))
     posted++
   }
   return posted

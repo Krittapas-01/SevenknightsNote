@@ -100,6 +100,8 @@ export type GuildData = {
   schedule: DayType[]
   /** ประกาศวันใหม่อัตโนมัติ 07:00 */
   autoAnnounce?: boolean
+  /** แจ้งเตือนเข้า Discord (ไม่มี URL — เป็นความลับ) */
+  discord?: { connected: boolean; mention: string }
 }
 
 export const emptyPlan = (kind: PlanKind = 'attack'): PlanData => ({

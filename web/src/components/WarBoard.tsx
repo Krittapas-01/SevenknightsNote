@@ -6,6 +6,7 @@ import { api } from '../lib/api'
 import { notifyGuildChanged } from '../lib/usePulse'
 import type { Announcement, DayType, GuildData } from '../lib/types'
 import { DAYS, DAYS_SHORT, DAY_TYPE, activePlanId, dayIndex, fmtTime, isToday, resetLabel } from '../lib/war'
+import DiscordSettings from './DiscordSettings'
 import Modal from './Modal'
 
 type Props = { gid: string; data: GuildData; canEdit: boolean; reload: () => Promise<void> }
@@ -58,9 +59,12 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
             </div>
           ))}
           {canEdit && (
-            <button onClick={() => setEditSchedule(true)} title="แก้ตารางวอร์" className="ml-1 rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white">
-              <Settings2 className="h-4 w-4" />
-            </button>
+            <>
+              <button onClick={() => setEditSchedule(true)} title="แก้ตารางวอร์" className="ml-1 rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white">
+                <Settings2 className="h-4 w-4" />
+              </button>
+              <DiscordSettings gid={gid} discord={data.discord} reload={reload} />
+            </>
           )}
         </div>
       </div>

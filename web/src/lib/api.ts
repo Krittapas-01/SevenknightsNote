@@ -90,6 +90,9 @@ export const api = {
   announce: (gid: string, body: { body: string; planId: string | null; opponent: string }) =>
     req<Announcement>(`/api/guild/${gid}/announcements`, { method: 'POST', body: JSON.stringify(body), gid }),
   deleteAnnouncement: (gid: string, aid: string) => req(`/api/guild/${gid}/announcements/${aid}`, { method: 'DELETE', gid }),
+  saveDiscord: (gid: string, body: { webhook?: string; mention: string }) =>
+    req<{ connected: boolean; mention: string }>(`/api/guild/${gid}/discord`, { method: 'PUT', body: JSON.stringify(body), gid }),
+  testDiscord: (gid: string) => req<{ ok: true }>(`/api/guild/${gid}/discord/test`, { method: 'POST', gid }),
   saveSchedule: (gid: string, schedule: DayType[], autoAnnounce: boolean) =>
     req<{ schedule: DayType[]; autoAnnounce: boolean }>(`/api/guild/${gid}/schedule`, { method: 'PUT', body: JSON.stringify({ schedule, autoAnnounce }), gid }),
 }
