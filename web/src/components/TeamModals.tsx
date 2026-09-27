@@ -97,11 +97,10 @@ export function SkillQueueModal({
             <div key={h.slot} className="relative h-[124px] w-[138px] shrink-0 sm:h-[148px] sm:w-[162px]">
               <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute -left-1 top-0 h-[124px] w-[124px] text-gold/65 sm:h-[148px] sm:w-[148px]" fill="none" stroke="currentColor" strokeWidth="1">
                 <path d="M5 71A59 59 0 0 1 53 6M72 6A59 59 0 0 1 122 59M14 91A57 57 0 0 0 34 114M50 122A60 60 0 0 0 100 108M98 101l20 19" />
-                <circle cx="64" cy="64" r="53" strokeOpacity=".8" />
                 <circle cx="53" cy="6" r="2" /><circle cx="72" cy="6" r="2" /><circle cx="14" cy="91" r="2" /><circle cx="34" cy="114" r="2" /><circle cx="118" cy="120" r="2" fill="currentColor" />
               </svg>
-              <div className="absolute left-[10px] top-[14px] h-24 w-24 overflow-hidden rounded-full border border-gold/45 shadow-[0_2px_8px_#0006] sm:left-3 sm:top-4 sm:h-[116px] sm:w-[116px]" style={{ fontSize: 16 }}>
-                <UnitCard id={h.id} shape="round" className="[&>img]:origin-[50%_24%] [&>img]:scale-[1.6]" />
+              <div className="absolute left-[10px] top-[14px] h-24 w-24 rounded-full sm:left-3 sm:top-4 sm:h-[116px] sm:w-[116px]" style={{ fontSize: 16 }}>
+                <UnitCard id={h.id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_24%] [&>img]:scale-[1.6]" />
               </div>
               <div className="absolute right-0 top-[10px] flex flex-col gap-2 sm:top-3 sm:gap-3">
                 {([1, 2] as const).map((k) => {
