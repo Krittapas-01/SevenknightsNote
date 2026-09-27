@@ -10,7 +10,9 @@ import { findLogItems, logToTargets, markLogged, type LogItem } from '../lib/log
 import Modal from '../components/Modal'
 import PasteNotesModal from '../components/PasteNotesModal'
 import { applyNotes } from '../lib/pasteNotes'
-import { exportPng } from '../lib/exportImage'
+import { exportPng, waitImages } from '../lib/exportImage'
+import PlanPoster from '../components/PlanPoster'
+import { createPortal } from 'react-dom'
 import { autoAssign, blockedFor, conflictCount, conflictsOf, heroKey, heroUsage, heroesOf, mainIndex, mainOption } from '../lib/allocation'
 import HeroDock from '../components/HeroDock'
 import OptionCard from '../components/OptionCard'
@@ -66,19 +68,30 @@ export default function PlanPage() {
   const [logBusy, setLogBusy] = useState(false)
   const [pasteOpen, setPasteOpen] = useState(false)
   // บันทึกแผนเป็นรูป (ส่งเข้ากลุ่มไลน์/ดิสคอร์ด)
+  // รูปใช้โครง PlanPoster (render นอกจอเฉพาะตอนกดบันทึก) ไม่ได้ถ่ายหน้าเว็บตรง ๆ
   const exportRef = useRef<HTMLDivElement>(null)
+  const posterRef = useRef<HTMLDivElement>(null)
   const [exporting, setExporting] = useState(false)
-  async function saveImage() {
-    if (!exportRef.current) return
-    setExporting(true)
-    try {
-      await exportPng(exportRef.current, `${data?.guild.name ?? '7K Note'} - ${plan?.title ?? 'แผนวอร์'}`)
-    } catch (e) {
-      flash('สร้างรูปไม่สำเร็จ: ' + (e as Error).message)
-    } finally {
-      setExporting(false)
-    }
-  }
+  const saveImage = () => setExporting(true)
+  useEffect(() => {
+    if (!exporting) return
+    let alive = true
+    ;(async () => {
+      await new Promise((r) => requestAnimationFrame(() => r(null)))
+      const el = posterRef.current
+      try {
+        if (!el) throw new Error('ไม่พบโครงรูป')
+        await waitImages(el)
+        await exportPng(el, `${data?.guild.name ?? '7K Note'} - ${plan?.title ?? 'แผนวอร์'}`, '#fbeff2')
+      } catch (e) {
+        flash('สร้างรูปไม่สำเร็จ: ' + (e as Error).message)
+      } finally {
+        if (alive) setExporting(false)
+      }
+    })()
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exporting])
   // ไม้บุก: ปกติโชว์แค่ทีมหลัก กดขยายถึงเห็นคอมพ์อื่น
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const toggleExpand = (s: number) => setExpanded((x) => { const n = new Set(x); if (n.has(s)) n.delete(s); else n.add(s); return n })
@@ -271,6 +284,12 @@ export default function PlanPage() {
   return (
     <DndHub>
     <div ref={exportRef} className={editing ? 'pb-72' : ''}>
+      {exporting && createPortal(
+        <div aria-hidden className="pointer-events-none fixed left-[-20000px] top-0">
+          <PlanPoster ref={posterRef} title={viewTitle || 'แผนวอร์'} guildName={data?.guild.name ?? ''} data={view} />
+        </div>,
+        document.body,
+      )}
       <Link data-noexport to={`/g/${gid}`} className="inline-flex items-center gap-1 text-white/70 hover:text-white">
         <ChevronLeft className="h-5 w-5" /> {data.guild.name}
       </Link>
