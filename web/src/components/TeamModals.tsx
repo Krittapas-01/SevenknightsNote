@@ -2,6 +2,7 @@ import { RotateCcw } from 'lucide-react'
 import { queueStyle } from '../lib/queue'
 import { FORMATIONS, MAX_SKILL_QUEUE, SLOT_COUNT, type SkillStep, type Team } from '../lib/types'
 import { baseName, getUnit } from '../data/heroes'
+import { getSkillArt } from '../data/skills'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
 
@@ -91,26 +92,42 @@ export function SkillQueueModal({
       {heroes.length === 0 ? (
         <p className="py-8 text-center text-white/45">ใส่ฮีโร่ในทีมก่อน</p>
       ) : (
-        <div className="flex flex-wrap justify-center gap-5 rounded-2xl bg-black/20 p-4">
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
           {heroes.map((h) => (
-            <div key={h.slot} className="flex items-center gap-2">
-              <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-gold/60" style={{ fontSize: 16 }}>
-                <UnitCard id={h.id} shape="round" />
+            <div key={h.slot} className="relative h-[104px] w-[146px] shrink-0 sm:h-[124px] sm:w-[176px]">
+              <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute -left-1 -top-1 h-28 w-28 text-gold/50 sm:h-[132px] sm:w-[132px]" fill="none" stroke="currentColor" strokeWidth="1">
+                <path d="M5 71A59 59 0 0 1 53 6M72 6A59 59 0 0 1 122 59M14 91A57 57 0 0 0 34 114M50 122A60 60 0 0 0 100 108M98 101l20 19" />
+                <circle cx="64" cy="64" r="53" strokeOpacity=".5" />
+                <circle cx="53" cy="6" r="2" /><circle cx="72" cy="6" r="2" /><circle cx="14" cy="91" r="2" /><circle cx="34" cy="114" r="2" /><circle cx="118" cy="120" r="2" fill="currentColor" />
+              </svg>
+              <div className="absolute left-1 top-1 h-24 w-24 overflow-hidden rounded-full border-2 border-gold/60 shadow-[0_2px_8px_#0006] sm:h-[116px] sm:w-[116px]" style={{ fontSize: 16 }}>
+                <UnitCard id={h.id} shape="round" className="[&>img]:origin-[50%_24%] [&>img]:scale-[1.6]" />
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="absolute right-0 top-0 flex flex-col gap-2 sm:gap-3">
                 {([1, 2] as const).map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
+                  const art = getSkillArt(h.id, k)
+                  const label = k === 1 ? 'สกิลบน' : 'สกิลล่าง'
+                  const description = `${getUnit(h.id)?.name} · ${label}${art ? ` · ${art.name}` : ''}`
                   return (
                     <button
                       key={k}
+                      aria-label={`${description}${q >= 0 ? ` · ลำดับ ${q + 1}` : ''}`}
+                      aria-pressed={q >= 0}
+                      title={description}
                       onClick={() => toggle(h.slot, k)}
                       disabled={readOnly || (q < 0 && full)}
-                      className={`relative h-10 w-16 rounded-lg border-2 text-xs font-semibold transition ${
-                        q >= 0 ? 'border-gold bg-gradient-to-b from-[#5b64d8] to-[#2b2f7a] text-white shadow-[0_0_10px_rgba(244,213,141,.6)]'
-                          : readOnly ? 'border-white/15 bg-white/5 text-white/35' : 'border-white/20 bg-white/5 text-white/60 hover:border-white/50 disabled:opacity-30'
+                      className={`relative h-12 w-12 rounded-lg border-2 bg-[#101727] text-xs font-semibold shadow-[0_2px_6px_#0008] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold sm:h-14 sm:w-14 ${
+                        q >= 0 ? 'border-gold text-white shadow-[0_0_10px_rgba(244,213,141,.4)]'
+                          : 'border-white/25 text-white/80 enabled:hover:border-gold/70'
                       }`}
                     >
-                      {k === 1 ? 'สกิลบน' : 'สกิลล่าง'}
+                      {art ? (
+                        <>
+                          <img src={art.src} alt="" width={52} height={52} loading="lazy" decoding="async" draggable={false} className={`h-full w-full rounded-md object-cover ${q < 0 && full ? 'opacity-55' : ''}`} />
+                          <span className="absolute inset-x-0 bottom-0 rounded-b-md bg-gradient-to-t from-black/95 to-black/40 pb-0.5 pt-1 text-[10px] leading-tight text-white">{k === 1 ? 'บน' : 'ล่าง'}</span>
+                        </>
+                      ) : label}
                       {q >= 0 && (
                         <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 text-[10px] font-bold ring-1 ring-white/60" style={queueStyle(q + 1)}>
                           ลำดับ {q + 1}
