@@ -1,4 +1,5 @@
 import { RotateCcw } from 'lucide-react'
+import { useId } from 'react'
 import { queueStyle } from '../lib/queue'
 import { FORMATIONS, MAX_SKILL_QUEUE, SLOT_COUNT, type SkillStep, type Team } from '../lib/types'
 import { baseName, getUnit } from '../data/heroes'
@@ -66,29 +67,79 @@ export function FormationModal({ open, front, onSelect, onClose }: { open: boole
 }
 
 /** จองสกิล: กดสกิลตามลำดับที่ต้องการ (กดซ้ำ = ยกเลิก) สูงสุด MAX_SKILL_QUEUE */
-/* ---------- เรขาคณิตวงแหวนหน้าจองสกิล (องศาเริ่มที่ 12 นาฬิกา หมุนตามเข็ม) ---------- */
-const pt = (deg: number, r: number) => {
+/* ---------- กรอบหน้าจองสกิล (วัดจากภาพในเกม แล้วย่อสเกลให้รูปฮีโร่รัศมี 54) ----------
+ * พิกัดอิงจุดกลางรูปฮีโร่ = (0,0) · องศาเริ่มที่ 12 นาฬิกา หมุนตามเข็ม
+ * วงในเกมไม่ได้ร่วมศูนย์กับรูปทั้งหมด: วงนอก 2 วงใช้ศูนย์ C1 ที่เยื้องขวาบนนิดหน่อย
+ */
+type Pt = readonly [number, number]
+const at = (c: Pt, r: number, deg: number): Pt => {
   const a = ((deg - 90) * Math.PI) / 180
-  return [+(64 + r * Math.cos(a)).toFixed(2), +(64 + r * Math.sin(a)).toFixed(2)] as const
+  return [+(c[0] + r * Math.cos(a)).toFixed(2), +(c[1] + r * Math.sin(a)).toFixed(2)]
 }
-const arc = (r: number, a0: number, a1: number) => {
-  const [x0, y0] = pt(a0, r)
-  const [x1, y1] = pt(a1, r)
+const arcPath = (c: Pt, r: number, a0: number, a1: number) => {
+  const [x0, y0] = at(c, r, a0)
+  const [x1, y1] = at(c, r, a1)
   const sweep = (a1 - a0 + 360) % 360
   return `M${x0} ${y0}A${r} ${r} 0 ${sweep > 180 ? 1 : 0} 1 ${x1} ${y1}`
 }
-const tick = (deg: number, r0: number, r1: number) => {
-  const [x0, y0] = pt(deg, r0)
-  const [x1, y1] = pt(deg, r1)
-  return `M${x0} ${y0}L${x1} ${y1}`
+const P0: Pt = [0, 0]
+const C1: Pt = [8.6, -7.6] // ศูนย์ของวงนอก
+const C4: Pt = [-13.6, -16.2] // เส้นโค้งที่ม้วนเข้าหารูปด้านซ้าย
+/** [ศูนย์, รัศมี, องศาเริ่ม, องศาจบ, จุดวงกลมที่ปลายไหน] */
+const FRAME_ARCS: [Pt, number, number, number, ('start' | 'end')[]][] = [
+  [C1, 72.7, 258, 1.6, ['end']], //  วงนอกซ้าย→บน
+  [C1, 72.7, 15, 60, ['start']], //  วงนอกต่อทางขวา (ลอดใต้ไอคอน)
+  [C1, 66.1, 329, 50, ['start']], // วงกลาง
+  [C4, 42.4, 256, 332, ['end']], //  เส้นม้วนเข้ารูป
+  [P0, 60.6, 208, 242, ['start', 'end']], // เส้นล่างซ้าย
+  [C1, 72.7, 148, 202, []], //       วงนอกด้านล่าง
+  [P0, 57.5, 139, 196, []], //       ขอบล่างแนบรูป
+]
+const FRAME_NODES: Pt[] = [at(P0, 57.5, 158)]
+const FRAME_LINES: [Pt, Pt][] = [[[33.3, 56], [50, 72.2]], [[60.6, 53], [73.7, 65.1]]]
+const FRAME_DOTS: [number, number, number][] = [[73.7, 65.1, 3], [80.2, 71.7, 1.5], [54, 76.7, 1.3]]
+
+function SkillFrame({ gid }: { gid: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="-66 -82 170 164" className="pointer-events-none absolute inset-0 h-full w-full" fill="none" strokeLinecap="round">
+      <defs>
+        <linearGradient id={gid} gradientUnits="userSpaceOnUse" x1="0" y1="-80" x2="-20" y2="80">
+          <stop offset="0" stopColor="#dcc38f" /><stop offset=".55" stopColor="#bba98a" /><stop offset="1" stopColor="#9d8b98" />
+        </linearGradient>
+      </defs>
+      <g stroke={`url(#${gid})`} strokeWidth="1.3">
+        {FRAME_ARCS.map(([c, r, a0, a1], i) => <path key={i} d={arcPath(c, r, a0, a1)} />)}
+        {FRAME_LINES.map(([p, q], i) => <path key={i} d={`M${p[0]} ${p[1]}L${q[0]} ${q[1]}`} />)}
+      </g>
+      <g fill="#1d2436" stroke={`url(#${gid})`} strokeWidth="1.2">
+        {FRAME_ARCS.flatMap(([c, r, a0, a1, ends]) => ends.map((e) => at(c, r, e === 'start' ? a0 : a1)))
+          .concat(FRAME_NODES)
+          .map(([x, y], i) => <circle key={i} cx={x} cy={y} r="2.3" />)}
+      </g>
+      <g fill={`url(#${gid})`}>{FRAME_DOTS.map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} />)}</g>
+    </svg>
+  )
 }
-/** วงโคจรสีทอง: โค้งบนซ้าย + โค้งล่าง (ด้านขวาโดนไอคอนสกิลบังอยู่แล้ว) */
-const ORBIT_R = 61
-const ORBIT: [number, number][] = [[206, 338], [112, 188]]
+
+/** รูปฮีโร่แบบในเกม: วงกลมพื้นเทา ตัวละครโผล่เกินขอบบนนิดหน่อย */
+function SkillPortrait({ id }: { id: string }) {
+  const u = getUnit(id)
+  return (
+    <div className="skill-queue-face absolute left-[12px] top-[28px] h-[108px] w-[108px]">
+      <div className="skill-queue-disc absolute inset-0 rounded-full" />
+      {u?.img ? (
+        <img src={u.img} alt={u.name} draggable={false} className="skill-queue-art pointer-events-none absolute left-[-21px] top-[-15px] h-[150px] w-[150px] max-w-none object-contain" />
+      ) : (
+        <div className="absolute inset-0 overflow-hidden rounded-full" style={{ fontSize: 16 }}><UnitCard id={id} shape="round" /></div>
+      )}
+    </div>
+  )
+}
 
 export function SkillQueueModal({
   open, team, skills, onChange, onClose,
 }: { open: boolean; team: Team; skills: SkillStep[]; onChange?: (s: SkillStep[]) => void; onClose: () => void }) {
+  const frameId = useId().replace(/:/g, '')
   // ไม่ส่ง onChange = ดูอย่างเดียว
   const readOnly = !onChange
   const heroes = team.slots.map((id, slot) => ({ id, slot })).filter((h) => h.id) as { id: string; slot: number }[]
@@ -115,22 +166,10 @@ export function SkillQueueModal({
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
           {heroes.map((h) => {
             return (
-            <div key={h.slot} className="relative h-[140px] w-[166px] shrink-0">
-              {/* กรอบแบบในเกม: รูปวงกลมขอบเงินบาง + เส้นวงโคจรสีทอง (ร่วมศูนย์ 64,64 กับรูป) */}
-              <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute left-0 top-0 z-10 h-[128px] w-[128px] overflow-visible" fill="none" strokeLinecap="round">
-                <g stroke="#c8ae72" strokeWidth="1.2">
-                  {ORBIT.map(([a0, a1]) => <path key={a0} d={arc(ORBIT_R, a0, a1)} />)}
-                  <path d={tick(150, ORBIT_R, 74)} /><path d={tick(160, ORBIT_R, 70)} />
-                </g>
-                <g fill="#1a2132" stroke="#c8ae72" strokeWidth="1.1">
-                  {ORBIT.flatMap(([a0, a1]) => [a0, a1]).map((d) => { const [x, y] = pt(d, ORBIT_R); return <circle key={d} cx={x} cy={y} r="2.1" /> })}
-                </g>
-                {(() => { const [x, y] = pt(150, 77); return <circle cx={x} cy={y} r="2.3" fill="#c8ae72" /> })()}
-              </svg>
-              <div className="skill-queue-face absolute left-[10px] top-[10px] h-[108px] w-[108px] rounded-full" style={{ fontSize: 16 }}>
-                <UnitCard id={h.id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_22%] [&>img]:scale-[1.9]" />
-              </div>
-              <div className="absolute left-[104px] top-[5px] z-20 flex flex-col gap-[6px]">
+            <div key={h.slot} className="relative h-[164px] w-[170px] shrink-0">
+              <SkillFrame gid={`${frameId}-${h.slot}`} />
+              <SkillPortrait id={h.id!} />
+              <div className="absolute left-[111px] top-[16px] z-20 flex flex-col gap-[2px]">
                 {([1, 2] as const).map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
@@ -144,14 +183,14 @@ export function SkillQueueModal({
                       title={description}
                       onClick={() => toggle(h.slot, k)}
                       disabled={readOnly || (q < 0 && full)}
-                      className={`relative h-[56px] w-[56px] rounded-[10px] border-2 bg-[#101727] p-[2px] text-[10px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold ${
+                      className={`relative h-[54px] w-[54px] rounded-[8px] border-[3px] bg-[#101727] p-0 text-[10px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold ${
                         q >= 0 ? 'border-gold shadow-[0_0_0_1px_#6b5220,0_0_14px_rgba(244,213,141,.55)]'
-                          : 'border-[#d5d8dc] shadow-[0_0_0_1px_#4a525c,0_3px_8px_#000a] enabled:hover:border-gold/80'
+                          : 'border-[#dcdcdc] shadow-[0_0_0_1px_#8c8c8c,0_2px_6px_#0008] enabled:hover:border-gold/80'
                       }`}
                     >
                       {art ? (
                         <>
-                          <img src={art.src} alt="" width={52} height={52} loading="lazy" decoding="async" draggable={false} className={`h-full w-full rounded-[7px] object-cover ${q < 0 && full && !readOnly ? 'opacity-50' : ''}`} />
+                          <img src={art.src} alt="" width={52} height={52} loading="lazy" decoding="async" draggable={false} className={`h-full w-full rounded-[5px] object-cover ${q < 0 && full && !readOnly ? 'opacity-50' : ''}`} />
                         </>
                       ) : label}
                       {q >= 0 && (
