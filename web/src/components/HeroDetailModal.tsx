@@ -3,6 +3,8 @@ import type { HeroNote } from '../lib/types'
 import EquipmentLoadout from './EquipmentLoadout'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
+import { StatsGrid } from './HeroStats'
+import { hasStats } from '../lib/stats'
 
 /** Match old notes by base name only when they do not specify another form. */
 function noteFor(hero: string, notes: HeroNote[]) {
@@ -32,8 +34,9 @@ export default function HeroDetailModal({ hero, notes, onClose }: {
       <section className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
         <h4 className="text-sm font-semibold text-gold">สเตตัส / วิธีจัดของ</h4>
         <p className={`mt-3 whitespace-pre-wrap break-words text-base leading-relaxed ${note?.text.trim() ? 'text-white/90' : 'text-white/45'}`}>
-          {note?.text.trim() ? note.text : 'ยังไม่ได้ระบุสเตตัสในคอมพ์นี้'}
+          {note?.text.trim() ? note.text : hasStats(note?.stats) ? '' : 'ยังไม่ได้ระบุสเตตัสในคอมพ์นี้'}
         </p>
+        <StatsGrid stats={note?.stats} className="mt-3" />
       </section>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <section className="rounded-2xl border border-gold/15 bg-black/20 p-4">

@@ -362,6 +362,12 @@ export function getUnit(id: string | null | undefined): Unit | null {
 }
 
 /** ค้นได้ทั้งชื่อไทยและอังกฤษ */
+/** ชื่ออังกฤษของฮีโร่ (ใช้จับชื่อจากภาพหน้าจอเกม) */
+export const englishOf = (id: string) => {
+  const b = baseName(getUnit(id)?.name ?? id)
+  return EN_NAME[b] ?? GOLD_EN[b] ?? PURPLE_EN[b]
+}
+
 export function matchUnit(u: Unit, q: string) {
   const s = q.trim().toLowerCase()
   if (!s) return true

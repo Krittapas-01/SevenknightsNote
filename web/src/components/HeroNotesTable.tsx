@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { StatsGrid, StatsImport, upsertStats } from './HeroStats'
 import { baseName, getUnit } from '../data/heroes'
 import { ringImage, setImages } from '../data/equipment'
 import type { HeroNote } from '../lib/types'
@@ -19,7 +20,10 @@ export default function HeroNotesTable({ notes, editing, onChange, team }: {
   team?: (string | null)[]
 }) {
   const addRow = editing && team && (
-    <AddHeroNote team={team} have={notes.map((n) => n.hero)} onAdd={(hero) => onChange?.([...notes, { hero, text: '', sets: [], rings: [] }].slice(0, 5))} />
+    <div className="flex flex-wrap items-center gap-x-3">
+      <StatsImport team={team} onApply={(hero, stats) => onChange?.(upsertStats(notes, hero, stats))} />
+      <AddHeroNote team={team} have={notes.map((n) => n.hero)} onAdd={(hero) => onChange?.([...notes, { hero, text: '', sets: [], rings: [] }].slice(0, 5))} />
+    </div>
   )
   if (!notes.length) return addRow || null
   return (
@@ -66,6 +70,7 @@ export default function HeroNotesTable({ notes, editing, onChange, team }: {
             ) : (
               <p className="whitespace-pre-wrap">{n.text || <span className="text-white/35">—</span>}</p>
             )}
+            <StatsGrid stats={n.stats} />
           </div>
         </div>
       ))}

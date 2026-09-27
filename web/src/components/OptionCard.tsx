@@ -1,4 +1,5 @@
 import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Library, Star, Trash2, X } from 'lucide-react'
+import { StatsGrid, StatsImport, upsertStats } from './HeroStats'
 import { useState } from 'react'
 import EquipmentLoadout from './EquipmentLoadout'
 import EquipmentEditor from './EquipmentEditor'
@@ -156,6 +157,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
               ))}
             </ul>
           )}
+          {editing && <StatsImport team={option.team.slots} onApply={(hero, stats) => set({ heroNotes: upsertStats(heroNotes, hero, stats) })} />}
           {editing && <AddHeroNote team={option.team.slots} have={heroNotes.map((n) => n.hero)}
             onAdd={(hero) => set({ heroNotes: [...heroNotes, { hero, text: '', sets: [], rings: [] }].slice(0, 5) })} />}
         </div>
@@ -210,6 +212,7 @@ function GearNote({ note, editing, onChange, onRemove }: { note: HeroNote; editi
       {editing
         ? <EquipmentEditor sets={note.sets} rings={note.rings} onChange={(sets, rings) => onChange({ ...note, sets, rings })} />
         : <EquipmentLoadout sets={note.sets} rings={note.rings} />}
+      <StatsGrid stats={note.stats} />
     </li>
   )
 }

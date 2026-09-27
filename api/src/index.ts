@@ -76,14 +76,33 @@ function parseTags(raw: any): string[] {
 function idList(raw: any, max = 20): string[] {
   return Array.isArray(raw) ? [...new Set(raw.map(idOrNull).filter(Boolean) as string[])].slice(0, max) : []
 }
-type HeroNote = { hero: string; text: string; sets: string[]; rings: string[] }
+type HeroNote = { hero: string; text: string; sets: string[]; rings: string[]; stats?: Record<string, number | string | boolean> }
+/** สเตตัสฮีโร่ (อ่านจากรูป) — รับเฉพาะคีย์ที่รู้จัก ค่าเป็นตัวเลข */
+const STAT_KEYS = ['atk', 'def', 'hp', 'spd', 'critRate', 'critDmg', 'weak', 'block', 'hit', 'resist', 'dtr', 'amp', 'crush', 'resil', 'rejuv']
+function parseStats(raw: any): HeroNote['stats'] | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const out: Record<string, number | string | boolean> = {}
+  for (const k of STAT_KEYS) {
+    const v = Number(raw[k])
+    if (raw[k] !== undefined && raw[k] !== null && Number.isFinite(v) && v >= 0 && v < 1e7) out[k] = Math.round(v * 100) / 100
+  }
+  if (!Object.keys(out).length) return undefined
+  if (raw.magic === true) out.magic = true
+  if (typeof raw.level === 'string') out.level = raw.level.slice(0, 10)
+  return out
+}
 const strList = (raw: any, max: number, len: number) =>
   Array.isArray(raw) ? (raw.map((x) => str(x, len)).filter(Boolean) as string[]).slice(0, max) : []
 function parseHeroNotes(raw: any): HeroNote[] {
   if (!Array.isArray(raw)) return []
   return raw
     .slice(0, 5)
-    .map((n: any) => ({ hero: str(n?.hero, 40), text: str(n?.text, 300), sets: strList(n?.sets, 5, 30), rings: strList(n?.rings, 6, 30) }))
+    .map((n: any) => {
+      const note: HeroNote = { hero: str(n?.hero, 40), text: str(n?.text, 300), sets: strList(n?.sets, 5, 30), rings: strList(n?.rings, 6, 30) }
+      const stats = parseStats(n?.stats)
+      if (stats) note.stats = stats
+      return note
+    })
     .filter((n) => n.hero)
 }
 type PlanData = {

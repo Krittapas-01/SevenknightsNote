@@ -45,7 +45,8 @@ export type Target = {
 
 export type Guild = { id: string; name: string; createdAt: number }
 /** โน้ตรายตัว: ของ/แหวน/สเตตัส */
-export type HeroNote = { hero: string; text: string; sets: string[]; rings: string[] }
+import type { HeroStats } from './stats'
+export type HeroNote = { hero: string; text: string; sets: string[]; rings: string[]; stats?: HeroStats }
 
 export type WarOption = {
   team: Team
