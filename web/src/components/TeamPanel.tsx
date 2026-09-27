@@ -7,7 +7,7 @@ import {
 } from '../lib/types'
 import { FormationModal, SkillQueueModal } from './TeamModals'
 import { groupOfKey, keyOf, parseDndId, refOf, useDndHub } from './DndHub'
-import UnitCard from './UnitCard'
+import UnitCard, { UNIT_SLOT_RADIUS } from './UnitCard'
 import HeroDetailModal from './HeroDetailModal'
 import type { HeroNote } from '../lib/types'
 import type { HeroStats } from '../lib/stats'
@@ -277,7 +277,7 @@ export default function TeamPanel({
               {team.pet ? (
                 <UnitCard id={team.pet} shape="pet" />
               ) : (
-                <div className="slot-empty grid h-full w-full place-items-center">
+                <div className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
                   <PawPrint className="absolute h-[55%] w-[55%] text-white/15" />
                   {active && <Plus className="relative h-[45%] w-[45%] text-white drop-shadow" strokeWidth={3} />}
                 </div>
@@ -374,7 +374,8 @@ function DnDSlot({ id, enabled, filled, selected, round, children }: { id: strin
     <div
       ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el) }}
       {...(enabled && filled ? { ...drag.listeners, ...drag.attributes } : {})}
-      className={`relative ${round ? 'aspect-square w-full rounded-full' : 'rounded-[12px]'} ${drag.isDragging ? 'opacity-30' : ''} ${
+      style={!round ? { borderRadius: UNIT_SLOT_RADIUS } : undefined}
+      className={`relative ${round ? 'aspect-square w-full rounded-full' : ''} ${drag.isDragging ? 'opacity-30' : ''} ${
         canDrop ? 'ring-2 ring-gold ring-offset-2 ring-offset-transparent' : ''
       } ${selected ? 'slot-selected' : ''} ${enabled && filled ? 'cursor-grab touch-manipulation' : ''}`}
     >
@@ -409,11 +410,12 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side }: {
     <div className="relative" style={{ width: 'var(--s)', height: 'var(--s)', fontSize: 'calc(var(--s) * 0.22)' }}>
       <button type="button" disabled={!editable && !inspectable} onClick={onClick}
         aria-label={inspectable && id ? `ดูรายละเอียด ${getName(id)}` : undefined}
-        className="block h-full w-full rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
+        style={{ borderRadius: UNIT_SLOT_RADIUS }}
+        className="block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
         {id ? (
           <UnitCard id={id} />
         ) : (
-          <div className="slot-empty grid h-full w-full place-items-center">
+          <div className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
             {editable && <Plus className="h-[45%] w-[45%] text-white drop-shadow" strokeWidth={3} />}
           </div>
         )}

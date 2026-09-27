@@ -17,6 +17,8 @@ const ROLE_BADGE: Record<HeroType, { image: string; tone: string }> = {
 }
 
 const seg = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter('th', { granularity: 'grapheme' }) : null
+/** Game slots: rounded top-left/bottom-right, near-square opposite corners. */
+export const UNIT_SLOT_RADIUS = '24% 4% 24% 4%'
 function initials(name: string) {
   const g = seg ? Array.from(seg.segment(name.replace(/\s+/g, '')), (s) => s.segment) : Array.from(name)
   return g.slice(0, 2).join('')
@@ -42,8 +44,8 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
 
   return (
     <div
-      className={`unit-card relative h-full w-full overflow-hidden ${awake ? 'unit-awake' : RARE.has(label) ? 'unit-rare' : ''} ${round ? 'rounded-full' : 'rounded-[10px]'} ${className}`}
-      style={{ '--unit-color': color } as CSSProperties}
+      className={`unit-card relative h-full w-full overflow-hidden ${awake ? 'unit-awake' : RARE.has(label) ? 'unit-rare' : ''} ${round ? 'rounded-full' : ''} ${className}`}
+      style={{ '--unit-color': color, ...(!round ? { borderRadius: UNIT_SLOT_RADIUS } : {}) } as CSSProperties}
       title={u.name}
     >
       {u.img && failedImage !== u.img ? (
