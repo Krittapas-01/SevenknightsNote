@@ -40,3 +40,25 @@ export function currentSeason(start: string, end: string, todayKey: string): Sea
   const phase: SeasonPhase = today < s ? 'before' : today <= e ? 'in' : 'off'
   return { start: toKey(s), end: toKey(e), phase, projected, daysLeft: phase === 'in' ? e - today + 1 : 0, nextStart: toKey(phase === 'before' ? s : e + OFF_WEEK_DAYS) }
 }
+
+/**
+ * รอบวอร์แบบในเกม "รอบซีซัน X / Y": Y = จำนวนวันตีใน Season, X = วันตีที่ผ่านมา (นับวันนี้ถ้าวันนี้ตี)
+ * วันที่ไม่ใช่วันตี → นับเป็นรอบถัดไป (กำลังเตรียม/ตั้งบ้านกันของรอบนั้น) — ตรงกับเกม
+ * schedule: 7 ช่อง จันทร์..อาทิตย์
+ */
+export function warRound(s: Season, schedule: string[], todayKey: string): { round: number; total: number } | null {
+  if (s.phase !== 'in') return null
+  const isAttack = (day: number) => schedule[(new Date(day * DAY).getUTCDay() + 6) % 7] === 'attack'
+  const start = toDay(s.start)
+  const end = toDay(s.end)
+  const today = toDay(todayKey)
+  let total = 0
+  let done = 0
+  for (let d = start; d <= end; d++) {
+    if (!isAttack(d)) continue
+    total++
+    if (d <= today) done++
+  }
+  if (!total) return null
+  return { round: Math.min(total, isAttack(today) ? done : done + 1), total }
+}
