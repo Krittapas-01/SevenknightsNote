@@ -1,7 +1,7 @@
 import { RotateCcw } from 'lucide-react'
 import { queueStyle } from '../lib/queue'
 import { FORMATIONS, MAX_SKILL_QUEUE, SLOT_COUNT, type SkillStep, type Team } from '../lib/types'
-import { baseName, getUnit, HERO_TYPES, isAwake, RARE } from '../data/heroes'
+import { baseName, getUnit } from '../data/heroes'
 import { getSkillArt } from '../data/skills'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
@@ -82,9 +82,9 @@ const tick = (deg: number, r0: number, r1: number) => {
   const [x1, y1] = pt(deg, r1)
   return `M${x0} ${y0}L${x1} ${y1}`
 }
-/** เส้นทอง (นอก) เว้นช่องเป็นช่วง ๆ · เส้นสีธาตุ (ใน) */
-const OUTER_ARCS: [number, number][] = [[196, 350], [8, 62], [118, 172]]
-const INNER_ARCS: [number, number][] = [[214, 38], [58, 190]]
+/** วงโคจรสีทอง: โค้งบนซ้าย + โค้งล่าง (ด้านขวาโดนไอคอนสกิลบังอยู่แล้ว) */
+const ORBIT_R = 61
+const ORBIT: [number, number][] = [[206, 338], [112, 188]]
 
 export function SkillQueueModal({
   open, team, skills, onChange, onClose,
@@ -114,30 +114,23 @@ export function SkillQueueModal({
       ) : (
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
           {heroes.map((h) => {
-            const unit = getUnit(h.id)
-            const innerColor = unit && isAwake(unit.name) ? '#c79bff'
-              : unit && RARE.has(baseName(unit.name)) ? '#9b7fd6'
-              : unit?.type ? HERO_TYPES[unit.type].color : '#7c86a8'
             return (
-            <div key={h.slot} className="relative h-[140px] w-[158px] shrink-0">
-              {/* วงแหวนแบบในเกม: คำนวณจากจุดศูนย์กลางเดียวกับรูปฮีโร่ (64,64) ทุกเส้นเลยร่วมศูนย์ ไม่เบี้ยว */}
+            <div key={h.slot} className="relative h-[140px] w-[166px] shrink-0">
+              {/* กรอบแบบในเกม: รูปวงกลมขอบเงินบาง + เส้นวงโคจรสีทอง (ร่วมศูนย์ 64,64 กับรูป) */}
               <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute left-0 top-0 z-10 h-[128px] w-[128px] overflow-visible" fill="none" strokeLinecap="round">
-                <g stroke="#c9b27a" strokeWidth="1.3">
-                  {OUTER_ARCS.map(([a0, a1]) => <path key={a0} d={arc(62, a0, a1)} />)}
-                  <path d={tick(156, 63, 72)} /><path d={tick(165, 63, 69)} />
+                <g stroke="#c8ae72" strokeWidth="1.2">
+                  {ORBIT.map(([a0, a1]) => <path key={a0} d={arc(ORBIT_R, a0, a1)} />)}
+                  <path d={tick(150, ORBIT_R, 74)} /><path d={tick(160, ORBIT_R, 70)} />
                 </g>
-                <g stroke={innerColor} strokeWidth="2">
-                  {INNER_ARCS.map(([a0, a1]) => <path key={a0} d={arc(56.5, a0, a1)} />)}
+                <g fill="#1a2132" stroke="#c8ae72" strokeWidth="1.1">
+                  {ORBIT.flatMap(([a0, a1]) => [a0, a1]).map((d) => { const [x, y] = pt(d, ORBIT_R); return <circle key={d} cx={x} cy={y} r="2.1" /> })}
                 </g>
-                <g fill="#1b2233" stroke="#c9b27a" strokeWidth="1">
-                  {OUTER_ARCS.flatMap(([a0, a1]) => [a0, a1]).map((d) => { const [x, y] = pt(d, 62); return <circle key={d} cx={x} cy={y} r="1.8" /> })}
-                </g>
-                {(() => { const [x, y] = pt(156, 75); return <circle cx={x} cy={y} r="2" fill="#c9b27a" /> })()}
+                {(() => { const [x, y] = pt(150, 77); return <circle cx={x} cy={y} r="2.3" fill="#c8ae72" /> })()}
               </svg>
-              <div className="absolute left-[12px] top-[12px] h-[104px] w-[104px] overflow-hidden rounded-full" style={{ fontSize: 16 }}>
-                <UnitCard id={h.id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_24%] [&>img]:scale-[1.85]" />
+              <div className="skill-queue-face absolute left-[10px] top-[10px] h-[108px] w-[108px] rounded-full" style={{ fontSize: 16 }}>
+                <UnitCard id={h.id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_22%] [&>img]:scale-[1.9]" />
               </div>
-              <div className="absolute left-[100px] top-[5px] z-20 flex flex-col gap-[6px]">
+              <div className="absolute left-[104px] top-[5px] z-20 flex flex-col gap-[6px]">
                 {([1, 2] as const).map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)

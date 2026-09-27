@@ -341,11 +341,16 @@ a.pill:active { transform: scale(.98); }
   box-shadow: 0 0 0 1px #4b3480, 0 4px 12px #05081480;
 }
 
-/* The SVG supplies both metal tracks; card rarity/class borders must not add a third ring. */
+/* หน้าจองสกิล: รูปวงกลมแบบในเกม — ขอบเงินบาง 1 ชั้นแนบรูปพอดี พื้นเทาไล่เฉด ไม่ใช้สีธาตุ/ระดับ */
+.skill-queue-face {
+  padding: 3px;
+  background: linear-gradient(160deg, #f3f1ea, #a9adb3 55%, #e6e2d6);
+  box-shadow: 0 0 0 1px #2b3140, 0 4px 12px #0009;
+}
 .unit-card.skill-queue-portrait {
   border: 0;
-  background: linear-gradient(145deg, #626972, #333b47);
-  box-shadow: none;
+  background: radial-gradient(circle at 40% 30%, #9aa0a8, #5b626c 60%, #3c434d);
+  box-shadow: inset 0 0 10px #0006;
 }
 .unit-card.skill-queue-portrait::after { display: none; }
 
