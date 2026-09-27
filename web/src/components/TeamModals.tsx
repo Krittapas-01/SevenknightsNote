@@ -121,17 +121,11 @@ function SkillFrame({ gid }: { gid: string }) {
   )
 }
 
-/** รูปฮีโร่แบบในเกม: วงกลมพื้นเทา ตัวละครโผล่เกินขอบบนนิดหน่อย */
+/** รูปฮีโร่: วงกลมขอบเงินบาง รูปตัดพอดีวง (แบบเดิมที่ชอบ) */
 function SkillPortrait({ id }: { id: string }) {
-  const u = getUnit(id)
   return (
-    <div className="skill-queue-face absolute left-[12px] top-[28px] h-[108px] w-[108px]">
-      <div className="skill-queue-disc absolute inset-0 rounded-full" />
-      {u?.img ? (
-        <img src={u.img} alt={u.name} draggable={false} className="skill-queue-art pointer-events-none absolute left-[-21px] top-[-15px] h-[150px] w-[150px] max-w-none object-contain" />
-      ) : (
-        <div className="absolute inset-0 overflow-hidden rounded-full" style={{ fontSize: 16 }}><UnitCard id={id} shape="round" /></div>
-      )}
+    <div className="skill-queue-face absolute left-[12px] top-[28px] h-[108px] w-[108px] rounded-full" style={{ fontSize: 16 }}>
+      <UnitCard id={id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_22%] [&>img]:scale-[1.9]" />
     </div>
   )
 }
