@@ -1,6 +1,7 @@
 import { Link, Outlet, useMatch } from 'react-router'
 import Account from './Account'
 import AnnouncementBar from './AnnouncementBar'
+import HeaderClock from './HeaderClock'
 
 export default function Layout() {
   // อยู่ในหน้าของกิลด์ไหน → โชว์แถบประกาศของกิลด์นั้นทุกหน้า
@@ -10,9 +11,12 @@ export default function Layout() {
     <div className="min-h-dvh">
       <header className="site-header sticky top-0 z-40 border-b border-gold/15 bg-[#0c1425]/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
-          <Link to="/" className="flex items-center gap-3 text-lg font-bold tracking-wide">
-            <span className="brand-mark" aria-hidden="true">✦</span> 7K <span className="font-normal text-gold">Note</span>
-          </Link>
+          <div className="shrink-0">
+            <Link to="/" className="flex items-center gap-3 text-lg font-bold tracking-wide">
+              <span className="brand-mark" aria-hidden="true">✦</span> 7K <span className="font-normal text-gold">Note</span>
+            </Link>
+            <HeaderClock />
+          </div>
           <span className="ml-auto mr-3 hidden text-xs font-medium tracking-[.2em] text-white/45 md:inline">GUILD WAR COMPANION</span>
           <div className="ml-auto md:ml-0"><Account /></div>
         </div>

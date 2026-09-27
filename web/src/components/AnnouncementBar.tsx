@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { usePulse } from '../lib/usePulse'
 import { DAYS, DAY_TYPE, dayIndex, resetLabel } from '../lib/war'
+import SeasonBanner from './SeasonBanner'
 
 const SEEN = (gid: string) => `7knote:seen:${gid}`
 const readSeen = (gid: string) => {
@@ -52,6 +53,7 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
         unseen ? 'border-gold/60 bg-[#3a3120]/90' : 'border-white/10 bg-[#1b2236]/90'
       }`}
     >
+      <SeasonBanner gid={gid} now={now} />
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2 text-sm">
         <span className="flex items-center gap-1.5" title={`วันใหม่เริ่ม 07:00 (อีก ${resetLabel(now)})`}>
           <span className="font-semibold">{DAYS[today]}</span>
