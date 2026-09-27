@@ -103,7 +103,7 @@ export default function GuildPage() {
                 {k === 'attack' ? <Swords className="h-5 w-5" /> : <Shield className="h-5 w-5" />} {PLAN_KIND_LABEL[k]}
                 <span className="text-sm font-normal text-white/45">{data.plans.filter((p) => planKind(p.data) === k).length} แผน</span>
               </h2>
-              <PlanList gid={gid} kind={k} plans={data.plans.filter((p) => planKind(p.data) === k)} canEdit={canEdit} activeId={activePlanId(data)} />
+              <PlanList gid={gid} kind={k} plans={data.plans.filter((p) => planKind(p.data) === k)} canEdit={canEdit} activeId={activePlanId(data)} usedAt={lastUsed(data.announcements)} />
             </section>
           ))}
         </div>
@@ -172,7 +172,14 @@ function TagChip({ active, onClick, children }: { active: boolean; onClick: () =
   )
 }
 
-function PlanList({ gid, kind, plans, canEdit, activeId }: { gid: string; kind: PlanKind; plans: Plan[]; canEdit: boolean; activeId: string | null }) {
+/** เวลาที่แต่ละแผนถูกประกาศใช้ล่าสุด */
+function lastUsed(announcements: { planId: string | null; createdAt: number }[]) {
+  const m = new Map<string, number>()
+  for (const a of announcements) if (a.planId && !(m.get(a.planId)! >= a.createdAt)) m.set(a.planId, a.createdAt)
+  return m
+}
+
+function PlanList({ gid, kind, plans, canEdit, activeId, usedAt }: { gid: string; kind: PlanKind; plans: Plan[]; canEdit: boolean; activeId: string | null; usedAt: Map<string, number> }) {
   const [showAll, setShowAll] = useState(false)
   const rail = useRef<HTMLDivElement>(null)
   // ลากด้วยเมาส์ (มือถือปัดได้อยู่แล้ว) — ลากแล้วไม่นับเป็นการกดเข้าแผน
@@ -183,9 +190,12 @@ function PlanList({ gid, kind, plans, canEdit, activeId }: { gid: string; kind: 
         {canEdit ? `ยังไม่มี${PLAN_KIND_LABEL[kind]} กด “สร้าง${PLAN_KIND_LABEL[kind]}” เพื่อจัดทีม 5 ไม้` : `ยังไม่มี${PLAN_KIND_LABEL[kind]}`}
       </div>
     )
-  // แผนที่ใช้อยู่ขึ้นก่อน · การ์ดถัดไปโผล่ขอบขวาให้รู้ว่าเลื่อนได้
-  const sorted = [...plans].sort((a, b) => Number(b.id === activeId) - Number(a.id === activeId))
-  const cards = sorted.map((p) => <PlanCard key={p.id} gid={gid} plan={p} active={p.id === activeId} />)
+  // เรียง: แผนที่ใช้อยู่ → ใช้ล่าสุด (ตามประกาศ) → แก้ล่าสุด · การ์ดถัดไปโผล่ขอบขวาให้รู้ว่าเลื่อนได้
+  const sorted = [...plans].sort((a, b) =>
+    Number(b.id === activeId) - Number(a.id === activeId)
+    || (usedAt.get(b.id) ?? 0) - (usedAt.get(a.id) ?? 0)
+    || b.updatedAt - a.updatedAt)
+  const cards = sorted.map((p) => <PlanCard key={p.id} gid={gid} plan={p} active={p.id === activeId} usedAt={usedAt.get(p.id)} />)
   if (plans.length <= 2) return <div className="mt-4 grid gap-6 md:grid-cols-2">{cards}</div>
 
   const scroll = (dir: -1 | 1) => rail.current?.scrollBy({ left: dir * rail.current.clientWidth * 0.9, behavior: 'smooth' })
@@ -240,7 +250,7 @@ function PlanList({ gid, kind, plans, canEdit, activeId }: { gid: string; kind: 
   )
 }
 
-function PlanCard({ gid, plan: p, active }: { gid: string; plan: Plan; active: boolean }) {
+function PlanCard({ gid, plan: p, active, usedAt }: { gid: string; plan: Plan; active: boolean; usedAt?: number }) {
   const used = p.data.slots.filter((s) => s.options.length)
   return (
     <Link to={`/g/${gid}/p/${p.id}`} className={`plan-card panel ${active ? 'panel-gold' : ''} block select-none p-5 transition hover:-translate-y-1`}>
@@ -251,6 +261,9 @@ function PlanCard({ gid, plan: p, active }: { gid: string; plan: Plan; active: b
           <p className="text-sm text-white/50">
             อัปเดต {new Date(p.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
           </p>
+          {!active && usedAt && (
+            <p className="text-sm text-gold/70">ใช้ล่าสุด {new Date(usedAt).toLocaleString('th-TH', { dateStyle: 'medium' })}</p>
+          )}
         </div>
         {p.data.op.length > 0 && (
           <div className="flex -space-x-2">
