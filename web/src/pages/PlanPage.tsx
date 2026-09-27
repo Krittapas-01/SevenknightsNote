@@ -71,6 +71,20 @@ export default function PlanPage() {
   async function saveImage() {
     if (!exportRef.current) return
     setExporting(true)
+    // แผนกัน: บันทึกทีละคอมพ์ (1 รูป/ทีม) ด้วยปุ่มรูปของแต่ละการ์ด
+    const shots = [...exportRef.current.querySelectorAll<HTMLButtonElement>('button[data-shot]')]
+    if (shots.length) {
+      try {
+        for (const b of shots) {
+          b.click()
+          await new Promise((r) => setTimeout(r, 50))
+          while (b.disabled) await new Promise((r) => setTimeout(r, 100))
+        }
+      } finally {
+        setExporting(false)
+      }
+      return
+    }
     try {
       await exportPng(exportRef.current, `${data?.guild.name ?? '7K Note'} - ${plan?.title ?? 'แผนวอร์'}`)
     } catch (e) {
@@ -321,7 +335,7 @@ export default function PlanPage() {
               </button>
             )}
             <button onClick={saveImage} disabled={exporting} className="pill inline-flex items-center gap-1.5 px-4 py-1.5 text-sm hover:border-gold disabled:opacity-50">
-              <ImageDown className="h-4 w-4" /> {exporting ? 'กำลังสร้างรูป...' : 'บันทึกเป็นรูป'}
+              <ImageDown className="h-4 w-4" /> {exporting ? 'กำลังสร้างรูป...' : planKind(view) === 'defense' && !editing ? 'บันทึกรูปทุกทีม (1 รูป/ทีม)' : 'บันทึกเป็นรูป'}
             </button>
           </div>
         )}

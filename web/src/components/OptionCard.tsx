@@ -113,9 +113,9 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
           option.condition && <span className="min-w-0 truncate text-sm text-gold">{option.condition}</span>
         )}
         {!editing && shot && teamHeroes.length > 0 && (
-          <button type="button" onClick={() => setShooting(true)} disabled={shooting} title="บันทึกคอมพ์นี้เป็นรูป (ทีม + รายละเอียด 3 ตัว)"
-            className="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-white/15 px-2.5 py-1 text-xs text-white/70 hover:border-gold hover:text-gold disabled:opacity-50">
-            {shooting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageDown className="h-3.5 w-3.5" />} รูป
+          <button type="button" data-shot data-noexport onClick={() => setShooting(true)} disabled={shooting} title="บันทึกคอมพ์นี้เป็นรูป (ทีม + รายละเอียด 3 ตัว)"
+            className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1 text-sm text-gold hover:bg-gold/20 disabled:opacity-50">
+            {shooting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageDown className="h-4 w-4" />} บันทึกรูป
           </button>
         )}
         {shooting && shot && createPortal(
