@@ -432,7 +432,8 @@ export default function PlanPage() {
             />
           )
           const addBtns = editing && slot.options.length < MAX_OPTIONS ? (
-            <div className="grid min-h-60 grid-rows-2 gap-3">
+            // สูงคงที่ ชิดบน — ไม่ยืดตามการ์ดทีมข้าง ๆ (ไม่ต้องเลื่อนลงไกล)
+            <div className="grid h-56 grid-rows-2 gap-3 self-start">
               <button
                 onClick={() => setLibrary({ s, o: null })}
                 title={slot.kind === 'attack' && slot.vsId ? 'เปิดที่ทีมแก้ของบ้านนี้' : undefined}
