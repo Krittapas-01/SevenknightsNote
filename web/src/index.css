@@ -341,11 +341,11 @@ a.pill:active { transform: scale(.98); }
   box-shadow: 0 0 0 1px #4b3480, 0 4px 12px #05081480;
 }
 
-/* Only the SVG outer ornament frames queue portraits. */
+/* A single silver rim hugs the portrait; the SVG outer ornament stays separate. */
 .skill-queue-face {
-  padding: 0;
-  background: none;
-  box-shadow: none;
+  padding: 3px;
+  background: linear-gradient(145deg, #f3f4f3, #b7bdc4 65%, #e0e3e4);
+  box-shadow: 0 0 0 1px #69717c80, 0 2px 5px #0005;
 }
 .unit-card.skill-queue-portrait {
   border: 0;

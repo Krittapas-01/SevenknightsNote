@@ -114,11 +114,11 @@ function SkillFrame({ gid }: { gid: string }) {
   )
 }
 
-/** รูปตัดเป็นวงกลมโดยไม่มีขอบซ้อนกับวงนอก */
+/** Enlarged portrait with a close silver rim, centered inside the unchanged outer ornament. */
 function SkillPortrait({ id }: { id: string }) {
   return (
-    // Same center as C1 in the SVG viewBox: (74.6, 74.4), with a 108px diameter.
-    <div className="skill-queue-face absolute aspect-square w-[63.529412%] overflow-hidden rounded-full" style={{ left: '12.117647%', top: '12.439024%', fontSize: 16 }}>
+    // Same center as C1 in the SVG viewBox: (74.6, 74.4), with a 128px diameter.
+    <div className="skill-queue-face absolute aspect-square w-[75.294118%] overflow-hidden rounded-full" style={{ left: '6.235294%', top: '6.341463%', fontSize: 16 }}>
       <UnitCard id={id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_22%] [&>img]:scale-[1.9]" />
     </div>
   )
