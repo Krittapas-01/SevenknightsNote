@@ -124,11 +124,9 @@ function SkillPortrait({ id }: { id: string }) {
   )
 }
 
-export function SkillQueueModal({
-  open, team, skills, onChange, onClose,
-}: { open: boolean; team: Team; skills: SkillStep[]; onChange?: (s: SkillStep[]) => void; onClose: () => void }) {
+/** ฮีโร่ + สกิลบน/ล่าง + ป้ายคิว (แบบในเกม/Atlas) — ใช้ในหน้าต่างจองสกิล และในรูปที่บันทึก */
+export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills: SkillStep[]; onChange?: (s: SkillStep[]) => void }) {
   const frameId = useId().replace(/:/g, '')
-  // ไม่ส่ง onChange = ดูอย่างเดียว
   const readOnly = !onChange
   const heroes = team.slots.map((id, slot) => ({ id, slot })).filter((h) => h.id) as { id: string; slot: number }[]
   const full = skills.length >= MAX_SKILL_QUEUE
@@ -139,15 +137,7 @@ export function SkillQueueModal({
     else if (!full) onChange([...skills, { slot, skill }])
   }
   return (
-    <Modal open={open} title={readOnly ? 'ลำดับจองสกิล (Skill Queue)' : 'จองสกิล (Skill Queue)'} onClose={onClose}>
-      <div className="mb-3 flex min-h-8 items-center justify-between">
-        <span className="text-sm text-white/60">จองแล้ว {skills.length}/{MAX_SKILL_QUEUE}</span>
-        {!readOnly && (
-          <button onClick={() => onChange([])} className="pill flex items-center gap-1.5 px-4 py-1 text-sm">
-            <RotateCcw className="h-4 w-4" /> รีเซ็ต
-          </button>
-        )}
-      </div>
+    <>
       {heroes.length === 0 ? (
         <p className="py-8 text-center text-white/45">ใส่ฮีโร่ในทีมก่อน</p>
       ) : (
@@ -200,6 +190,26 @@ export function SkillQueueModal({
           {skills.map((s, i) => `${i + 1}. ${baseName(getUnit(team.slots[s.slot])?.name ?? '')} ${s.skill === 1 ? 'บน' : 'ล่าง'}`).join('  →  ')}
         </p>
       )}
+    </>
+  )
+}
+
+export function SkillQueueModal({
+  open, team, skills, onChange, onClose,
+}: { open: boolean; team: Team; skills: SkillStep[]; onChange?: (s: SkillStep[]) => void; onClose: () => void }) {
+  // ไม่ส่ง onChange = ดูอย่างเดียว
+  const readOnly = !onChange
+  return (
+    <Modal open={open} title={readOnly ? 'ลำดับจองสกิล (Skill Queue)' : 'จองสกิล (Skill Queue)'} onClose={onClose}>
+      <div className="mb-3 flex min-h-8 items-center justify-between">
+        <span className="text-sm text-white/60">จองแล้ว {skills.length}/{MAX_SKILL_QUEUE}</span>
+        {!readOnly && (
+          <button onClick={() => onChange([])} className="pill flex items-center gap-1.5 px-4 py-1 text-sm">
+            <RotateCcw className="h-4 w-4" /> รีเซ็ต
+          </button>
+        )}
+      </div>
+      <SkillQueueBoard team={team} skills={skills} onChange={onChange} />
       <button onClick={onClose} className="btn-gold mt-5 w-full py-2">{readOnly ? 'ปิด' : 'เสร็จ'}</button>
     </Modal>
   )

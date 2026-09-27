@@ -14,6 +14,7 @@ import AddHeroNote from './AddHeroNote'
 import { baseName, getUnit } from '../data/heroes'
 import { changeFormation, moveSlot, placeUnit, type HeroNote, type WarOption } from '../lib/types'
 import TeamPanel, { type SlotKind } from './TeamPanel'
+import { SkillQueueBoard } from './TeamModals'
 
 type Props = {
   option: WarOption
@@ -129,6 +130,12 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
               </div>
               {option.condition && <p className="mb-3 text-lg font-semibold text-gold">{option.condition}</p>}
               <TeamPanel variant="ally" team={option.team} skills={option.skills} title={teamTitle(option)} heroNotes={heroNotes} />
+              {option.skills.length > 0 && (
+                <section className="panel mt-5 p-5">
+                  <p className="eyebrow mb-3">ลำดับการออกสกิล · AUTO SKILL PRIORITY</p>
+                  <SkillQueueBoard team={option.team} skills={option.skills} />
+                </section>
+              )}
               {notes.length > 0 && (
                 <ul className="mt-5 space-y-1.5">
                   {notes.map((n, i) => (
