@@ -1,5 +1,4 @@
 import { RotateCcw } from 'lucide-react'
-import { useId } from 'react'
 import { queueStyle } from '../lib/queue'
 import { FORMATIONS, MAX_SKILL_QUEUE, SLOT_COUNT, type SkillStep, type Team } from '../lib/types'
 import { baseName, getUnit, HERO_TYPES, isAwake, RARE } from '../data/heroes'
@@ -67,10 +66,29 @@ export function FormationModal({ open, front, onSelect, onClose }: { open: boole
 }
 
 /** จองสกิล: กดสกิลตามลำดับที่ต้องการ (กดซ้ำ = ยกเลิก) สูงสุด MAX_SKILL_QUEUE */
+/* ---------- เรขาคณิตวงแหวนหน้าจองสกิล (องศาเริ่มที่ 12 นาฬิกา หมุนตามเข็ม) ---------- */
+const pt = (deg: number, r: number) => {
+  const a = ((deg - 90) * Math.PI) / 180
+  return [+(64 + r * Math.cos(a)).toFixed(2), +(64 + r * Math.sin(a)).toFixed(2)] as const
+}
+const arc = (r: number, a0: number, a1: number) => {
+  const [x0, y0] = pt(a0, r)
+  const [x1, y1] = pt(a1, r)
+  const sweep = (a1 - a0 + 360) % 360
+  return `M${x0} ${y0}A${r} ${r} 0 ${sweep > 180 ? 1 : 0} 1 ${x1} ${y1}`
+}
+const tick = (deg: number, r0: number, r1: number) => {
+  const [x0, y0] = pt(deg, r0)
+  const [x1, y1] = pt(deg, r1)
+  return `M${x0} ${y0}L${x1} ${y1}`
+}
+/** เส้นทอง (นอก) เว้นช่องเป็นช่วง ๆ · เส้นสีธาตุ (ใน) */
+const OUTER_ARCS: [number, number][] = [[196, 350], [8, 62], [118, 172]]
+const INNER_ARCS: [number, number][] = [[214, 38], [58, 190]]
+
 export function SkillQueueModal({
   open, team, skills, onChange, onClose,
 }: { open: boolean; team: Team; skills: SkillStep[]; onChange?: (s: SkillStep[]) => void; onClose: () => void }) {
-  const frameId = useId()
   // ไม่ส่ง onChange = ดูอย่างเดียว
   const readOnly = !onChange
   const heroes = team.slots.map((id, slot) => ({ id, slot })).filter((h) => h.id) as { id: string; slot: number }[]
@@ -101,31 +119,25 @@ export function SkillQueueModal({
               : unit && RARE.has(baseName(unit.name)) ? '#9b7fd6'
               : unit?.type ? HERO_TYPES[unit.type].color : '#7c86a8'
             return (
-            <div key={h.slot} className="relative h-[134px] w-[160px] shrink-0">
-              <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute left-0 top-[2px] z-10 h-[128px] w-[128px]" fill="none" stroke={`url(#${frameId}-${h.slot})`} strokeWidth="1.25" strokeLinecap="round">
-                <defs>
-                  <linearGradient id={`${frameId}-${h.slot}`} x1="0" y1="0" x2="0.3" y2="1">
-                    <stop offset="0" stopColor="#f0d990" /><stop offset=".35" stopColor="#c5b47f" /><stop offset=".72" stopColor="#827281" /><stop offset="1" stopColor="#a49b83" />
-                  </linearGradient>
-                </defs>
-                {/* Broken concentric metal tracks, with the portrait inside the inner track. */}
-                <path d="M4 78A61 61 0 0 1 60 4M73 6A61 61 0 0 1 121 50M10 93A61 61 0 0 0 29 115M39 121A61 61 0 0 0 109 107" />
-                <path d="M34 17A53 53 0 0 1 117 65A53 53 0 0 1 69 117M60 117A53 53 0 0 1 24 25" stroke={innerColor} strokeWidth="1.7" />
-                <path d="M81 113l16 15M96 110l18 13" />
-                <g fill="#57606a">
-                  <circle cx="60" cy="4" r="1.6" /><circle cx="73" cy="6" r="1.6" />
-                  <circle cx="10" cy="93" r="1.6" /><circle cx="29" cy="115" r="1.6" />
+            <div key={h.slot} className="relative h-[140px] w-[158px] shrink-0">
+              {/* วงแหวนแบบในเกม: คำนวณจากจุดศูนย์กลางเดียวกับรูปฮีโร่ (64,64) ทุกเส้นเลยร่วมศูนย์ ไม่เบี้ยว */}
+              <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute left-0 top-0 z-10 h-[128px] w-[128px] overflow-visible" fill="none" strokeLinecap="round">
+                <g stroke="#c9b27a" strokeWidth="1.3">
+                  {OUTER_ARCS.map(([a0, a1]) => <path key={a0} d={arc(62, a0, a1)} />)}
+                  <path d={tick(156, 63, 72)} /><path d={tick(165, 63, 69)} />
                 </g>
-                <g fill="#57606a" stroke={innerColor}>
-                  <circle cx="34" cy="17" r="1.6" /><circle cx="24" cy="25" r="1.6" />
-                  <circle cx="60" cy="117" r="1.4" /><circle cx="69" cy="117" r="1.4" />
+                <g stroke={innerColor} strokeWidth="2">
+                  {INNER_ARCS.map(([a0, a1]) => <path key={a0} d={arc(56.5, a0, a1)} />)}
                 </g>
-                <circle cx="114" cy="123" r="2.2" fill="#a49b83" stroke="none" />
+                <g fill="#1b2233" stroke="#c9b27a" strokeWidth="1">
+                  {OUTER_ARCS.flatMap(([a0, a1]) => [a0, a1]).map((d) => { const [x, y] = pt(d, 62); return <circle key={d} cx={x} cy={y} r="1.8" /> })}
+                </g>
+                {(() => { const [x, y] = pt(156, 75); return <circle cx={x} cy={y} r="2" fill="#c9b27a" /> })()}
               </svg>
-              <div className="absolute left-[12px] top-[14px] h-[104px] w-[104px] rounded-full" style={{ fontSize: 16 }}>
+              <div className="absolute left-[12px] top-[12px] h-[104px] w-[104px] overflow-hidden rounded-full" style={{ fontSize: 16 }}>
                 <UnitCard id={h.id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_24%] [&>img]:scale-[1.85]" />
               </div>
-              <div className="absolute left-[98px] top-[8px] z-20 flex flex-col gap-[6px]">
+              <div className="absolute left-[100px] top-[5px] z-20 flex flex-col gap-[6px]">
                 {([1, 2] as const).map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
