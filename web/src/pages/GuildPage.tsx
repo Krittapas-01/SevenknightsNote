@@ -1,6 +1,6 @@
-import { Check, ClipboardList, Link2, Plus, Search, Shield, Swords } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, ClipboardList, LayoutGrid, Link2, Minimize2, Plus, Search, Shield, Swords } from 'lucide-react'
 import { tagColor, tagStyle } from '../lib/tags'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
 import UnitCard from '../components/UnitCard'
@@ -173,49 +173,105 @@ function TagChip({ active, onClick, children }: { active: boolean; onClick: () =
 }
 
 function PlanList({ gid, kind, plans, canEdit, activeId }: { gid: string; kind: PlanKind; plans: Plan[]; canEdit: boolean; activeId: string | null }) {
+  const [showAll, setShowAll] = useState(false)
+  const rail = useRef<HTMLDivElement>(null)
+  // ลากด้วยเมาส์ (มือถือปัดได้อยู่แล้ว) — ลากแล้วไม่นับเป็นการกดเข้าแผน
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null)
   if (plans.length === 0)
     return (
       <div className="panel mt-4 p-8 text-center text-white/60">
         {canEdit ? `ยังไม่มี${PLAN_KIND_LABEL[kind]} กด “สร้าง${PLAN_KIND_LABEL[kind]}” เพื่อจัดทีม 5 ไม้` : `ยังไม่มี${PLAN_KIND_LABEL[kind]}`}
       </div>
     )
+  // แผนที่ใช้อยู่ขึ้นก่อน · การ์ดถัดไปโผล่ขอบขวาให้รู้ว่าเลื่อนได้
+  const sorted = [...plans].sort((a, b) => Number(b.id === activeId) - Number(a.id === activeId))
+  const cards = sorted.map((p) => <PlanCard key={p.id} gid={gid} plan={p} active={p.id === activeId} />)
+  if (plans.length <= 2) return <div className="mt-4 grid gap-6 md:grid-cols-2">{cards}</div>
+
+  const scroll = (dir: -1 | 1) => rail.current?.scrollBy({ left: dir * rail.current.clientWidth * 0.9, behavior: 'smooth' })
   return (
-    <div className="mt-4 grid gap-6 md:grid-cols-2">
-      {plans.map((p) => {
-        const used = p.data.slots.filter((s) => s.options.length)
-        return (
-          <Link key={p.id} to={`/g/${gid}/p/${p.id}`} className={`plan-card panel ${p.id === activeId ? 'panel-gold' : ''} block p-5 transition hover:-translate-y-1`}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                {p.id === activeId && <span className="mb-1 inline-block rounded-full bg-gold px-2 text-xs font-semibold text-ink">ใช้อยู่ตอนนี้</span>}
-                <h3 className="break-words text-2xl font-bold">{p.title}</h3>
-                <p className="text-sm text-white/50">
-                  อัปเดต {new Date(p.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
-                </p>
-              </div>
-              {p.data.op.length > 0 && (
-                <div className="flex -space-x-2">
-                  {p.data.op.slice(0, 4).map((id) => (
-                    <span key={id} className="h-9 w-9 rounded-full ring-2 ring-[#232c46]" style={{ fontSize: 9 }}>
-                      <UnitCard id={id} shape="round" />
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            <ul className="mt-4 space-y-1.5 text-sm">
-              {used.length === 0 && <li className="text-white/40">ยังไม่มีทีม</li>}
-              {used.map((s) => (
-                <li key={s.name} className="flex items-center gap-2 text-white/80">
-                  {s.kind === 'attack' ? <Swords className="h-4 w-4 text-red-300" /> : <Shield className="h-4 w-4 text-sky-300" />}
-                  <span className="truncate">{s.name}</span>
-                  <span className="ml-auto shrink-0 text-white/45">{s.options.length} แบบ</span>
-                </li>
-              ))}
-            </ul>
-          </Link>
-        )
-      })}
+    <div className="mt-4">
+      <div className="mb-3 flex items-center justify-end gap-2">
+        {!showAll && (
+          <>
+            <button type="button" onClick={() => scroll(-1)} aria-label="แผนก่อนหน้า" className="pill p-1.5 hover:border-gold"><ChevronLeft className="h-4 w-4" /></button>
+            <button type="button" onClick={() => scroll(1)} aria-label="แผนถัดไป" className="pill p-1.5 hover:border-gold"><ChevronRight className="h-4 w-4" /></button>
+          </>
+        )}
+        <button type="button" onClick={() => setShowAll((v) => !v)} className="pill flex items-center gap-1.5 px-3 py-1 text-sm hover:border-gold">
+          {showAll ? <><Minimize2 className="h-4 w-4" /> ย่อเป็นแถวเลื่อน</> : <><LayoutGrid className="h-4 w-4" /> ดูทั้งหมด ({plans.length})</>}
+        </button>
+      </div>
+      {showAll ? (
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">{cards}</div>
+      ) : (
+        <div
+          ref={rail}
+          className="plan-rail -mx-1 flex snap-x snap-mandatory gap-6 overflow-x-auto px-1 pb-3 [scrollbar-width:thin] [&>*]:w-[85%] [&>*]:shrink-0 [&>*]:snap-start md:[&>*]:w-[calc(50%-48px)]"
+          onPointerDown={(e) => {
+            if (e.pointerType !== 'mouse' || !rail.current) return
+            drag.current = { x: e.clientX, left: rail.current.scrollLeft, moved: false }
+          }}
+          onPointerMove={(e) => {
+            const d = drag.current
+            if (!d || !rail.current) return
+            const dx = e.clientX - d.x
+            if (Math.abs(dx) > 5) {
+              d.moved = true
+              rail.current.style.scrollSnapType = 'none'
+            }
+            if (d.moved) rail.current.scrollLeft = d.left - dx
+          }}
+          onPointerUp={() => {
+            if (rail.current) rail.current.style.scrollSnapType = ''
+            setTimeout(() => { drag.current = null }, 0)
+          }}
+          onPointerLeave={() => {
+            if (rail.current) rail.current.style.scrollSnapType = ''
+            if (drag.current && !drag.current.moved) drag.current = null
+          }}
+          onClickCapture={(e) => { if (drag.current?.moved) { e.preventDefault(); e.stopPropagation() } }}
+          onDragStart={(e) => e.preventDefault()}
+        >
+          {cards}
+        </div>
+      )}
     </div>
+  )
+}
+
+function PlanCard({ gid, plan: p, active }: { gid: string; plan: Plan; active: boolean }) {
+  const used = p.data.slots.filter((s) => s.options.length)
+  return (
+    <Link to={`/g/${gid}/p/${p.id}`} className={`plan-card panel ${active ? 'panel-gold' : ''} block select-none p-5 transition hover:-translate-y-1`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {active && <span className="mb-1 inline-block rounded-full bg-gold px-2 text-xs font-semibold text-ink">ใช้อยู่ตอนนี้</span>}
+          <h3 className="break-words text-2xl font-bold">{p.title}</h3>
+          <p className="text-sm text-white/50">
+            อัปเดต {new Date(p.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
+          </p>
+        </div>
+        {p.data.op.length > 0 && (
+          <div className="flex -space-x-2">
+            {p.data.op.slice(0, 4).map((id) => (
+              <span key={id} className="h-9 w-9 rounded-full ring-2 ring-[#232c46]" style={{ fontSize: 9 }}>
+                <UnitCard id={id} shape="round" />
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <ul className="mt-4 space-y-1.5 text-sm">
+        {used.length === 0 && <li className="text-white/40">ยังไม่มีทีม</li>}
+        {used.map((s, i) => (
+          <li key={i} className="flex items-center gap-2 text-white/80">
+            {s.kind === 'attack' ? <Swords className="h-4 w-4 text-red-300" /> : <Shield className="h-4 w-4 text-sky-300" />}
+            <span className="truncate">{s.name}</span>
+            <span className="ml-auto shrink-0 text-white/45">{s.options.length} แบบ</span>
+          </li>
+        ))}
+      </ul>
+    </Link>
   )
 }
