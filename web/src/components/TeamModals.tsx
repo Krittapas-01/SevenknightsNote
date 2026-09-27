@@ -101,8 +101,8 @@ export function SkillQueueModal({
               : unit && RARE.has(baseName(unit.name)) ? '#9b7fd6'
               : unit?.type ? HERO_TYPES[unit.type].color : '#7c86a8'
             return (
-            <div key={h.slot} className="relative h-[124px] w-[138px] shrink-0 sm:h-[148px] sm:w-[162px]">
-              <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute -left-1 top-0 z-10 h-[124px] w-[124px] sm:h-[148px] sm:w-[148px]" fill="none" stroke={`url(#${frameId}-${h.slot})`} strokeWidth="1.25" strokeLinecap="round">
+            <div key={h.slot} className="relative h-[134px] w-[160px] shrink-0">
+              <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute left-0 top-[2px] z-10 h-[128px] w-[128px]" fill="none" stroke={`url(#${frameId}-${h.slot})`} strokeWidth="1.25" strokeLinecap="round">
                 <defs>
                   <linearGradient id={`${frameId}-${h.slot}`} x1="0" y1="0" x2="0.3" y2="1">
                     <stop offset="0" stopColor="#f0d990" /><stop offset=".35" stopColor="#c5b47f" /><stop offset=".72" stopColor="#827281" /><stop offset="1" stopColor="#a49b83" />
@@ -122,10 +122,10 @@ export function SkillQueueModal({
                 </g>
                 <circle cx="114" cy="123" r="2.2" fill="#a49b83" stroke="none" />
               </svg>
-              <div className="absolute left-[10px] top-[14px] h-24 w-24 rounded-full sm:left-3 sm:top-4 sm:h-[116px] sm:w-[116px]" style={{ fontSize: 16 }}>
+              <div className="absolute left-[12px] top-[14px] h-[104px] w-[104px] rounded-full" style={{ fontSize: 16 }}>
                 <UnitCard id={h.id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_24%] [&>img]:scale-[1.85]" />
               </div>
-              <div className="absolute right-0 top-[10px] z-20 flex flex-col gap-2 sm:top-3 sm:gap-3">
+              <div className="absolute left-[98px] top-[8px] z-20 flex flex-col gap-[6px]">
                 {([1, 2] as const).map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
@@ -139,20 +139,19 @@ export function SkillQueueModal({
                       title={description}
                       onClick={() => toggle(h.slot, k)}
                       disabled={readOnly || (q < 0 && full)}
-                      className={`relative h-12 w-12 rounded-lg border-2 bg-[#101727] text-xs font-semibold shadow-[0_2px_6px_#0008] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold sm:h-14 sm:w-14 ${
-                        q >= 0 ? 'border-gold text-white shadow-[0_0_10px_rgba(244,213,141,.4)]'
-                          : 'border-[#a9b2b9] ring-1 ring-[#59616b] text-white/80 enabled:hover:border-gold/70'
+                      className={`relative h-[56px] w-[56px] rounded-[10px] border-2 bg-[#101727] p-[2px] text-[10px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold ${
+                        q >= 0 ? 'border-gold shadow-[0_0_0_1px_#6b5220,0_0_14px_rgba(244,213,141,.55)]'
+                          : 'border-[#d5d8dc] shadow-[0_0_0_1px_#4a525c,0_3px_8px_#000a] enabled:hover:border-gold/80'
                       }`}
                     >
                       {art ? (
                         <>
-                          <img src={art.src} alt="" width={52} height={52} loading="lazy" decoding="async" draggable={false} className={`h-full w-full rounded-md object-cover ${q < 0 && full ? 'opacity-55' : ''}`} />
-                          <span className="absolute inset-x-0 bottom-0 rounded-b-md bg-gradient-to-t from-black/95 to-black/40 pb-0.5 pt-1 text-[10px] leading-tight text-white">{k === 1 ? 'บน' : 'ล่าง'}</span>
+                          <img src={art.src} alt="" width={52} height={52} loading="lazy" decoding="async" draggable={false} className={`h-full w-full rounded-[7px] object-cover ${q < 0 && full && !readOnly ? 'opacity-50' : ''}`} />
                         </>
                       ) : label}
                       {q >= 0 && (
-                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 text-[10px] font-bold ring-1 ring-white/60" style={queueStyle(q + 1)}>
-                          ลำดับ {q + 1}
+                        <span className="absolute -bottom-[7px] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-px text-[11px] font-bold leading-4 ring-1 ring-white/70 shadow-[0_1px_4px_#000a]" style={queueStyle(q + 1)}>
+                          คิว {q + 1}
                         </span>
                       )}
                     </button>
