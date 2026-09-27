@@ -147,7 +147,7 @@ function parsePlan(raw: any): PlanData | null {
 }
 const toAnnouncement = (r: any) => ({
   id: r.id, body: r.body, planId: r.plan_id, opponent: r.opponent, createdAt: r.created_at, auto: !!r.auto,
-  author: r.author_name ? { name: r.author_name, avatar: r.author_avatar } : null,
+  author: r.author_name ? { name: r.author_name, avatar: r.author_avatar, role: r.author_role || '' } : null,
 })
 const toPlan = (r: any) => ({ id: r.id, title: r.title, data: JSON.parse(r.data), createdAt: r.created_at, updatedAt: r.updated_at })
 
@@ -236,7 +236,7 @@ app.get('/api/guild/:id', async (c) => {
     c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY created_at ASC').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
-    c.env.DB.prepare('SELECT schedule, auto_announce, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles FROM guild_settings WHERE guild_id = ?').bind(id),
+    c.env.DB.prepare('SELECT schedule, auto_announce, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names FROM guild_settings WHERE guild_id = ?').bind(id),
     // ประกาศล่าสุดที่เลือกแผน (= แผนที่ใช้อยู่) — ต้องมีเสมอ แม้จะเก่ากว่า 30 อันล่าสุด (ประกาศอัตโนมัติรายวันดันตกไป)
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? AND plan_id IS NOT NULL ORDER BY created_at DESC LIMIT 1').bind(id),
   ])
@@ -249,6 +249,7 @@ app.get('/api/guild/:id', async (c) => {
   const discord = { // ไม่ส่ง webhook URL ออกไป
     connected: !!settings?.discord_webhook, mention: settings?.discord_mention ?? '',
     serverId: settings?.discord_guild_id ?? '', editRoles: JSON.parse(settings?.discord_edit_roles || '[]') as string[],
+    roleNames: JSON.parse(settings?.discord_role_names || '[]') as { id: string; name: string }[],
   }
   const counters = (k.results as any[]).map(toCounter)
   const targets = (t.results as any[]).map((r) => ({
@@ -455,11 +456,10 @@ app.post('/api/guild/:id/announcements', async (c) => {
   }
   const now = Date.now()
   const id = randomId(10)
-  const user = await currentUser(c) // ล็อกอิน Discord อยู่ → ขึ้นชื่อคนประกาศ
-  const author = user ? { name: user.name, avatar: user.avatar } : null
+  const author = await announcer(c, gid) // ล็อกอิน Discord อยู่ → ขึ้นชื่อ (+ยศ) คนประกาศ
   await c.env.DB.batch([
-    c.env.DB.prepare('INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at, author_name, author_avatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-      .bind(id, gid, text, planId, opponent, now, author?.name ?? '', author?.avatar ?? ''),
+    c.env.DB.prepare('INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at, author_name, author_avatar, author_role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, gid, text, planId, opponent, now, author?.name ?? '', author?.avatar ?? '', author?.role ?? ''),
     // เก็บแค่ล่าสุด MAX_ANNOUNCEMENTS อัน
     c.env.DB.prepare(
       'DELETE FROM announcements WHERE guild_id = ? AND id NOT IN (SELECT id FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?)',
@@ -468,6 +468,22 @@ app.post('/api/guild/:id/announcements', async (c) => {
   c.executionCtx.waitUntil(notifyDiscord(c.env, gid, { body: text, planId, opponent, author }).catch((e) => console.error('discord', e)))
   return c.json({ id, body: text, planId, opponent, createdAt: now, auto: false, author }, 201)
 })
+
+/** คนประกาศ: ชื่อเล่นในเซิร์ฟเวอร์ (ถ้ามี) + ยศแรกตามลำดับที่หัวกิลด์ตั้งชื่อไว้ */
+async function announcer(c: any, gid: string) {
+  const user = await currentUser(c)
+  if (!user) return null
+  const s = await c.env.DB.prepare('SELECT discord_guild_id, discord_role_names FROM guild_settings WHERE guild_id = ?').bind(gid).first()
+  let name = user.name
+  let role = ''
+  if (s?.discord_guild_id) {
+    const m = await memberOf(c.env, user, s.discord_guild_id)
+    if (m.nick) name = m.nick
+    const names: { id: string; name: string }[] = JSON.parse(s.discord_role_names || '[]')
+    role = names.find((r) => m.roles.includes(r.id))?.name ?? ''
+  }
+  return { name, avatar: user.avatar, role }
+}
 
 // ---- Discord webhook ----
 const WEBHOOK_RE = /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/
@@ -489,16 +505,25 @@ app.put('/api/guild/:id/discord', async (c) => {
   const rawRoles = typeof body.editRoles === 'string' ? body.editRoles.split(/[\s,]+/) : Array.isArray(body.editRoles) ? body.editRoles : undefined
   const editRoles = rawRoles?.map((r: unknown) => String(r).trim().replace(/^<@&(\d+)>$/, '$1')).filter(Boolean)
   if (editRoles && (editRoles.length > 10 || editRoles.some((r: string) => !/^\d{5,25}$/.test(r)))) return c.json({ error: 'Role ID ไม่ถูกต้อง (ตัวเลข คั่นด้วย , ได้ไม่เกิน 10 ยศ)' }, 400)
+  // ชื่อยศ: [{id, name}] เรียงตามความสำคัญ (ยศบนสุดขึ้นก่อน)
+  const roleNames = Array.isArray(body.roleNames)
+    ? body.roleNames.map((r: any) => ({ id: String(r?.id ?? '').trim(), name: str(r?.name, 32) })).filter((r: any) => r.id && r.name)
+    : undefined
+  if (roleNames && (roleNames.length > 20 || roleNames.some((r: any) => !/^\d{5,25}$/.test(r.id)))) return c.json({ error: 'ชื่อยศ: Role ID ไม่ถูกต้อง' }, 400)
   const sets = ['discord_mention = excluded.discord_mention']
+  if (roleNames !== undefined) sets.push('discord_role_names = excluded.discord_role_names')
   if (webhook !== undefined) sets.push('discord_webhook = excluded.discord_webhook')
   if (serverId !== undefined) sets.push('discord_guild_id = excluded.discord_guild_id')
   if (editRoles !== undefined) sets.push('discord_edit_roles = excluded.discord_edit_roles')
   await c.env.DB.prepare(
-    `INSERT INTO guild_settings (guild_id, schedule, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles) VALUES (?, ?, ?, ?, ?, ?)
+    `INSERT INTO guild_settings (guild_id, schedule, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names) VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(guild_id) DO UPDATE SET ${sets.join(', ')}`,
-  ).bind(gid, JSON.stringify(DEFAULT_SCHEDULE), webhook ?? '', mention, serverId ?? '', JSON.stringify(editRoles ?? [])).run()
-  const row = await c.env.DB.prepare('SELECT discord_webhook, discord_mention, discord_guild_id, discord_edit_roles FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
-  return c.json({ connected: !!row?.discord_webhook, mention: row?.discord_mention ?? '', serverId: row?.discord_guild_id ?? '', editRoles: JSON.parse(row?.discord_edit_roles || '[]') })
+  ).bind(gid, JSON.stringify(DEFAULT_SCHEDULE), webhook ?? '', mention, serverId ?? '', JSON.stringify(editRoles ?? []), JSON.stringify(roleNames ?? [])).run()
+  const row = await c.env.DB.prepare('SELECT discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
+  return c.json({
+    connected: !!row?.discord_webhook, mention: row?.discord_mention ?? '', serverId: row?.discord_guild_id ?? '',
+    editRoles: JSON.parse(row?.discord_edit_roles || '[]'), roleNames: JSON.parse(row?.discord_role_names || '[]'),
+  })
 })
 
 app.post('/api/guild/:id/discord/test', async (c) => {
@@ -512,7 +537,7 @@ app.post('/api/guild/:id/discord/test', async (c) => {
 })
 
 /** ส่งประกาศเข้า Discord (ถ้ากิลด์เชื่อมไว้) → 'none' | 'ok' | HTTP status */
-async function notifyDiscord(env: Env, gid: string, a: { body: string; planId: string | null; opponent: string; auto?: boolean; author?: { name: string; avatar: string } | null }, test = false) {
+async function notifyDiscord(env: Env, gid: string, a: { body: string; planId: string | null; opponent: string; auto?: boolean; author?: { name: string; avatar: string; role?: string } | null }, test = false) {
   const row = await env.DB.prepare(
     `SELECT s.discord_webhook AS url, s.discord_mention AS mention, g.name, p.title AS plan_title
      FROM guilds g JOIN guild_settings s ON s.guild_id = g.id LEFT JOIN plans p ON p.id = ? AND p.guild_id = g.id WHERE g.id = ?`,
@@ -533,7 +558,7 @@ async function notifyDiscord(env: Env, gid: string, a: { body: string; planId: s
       content: test ? undefined : mention || undefined,
       allowed_mentions: row.mention === 'everyone' || row.mention === 'here' ? { parse: ['everyone'] } : { parse: [], roles: row.mention ? [row.mention] : [] },
       embeds: [{
-        author: a.author ? { name: a.author.name, icon_url: a.author.avatar || undefined } : undefined,
+        author: a.author ? { name: a.author.role ? `${a.author.name} · ${a.author.role}` : a.author.name, icon_url: a.author.avatar || undefined } : undefined,
         title: `📢 ประกาศ ${row.name}`,
         description: a.body || undefined,
         url: site ? `${site}/g/${gid}` : undefined,

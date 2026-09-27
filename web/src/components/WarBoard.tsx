@@ -130,6 +130,7 @@ function AnnouncementItem({ a, data, gid, canEdit, reload, highlight }: { a: Ann
         {a.author && (
           <span className="flex items-center gap-1.5 text-white/80">
             <img src={a.author.avatar} alt="" className="h-5 w-5 rounded-full" /> {a.author.name}
+            {a.author.role && <span className="rounded-full border border-[#8b93ff]/50 bg-[#5865f2]/20 px-2 text-xs text-[#c9ccff]">{a.author.role}</span>}
           </span>
         )}
         <span className="text-white/60">{fmtTime(a.createdAt)}</span>

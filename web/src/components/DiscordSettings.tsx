@@ -1,10 +1,12 @@
-import { Check, MessageCircle, Send, ShieldCheck, Unlink } from 'lucide-react'
+import { Check, MessageCircle, Plus, Send, ShieldCheck, Trash2, Unlink } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../lib/api'
 import type { GuildData } from '../lib/types'
 import Modal from './Modal'
 
 type Mode = '' | 'everyone' | 'here' | 'role'
+type RoleRow = { id: string; name: string; edit: boolean }
+const cleanId = (v: string) => v.trim().replace(/^<@&(\d+)>$/, '$1')
 const modeOf = (m: string): Mode => (m === '' || m === 'everyone' || m === 'here' ? m : 'role')
 
 /** ปุ่ม + หน้าตั้งค่าแจ้งเตือนประกาศเข้า Discord (เฉพาะคนแก้ได้) */
@@ -15,7 +17,8 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
   const [mode, setMode] = useState<Mode>('')
   const [role, setRole] = useState('')
   const [serverId, setServerId] = useState('')
-  const [roles, setRoles] = useState('')
+  const [rows, setRows] = useState<RoleRow[]>([])
+  const setRow = (i: number, r: Partial<RoleRow>) => setRows((x) => x.map((v, j) => (j === i ? { ...v, ...r } : v)))
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -25,7 +28,13 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
     setMode(modeOf(m))
     setRole(modeOf(m) === 'role' ? m : '')
     setServerId(discord?.serverId ?? '')
-    setRoles((discord?.editRoles ?? []).join(', '))
+    // รวมยศที่ตั้งชื่อไว้ (ตามลำดับ) + ยศที่แก้ได้แต่ยังไม่ตั้งชื่อ
+    const edit = discord?.editRoles ?? []
+    const named = discord?.roleNames ?? []
+    setRows([
+      ...named.map((r) => ({ id: r.id, name: r.name, edit: edit.includes(r.id) })),
+      ...edit.filter((id) => !named.some((r) => r.id === id)).map((id) => ({ id, name: '', edit: true })),
+    ])
     setMsg(null)
     setOpen(true)
   }
@@ -47,16 +56,22 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
   const save = () =>
     run(async () => {
       if (mode === 'role' && !/^\d{5,25}$/.test(role.trim().replace(/^<@&(\d+)>$/, '$1'))) throw new Error('ใส่ Role ID เป็นตัวเลข')
-      const editRoles = roles.split(/[\s,]+/).map((r) => r.trim()).filter(Boolean)
-      if (editRoles.length && !serverId.trim()) throw new Error('ใส่ Server ID ด้วย')
-      await api.saveDiscord(gid, { mention, serverId: serverId.trim(), editRoles, ...(url.trim() ? { webhook: url.trim() } : {}) })
+      const list = rows.map((r) => ({ ...r, id: cleanId(r.id), name: r.name.trim() })).filter((r) => r.id)
+      if (list.some((r) => !/^\d{5,25}$/.test(r.id))) throw new Error('Role ID ต้องเป็นตัวเลข')
+      if (list.length && !serverId.trim()) throw new Error('ใส่ Server ID ด้วย')
+      await api.saveDiscord(gid, {
+        mention, serverId: serverId.trim(),
+        editRoles: list.filter((r) => r.edit).map((r) => r.id),
+        roleNames: list.filter((r) => r.name).map((r) => ({ id: r.id, name: r.name })),
+        ...(url.trim() ? { webhook: url.trim() } : {}),
+      })
       setUrl('')
       await reload()
     }, 'บันทึกแล้ว')
   const test = () => run(() => api.testDiscord(gid), 'ส่งข้อความทดสอบแล้ว ลองดูในห้อง Discord')
   const unlink = () =>
     run(async () => {
-      await api.saveDiscord(gid, { mention: '', webhook: '', serverId: discord?.serverId ?? '', editRoles: discord?.editRoles ?? [] })
+      await api.saveDiscord(gid, { mention: '', webhook: '' })
       await reload()
     }, 'ยกเลิกการเชื่อมแล้ว')
 
@@ -93,12 +108,29 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
         )}
 
         <div className="mt-6 border-t border-white/10 pt-4">
-          <p className="flex items-center gap-1.5 font-semibold"><ShieldCheck className="h-4 w-4 text-gold" /> ให้ยศใน Discord แก้แผนได้</p>
-          <p className="mt-1 text-xs text-white/45">คนที่ล็อกอินด้วย Discord และมียศนี้ในเซิร์ฟเวอร์ แก้แผนได้โดยไม่ต้องใช้รหัส (รหัสแก้ไขยังใช้ได้ตามเดิม) เว้นว่างถ้าไม่ใช้</p>
+          <p className="flex items-center gap-1.5 font-semibold"><ShieldCheck className="h-4 w-4 text-gold" /> ยศใน Discord</p>
+          <p className="mt-1 text-xs text-white/45">ตั้งชื่อยศให้ขึ้นหลังชื่อคนประกาศ และเลือกยศที่แก้แผนได้โดยไม่ต้องใช้รหัส (รหัสแก้ไขยังใช้ได้ตามเดิม) เรียงยศใหญ่ไว้บนสุด ถ้ามีหลายยศจะแสดงยศที่อยู่บนสุด</p>
           <label className="mt-3 block text-sm text-white/70">Server ID</label>
           <input value={serverId} onChange={(e) => setServerId(e.target.value)} placeholder="คลิกขวาที่ไอคอนเซิร์ฟเวอร์ → Copy Server ID" inputMode="numeric" className={field} />
-          <label className="mt-3 block text-sm text-white/70">Role ID ที่แก้ได้ (หลายยศคั่นด้วย ,)</label>
-          <input value={roles} onChange={(e) => setRoles(e.target.value)} placeholder="เช่น 123456789012345678, 234567890123456789" className={field} />
+          <div className="mt-3 space-y-2">
+            {rows.map((r, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-2 rounded-xl bg-black/20 p-2 sm:flex-nowrap">
+                <input value={r.id} onChange={(e) => setRow(i, { id: e.target.value })} placeholder="Role ID" inputMode="numeric"
+                  className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/20 px-2.5 py-1.5 text-sm outline-none focus:border-gold" />
+                <input value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder="ชื่อที่แสดง เช่น หัวกิลด์" maxLength={32}
+                  className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/20 px-2.5 py-1.5 text-sm outline-none focus:border-gold" />
+                <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-sm text-white/75">
+                  <input type="checkbox" checked={r.edit} onChange={(e) => setRow(i, { edit: e.target.checked })} className="h-4 w-4 accent-[#e2bf72]" /> แก้แผนได้
+                </label>
+                <button type="button" onClick={() => setRows((x) => x.filter((_, j) => j !== i))} aria-label="ลบยศนี้" className="rounded-full p-1.5 text-white/40 hover:bg-red-500/15 hover:text-red-300">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={() => setRows((x) => [...x, { id: '', name: '', edit: false }])} className="flex items-center gap-1 text-sm text-gold hover:underline">
+              <Plus className="h-4 w-4" /> เพิ่มยศ
+            </button>
+          </div>
         </div>
 
         {msg && <p className={`mt-4 text-sm ${msg.ok ? 'text-green-400' : 'text-red-300'}`}>{msg.text}</p>}
