@@ -147,15 +147,33 @@ function parsePlan(raw: any): PlanData | null {
 }
 const toPlan = (r: any) => ({ id: r.id, title: r.title, data: JSON.parse(r.data), createdAt: r.created_at, updatedAt: r.updated_at })
 
-async function checkKey(c: any, guildId: string) {
-  const key = c.req.header('X-Edit-Key') || ''
+// ใส่รหัสผิดเกิน MAX_FAILS ครั้งใน LOCK_MS → ล็อก (เฉพาะ IP นั้น ของกิลด์นั้น) กันการสุ่มเดารหัส
+const MAX_FAILS = 10
+const LOCK_MS = 15 * 60 * 1000
+
+async function checkKey(c: any, guildId: string): Promise<'ok' | 'notfound' | 'forbidden' | 'locked'> {
+  // client ส่งแบบ encodeURIComponent (header ใส่ภาษาไทยตรง ๆ ไม่ได้) — คีย์สุ่มแบบเดิมไม่เปลี่ยนค่า
+  const raw = c.req.header('X-Edit-Key') || ''
+  let key = raw
+  try { key = decodeURIComponent(raw) } catch { /* คีย์เก่าที่ไม่ได้ encode */ }
   const row = await c.env.DB.prepare('SELECT edit_hash FROM guilds WHERE id = ?').bind(guildId).first()
   if (!row) return 'notfound'
-  if (!key || (await sha256(key)) !== row.edit_hash) return 'forbidden'
-  return 'ok'
+  if (!key) return 'forbidden'
+  const k = `${guildId}:${c.req.header('CF-Connecting-IP') || 'local'}`
+  const now = Date.now()
+  const fail = await c.env.DB.prepare('SELECT count, since FROM auth_fails WHERE k = ?').bind(k).first()
+  const fresh = fail && now - fail.since < LOCK_MS
+  if (fresh && fail.count >= MAX_FAILS) return 'locked'
+  if ((await sha256(key)) === row.edit_hash) return 'ok'
+  await c.env.DB.prepare(
+    'INSERT INTO auth_fails (k, count, since) VALUES (?, 1, ?) ON CONFLICT(k) DO UPDATE SET count = CASE WHEN ? - since < ? THEN count + 1 ELSE 1 END, since = CASE WHEN ? - since < ? THEN since ELSE ? END',
+  ).bind(k, now, now, LOCK_MS, now, LOCK_MS, now).run()
+  return 'forbidden'
 }
 function deny(c: any, r: string) {
-  return r === 'notfound' ? c.json({ error: 'ไม่พบกิลด์' }, 404) : c.json({ error: 'ไม่มีสิทธิ์แก้ไข' }, 403)
+  if (r === 'notfound') return c.json({ error: 'ไม่พบกิลด์' }, 404)
+  if (r === 'locked') return c.json({ error: 'ใส่รหัสผิดหลายครั้ง ลองใหม่ในอีก 15 นาที' }, 429)
+  return c.json({ error: 'ไม่มีสิทธิ์แก้ไข' }, 403)
 }
 
 const toTarget = (r: any) => ({
@@ -220,7 +238,19 @@ app.get('/api/guild/:id', async (c) => {
 // ตรวจว่า key ใช้แก้ไขได้ไหม
 app.get('/api/guild/:id/check', async (c) => {
   const r = await checkKey(c, c.req.param('id'))
-  return c.json({ canEdit: r === 'ok' })
+  return c.json({ canEdit: r === 'ok', locked: r === 'locked' })
+})
+
+// ตั้งรหัสแก้ไขใหม่ (ต้องมีรหัสเดิม) → รหัส/ลิงก์แก้ไขเดิมใช้ไม่ได้อีก
+app.put('/api/guild/:id/password', async (c) => {
+  const gid = c.req.param('id')
+  const auth = await checkKey(c, gid)
+  if (auth !== 'ok') return deny(c, auth)
+  const body = await c.req.json().catch(() => ({}))
+  const password = typeof body.password === 'string' ? body.password.trim() : ''
+  if (password.length < 6 || password.length > 64) return c.json({ error: 'รหัสต้องยาว 6–64 ตัวอักษร' }, 400)
+  await c.env.DB.prepare('UPDATE guilds SET edit_hash = ? WHERE id = ?').bind(await sha256(password), gid).run()
+  return c.json({ ok: true })
 })
 
 // ---- targets ----

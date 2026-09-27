@@ -35,5 +35,5 @@ export function useGuild(gid: string) {
     return () => window.removeEventListener('7knote:changed', onChanged)
   }, [gid, reload])
 
-  return { data, error, canEdit, reload }
+  return { data, error, canEdit, setCanEdit, reload }
 }

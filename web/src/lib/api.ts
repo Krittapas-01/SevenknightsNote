@@ -33,6 +33,12 @@ export const getEditKey = (gid: string) => readJson<Record<string, string>>(KEYS
 export function saveEditKey(gid: string, key: string) {
   writeJson(KEYS, { ...readJson<Record<string, string>>(KEYS, {}), [gid]: key })
 }
+/** ออกจากโหมดแก้ไข (ลืมรหัสของกิลด์นี้ในเครื่องนี้) */
+export function forgetEditKey(gid: string) {
+  const all = readJson<Record<string, string>>(KEYS, {})
+  delete all[gid]
+  writeJson(KEYS, all)
+}
 
 export type Recent = { id: string; name: string }
 export const getRecent = () => readJson<Recent[]>(RECENT, [])
@@ -41,11 +47,12 @@ export function pushRecent(r: Recent) {
 }
 
 // ---------- fetch ----------
-async function req<T>(path: string, init: RequestInit & { gid?: string } = {}): Promise<T> {
+async function req<T>(path: string, init: RequestInit & { gid?: string; key?: string } = {}): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (init.gid) {
-    const key = getEditKey(init.gid)
-    if (key) headers['X-Edit-Key'] = key
+    const key = init.key ?? getEditKey(init.gid)
+    // encode: header ใส่ภาษาไทยตรง ๆ ไม่ได้ (API decode กลับ)
+    if (key) headers['X-Edit-Key'] = encodeURIComponent(key)
   }
   const res = await fetch(BASE + path, { ...init, headers })
   const data = await res.json().catch(() => ({}))
@@ -58,7 +65,9 @@ export const api = {
     req<{ id: string; name: string; editKey: string }>('/api/guild', { method: 'POST', body: JSON.stringify({ name }) }),
   getGuild: (gid: string) => req<GuildData>(`/api/guild/${gid}`),
   pulse: (gid: string) => req<Pulse>(`/api/guild/${gid}/pulse`),
-  checkEdit: (gid: string) => req<{ canEdit: boolean }>(`/api/guild/${gid}/check`, { gid }),
+  checkEdit: (gid: string, key?: string) => req<{ canEdit: boolean; locked?: boolean }>(`/api/guild/${gid}/check`, { gid, key }),
+  setPassword: (gid: string, password: string) =>
+    req<{ ok: true }>(`/api/guild/${gid}/password`, { method: 'PUT', body: JSON.stringify({ password }), gid }),
 
   createTarget: (gid: string, body: { team: Team; tags: string[]; note: string }) =>
     req<Target>(`/api/guild/${gid}/targets`, { method: 'POST', body: JSON.stringify(body), gid }),

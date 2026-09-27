@@ -1,4 +1,4 @@
-import { Check, ClipboardList, Link2, Pencil, Plus, Search, Shield, Swords } from 'lucide-react'
+import { Check, ClipboardList, Link2, Plus, Search, Shield, Swords } from 'lucide-react'
 import { tagColor, tagStyle } from '../lib/tags'
 import { useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
@@ -7,7 +7,7 @@ import UnitCard from '../components/UnitCard'
 import WarBoard from '../components/WarBoard'
 import { activePlanId } from '../lib/war'
 import { getUnit } from '../data/heroes'
-import { getEditKey } from '../lib/api'
+import { EditLogin, EditSettings } from '../components/EditAccess'
 import { PLAN_KIND_LABEL, planKind, type Plan, type PlanKind, type Target, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import NotFound from './NotFound'
@@ -18,7 +18,7 @@ const matches = (t: Target, q: string) =>
 
 export default function GuildPage() {
   const { gid = '' } = useParams()
-  const { data, error, canEdit, reload } = useGuild(gid)
+  const { data, error, canEdit, setCanEdit, reload } = useGuild(gid)
   const [q, setQ] = useState('')
   const [tag, setTag] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
@@ -34,8 +34,8 @@ export default function GuildPage() {
   if (error) return <NotFound message={error} />
   if (!data) return <p className="py-24 text-center text-white/50">กำลังโหลด...</p>
 
-  async function copy(kind: 'view' | 'edit') {
-    const url = `${location.origin}/g/${gid}` + (kind === 'edit' ? `?key=${getEditKey(gid)}` : '')
+  async function copy(kind: 'view') {
+    const url = `${location.origin}/g/${gid}`
     await navigator.clipboard.writeText(url).catch(() => prompt('คัดลอกลิงก์นี้', url))
     setCopied(kind)
     setTimeout(() => setCopied(null), 1500)
@@ -55,11 +55,9 @@ export default function GuildPage() {
           <button onClick={() => copy('view')} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
             {copied === 'view' ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />} ลิงก์ดูอย่างเดียว
           </button>
-          {canEdit && (
-            <button onClick={() => copy('edit')} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
-              {copied === 'edit' ? <Check className="h-4 w-4 text-green-400" /> : <Pencil className="h-4 w-4" />} ลิงก์สำหรับแก้ไข
-            </button>
-          )}
+          {canEdit
+            ? <EditSettings gid={gid} onLogout={() => setCanEdit(false)} />
+            : <EditLogin gid={gid} onLogin={() => setCanEdit(true)} />}
         </div>
       </div>
 
