@@ -5,9 +5,10 @@ import { Link } from 'react-router'
 import { api } from '../lib/api'
 import { notifyGuildChanged } from '../lib/usePulse'
 import type { Announcement, DayType, GuildData } from '../lib/types'
-import { DAYS, DAYS_SHORT, DAY_TYPE, activePlanId, dayIndex, fmtTime, isToday, resetLabel } from '../lib/war'
+import { DAYS, DAYS_SHORT, DAY_TYPE, activePlanId, dateKey, dayIndex, fmtTime, isToday, resetLabel } from '../lib/war'
 import DiscordSettings from './DiscordSettings'
 import Modal from './Modal'
+import { currentSeason } from '../lib/season'
 
 type Props = { gid: string; data: GuildData; canEdit: boolean; reload: () => Promise<void> }
 
@@ -29,6 +30,7 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
     return () => clearInterval(t)
   }, [])
   const today = dayIndex(now)
+  const season = currentSeason(data.season?.start ?? '', data.season?.end ?? '', dateKey(now))
   const todayType = data.schedule[today] ?? 'rest'
   const activeId = activePlanId(data)
   const activePlan = data.plans.find((p) => p.id === activeId)
@@ -43,6 +45,7 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
           <CalendarDays className="h-5 w-5 text-gold" />
           <span className="text-lg font-semibold">วัน{DAYS[today]}</span>
           <span className={`rounded-full border px-3 py-0.5 text-sm font-semibold ${DAY_TYPE[todayType].cls}`}>{DAY_TYPE[todayType].label}</span>
+          {season && <SeasonChip s={season} />}
           <span className="text-xs text-white/45">
             เปลี่ยนเป็นวัน{DAYS[(today + 1) % 7]} ({DAY_TYPE[data.schedule[(today + 1) % 7] ?? 'rest'].label}) ใน {resetLabel(now)} · 07:00
           </span>
@@ -111,7 +114,7 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
       )}
 
       <ComposeModal open={compose} onClose={() => setCompose(false)} gid={gid} data={data} activeId={activeId} reload={reload} />
-      <ScheduleModal open={editSchedule} onClose={() => setEditSchedule(false)} gid={gid} schedule={data.schedule} auto={data.autoAnnounce ?? true} reload={reload} />
+      <ScheduleModal open={editSchedule} onClose={() => setEditSchedule(false)} gid={gid} schedule={data.schedule} auto={data.autoAnnounce ?? true} season={data.season ?? { start: '', end: '' }} reload={reload} />
     </section>
   )
 }
@@ -243,9 +246,27 @@ function ComposeModal({ open, onClose, gid, data, activeId, reload }: { open: bo
   )
 }
 
-function ScheduleModal({ open, onClose, gid, schedule, auto, reload }: { open: boolean; onClose: () => void; gid: string; schedule: DayType[]; auto: boolean; reload: () => Promise<void> }) {
+const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+const thDate = (key: string) => `${+key.slice(8, 10)} ${TH_MONTHS[+key.slice(5, 7) - 1]}`
+
+function SeasonChip({ s }: { s: NonNullable<ReturnType<typeof currentSeason>> }) {
+  const text = s.phase === 'in'
+    ? `Season · ${s.daysLeft === 1 ? 'วันสุดท้าย' : `เหลือ ${s.daysLeft} วัน (จบ ${thDate(s.end)})`}`
+    : `พักระหว่าง Season · เริ่ม ${thDate(s.nextStart)}`
+  return (
+    <span title={s.projected ? 'นับต่อจาก Season ที่ตั้งไว้ (จบแล้วพัก 1 สัปดาห์ ยาวเท่าเดิม)' : undefined}
+      className={`rounded-full border px-3 py-0.5 text-sm ${s.phase === 'in' ? 'border-gold/40 text-gold' : 'border-white/15 text-white/55'}`}>
+      {text}{s.projected ? ' *' : ''}
+    </span>
+  )
+}
+
+function ScheduleModal({ open, onClose, gid, schedule, auto, season, reload }: { open: boolean; onClose: () => void; gid: string; schedule: DayType[]; auto: boolean; season: { start: string; end: string }; reload: () => Promise<void> }) {
   const [draft, setDraft] = useState<DayType[]>(schedule)
   const [autoDraft, setAutoDraft] = useState(auto)
+  const [start, setStart] = useState(season.start)
+  const [end, setEnd] = useState(season.end)
+  const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [prevOpen, setPrevOpen] = useState(open)
   if (open !== prevOpen) {
@@ -253,15 +274,21 @@ function ScheduleModal({ open, onClose, gid, schedule, auto, reload }: { open: b
     if (open) {
       setDraft(schedule)
       setAutoDraft(auto)
+      setStart(season.start)
+      setEnd(season.end)
+      setErr(null)
     }
   }
 
   async function save() {
     setBusy(true)
+    setErr(null)
     try {
-      await api.saveSchedule(gid, draft, autoDraft)
+      await api.saveSchedule(gid, draft, autoDraft, { start, end })
       await reload()
       onClose()
+    } catch (e) {
+      setErr((e as Error).message)
     } finally {
       setBusy(false)
     }
@@ -291,9 +318,20 @@ function ScheduleModal({ open, onClose, gid, schedule, auto, reload }: { open: b
         <input type="checkbox" checked={autoDraft} onChange={(e) => setAutoDraft(e.target.checked)} className="mt-1 h-4 w-4 accent-[#e2bf72]" />
         <span>
           <span className="font-semibold">ประกาศวันใหม่อัตโนมัติ 07:00</span>
-          <span className="block text-sm text-white/55">ระบบบอกว่าวันนี้เป็นวันตี / จัดบ้านกัน / พัก ตามตารางนี้ ส่วนแผนที่ใช้ไม่เปลี่ยน ยังเป็นแผนที่ประกาศไว้ล่าสุด</span>
+          <span className="block text-sm text-white/55">บอกว่าวันนี้วันตีหรือจัดบ้านกันตามตารางนี้ (วันพักไม่แจ้ง) และแจ้งวันเริ่ม/วันสุดท้ายของ Season ส่วนแผนที่ใช้ไม่เปลี่ยน</span>
         </span>
       </label>
+      <div className="mt-4 rounded-xl bg-black/25 px-4 py-3">
+        <p className="font-semibold">Season</p>
+        <p className="text-sm text-white/55">ดูจากหน้า Guild War ในเกม (Official Season) · ช่วงพักระหว่าง Season จะไม่แจ้ง · ถ้าไม่ได้อัปเดต ระบบนับ Season ถัดไปให้เอง (เริ่มหลังจบ 1 สัปดาห์ ยาวเท่าเดิม)</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="rounded-lg border border-white/15 bg-[#161c2e] px-2.5 py-1.5 outline-none [color-scheme:dark] focus:border-gold" />
+          <span className="text-white/50">ถึง</span>
+          <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="rounded-lg border border-white/15 bg-[#161c2e] px-2.5 py-1.5 outline-none [color-scheme:dark] focus:border-gold" />
+          {(start || end) && <button type="button" onClick={() => { setStart(''); setEnd('') }} className="text-white/45 hover:text-white">ล้าง</button>}
+        </div>
+      </div>
+      {err && <p className="mt-3 text-sm text-red-300">{err}</p>}
       <div className="mt-5 flex gap-2">
         <button disabled={busy} onClick={save} className="btn-gold px-6 py-2">{busy ? 'กำลังบันทึก...' : 'บันทึก'}</button>
         <button onClick={onClose} className="pill px-5 py-2">ยกเลิก</button>

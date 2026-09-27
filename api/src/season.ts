@@ -1,0 +1,42 @@
+/**
+ * Season ของ Guild War (ไฟล์นี้มีสำเนาเหมือนกันทั้งใน api/src และ web/src/lib)
+ * - วันที่เป็น "วันในเกม" แบบ YYYY-MM-DD (วันเปลี่ยนตอน 07:00 เวลาไทย)
+ * - จบ Season แล้วพัก 1 สัปดาห์ Season ถัดไปเริ่มหลังวันจบ 7 วัน และยาวเท่าเดิม
+ *   → ถ้าหัวกิลด์ไม่ได้อัปเดตวันที่ ระบบนับ Season ถัดไปให้เอง
+ */
+const DAY = 86_400_000
+export const OFF_WEEK_DAYS = 7
+
+const toDay = (key: string) => Date.UTC(+key.slice(0, 4), +key.slice(5, 7) - 1, +key.slice(8, 10)) / DAY
+const toKey = (day: number) => new Date(day * DAY).toISOString().slice(0, 10)
+export const isDateKey = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(toDay(v))
+
+export type SeasonPhase = 'before' | 'in' | 'off'
+export type Season = {
+  start: string
+  end: string
+  phase: SeasonPhase
+  /** นับต่อเอง (ไม่ใช่วันที่หัวกิลด์ใส่) */
+  projected: boolean
+  /** วันที่เหลือจนจบ (นับวันนี้ด้วย) ตอนอยู่ใน Season */
+  daysLeft: number
+  /** วันเริ่ม Season ถัดไป */
+  nextStart: string
+}
+
+export function currentSeason(start: string, end: string, todayKey: string): Season | null {
+  if (!isDateKey(start) || !isDateKey(end) || !isDateKey(todayKey)) return null
+  let s = toDay(start)
+  let e = toDay(end)
+  if (e < s) return null
+  const cycle = e - s + 1 + OFF_WEEK_DAYS - 1 // จบวันพฤหัส → Season ถัดไปเริ่มพฤหัสหน้า (end + 7)
+  const today = toDay(todayKey)
+  let projected = false
+  while (today >= e + OFF_WEEK_DAYS) {
+    s += cycle
+    e += cycle
+    projected = true
+  }
+  const phase: SeasonPhase = today < s ? 'before' : today <= e ? 'in' : 'off'
+  return { start: toKey(s), end: toKey(e), phase, projected, daysLeft: phase === 'in' ? e - today + 1 : 0, nextStart: toKey(phase === 'before' ? s : e + OFF_WEEK_DAYS) }
+}
