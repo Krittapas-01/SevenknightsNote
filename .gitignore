@@ -10,3 +10,4 @@ api/seed-*.sql
 api/.pandoara-seeded
 api/upgrade-*.sql
 api/reset-key.sql
+api/add-defense-plan.sql

@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, ChevronDown, ChevronLeft, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, ChevronLeft, ClipboardPaste, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
 import { tagStyle } from '../lib/tags'
 import type { WarSlot } from '../lib/types'
 import { useEffect, useState } from 'react'
@@ -8,6 +8,8 @@ import TeamPanel from '../components/TeamPanel'
 import { DndHub, HideWhileDock, useListTarget } from '../components/DndHub'
 import { findLogItems, logToTargets, markLogged, type LogItem } from '../lib/logTargets'
 import Modal from '../components/Modal'
+import PasteNotesModal from '../components/PasteNotesModal'
+import { applyNotes } from '../lib/pasteNotes'
 import { autoAssign, blockedFor, conflictCount, conflictsOf, heroKey, heroUsage, heroesOf, mainIndex, mainOption } from '../lib/allocation'
 import HeroDock from '../components/HeroDock'
 import OptionCard from '../components/OptionCard'
@@ -61,6 +63,7 @@ export default function PlanPage() {
   // ถามหลังบันทึกแผน: จดทีมที่จัดเองลงจดทีมศัตรูด้วยไหม
   const [logAsk, setLogAsk] = useState<{ items: LogItem[]; planId: string; body: { title: string; data: PlanData }; picked: boolean[] } | null>(null)
   const [logBusy, setLogBusy] = useState(false)
+  const [pasteOpen, setPasteOpen] = useState(false)
   // ไม้บุก: ปกติโชว์แค่ทีมหลัก กดขยายถึงเห็นคอมพ์อื่น
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const toggleExpand = (s: number) => setExpanded((x) => { const n = new Set(x); if (n.has(s)) n.delete(s); else n.add(s); return n })
@@ -301,6 +304,16 @@ export default function PlanPage() {
           </button>
         )}
       </header>
+
+      {editing && (
+        <div className="mt-6 flex justify-center">
+          <button type="button" onClick={() => setPasteOpen(true)} className="pill flex items-center gap-1.5 px-4 py-1.5 text-sm hover:border-gold hover:text-gold">
+            <ClipboardPaste className="h-4 w-4" /> วางโน้ตจากข้อความ
+          </button>
+        </div>
+      )}
+      <PasteNotesModal open={pasteOpen} onClose={() => setPasteOpen(false)}
+        onApply={(p) => { setDraft((d) => applyNotes(d, p)); setPasteOpen(false); flash(`ใส่โน้ต ${p.teams.filter((t) => t.index <= 5).length} ไม้แล้ว — อย่าลืมกดบันทึกแผน`) }} />
 
       {/* ---------- ประกาศ: OP / ยกเลิก ---------- */}
       {(editing || view.op.length > 0 || view.banned.length > 0 || view.note) && (
