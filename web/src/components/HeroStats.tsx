@@ -19,6 +19,10 @@ export function StatIcon({ k, magic, className = 'h-5 w-5' }: { k: StatKey; magi
   return src ? <img src={src} alt="" aria-hidden draggable={false} className={`shrink-0 object-contain ${className}`} /> : null
 }
 
+/** หน้าเกมเรียงแนวตั้ง: ซ้าย = โจมตี→บล็อก, ขวา = เข้าเป้า→ฟื้นฟู */
+const LEFT = new Set<StatKey>(['atk', 'def', 'hp', 'spd', 'critRate', 'critDmg', 'weak', 'block'])
+const col = (k: StatKey) => (LEFT.has(k) ? 'col-start-1' : 'col-start-2')
+
 /** ตารางสเตตัส 2 คอลัมน์แบบหน้าเกม (โชว์เฉพาะค่าที่มี) */
 export function StatsGrid({ stats, className = '', size = 'sm' }: { stats?: HeroStats; className?: string; size?: 'sm' | 'lg' }) {
   if (!hasStats(stats)) return null
@@ -27,11 +31,11 @@ export function StatsGrid({ stats, className = '', size = 'sm' }: { stats?: Hero
   return (
     <div className={`mt-2 ${className}`}>
       {/* lg = แบบหน้าข้อมูลฮีโร่ในเกม: แถวสูง ตัวใหญ่ ค่าชิดขวา */}
-      <dl className={lg ? 'grid grid-cols-2 gap-x-2 gap-y-1' : 'grid grid-cols-2 gap-x-3 gap-y-1 text-[13px]'}>
+      <dl className={lg ? 'grid grid-flow-row-dense grid-cols-2 gap-x-2 gap-y-1' : 'grid grid-flow-row-dense grid-cols-2 gap-x-3 gap-y-1 text-[13px]'}>
         {rows.map((s) => (
-          <div key={s.key} className={lg
+          <div key={s.key} className={`${col(s.key)} ` + (lg
             ? 'flex items-center justify-between gap-2 rounded-full bg-black/35 px-3 py-1 ring-1 ring-white/5'
-            : 'flex items-center justify-between gap-2 rounded-md bg-white/[.04] px-2 py-0.5'}>
+            : 'flex items-center justify-between gap-2 rounded-md bg-white/[.04] px-2 py-0.5')}>
             <dt className={`flex min-w-0 items-center ${lg ? 'gap-2 text-[15px] text-white/80' : 'gap-1.5 text-white/60'}`}>
               <StatIcon k={s.key} magic={stats!.magic} className={lg ? 'h-5 w-5' : 'h-4 w-4'} />
               <span className="truncate">{s.key === 'atk' && stats!.magic ? 'โจมตีเวทย์' : s.th}</span>
@@ -157,9 +161,9 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
                 </button>
               ))}
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-1.5">
+            <div className="mt-4 grid grid-flow-row-dense grid-cols-2 gap-x-3 gap-y-1.5">
               {STATS.map((s) => (
-                <label key={s.key} className="flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2 py-1 text-sm">
+                <label key={s.key} className={`${col(s.key)} flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2 py-1 text-sm`}>
                   <span className="flex min-w-0 items-center gap-1.5 text-white/65"><StatIcon k={s.key} magic={stats.magic} className="h-4 w-4" /><span className="truncate">{s.key === 'atk' && stats.magic ? 'โจมตีเวทย์' : s.th}</span></span>
                   <span className="flex items-center gap-0.5">
                     <input type="number" inputMode="decimal" value={stats[s.key] ?? ''} onChange={(e) => set(s.key, e.target.value)}
