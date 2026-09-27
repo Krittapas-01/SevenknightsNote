@@ -34,6 +34,15 @@ $env:CI = "true"   # skip the y/n prompt
 npx wrangler d1 migrations apply $project --remote
 Remove-Item Env:CI
 
+# Local data (ThousandSunny + Pandoara exported from dev): import only once
+if ((Test-Path "$root\api\seed-local-data.sql") -and -not (Test-Path "$root\api\.local-data-imported")) {
+  Step "Importing local data (ThousandSunny + Pandoara, first time only)"
+  npx wrangler d1 execute $project --remote --file=seed-local-data.sql -y
+  if ($LASTEXITCODE -ne 0) { throw "Import failed (see above)" }
+  Set-Content "$root\api\.local-data-imported" "done"
+  Set-Content "$root\api\.pandoara-seeded" "done"   # Pandoara came with the local data
+}
+
 # Pandoara comps: seed only once (re-running would bring back teams you already deleted)
 if (-not (Test-Path "$root\api\.pandoara-seeded")) {
   Step "Adding guild Pandoara with all comps (first time only)"
@@ -70,3 +79,4 @@ if ($pandoaraKey) {
   Write-Host "Pandoara (edit): https://$project.pages.dev/g/pandoara?key=$pandoaraKey" -ForegroundColor Cyan
   Write-Host "Pandoara (view): https://$project.pages.dev/g/pandoara" -ForegroundColor Cyan
 }
+Write-Host "ThousandSunny  : https://$project.pages.dev/g/iWMpFr9g  (add ?key=<your key> to edit)" -ForegroundColor Cyan
