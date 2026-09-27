@@ -1,7 +1,7 @@
-import { AlertTriangle, Check, ChevronDown, ChevronLeft, ClipboardPaste, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, ChevronLeft, ClipboardPaste, ImageDown, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
 import { tagStyle } from '../lib/tags'
 import type { WarSlot } from '../lib/types'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import CompLibrary, { type Comp, type Defense } from '../components/CompLibrary'
 import TeamPanel from '../components/TeamPanel'
@@ -10,6 +10,7 @@ import { findLogItems, logToTargets, markLogged, type LogItem } from '../lib/log
 import Modal from '../components/Modal'
 import PasteNotesModal from '../components/PasteNotesModal'
 import { applyNotes } from '../lib/pasteNotes'
+import { exportPng } from '../lib/exportImage'
 import { autoAssign, blockedFor, conflictCount, conflictsOf, heroKey, heroUsage, heroesOf, mainIndex, mainOption } from '../lib/allocation'
 import HeroDock from '../components/HeroDock'
 import OptionCard from '../components/OptionCard'
@@ -64,6 +65,20 @@ export default function PlanPage() {
   const [logAsk, setLogAsk] = useState<{ items: LogItem[]; planId: string; body: { title: string; data: PlanData }; picked: boolean[] } | null>(null)
   const [logBusy, setLogBusy] = useState(false)
   const [pasteOpen, setPasteOpen] = useState(false)
+  // บันทึกแผนเป็นรูป (ส่งเข้ากลุ่มไลน์/ดิสคอร์ด)
+  const exportRef = useRef<HTMLDivElement>(null)
+  const [exporting, setExporting] = useState(false)
+  async function saveImage() {
+    if (!exportRef.current) return
+    setExporting(true)
+    try {
+      await exportPng(exportRef.current, `${data?.guild.name ?? '7K Note'} - ${plan?.title ?? 'แผนวอร์'}`)
+    } catch (e) {
+      flash('สร้างรูปไม่สำเร็จ: ' + (e as Error).message)
+    } finally {
+      setExporting(false)
+    }
+  }
   // ไม้บุก: ปกติโชว์แค่ทีมหลัก กดขยายถึงเห็นคอมพ์อื่น
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const toggleExpand = (s: number) => setExpanded((x) => { const n = new Set(x); if (n.has(s)) n.delete(s); else n.add(s); return n })
@@ -255,8 +270,8 @@ export default function PlanPage() {
 
   return (
     <DndHub>
-    <div className={editing ? 'pb-72' : ''}>
-      <Link to={`/g/${gid}`} className="inline-flex items-center gap-1 text-white/70 hover:text-white">
+    <div ref={exportRef} className={editing ? 'pb-72' : ''}>
+      <Link data-noexport to={`/g/${gid}`} className="inline-flex items-center gap-1 text-white/70 hover:text-white">
         <ChevronLeft className="h-5 w-5" /> {data.guild.name}
       </Link>
 
@@ -298,10 +313,17 @@ export default function PlanPage() {
             อัปเดต {new Date(plan.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
           </p>
         )}
-        {!editing && canEdit && (
-          <button onClick={startEdit} className="pill mt-4 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm hover:border-gold">
-            <Pencil className="h-4 w-4" /> แก้ไขแผน
-          </button>
+        {!editing && (
+          <div data-noexport className="mt-4 flex flex-wrap justify-center gap-2">
+            {canEdit && (
+              <button onClick={startEdit} className="pill inline-flex items-center gap-1.5 px-4 py-1.5 text-sm hover:border-gold">
+                <Pencil className="h-4 w-4" /> แก้ไขแผน
+              </button>
+            )}
+            <button onClick={saveImage} disabled={exporting} className="pill inline-flex items-center gap-1.5 px-4 py-1.5 text-sm hover:border-gold disabled:opacity-50">
+              <ImageDown className="h-4 w-4" /> {exporting ? 'กำลังสร้างรูป...' : 'บันทึกเป็นรูป'}
+            </button>
+          </div>
         )}
       </header>
 
@@ -518,7 +540,7 @@ export default function PlanPage() {
                     </div>
                   </div>
                   {others > 0 && (
-                    <div className="mt-6 flex justify-center">
+                    <div data-noexport className="mt-6 flex justify-center">
                       <button type="button" onClick={() => toggleExpand(s)}
                         className="pill flex items-center gap-1.5 px-4 py-1.5 text-sm text-white/80 hover:border-gold hover:text-gold">
                         <ChevronDown className={`h-4 w-4 transition ${expanded.has(s) ? 'rotate-180' : ''}`} />
@@ -601,7 +623,7 @@ export default function PlanPage() {
       </Modal>
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-gold px-5 py-2 text-sm font-semibold text-ink shadow-lg">{toast}</div>
+        <div data-noexport className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-gold px-5 py-2 text-sm font-semibold text-ink shadow-lg">{toast}</div>
       )}
 
       <CompLibrary
