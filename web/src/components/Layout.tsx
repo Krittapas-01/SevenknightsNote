@@ -11,9 +11,9 @@ export default function Layout() {
     <div className="min-h-dvh">
       <header className="site-header sticky top-0 z-40 border-b border-gold/15 bg-[#0c1425]/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
-          <div className="shrink-0">
-            <Link to="/" className="flex items-center gap-3 text-lg font-bold tracking-wide">
-              <span className="brand-mark" aria-hidden="true">✦</span> 7K <span className="font-normal text-gold">Note</span>
+          <div className="flex shrink-0 items-center gap-3 sm:gap-5">
+            <Link to="/" className="flex items-center gap-1.5 text-lg font-bold tracking-wide sm:gap-3">
+              <span className="hidden sm:block" aria-hidden="true"><span className="brand-mark">✦</span></span> 7K <span className="font-normal text-gold">Note</span>
             </Link>
             <HeaderClock />
           </div>

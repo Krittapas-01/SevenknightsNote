@@ -16,9 +16,9 @@ export default function HeaderClock() {
     }
   }, [])
   return (
-    <div className="flex items-center gap-2 text-[11px] leading-4 text-white/50">
-      <time dateTime={new Date(now).toISOString()} className="font-medium tabular-nums tracking-wider text-gold">{clock.format(now)}</time>
-      <span>เวลาไทย</span>
+    <div className="flex shrink-0 flex-col border-l border-gold/20 pl-3 sm:pl-4">
+      <time dateTime={new Date(now).toISOString()} className="text-xl font-semibold leading-6 tabular-nums tracking-wide text-gold sm:text-2xl">{clock.format(now)}</time>
+      <span className="text-[10px] leading-3 text-white/55">เวลาไทย</span>
     </div>
   )
 }
