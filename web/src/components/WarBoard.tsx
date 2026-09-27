@@ -127,6 +127,11 @@ function AnnouncementItem({ a, data, gid, canEdit, reload, highlight }: { a: Ann
     <div className={`mt-3 rounded-xl px-4 py-3 ${highlight ? 'border border-gold/40 bg-gold/10' : 'bg-white/5'}`}>
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Megaphone className={`h-4 w-4 ${highlight ? 'text-gold' : 'text-white/50'}`} />
+        {a.author && (
+          <span className="flex items-center gap-1.5 text-white/80">
+            <img src={a.author.avatar} alt="" className="h-5 w-5 rounded-full" /> {a.author.name}
+          </span>
+        )}
         <span className="text-white/60">{fmtTime(a.createdAt)}</span>
         {isToday(a) && <span className="rounded-full bg-gold px-2 text-xs font-semibold text-ink">วันนี้</span>}
         {a.auto && <span title="ระบบประกาศให้ตอน 07:00" className="flex items-center gap-1 rounded-full bg-white/10 px-2 text-xs text-white/60"><Bot className="h-3 w-3" /> อัตโนมัติ</span>}

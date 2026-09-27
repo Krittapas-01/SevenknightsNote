@@ -1,4 +1,4 @@
-import { Check, MessageCircle, Send, Unlink } from 'lucide-react'
+import { Check, MessageCircle, Send, ShieldCheck, Unlink } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../lib/api'
 import type { GuildData } from '../lib/types'
@@ -14,6 +14,8 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
   const [url, setUrl] = useState('')
   const [mode, setMode] = useState<Mode>('')
   const [role, setRole] = useState('')
+  const [serverId, setServerId] = useState('')
+  const [roles, setRoles] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -22,6 +24,8 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
     setUrl('')
     setMode(modeOf(m))
     setRole(modeOf(m) === 'role' ? m : '')
+    setServerId(discord?.serverId ?? '')
+    setRoles((discord?.editRoles ?? []).join(', '))
     setMsg(null)
     setOpen(true)
   }
@@ -43,25 +47,27 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
   const save = () =>
     run(async () => {
       if (mode === 'role' && !/^\d{5,25}$/.test(role.trim().replace(/^<@&(\d+)>$/, '$1'))) throw new Error('ใส่ Role ID เป็นตัวเลข')
-      await api.saveDiscord(gid, { mention, ...(url.trim() ? { webhook: url.trim() } : {}) })
+      const editRoles = roles.split(/[\s,]+/).map((r) => r.trim()).filter(Boolean)
+      if (editRoles.length && !serverId.trim()) throw new Error('ใส่ Server ID ด้วย')
+      await api.saveDiscord(gid, { mention, serverId: serverId.trim(), editRoles, ...(url.trim() ? { webhook: url.trim() } : {}) })
       setUrl('')
       await reload()
     }, 'บันทึกแล้ว')
   const test = () => run(() => api.testDiscord(gid), 'ส่งข้อความทดสอบแล้ว ลองดูในห้อง Discord')
   const unlink = () =>
     run(async () => {
-      await api.saveDiscord(gid, { mention: '', webhook: '' })
+      await api.saveDiscord(gid, { mention: '', webhook: '', serverId: discord?.serverId ?? '', editRoles: discord?.editRoles ?? [] })
       await reload()
     }, 'ยกเลิกการเชื่อมแล้ว')
 
   const field = 'mt-1 w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 outline-none focus:border-gold'
   return (
     <>
-      <button onClick={show} title="แจ้งเตือนเข้า Discord"
+      <button onClick={show} title="เชื่อม Discord"
         className={`rounded-full p-1.5 hover:bg-white/10 ${connected ? 'text-[#8b93ff]' : 'text-white/60 hover:text-white'}`}>
         <MessageCircle className="h-4 w-4" />
       </button>
-      <Modal open={open} title="แจ้งเตือนประกาศเข้า Discord" onClose={() => setOpen(false)}>
+      <Modal open={open} title="เชื่อม Discord" onClose={() => setOpen(false)}>
         <p className={`flex items-center gap-1.5 text-sm ${connected ? 'text-green-400' : 'text-white/55'}`}>
           {connected ? <><Check className="h-4 w-4" /> เชื่อมอยู่ ทุกประกาศ (รวมประกาศอัตโนมัติ 07:00) จะส่งเข้าห้อง</> : 'ยังไม่ได้เชื่อม'}
         </p>
@@ -86,9 +92,18 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
           </>
         )}
 
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <p className="flex items-center gap-1.5 font-semibold"><ShieldCheck className="h-4 w-4 text-gold" /> ให้ยศใน Discord แก้แผนได้</p>
+          <p className="mt-1 text-xs text-white/45">คนที่ล็อกอินด้วย Discord และมียศนี้ในเซิร์ฟเวอร์ แก้แผนได้โดยไม่ต้องใช้รหัส (รหัสแก้ไขยังใช้ได้ตามเดิม) เว้นว่างถ้าไม่ใช้</p>
+          <label className="mt-3 block text-sm text-white/70">Server ID</label>
+          <input value={serverId} onChange={(e) => setServerId(e.target.value)} placeholder="คลิกขวาที่ไอคอนเซิร์ฟเวอร์ → Copy Server ID" inputMode="numeric" className={field} />
+          <label className="mt-3 block text-sm text-white/70">Role ID ที่แก้ได้ (หลายยศคั่นด้วย ,)</label>
+          <input value={roles} onChange={(e) => setRoles(e.target.value)} placeholder="เช่น 123456789012345678, 234567890123456789" className={field} />
+        </div>
+
         {msg && <p className={`mt-4 text-sm ${msg.ok ? 'text-green-400' : 'text-red-300'}`}>{msg.text}</p>}
         <div className="mt-5 flex flex-wrap gap-2">
-          <button disabled={busy || (!connected && !url.trim())} onClick={save} className="btn-gold px-6 py-2">บันทึก</button>
+          <button disabled={busy} onClick={save} className="btn-gold px-6 py-2">บันทึก</button>
           {connected && (
             <>
               <button disabled={busy} onClick={test} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold"><Send className="h-4 w-4" /> ส่งข้อความทดสอบ</button>

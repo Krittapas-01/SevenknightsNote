@@ -1,6 +1,7 @@
 import { Check, Eye, EyeOff, KeyRound, LogOut } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { api, forgetEditKey, saveEditKey } from '../lib/api'
+import { loginWithDiscord, useAuth } from '../lib/auth'
 import Modal from './Modal'
 
 const input = 'w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 pr-10 outline-none focus:border-gold'
@@ -30,6 +31,7 @@ export function EditLogin({ gid, onLogin }: { gid: string; onLogin: () => void }
   const [pw, setPw] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const auth = useAuth()
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -57,7 +59,24 @@ export function EditLogin({ gid, onLogin }: { gid: string; onLogin: () => void }
       <button onClick={() => setOpen(true)} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
         <KeyRound className="h-4 w-4" /> ใส่รหัสแก้ไข
       </button>
-      <Modal open={open} title="ใส่รหัสแก้ไข" onClose={() => setOpen(false)}>
+      <Modal open={open} title="เข้าโหมดแก้ไข" onClose={() => setOpen(false)}>
+        {auth.enabled && (
+          <div className="mb-5 border-b border-white/10 pb-5">
+            {auth.user ? (
+              <p className="flex items-center gap-2 text-sm text-white/65">
+                <img src={auth.user.avatar} alt="" className="h-6 w-6 rounded-full" />
+                ล็อกอินเป็น {auth.user.name} แล้ว แต่ยังไม่มียศที่กิลด์นี้ให้แก้ได้ ใช้รหัสแทนได้
+              </p>
+            ) : (
+              <>
+                <button type="button" onClick={loginWithDiscord} className="w-full rounded-xl bg-[#5865f2] py-2 font-medium text-white hover:bg-[#4752c4]">
+                  เข้าสู่ระบบด้วย Discord
+                </button>
+                <p className="mt-2 text-xs text-white/45">ถ้ากิลด์ตั้งยศใน Discord ไว้ คนที่มียศนั้นแก้ได้เลยไม่ต้องใช้รหัส</p>
+              </>
+            )}
+          </div>
+        )}
         <form onSubmit={submit} className="space-y-4">
           <PasswordField label="รหัสแก้ไขของกิลด์" value={pw} onChange={setPw} autoComplete="current-password" autoFocus />
           {err && <p className="text-sm text-red-400">{err}</p>}

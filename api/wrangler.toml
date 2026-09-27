@@ -11,6 +11,8 @@ crons = ["0 0 * * *"]
 ALLOWED_ORIGIN = "*"
 # ลิงก์เว็บ (ใช้ทำลิงก์ในข้อความ Discord)
 SITE_URL = "https://7k-note.pages.dev"
+# ล็อกอินด้วย Discord: Application ID (เปิดเผยได้) — ส่วน Client Secret ตั้งด้วย  npx wrangler secret put DISCORD_CLIENT_SECRET
+DISCORD_CLIENT_ID = ""
 
 [[d1_databases]]
 binding = "DB"

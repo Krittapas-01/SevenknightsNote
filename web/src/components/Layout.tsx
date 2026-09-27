@@ -1,4 +1,5 @@
 import { Link, Outlet, useMatch } from 'react-router'
+import Account from './Account'
 import AnnouncementBar from './AnnouncementBar'
 
 export default function Layout() {
@@ -12,7 +13,8 @@ export default function Layout() {
           <Link to="/" className="flex items-center gap-3 text-lg font-bold tracking-wide">
             <span className="brand-mark" aria-hidden="true">✦</span> 7K <span className="font-normal text-gold">Note</span>
           </Link>
-          <span className="ml-auto text-[10px] font-medium tracking-[.2em] text-white/45 sm:text-xs">GUILD WAR COMPANION</span>
+          <span className="ml-auto mr-3 hidden text-xs font-medium tracking-[.2em] text-white/45 md:inline">GUILD WAR COMPANION</span>
+          <div className="ml-auto md:ml-0"><Account /></div>
         </div>
       </header>
       {gid && <AnnouncementBar key={gid} gid={gid} />}

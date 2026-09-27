@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 
-type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string }
+type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string }
 
 type Team = {
   front: number // จำนวนช่องแถวหน้า (1-4) ที่เหลือเป็นแถวหลัง รวม 5 ช่อง
@@ -30,7 +30,7 @@ const app = new Hono<{ Bindings: Env }>()
 app.use('/api/*', async (c, next) =>
   cors({
     origin: c.env.ALLOWED_ORIGIN || '*',
-    allowHeaders: ['Content-Type', 'X-Edit-Key'],
+    allowHeaders: ['Content-Type', 'X-Edit-Key', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   })(c, next),
 )
@@ -145,7 +145,10 @@ function parsePlan(raw: any): PlanData | null {
     .slice(0, 10)
   return { kind, op: idList(raw.op), banned, note: str(raw.note, 1000), slots }
 }
-const toAnnouncement = (r: any) => ({ id: r.id, body: r.body, planId: r.plan_id, opponent: r.opponent, createdAt: r.created_at, auto: !!r.auto })
+const toAnnouncement = (r: any) => ({
+  id: r.id, body: r.body, planId: r.plan_id, opponent: r.opponent, createdAt: r.created_at, auto: !!r.auto,
+  author: r.author_name ? { name: r.author_name, avatar: r.author_avatar } : null,
+})
 const toPlan = (r: any) => ({ id: r.id, title: r.title, data: JSON.parse(r.data), createdAt: r.created_at, updatedAt: r.updated_at })
 
 // ใส่รหัสผิดเกิน MAX_FAILS ครั้งใน LOCK_MS → ล็อก (เฉพาะ IP นั้น ของกิลด์นั้น) กันการสุ่มเดารหัส
@@ -157,8 +160,19 @@ async function checkKey(c: any, guildId: string): Promise<'ok' | 'notfound' | 'f
   const raw = c.req.header('X-Edit-Key') || ''
   let key = raw
   try { key = decodeURIComponent(raw) } catch { /* คีย์เก่าที่ไม่ได้ encode */ }
-  const row = await c.env.DB.prepare('SELECT edit_hash FROM guilds WHERE id = ?').bind(guildId).first()
+  const row = await c.env.DB.prepare(
+    'SELECT g.edit_hash, s.discord_guild_id, s.discord_edit_roles FROM guilds g LEFT JOIN guild_settings s ON s.guild_id = g.id WHERE g.id = ?',
+  ).bind(guildId).first()
   if (!row) return 'notfound'
+  // ล็อกอิน Discord อยู่ + มียศที่กิลด์นี้ตั้งให้แก้ได้ → ผ่าน (ใช้คู่กับรหัสแก้ไข)
+  const editRoles: string[] = JSON.parse(row.discord_edit_roles || '[]')
+  if (row.discord_guild_id && editRoles.length) {
+    const user = await currentUser(c)
+    if (user) {
+      const m = await memberOf(c.env, user, row.discord_guild_id)
+      if (m.roles.some((r) => editRoles.includes(r))) return 'ok'
+    }
+  }
   if (!key) return 'forbidden'
   const k = `${guildId}:${c.req.header('CF-Connecting-IP') || 'local'}`
   const now = Date.now()
@@ -222,7 +236,7 @@ app.get('/api/guild/:id', async (c) => {
     c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY created_at ASC').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
-    c.env.DB.prepare('SELECT schedule, auto_announce, discord_webhook, discord_mention FROM guild_settings WHERE guild_id = ?').bind(id),
+    c.env.DB.prepare('SELECT schedule, auto_announce, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles FROM guild_settings WHERE guild_id = ?').bind(id),
     // ประกาศล่าสุดที่เลือกแผน (= แผนที่ใช้อยู่) — ต้องมีเสมอ แม้จะเก่ากว่า 30 อันล่าสุด (ประกาศอัตโนมัติรายวันดันตกไป)
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? AND plan_id IS NOT NULL ORDER BY created_at DESC LIMIT 1').bind(id),
   ])
@@ -232,7 +246,10 @@ app.get('/api/guild/:id', async (c) => {
   const settings = (st.results as any[])[0]
   const schedule = settings ? JSON.parse(settings.schedule) : DEFAULT_SCHEDULE
   const autoAnnounce = settings ? !!settings.auto_announce : true
-  const discord = { connected: !!settings?.discord_webhook, mention: settings?.discord_mention ?? '' } // ไม่ส่ง URL ออกไป
+  const discord = { // ไม่ส่ง webhook URL ออกไป
+    connected: !!settings?.discord_webhook, mention: settings?.discord_mention ?? '',
+    serverId: settings?.discord_guild_id ?? '', editRoles: JSON.parse(settings?.discord_edit_roles || '[]') as string[],
+  }
   const counters = (k.results as any[]).map(toCounter)
   const targets = (t.results as any[]).map((r) => ({
     ...toTarget(r),
@@ -438,16 +455,18 @@ app.post('/api/guild/:id/announcements', async (c) => {
   }
   const now = Date.now()
   const id = randomId(10)
+  const user = await currentUser(c) // ล็อกอิน Discord อยู่ → ขึ้นชื่อคนประกาศ
+  const author = user ? { name: user.name, avatar: user.avatar } : null
   await c.env.DB.batch([
-    c.env.DB.prepare('INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(id, gid, text, planId, opponent, now),
+    c.env.DB.prepare('INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at, author_name, author_avatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, gid, text, planId, opponent, now, author?.name ?? '', author?.avatar ?? ''),
     // เก็บแค่ล่าสุด MAX_ANNOUNCEMENTS อัน
     c.env.DB.prepare(
       'DELETE FROM announcements WHERE guild_id = ? AND id NOT IN (SELECT id FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?)',
     ).bind(gid, gid, MAX_ANNOUNCEMENTS),
   ])
-  c.executionCtx.waitUntil(notifyDiscord(c.env, gid, { body: text, planId, opponent }).catch((e) => console.error('discord', e)))
-  return c.json({ id, body: text, planId, opponent, createdAt: now }, 201)
+  c.executionCtx.waitUntil(notifyDiscord(c.env, gid, { body: text, planId, opponent, author }).catch((e) => console.error('discord', e)))
+  return c.json({ id, body: text, planId, opponent, createdAt: now, auto: false, author }, 201)
 })
 
 // ---- Discord webhook ----
@@ -464,12 +483,22 @@ app.put('/api/guild/:id/discord', async (c) => {
   // webhook: undefined = ไม่เปลี่ยน, '' = ยกเลิกการเชื่อม
   const webhook = typeof body.webhook === 'string' ? body.webhook.trim() : undefined
   if (webhook && !WEBHOOK_RE.test(webhook) && !c.env.DISCORD_ALLOW_ANY) return c.json({ error: 'ลิงก์ Webhook ไม่ถูกต้อง (ต้องเป็น https://discord.com/api/webhooks/...)' }, 400)
+  // เซิร์ฟเวอร์ + ยศที่แก้แผนได้ (undefined = ไม่เปลี่ยน)
+  const serverId = typeof body.serverId === 'string' ? body.serverId.trim() : undefined
+  if (serverId !== undefined && !/^(?:|\d{5,25})$/.test(serverId)) return c.json({ error: 'Server ID ไม่ถูกต้อง (ตัวเลข)' }, 400)
+  const rawRoles = typeof body.editRoles === 'string' ? body.editRoles.split(/[\s,]+/) : Array.isArray(body.editRoles) ? body.editRoles : undefined
+  const editRoles = rawRoles?.map((r: unknown) => String(r).trim().replace(/^<@&(\d+)>$/, '$1')).filter(Boolean)
+  if (editRoles && (editRoles.length > 10 || editRoles.some((r: string) => !/^\d{5,25}$/.test(r)))) return c.json({ error: 'Role ID ไม่ถูกต้อง (ตัวเลข คั่นด้วย , ได้ไม่เกิน 10 ยศ)' }, 400)
+  const sets = ['discord_mention = excluded.discord_mention']
+  if (webhook !== undefined) sets.push('discord_webhook = excluded.discord_webhook')
+  if (serverId !== undefined) sets.push('discord_guild_id = excluded.discord_guild_id')
+  if (editRoles !== undefined) sets.push('discord_edit_roles = excluded.discord_edit_roles')
   await c.env.DB.prepare(
-    `INSERT INTO guild_settings (guild_id, schedule, discord_webhook, discord_mention) VALUES (?, ?, ?, ?)
-     ON CONFLICT(guild_id) DO UPDATE SET discord_mention = excluded.discord_mention${webhook === undefined ? '' : ', discord_webhook = excluded.discord_webhook'}`,
-  ).bind(gid, JSON.stringify(DEFAULT_SCHEDULE), webhook ?? '', mention).run()
-  const row = await c.env.DB.prepare('SELECT discord_webhook, discord_mention FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
-  return c.json({ connected: !!row?.discord_webhook, mention: row?.discord_mention ?? '' })
+    `INSERT INTO guild_settings (guild_id, schedule, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles) VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(guild_id) DO UPDATE SET ${sets.join(', ')}`,
+  ).bind(gid, JSON.stringify(DEFAULT_SCHEDULE), webhook ?? '', mention, serverId ?? '', JSON.stringify(editRoles ?? [])).run()
+  const row = await c.env.DB.prepare('SELECT discord_webhook, discord_mention, discord_guild_id, discord_edit_roles FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
+  return c.json({ connected: !!row?.discord_webhook, mention: row?.discord_mention ?? '', serverId: row?.discord_guild_id ?? '', editRoles: JSON.parse(row?.discord_edit_roles || '[]') })
 })
 
 app.post('/api/guild/:id/discord/test', async (c) => {
@@ -483,7 +512,7 @@ app.post('/api/guild/:id/discord/test', async (c) => {
 })
 
 /** ส่งประกาศเข้า Discord (ถ้ากิลด์เชื่อมไว้) → 'none' | 'ok' | HTTP status */
-async function notifyDiscord(env: Env, gid: string, a: { body: string; planId: string | null; opponent: string; auto?: boolean }, test = false) {
+async function notifyDiscord(env: Env, gid: string, a: { body: string; planId: string | null; opponent: string; auto?: boolean; author?: { name: string; avatar: string } | null }, test = false) {
   const row = await env.DB.prepare(
     `SELECT s.discord_webhook AS url, s.discord_mention AS mention, g.name, p.title AS plan_title
      FROM guilds g JOIN guild_settings s ON s.guild_id = g.id LEFT JOIN plans p ON p.id = ? AND p.guild_id = g.id WHERE g.id = ?`,
@@ -503,6 +532,7 @@ async function notifyDiscord(env: Env, gid: string, a: { body: string; planId: s
       content: test ? undefined : mention || undefined,
       allowed_mentions: row.mention === 'everyone' || row.mention === 'here' ? { parse: ['everyone'] } : { parse: [], roles: row.mention ? [row.mention] : [] },
       embeds: [{
+        author: a.author ? { name: a.author.name, icon_url: a.author.avatar || undefined } : undefined,
         title: `📢 ประกาศ ${row.name}`,
         description: a.body || undefined,
         url: site ? `${site}/g/${gid}` : undefined,
@@ -544,6 +574,109 @@ app.notFound((c) => c.json({ error: 'not found' }, 404))
 app.onError((err, c) => {
   console.error(err)
   return c.json({ error: 'เซิร์ฟเวอร์มีปัญหา' }, 500)
+})
+
+// ---------- ล็อกอินด้วย Discord (OAuth2) ----------
+// เว็บ (pages.dev) กับ API (workers.dev) คนละโดเมน → ใช้ session token ใน header Authorization แทน cookie
+const discordApi = (env: Env) => env.DISCORD_API_BASE || 'https://discord.com/api/v10'
+const SESSION_MS = 7 * 24 * 3600 * 1000
+const MEMBER_CACHE_MS = 5 * 60 * 1000
+type User = { id: string; name: string; avatar: string; accessToken: string }
+
+async function currentUser(c: any): Promise<User | null> {
+  if (c.get?.('user') !== undefined) return c.get('user')
+  const token = (c.req.header('Authorization') || '').replace(/^Bearer\s+/i, '')
+  let user: User | null = null
+  if (token) {
+    const r = await c.env.DB.prepare('SELECT user_id, name, avatar, access_token, expires_at FROM sessions WHERE token_hash = ?').bind(await sha256(token)).first()
+    if (r && r.expires_at > Date.now()) user = { id: r.user_id, name: r.name, avatar: r.avatar, accessToken: r.access_token }
+  }
+  c.set?.('user', user)
+  return user
+}
+
+/** ยศของผู้ใช้ในเซิร์ฟเวอร์ Discord (แคช 5 นาที) */
+async function memberOf(env: Env, user: User, serverId: string): Promise<{ roles: string[]; nick: string }> {
+  const k = `${user.id}:${serverId}`
+  const cached = await env.DB.prepare('SELECT roles, nick, at FROM member_cache WHERE k = ?').bind(k).first<any>()
+  if (cached && Date.now() - cached.at < MEMBER_CACHE_MS) return { roles: JSON.parse(cached.roles), nick: cached.nick }
+  const res = await fetch(`${discordApi(env)}/users/@me/guilds/${serverId}/member`, { headers: { Authorization: `Bearer ${user.accessToken}` } })
+  let m: { roles: string[]; nick: string }
+  if (res.ok) {
+    const d: any = await res.json()
+    m = { roles: Array.isArray(d.roles) ? d.roles : [], nick: d.nick || '' }
+  } else if (res.status === 404) m = { roles: [], nick: '' } // ไม่ได้อยู่ในเซิร์ฟเวอร์
+  else return cached ? { roles: JSON.parse(cached.roles), nick: cached.nick } : { roles: [], nick: '' } // rate limit ฯลฯ: ใช้ของเก่า ไม่แคช
+  await env.DB.prepare('INSERT INTO member_cache (k, roles, nick, at) VALUES (?, ?, ?, ?) ON CONFLICT(k) DO UPDATE SET roles = excluded.roles, nick = excluded.nick, at = excluded.at')
+    .bind(k, JSON.stringify(m.roles), m.nick, Date.now()).run()
+  return m
+}
+
+/** กลับไปได้เฉพาะเว็บเรา (กัน open redirect) */
+function safeReturn(env: Env, raw: string | undefined) {
+  try {
+    const u = new URL(raw || '')
+    const site = env.SITE_URL ? new URL(env.SITE_URL).origin : ''
+    if (u.origin === site || u.hostname === 'localhost' || u.hostname === '127.0.0.1') return u.origin + u.pathname + u.search
+  } catch { /* ไม่ใช่ URL */ }
+  return null
+}
+const callbackUrl = (c: any) => `${new URL(c.req.url).origin}/api/auth/discord/callback`
+
+app.get('/api/auth/me', async (c) => {
+  const user = await currentUser(c)
+  c.header('Cache-Control', 'no-store')
+  return c.json({ discordLogin: !!(c.env.DISCORD_CLIENT_ID && c.env.DISCORD_CLIENT_SECRET), user: user && { id: user.id, name: user.name, avatar: user.avatar } })
+})
+
+app.get('/api/auth/discord/login', async (c) => {
+  if (!c.env.DISCORD_CLIENT_ID || !c.env.DISCORD_CLIENT_SECRET) return c.text('ยังไม่ได้ตั้งค่า Discord login', 503)
+  const ret = safeReturn(c.env, c.req.query('return'))
+  if (!ret) return c.text('return URL ไม่ถูกต้อง', 400)
+  const state = randomId(24)
+  const now = Date.now()
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM oauth_states WHERE created_at < ?').bind(now - 10 * 60 * 1000),
+    c.env.DB.prepare('INSERT INTO oauth_states (state, return_to, created_at) VALUES (?, ?, ?)').bind(state, ret, now),
+  ])
+  const q = new URLSearchParams({ client_id: c.env.DISCORD_CLIENT_ID, response_type: 'code', redirect_uri: callbackUrl(c), scope: 'identify guilds.members.read', state, prompt: 'none' })
+  return c.redirect(`https://discord.com/oauth2/authorize?${q}`)
+})
+
+app.get('/api/auth/discord/callback', async (c) => {
+  const st = await c.env.DB.prepare('SELECT return_to, created_at FROM oauth_states WHERE state = ?').bind(c.req.query('state') || '').first<any>()
+  if (!st || Date.now() - st.created_at > 10 * 60 * 1000) return c.text('ลิงก์ล็อกอินหมดอายุ ลองกดเข้าสู่ระบบใหม่', 400)
+  await c.env.DB.prepare('DELETE FROM oauth_states WHERE state = ?').bind(c.req.query('state')).run()
+  const fail = (why: string) => c.redirect(`${st.return_to}#discord_error=${encodeURIComponent(why)}`)
+  const code = c.req.query('code')
+  if (!code) return fail(c.req.query('error') || 'cancelled')
+  const tok = await fetch(`${discordApi(c.env)}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: callbackUrl(c), client_id: c.env.DISCORD_CLIENT_ID!, client_secret: c.env.DISCORD_CLIENT_SECRET! }),
+  })
+  if (!tok.ok) return fail('token')
+  const t: any = await tok.json()
+  const me = await fetch(`${discordApi(c.env)}/users/@me`, { headers: { Authorization: `Bearer ${t.access_token}` } })
+  if (!me.ok) return fail('profile')
+  const u: any = await me.json()
+  const avatar = u.avatar
+    ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64`
+    : `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(u.id) >> 22n) % 6}.png`
+  const token = randomId(40)
+  const now = Date.now()
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now),
+    c.env.DB.prepare('INSERT INTO sessions (token_hash, user_id, name, avatar, access_token, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(await sha256(token), u.id, str(u.global_name || u.username, 64), avatar, t.access_token, now + Math.min(SESSION_MS, (t.expires_in || 604800) * 1000)),
+  ])
+  return c.redirect(`${st.return_to}#discord=${token}`)
+})
+
+app.post('/api/auth/logout', async (c) => {
+  const token = (c.req.header('Authorization') || '').replace(/^Bearer\s+/i, '')
+  if (token) await c.env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(await sha256(token)).run()
+  return c.json({ ok: true })
 })
 
 // ---------- ประกาศอัตโนมัติ 07:00 เวลาไทย (Cron Trigger "0 0 * * *" = 00:00 UTC) ----------

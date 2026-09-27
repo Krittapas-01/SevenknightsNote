@@ -18,7 +18,7 @@ const matches = (t: Target, q: string) =>
 
 export default function GuildPage() {
   const { gid = '' } = useParams()
-  const { data, error, canEdit, setCanEdit, reload } = useGuild(gid)
+  const { data, error, canEdit, setCanEdit, recheck, reload } = useGuild(gid)
   const [q, setQ] = useState('')
   const [tag, setTag] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
@@ -56,7 +56,7 @@ export default function GuildPage() {
             {copied === 'view' ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />} ลิงก์ดูอย่างเดียว
           </button>
           {canEdit
-            ? <EditSettings gid={gid} onLogout={() => setCanEdit(false)} />
+            ? <EditSettings gid={gid} onLogout={recheck} />
             : <EditLogin gid={gid} onLogin={() => setCanEdit(true)} />}
         </div>
       </div>

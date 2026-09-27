@@ -1,3 +1,4 @@
+import { getSession } from './auth'
 import type { Announcement, Counter, DayType, GuildData, HeroNote, Plan, PlanData, SkillStep, Target, Team } from './types'
 
 export type Pulse = {
@@ -54,6 +55,8 @@ async function req<T>(path: string, init: RequestInit & { gid?: string; key?: st
     // encode: header ใส่ภาษาไทยตรง ๆ ไม่ได้ (API decode กลับ)
     if (key) headers['X-Edit-Key'] = encodeURIComponent(key)
   }
+  const session = getSession() // ล็อกอิน Discord (ใช้เช็คยศ + ขึ้นชื่อคนประกาศ)
+  if (session) headers.Authorization = `Bearer ${session}`
   const res = await fetch(BASE + path, { ...init, headers })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error((data as any).error ?? `HTTP ${res.status}`)
@@ -90,8 +93,8 @@ export const api = {
   announce: (gid: string, body: { body: string; planId: string | null; opponent: string }) =>
     req<Announcement>(`/api/guild/${gid}/announcements`, { method: 'POST', body: JSON.stringify(body), gid }),
   deleteAnnouncement: (gid: string, aid: string) => req(`/api/guild/${gid}/announcements/${aid}`, { method: 'DELETE', gid }),
-  saveDiscord: (gid: string, body: { webhook?: string; mention: string }) =>
-    req<{ connected: boolean; mention: string }>(`/api/guild/${gid}/discord`, { method: 'PUT', body: JSON.stringify(body), gid }),
+  saveDiscord: (gid: string, body: { webhook?: string; mention: string; serverId?: string; editRoles?: string[] }) =>
+    req<NonNullable<GuildData['discord']>>(`/api/guild/${gid}/discord`, { method: 'PUT', body: JSON.stringify(body), gid }),
   testDiscord: (gid: string) => req<{ ok: true }>(`/api/guild/${gid}/discord/test`, { method: 'POST', gid }),
   saveSchedule: (gid: string, schedule: DayType[], autoAnnounce: boolean) =>
     req<{ schedule: DayType[]; autoAnnounce: boolean }>(`/api/guild/${gid}/schedule`, { method: 'PUT', body: JSON.stringify({ schedule, autoAnnounce }), gid }),

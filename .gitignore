@@ -13,3 +13,4 @@ api/reset-key.sql
 api/add-defense-plan.sql
 api/thousandsunny-defense.sql
 api/.local-data-imported
+.dev.vars

@@ -88,7 +88,7 @@ export type PlanData = {
 export type Plan = { id: string; title: string; data: PlanData; createdAt: number; updatedAt: number }
 
 export type DayType = 'attack' | 'defense' | 'rest'
-export type Announcement = { id: string; body: string; planId: string | null; opponent: string; createdAt: number; /** ระบบประกาศเองตอน 07:00 */ auto?: boolean }
+export type Announcement = { id: string; body: string; planId: string | null; opponent: string; createdAt: number; /** ระบบประกาศเองตอน 07:00 */ auto?: boolean; /** คนประกาศ (ถ้าล็อกอิน Discord) */ author?: { name: string; avatar: string } | null }
 
 export type GuildData = {
   guild: Guild
@@ -101,7 +101,7 @@ export type GuildData = {
   /** ประกาศวันใหม่อัตโนมัติ 07:00 */
   autoAnnounce?: boolean
   /** แจ้งเตือนเข้า Discord (ไม่มี URL — เป็นความลับ) */
-  discord?: { connected: boolean; mention: string }
+  discord?: { connected: boolean; mention: string; /** เซิร์ฟเวอร์ Discord + ยศที่แก้แผนได้ */ serverId: string; editRoles: string[] }
 }
 
 export const emptyPlan = (kind: PlanKind = 'attack'): PlanData => ({

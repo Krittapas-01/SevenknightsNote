@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, getEditKey, pushRecent, saveEditKey } from './api'
+import { getSession, onAuthChange } from './auth'
 import type { GuildData } from './types'
 
 /** โหลดข้อมูลกิลด์ + เช็คสิทธิ์แก้ไข (รับ ?key= จากลิงก์แชร์แล้วเก็บไว้) */
@@ -19,6 +20,18 @@ export function useGuild(gid: string) {
     }
   }, [gid])
 
+  // เช็คสิทธิ์แก้ไขใหม่ (รหัสในเครื่อง หรือ ยศ Discord)
+  const recheck = useCallback(async () => {
+    if (!getEditKey(gid) && !getSession()) return setCanEdit(false)
+    try {
+      setCanEdit((await api.checkEdit(gid)).canEdit)
+    } catch {
+      setCanEdit(false)
+    }
+  }, [gid])
+
+  useEffect(() => onAuthChange(() => void recheck()), [recheck])
+
   useEffect(() => {
     const url = new URL(window.location.href)
     const key = url.searchParams.get('key')
@@ -31,9 +44,9 @@ export function useGuild(gid: string) {
     // มีประกาศใหม่/มีคนแก้ (แถบประกาศเจอ) → โหลดข้อมูลหน้านี้ใหม่ด้วย
     const onChanged = (e: Event) => (e as CustomEvent).detail === gid && reload()
     window.addEventListener('7knote:changed', onChanged)
-    if (getEditKey(gid)) api.checkEdit(gid).then((r) => setCanEdit(r.canEdit)).catch(() => setCanEdit(false))
+    recheck()
     return () => window.removeEventListener('7knote:changed', onChanged)
-  }, [gid, reload])
+  }, [gid, reload, recheck])
 
-  return { data, error, canEdit, setCanEdit, reload }
+  return { data, error, canEdit, setCanEdit, recheck, reload }
 }
