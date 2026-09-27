@@ -9,7 +9,7 @@ import type { HeroStats } from '../lib/stats'
 import { hasStats } from '../lib/stats'
 
 /** Match old notes by base name only when they do not specify another form. */
-function noteFor(hero: string, notes: HeroNote[]) {
+export function noteFor(hero: string, notes: HeroNote[]) {
   const name = getUnit(hero)?.name ?? hero
   return notes.find((note) => note.hero === hero || (getUnit(note.hero)?.name ?? note.hero) === name)
     ?? notes.find((note) => (getUnit(note.hero)?.name ?? note.hero) === baseName(name))

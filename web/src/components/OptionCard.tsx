@@ -1,9 +1,13 @@
-import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Library, Star, Trash2, X } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Library, Star, Trash2, Users, X } from 'lucide-react'
 import type { HeroStats } from '../lib/stats'
 import { StatsGrid, StatsImport, upsertStats } from './HeroStats'
 import { useState } from 'react'
 import EquipmentLoadout from './EquipmentLoadout'
 import EquipmentEditor from './EquipmentEditor'
+import Modal from './Modal'
+import UnitCard from './UnitCard'
+import { noteFor } from './HeroDetailModal'
+import { hasStats } from '../lib/stats'
 import AddHeroNote from './AddHeroNote'
 import { baseName, getUnit } from '../data/heroes'
 import { changeFormation, moveSlot, placeUnit, type HeroNote, type WarOption } from '../lib/types'
@@ -41,6 +45,7 @@ const baseId = (id: string) => baseName(getUnit(id)?.name ?? id)
 export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack, main, onMakeMain, conflicts = [], blocked, part = 'all', onSaveHeroStats }: Props) {
   const [showGear, setShowGear] = useState(false)
   const heroNotes = option.heroNotes ?? []
+  const teamHeroes = option.team.slots.filter((id): id is string => !!id)
   const inTeam = new Set(option.team.slots.filter(Boolean).map((id) => baseId(id!)))
   const badCombos = banned.filter((g) => g.length > 0 && g.every((id) => inTeam.has(baseId(id))))
   const notes = option.notes.split('\n').map((l) => l.trim()).filter(Boolean)
@@ -140,14 +145,25 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
         </p>
       ))}
 
-      {(heroNotes.length > 0 || editing) && (
+      {(teamHeroes.length > 0 || editing) && (
         <div className="mt-3">
           {!editing && (
-            <button type="button" onClick={() => setShowGear((v) => !v)} className="flex items-center gap-1 text-sm text-white/60 hover:text-white">
-              <ChevronDown className={`h-4 w-4 transition ${showGear ? 'rotate-180' : ''}`} /> ของ/สเตตัสรายตัว ({heroNotes.length})
+            <button type="button" onClick={() => setShowGear(true)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-gold/35 bg-gold/5 px-4 py-3 text-sm font-medium text-gold transition-colors hover:bg-gold/15 focus-visible:outline-2 focus-visible:outline-gold">
+              <Users className="h-4 w-4" /> ดูรายละเอียดทั้งทีม ({teamHeroes.length})
             </button>
           )}
-          {(editing || showGear) && (
+          {!editing && showGear && (
+            <Modal open wide title={`รายละเอียดทั้งทีม (${teamHeroes.length})`} onClose={() => setShowGear(false)}>
+              <ul className="grid items-start gap-4 lg:grid-cols-3">
+                {teamHeroes.map((hero, i) => (
+                  <GearNote key={`${hero}-${i}`} note={{ ...(noteFor(hero, heroNotes) ?? { text: '', sets: [], rings: [] }), hero }} editing={false}
+                    onChange={() => {}} onRemove={() => {}} />
+                ))}
+              </ul>
+              <button type="button" onClick={() => setShowGear(false)} className="btn-gold mt-5 w-full">ปิดรายละเอียด</button>
+            </Modal>
+          )}
+          {editing && (
             <ul className="mt-2 space-y-2">
               {heroNotes.map((n, i) => (
                 <GearNote
@@ -193,9 +209,10 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
 
 function GearNote({ note, editing, onChange, onRemove }: { note: HeroNote; editing: boolean; onChange: (n: HeroNote) => void; onRemove: () => void }) {
   return (
-    <li className="rounded-xl bg-black/20 p-3 text-sm">
+    <li className="min-w-0 rounded-xl bg-black/20 p-3 text-sm">
       <div className="flex items-center gap-2">
-        <span className="font-semibold text-gold">{getUnit(note.hero)?.name ?? note.hero}</span>
+        {!editing && <div className="h-16 w-16 shrink-0"><UnitCard id={note.hero} showName={false} /></div>}
+        <span className="break-words font-semibold text-gold">{getUnit(note.hero)?.name ?? note.hero}</span>
         {editing && (
           <button type="button" onClick={onRemove} className="ml-auto rounded-full p-0.5 text-white/50 hover:bg-white/10" aria-label="ลบ">
             <X className="h-3.5 w-3.5" />
@@ -210,12 +227,14 @@ function GearNote({ note, editing, onChange, onRemove }: { note: HeroNote; editi
           className="mt-1 w-full rounded-lg border border-white/15 bg-black/20 px-2 py-1 outline-none focus:border-gold"
         />
       ) : (
-        note.text && <p className="mt-1 text-white/80">{note.text}</p>
+        note.text && <p className="mt-3 whitespace-pre-wrap break-words text-white/80">{note.text}</p>
       )}
       {editing
         ? <EquipmentEditor sets={note.sets} rings={note.rings} onChange={(sets, rings) => onChange({ ...note, sets, rings })} />
         : <EquipmentLoadout sets={note.sets} rings={note.rings} />}
       <StatsGrid stats={note.stats} />
+      {!editing && !hasStats(note.stats) && !note.text.trim() && <p className="mt-3 text-white/45">ยังไม่ได้ระบุสเตตัส</p>}
+      {!editing && !note.sets.length && !note.rings.length && <p className="mt-2 text-white/45">ยังไม่ได้ระบุอุปกรณ์</p>}
     </li>
   )
 }
