@@ -94,16 +94,16 @@ export function SkillQueueModal({
       ) : (
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
           {heroes.map((h) => (
-            <div key={h.slot} className="relative h-[104px] w-[146px] shrink-0 sm:h-[124px] sm:w-[176px]">
-              <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute -left-1 -top-1 h-28 w-28 text-gold/50 sm:h-[132px] sm:w-[132px]" fill="none" stroke="currentColor" strokeWidth="1">
+            <div key={h.slot} className="relative h-[124px] w-[138px] shrink-0 sm:h-[148px] sm:w-[162px]">
+              <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute -left-1 top-0 h-[124px] w-[124px] text-gold/65 sm:h-[148px] sm:w-[148px]" fill="none" stroke="currentColor" strokeWidth="1">
                 <path d="M5 71A59 59 0 0 1 53 6M72 6A59 59 0 0 1 122 59M14 91A57 57 0 0 0 34 114M50 122A60 60 0 0 0 100 108M98 101l20 19" />
-                <circle cx="64" cy="64" r="53" strokeOpacity=".5" />
+                <circle cx="64" cy="64" r="53" strokeOpacity=".8" />
                 <circle cx="53" cy="6" r="2" /><circle cx="72" cy="6" r="2" /><circle cx="14" cy="91" r="2" /><circle cx="34" cy="114" r="2" /><circle cx="118" cy="120" r="2" fill="currentColor" />
               </svg>
-              <div className="absolute left-1 top-1 h-24 w-24 overflow-hidden rounded-full border-2 border-gold/60 shadow-[0_2px_8px_#0006] sm:h-[116px] sm:w-[116px]" style={{ fontSize: 16 }}>
+              <div className="absolute left-[10px] top-[14px] h-24 w-24 overflow-hidden rounded-full border border-gold/45 shadow-[0_2px_8px_#0006] sm:left-3 sm:top-4 sm:h-[116px] sm:w-[116px]" style={{ fontSize: 16 }}>
                 <UnitCard id={h.id} shape="round" className="[&>img]:origin-[50%_24%] [&>img]:scale-[1.6]" />
               </div>
-              <div className="absolute right-0 top-0 flex flex-col gap-2 sm:gap-3">
+              <div className="absolute right-0 top-[10px] flex flex-col gap-2 sm:top-3 sm:gap-3">
                 {([1, 2] as const).map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
