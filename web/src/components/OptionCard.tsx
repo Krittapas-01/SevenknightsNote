@@ -15,6 +15,7 @@ import { baseName, getUnit } from '../data/heroes'
 import { changeFormation, moveSlot, placeUnit, type HeroNote, type WarOption } from '../lib/types'
 import TeamPanel, { type SlotKind } from './TeamPanel'
 import { SkillQueueBoard } from './TeamModals'
+import AtlasTeam from './AtlasTeam'
 
 type Props = {
   option: WarOption
@@ -129,7 +130,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
                 <span className="flex shrink-0 items-center gap-2 font-bold"><span className="brand-mark" aria-hidden="true">✦</span> 7K <span className="font-normal text-gold">Note</span></span>
               </div>
               {option.condition && <p className="mb-3 text-lg font-semibold text-gold">{option.condition}</p>}
-              <TeamPanel variant="ally" team={option.team} skills={option.skills} title={teamTitle(option)} heroNotes={heroNotes} />
+              <AtlasTeam team={option.team} skills={option.skills} heroNotes={heroNotes} title={teamTitle(option)} />
               {option.skills.length > 0 && (
                 <section className="panel mt-5 p-5">
                   <p className="eyebrow mb-3">ลำดับการออกสกิล · AUTO SKILL PRIORITY</p>
