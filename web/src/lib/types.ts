@@ -88,7 +88,7 @@ export type PlanData = {
 export type Plan = { id: string; title: string; data: PlanData; createdAt: number; updatedAt: number }
 
 export type DayType = 'attack' | 'defense' | 'rest'
-export type Announcement = { id: string; body: string; planId: string | null; opponent: string; createdAt: number }
+export type Announcement = { id: string; body: string; planId: string | null; opponent: string; createdAt: number; /** ระบบประกาศเองตอน 07:00 */ auto?: boolean }
 
 export type GuildData = {
   guild: Guild
@@ -98,6 +98,8 @@ export type GuildData = {
   announcements: Announcement[]
   /** 7 ช่อง จันทร์..อาทิตย์ */
   schedule: DayType[]
+  /** ประกาศวันใหม่อัตโนมัติ 07:00 */
+  autoAnnounce?: boolean
 }
 
 export const emptyPlan = (kind: PlanKind = 'attack'): PlanData => ({

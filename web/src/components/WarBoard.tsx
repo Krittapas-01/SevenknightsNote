@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronDown, ClipboardList, Megaphone, Settings2, Swords, Trash2 } from 'lucide-react'
+import { Bot, CalendarDays, ChevronDown, ClipboardList, Megaphone, Settings2, Swords, Trash2 } from 'lucide-react'
 import { PLAN_KIND_LABEL, planKind } from '../lib/types'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
@@ -107,7 +107,7 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
       )}
 
       <ComposeModal open={compose} onClose={() => setCompose(false)} gid={gid} data={data} activeId={activeId} reload={reload} />
-      <ScheduleModal open={editSchedule} onClose={() => setEditSchedule(false)} gid={gid} schedule={data.schedule} reload={reload} />
+      <ScheduleModal open={editSchedule} onClose={() => setEditSchedule(false)} gid={gid} schedule={data.schedule} auto={data.autoAnnounce ?? true} reload={reload} />
     </section>
   )
 }
@@ -125,6 +125,7 @@ function AnnouncementItem({ a, data, gid, canEdit, reload, highlight }: { a: Ann
         <Megaphone className={`h-4 w-4 ${highlight ? 'text-gold' : 'text-white/50'}`} />
         <span className="text-white/60">{fmtTime(a.createdAt)}</span>
         {isToday(a) && <span className="rounded-full bg-gold px-2 text-xs font-semibold text-ink">วันนี้</span>}
+        {a.auto && <span title="ระบบประกาศให้ตอน 07:00" className="flex items-center gap-1 rounded-full bg-white/10 px-2 text-xs text-white/60"><Bot className="h-3 w-3" /> อัตโนมัติ</span>}
         {plan && (
           <Link to={`/g/${gid}/p/${plan.id}`} className="rounded-full border border-gold/50 px-2.5 text-gold hover:bg-gold/10">
             ใช้แผน: {plan.title}
@@ -232,19 +233,23 @@ function ComposeModal({ open, onClose, gid, data, activeId, reload }: { open: bo
   )
 }
 
-function ScheduleModal({ open, onClose, gid, schedule, reload }: { open: boolean; onClose: () => void; gid: string; schedule: DayType[]; reload: () => Promise<void> }) {
+function ScheduleModal({ open, onClose, gid, schedule, auto, reload }: { open: boolean; onClose: () => void; gid: string; schedule: DayType[]; auto: boolean; reload: () => Promise<void> }) {
   const [draft, setDraft] = useState<DayType[]>(schedule)
+  const [autoDraft, setAutoDraft] = useState(auto)
   const [busy, setBusy] = useState(false)
   const [prevOpen, setPrevOpen] = useState(open)
   if (open !== prevOpen) {
     setPrevOpen(open)
-    if (open) setDraft(schedule)
+    if (open) {
+      setDraft(schedule)
+      setAutoDraft(auto)
+    }
   }
 
   async function save() {
     setBusy(true)
     try {
-      await api.saveSchedule(gid, draft)
+      await api.saveSchedule(gid, draft, autoDraft)
       await reload()
       onClose()
     } finally {
@@ -272,6 +277,13 @@ function ScheduleModal({ open, onClose, gid, schedule, reload }: { open: boolean
           </div>
         ))}
       </div>
+      <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl bg-black/25 px-4 py-3">
+        <input type="checkbox" checked={autoDraft} onChange={(e) => setAutoDraft(e.target.checked)} className="mt-1 h-4 w-4 accent-[#e2bf72]" />
+        <span>
+          <span className="font-semibold">ประกาศวันใหม่อัตโนมัติ 07:00</span>
+          <span className="block text-sm text-white/55">ระบบบอกว่าวันนี้เป็นวันตี / จัดบ้านกัน / พัก ตามตารางนี้ ส่วนแผนที่ใช้ไม่เปลี่ยน ยังเป็นแผนที่ประกาศไว้ล่าสุด</span>
+        </span>
+      </label>
       <div className="mt-5 flex gap-2">
         <button disabled={busy} onClick={save} className="btn-gold px-6 py-2">{busy ? 'กำลังบันทึก...' : 'บันทึก'}</button>
         <button onClick={onClose} className="pill px-5 py-2">ยกเลิก</button>

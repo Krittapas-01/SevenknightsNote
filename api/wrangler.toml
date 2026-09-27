@@ -2,6 +2,10 @@ name = "7k-note-api"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
+# ประกาศอัตโนมัติทุกวัน 07:00 เวลาไทย (= 00:00 UTC)
+[triggers]
+crons = ["0 0 * * *"]
+
 [vars]
 # โดเมนของเว็บที่อนุญาตให้เรียก API (ใส่ * ตอน dev ได้)
 ALLOWED_ORIGIN = "*"

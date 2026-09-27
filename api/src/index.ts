@@ -145,6 +145,7 @@ function parsePlan(raw: any): PlanData | null {
     .slice(0, 10)
   return { kind, op: idList(raw.op), banned, note: str(raw.note, 1000), slots }
 }
+const toAnnouncement = (r: any) => ({ id: r.id, body: r.body, planId: r.plan_id, opponent: r.opponent, createdAt: r.created_at, auto: !!r.auto })
 const toPlan = (r: any) => ({ id: r.id, title: r.title, data: JSON.parse(r.data), createdAt: r.created_at, updatedAt: r.updated_at })
 
 // ใส่รหัสผิดเกิน MAX_FAILS ครั้งใน LOCK_MS → ล็อก (เฉพาะ IP นั้น ของกิลด์นั้น) กันการสุ่มเดารหัส
@@ -216,23 +217,27 @@ app.get('/api/guild/:id', async (c) => {
   const id = c.req.param('id')
   const guild = await c.env.DB.prepare('SELECT id, name, created_at FROM guilds WHERE id = ?').bind(id).first<any>()
   if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
-  const [t, k, p, a, st] = await c.env.DB.batch([
+  const [t, k, p, a, st, ap] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT * FROM targets WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY created_at ASC').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
-    c.env.DB.prepare('SELECT schedule FROM guild_settings WHERE guild_id = ?').bind(id),
+    c.env.DB.prepare('SELECT schedule, auto_announce FROM guild_settings WHERE guild_id = ?').bind(id),
+    // ประกาศล่าสุดที่เลือกแผน (= แผนที่ใช้อยู่) — ต้องมีเสมอ แม้จะเก่ากว่า 30 อันล่าสุด (ประกาศอัตโนมัติรายวันดันตกไป)
+    c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? AND plan_id IS NOT NULL ORDER BY created_at DESC LIMIT 1').bind(id),
   ])
-  const announcements = (a.results as any[]).map((r) => ({
-    id: r.id, body: r.body, planId: r.plan_id, opponent: r.opponent, createdAt: r.created_at,
-  }))
-  const schedule = (st.results as any[])[0] ? JSON.parse((st.results as any[])[0].schedule) : DEFAULT_SCHEDULE
+  const announcements = (a.results as any[]).map(toAnnouncement)
+  const planAnn = (ap.results as any[])[0]
+  if (planAnn && !announcements.some((x) => x.id === planAnn.id)) announcements.push(toAnnouncement(planAnn))
+  const settings = (st.results as any[])[0]
+  const schedule = settings ? JSON.parse(settings.schedule) : DEFAULT_SCHEDULE
+  const autoAnnounce = settings ? !!settings.auto_announce : true
   const counters = (k.results as any[]).map(toCounter)
   const targets = (t.results as any[]).map((r) => ({
     ...toTarget(r),
     counters: counters.filter((x) => x.targetId === r.id),
   }))
-  return c.json({ guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule })
+  return c.json({ guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce })
 })
 
 // ตรวจว่า key ใช้แก้ไขได้ไหม
@@ -410,7 +415,7 @@ app.get('/api/guild/:id/pulse', async (c) => {
   c.header('Cache-Control', 'no-store')
   return c.json({
     guildName: guild.name,
-    latest: a ? { id: a.id, body: a.body, planId: a.plan_id, opponent: a.opponent, createdAt: a.created_at } : null,
+    latest: a ? toAnnouncement(a) : null,
     activePlan: p ? { id: p.plan_id, title: p.title } : null,
     schedule: s ? JSON.parse(s.schedule) : DEFAULT_SCHEDULE,
   })
@@ -459,10 +464,13 @@ app.put('/api/guild/:id/schedule', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const raw = Array.isArray(body.schedule) ? body.schedule : []
   const schedule = Array.from({ length: 7 }, (_, i) => (['attack', 'defense', 'rest'].includes(raw[i]) ? raw[i] : 'rest'))
-  await c.env.DB.prepare('INSERT INTO guild_settings (guild_id, schedule) VALUES (?, ?) ON CONFLICT(guild_id) DO UPDATE SET schedule = excluded.schedule')
-    .bind(gid, JSON.stringify(schedule))
+  const autoAnnounce = body.autoAnnounce !== false
+  await c.env.DB.prepare(
+    'INSERT INTO guild_settings (guild_id, schedule, auto_announce) VALUES (?, ?, ?) ON CONFLICT(guild_id) DO UPDATE SET schedule = excluded.schedule, auto_announce = excluded.auto_announce',
+  )
+    .bind(gid, JSON.stringify(schedule), autoAnnounce ? 1 : 0)
     .run()
-  return c.json({ schedule })
+  return c.json({ schedule, autoAnnounce })
 })
 
 app.notFound((c) => c.json({ error: 'not found' }, 404))
@@ -471,4 +479,44 @@ app.onError((err, c) => {
   return c.json({ error: 'เซิร์ฟเวอร์มีปัญหา' }, 500)
 })
 
-export default app
+// ---------- ประกาศอัตโนมัติ 07:00 เวลาไทย (Cron Trigger "0 0 * * *" = 00:00 UTC) ----------
+// เวลาไทย = UTC+7 ตลอด และวันในเกมเริ่ม 07:00 ไทย = 00:00 UTC → "วันในเกม" ตรงกับวันที่ UTC พอดี
+const DAY_NAMES = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์', 'อาทิตย์']
+const gameDayIndex = (ts: number) => (new Date(ts).getUTCDay() + 6) % 7 // 0 = จันทร์
+const gameDayKey = (ts: number) => new Date(ts).toISOString().slice(0, 10)
+const DAY_LABEL: Record<string, string> = { attack: 'วันตี', defense: 'วันจัดบ้านกัน', rest: 'วันพัก' }
+
+/** ประกาศแค่ว่าวันนี้วันอะไร — ไม่แตะแผน (เปลี่ยนแผนให้หัวกิลด์ประกาศเองตอนไหนก็ได้) */
+export const dailyAnnouncement = (type: string, day: string) => `วันนี้ (${day}) ${DAY_LABEL[type] ?? DAY_LABEL.rest}`
+
+export async function runDailyAnnouncements(env: Env, now = Date.now()) {
+  const today = gameDayIndex(now)
+  const todayKey = gameDayKey(now)
+  // เฉพาะกิลด์ที่เปิดไว้ และเคยใช้ประกาศแล้ว (กิลด์ที่สร้างทิ้งไว้จะไม่โดนประกาศรัว ๆ)
+  const { results } = await env.DB.prepare(
+    `SELECT g.id, s.schedule, (SELECT MAX(created_at) FROM announcements a WHERE a.guild_id = g.id) AS last_at
+     FROM guilds g LEFT JOIN guild_settings s ON s.guild_id = g.id
+     WHERE COALESCE(s.auto_announce, 1) = 1 AND EXISTS (SELECT 1 FROM announcements a WHERE a.guild_id = g.id)`,
+  ).all<any>()
+  let posted = 0
+  for (const g of results) {
+    if (g.last_at && gameDayKey(g.last_at) === todayKey) continue // วันนี้มีประกาศแล้ว (หรือรันซ้ำ)
+    const schedule: string[] = g.schedule ? JSON.parse(g.schedule) : DEFAULT_SCHEDULE
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at, auto) VALUES (?, ?, ?, NULL, ?, ?, 1)')
+        .bind(randomId(10), g.id, dailyAnnouncement(schedule[today] ?? 'rest', DAY_NAMES[today]), '', now),
+      env.DB.prepare(
+        'DELETE FROM announcements WHERE guild_id = ? AND id NOT IN (SELECT id FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?)',
+      ).bind(g.id, g.id, MAX_ANNOUNCEMENTS),
+    ])
+    posted++
+  }
+  return posted
+}
+
+export default {
+  fetch: app.fetch,
+  scheduled: (_event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
+    ctx.waitUntil(runDailyAnnouncements(env).then((n) => console.log(`daily announcements: ${n}`)))
+  },
+}
