@@ -82,13 +82,12 @@ const arcPath = (c: Pt, r: number, a0: number, a1: number) => {
   const sweep = (a1 - a0 + 360) % 360
   return `M${x0} ${y0}A${r} ${r} 0 ${sweep > 180 ? 1 : 0} 1 ${x1} ${y1}`
 }
-const P0: Pt = [0, 0]
 const C1: Pt = [8.6, -7.6] // ศูนย์ของวงนอก
 /** [ศูนย์, รัศมี, องศาเริ่ม, องศาจบ, จุดวงกลมที่ปลายไหน] */
 const FRAME_ARCS: [Pt, number, number, number, ('start' | 'end')[]][] = [
   [C1, 72.7, 258, 1.6, ['end']], //  วงนอกซ้าย→บน
   [C1, 72.7, 15, 60, ['start']], //  วงนอกต่อทางขวา (ลอดใต้ไอคอน)
-  [P0, 60.6, 208, 242, ['start', 'end']], // เส้นล่างซ้าย
+  [C1, 72.7, 208, 242, ['start', 'end']], // เส้นล่างซ้ายอยู่บนวงเดียวกัน
   [C1, 72.7, 148, 202, []], //       วงนอกด้านล่าง
 ]
 const FRAME_LINES: [Pt, Pt][] = [[[33.3, 56], [50, 72.2]], [[60.6, 53], [73.7, 65.1]]]
@@ -118,7 +117,8 @@ function SkillFrame({ gid }: { gid: string }) {
 /** รูปตัดเป็นวงกลมโดยไม่มีขอบซ้อนกับวงนอก */
 function SkillPortrait({ id }: { id: string }) {
   return (
-    <div className="skill-queue-face absolute left-[11px] top-[25px] h-[97px] w-[97px] overflow-hidden rounded-full sm:left-3 sm:top-7 sm:h-[108px] sm:w-[108px]" style={{ fontSize: 16 }}>
+    // Same center as C1 in the SVG viewBox: (74.6, 74.4), with a 108px diameter.
+    <div className="skill-queue-face absolute aspect-square w-[63.529412%] overflow-hidden rounded-full" style={{ left: '12.117647%', top: '12.439024%', fontSize: 16 }}>
       <UnitCard id={id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_22%] [&>img]:scale-[1.9]" />
     </div>
   )
@@ -154,10 +154,10 @@ export function SkillQueueModal({
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
           {heroes.map((h) => {
             return (
-            <div key={h.slot} className="relative h-[148px] w-[153px] shrink-0 sm:h-[164px] sm:w-[170px]">
+            <div key={h.slot} className="relative aspect-[170/164] w-[153px] shrink-0 sm:w-[170px]">
               <SkillFrame gid={`${frameId}-${h.slot}`} />
               <SkillPortrait id={h.id} />
-              <div className="absolute left-[95px] top-[21px] z-20 flex flex-col gap-2 sm:left-[105px] sm:top-6">
+              <div className="absolute left-[95px] top-[10%] z-20 flex flex-col gap-2 sm:left-[105px]">
                 {([1, 2] as const).map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
