@@ -9,3 +9,4 @@ api/.pandoara-key
 api/seed-*.sql
 api/.pandoara-seeded
 api/upgrade-*.sql
+api/reset-key.sql

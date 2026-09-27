@@ -1,7 +1,8 @@
 import { RotateCcw } from 'lucide-react'
+import { useId } from 'react'
 import { queueStyle } from '../lib/queue'
 import { FORMATIONS, MAX_SKILL_QUEUE, SLOT_COUNT, type SkillStep, type Team } from '../lib/types'
-import { baseName, getUnit } from '../data/heroes'
+import { baseName, getUnit, HERO_TYPES, isAwake, RARE } from '../data/heroes'
 import { getSkillArt } from '../data/skills'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
@@ -69,6 +70,7 @@ export function FormationModal({ open, front, onSelect, onClose }: { open: boole
 export function SkillQueueModal({
   open, team, skills, onChange, onClose,
 }: { open: boolean; team: Team; skills: SkillStep[]; onChange?: (s: SkillStep[]) => void; onClose: () => void }) {
+  const frameId = useId()
   // ไม่ส่ง onChange = ดูอย่างเดียว
   const readOnly = !onChange
   const heroes = team.slots.map((id, slot) => ({ id, slot })).filter((h) => h.id) as { id: string; slot: number }[]
@@ -93,16 +95,37 @@ export function SkillQueueModal({
         <p className="py-8 text-center text-white/45">ใส่ฮีโร่ในทีมก่อน</p>
       ) : (
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
-          {heroes.map((h) => (
+          {heroes.map((h) => {
+            const unit = getUnit(h.id)
+            const innerColor = unit && isAwake(unit.name) ? '#c79bff'
+              : unit && RARE.has(baseName(unit.name)) ? '#9b7fd6'
+              : unit?.type ? HERO_TYPES[unit.type].color : '#7c86a8'
+            return (
             <div key={h.slot} className="relative h-[124px] w-[138px] shrink-0 sm:h-[148px] sm:w-[162px]">
-              <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute -left-1 top-0 h-[124px] w-[124px] text-gold/65 sm:h-[148px] sm:w-[148px]" fill="none" stroke="currentColor" strokeWidth="1">
-                <path d="M5 71A59 59 0 0 1 53 6M72 6A59 59 0 0 1 122 59M14 91A57 57 0 0 0 34 114M50 122A60 60 0 0 0 100 108M98 101l20 19" />
-                <circle cx="53" cy="6" r="2" /><circle cx="72" cy="6" r="2" /><circle cx="14" cy="91" r="2" /><circle cx="34" cy="114" r="2" /><circle cx="118" cy="120" r="2" fill="currentColor" />
+              <svg aria-hidden="true" viewBox="0 0 128 128" className="pointer-events-none absolute -left-1 top-0 z-10 h-[124px] w-[124px] sm:h-[148px] sm:w-[148px]" fill="none" stroke={`url(#${frameId}-${h.slot})`} strokeWidth="1.25" strokeLinecap="round">
+                <defs>
+                  <linearGradient id={`${frameId}-${h.slot}`} x1="0" y1="0" x2="0.3" y2="1">
+                    <stop offset="0" stopColor="#f0d990" /><stop offset=".35" stopColor="#c5b47f" /><stop offset=".72" stopColor="#827281" /><stop offset="1" stopColor="#a49b83" />
+                  </linearGradient>
+                </defs>
+                {/* Broken concentric metal tracks, with the portrait inside the inner track. */}
+                <path d="M4 78A61 61 0 0 1 60 4M73 6A61 61 0 0 1 121 50M10 93A61 61 0 0 0 29 115M39 121A61 61 0 0 0 109 107" />
+                <path d="M34 17A53 53 0 0 1 117 65A53 53 0 0 1 69 117M60 117A53 53 0 0 1 24 25" stroke={innerColor} strokeWidth="1.7" />
+                <path d="M81 113l16 15M96 110l18 13" />
+                <g fill="#57606a">
+                  <circle cx="60" cy="4" r="1.6" /><circle cx="73" cy="6" r="1.6" />
+                  <circle cx="10" cy="93" r="1.6" /><circle cx="29" cy="115" r="1.6" />
+                </g>
+                <g fill="#57606a" stroke={innerColor}>
+                  <circle cx="34" cy="17" r="1.6" /><circle cx="24" cy="25" r="1.6" />
+                  <circle cx="60" cy="117" r="1.4" /><circle cx="69" cy="117" r="1.4" />
+                </g>
+                <circle cx="114" cy="123" r="2.2" fill="#a49b83" stroke="none" />
               </svg>
               <div className="absolute left-[10px] top-[14px] h-24 w-24 rounded-full sm:left-3 sm:top-4 sm:h-[116px] sm:w-[116px]" style={{ fontSize: 16 }}>
-                <UnitCard id={h.id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_24%] [&>img]:scale-[1.6]" />
+                <UnitCard id={h.id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_24%] [&>img]:scale-[1.85]" />
               </div>
-              <div className="absolute right-0 top-[10px] flex flex-col gap-2 sm:top-3 sm:gap-3">
+              <div className="absolute right-0 top-[10px] z-20 flex flex-col gap-2 sm:top-3 sm:gap-3">
                 {([1, 2] as const).map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
@@ -118,7 +141,7 @@ export function SkillQueueModal({
                       disabled={readOnly || (q < 0 && full)}
                       className={`relative h-12 w-12 rounded-lg border-2 bg-[#101727] text-xs font-semibold shadow-[0_2px_6px_#0008] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold sm:h-14 sm:w-14 ${
                         q >= 0 ? 'border-gold text-white shadow-[0_0_10px_rgba(244,213,141,.4)]'
-                          : 'border-white/25 text-white/80 enabled:hover:border-gold/70'
+                          : 'border-[#a9b2b9] ring-1 ring-[#59616b] text-white/80 enabled:hover:border-gold/70'
                       }`}
                     >
                       {art ? (
@@ -137,7 +160,8 @@ export function SkillQueueModal({
                 })}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
       {skills.length > 0 && (
