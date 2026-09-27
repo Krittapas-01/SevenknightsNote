@@ -10,6 +10,7 @@ import { groupOfKey, keyOf, parseDndId, refOf, useDndHub } from './DndHub'
 import UnitCard from './UnitCard'
 import HeroDetailModal from './HeroDetailModal'
 import type { HeroNote } from '../lib/types'
+import type { HeroStats } from '../lib/stats'
 import { getUnit } from '../data/heroes'
 
 const getName = (id: string) => getUnit(id)?.name ?? id
@@ -25,6 +26,8 @@ type Props = {
   size?: 'md' | 'sm'
   editable?: boolean
   heroNotes?: HeroNote[]
+  /** ดูอย่างเดียวแต่มีสิทธิ์แก้: อัปโหลดรูปสเตตัสจากหน้ารายละเอียดแล้วบันทึกเลย */
+  onSaveHeroStats?: (hero: string, stats: HeroStats) => Promise<void>
   /** กดช่องว่าง → เปิดหน้าเลือก */
   onSlotClick?: (kind: SlotKind, index: number) => void
   onReset?: () => void
@@ -49,7 +52,7 @@ const ROW_GAP = GAP
 
 export default function TeamPanel({
   team, variant, title, label, size = 'md', editable, onSlotClick, onReset, onFormation, onSpeed,
-  skills = [], onSkills, onMove, onPlace, blocked, heroNotes, className = '',
+  skills = [], onSkills, onMove, onPlace, blocked, heroNotes, onSaveHeroStats, className = '',
 }: Props) {
   const hub = useDndHub()
   const panelId = useId().replace(/[:|]/g, '')
@@ -342,7 +345,7 @@ export default function TeamPanel({
       <div className={isSm ? 'h-1' : 'h-2'} />
       {!active && heroNotes !== undefined && <p className="mt-2 text-center text-[11px] text-white/45">กดตัวละครเพื่อดูสเตตัสและของ</p>}
       {!active && detailHero && heroNotes !== undefined && (
-        <HeroDetailModal hero={detailHero} notes={heroNotes} onClose={() => setDetailHero(null)} />
+        <HeroDetailModal hero={detailHero} notes={heroNotes} onClose={() => setDetailHero(null)} onSaveStats={onSaveHeroStats} />
       )}
 
       {onFormation && <FormationModal open={modal === 'formation'} front={team.front} onSelect={onFormation} onClose={() => setModal(null)} />}

@@ -3,7 +3,9 @@ import type { HeroNote } from '../lib/types'
 import EquipmentLoadout from './EquipmentLoadout'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
-import { StatsGrid } from './HeroStats'
+import { StatsGrid, StatsImport } from './HeroStats'
+import { useState } from 'react'
+import type { HeroStats } from '../lib/stats'
 import { hasStats } from '../lib/stats'
 
 /** Match old notes by base name only when they do not specify another form. */
@@ -13,11 +15,24 @@ function noteFor(hero: string, notes: HeroNote[]) {
     ?? notes.find((note) => (getUnit(note.hero)?.name ?? note.hero) === baseName(name))
 }
 
-export default function HeroDetailModal({ hero, notes, onClose }: {
+export default function HeroDetailModal({ hero, notes, onClose, onSaveStats }: {
   hero: string
   notes: HeroNote[]
   onClose: () => void
+  /** มีสิทธิ์แก้ = อัปโหลดรูปสเตตัสแล้วบันทึกทันที */
+  onSaveStats?: (hero: string, stats: HeroStats) => Promise<void>
 }) {
+  const [saving, setSaving] = useState<'idle' | 'saving' | 'done' | string>('idle')
+  async function save(h: string, stats: HeroStats) {
+    if (!onSaveStats) return
+    setSaving('saving')
+    try {
+      await onSaveStats(h, stats)
+      setSaving('done')
+    } catch (e) {
+      setSaving('บันทึกไม่สำเร็จ: ' + (e as Error).message)
+    }
+  }
   const name = getUnit(hero)?.name ?? hero
   const note = noteFor(hero, notes)
   return (
@@ -37,6 +52,14 @@ export default function HeroDetailModal({ hero, notes, onClose }: {
           {note?.text.trim() ? note.text : hasStats(note?.stats) ? '' : 'ยังไม่ได้ระบุสเตตัสในคอมพ์นี้'}
         </p>
         <StatsGrid stats={note?.stats} className="mt-3" />
+        {onSaveStats && (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <StatsImport team={[hero]} onApply={(h, s) => { void save(h, s) }} />
+            {saving === 'saving' && <span className="mt-2 text-sm text-white/60">กำลังบันทึก…</span>}
+            {saving === 'done' && <span className="mt-2 text-sm text-green-300">บันทึกสเตตัสแล้ว ✓</span>}
+            {saving.startsWith('บันทึกไม่สำเร็จ') && <span className="mt-2 text-sm text-red-300">{saving}</span>}
+          </div>
+        )}
       </section>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <section className="rounded-2xl border border-gold/15 bg-black/20 p-4">

@@ -1,4 +1,5 @@
 import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Library, Star, Trash2, X } from 'lucide-react'
+import type { HeroStats } from '../lib/stats'
 import { StatsGrid, StatsImport, upsertStats } from './HeroStats'
 import { useState } from 'react'
 import EquipmentLoadout from './EquipmentLoadout'
@@ -24,6 +25,7 @@ type Props = {
   attack?: boolean
   /** แยกส่วน: panel = หัว+ทีม (ใช้ในแถว VS), details = โน้ต/ของ/คำเตือน (วางใต้แถว VS) */
   part?: 'all' | 'panel' | 'details'
+  onSaveHeroStats?: (hero: string, stats: HeroStats) => Promise<void>
   /** ไม้บุก: ทีมนี้คือทีมหลักที่จะใช้จริง */
   main?: boolean
   onMakeMain?: () => void
@@ -36,7 +38,7 @@ type Props = {
 const baseId = (id: string) => baseName(getUnit(id)?.name ?? id)
 
 /** ทางเลือก 1 ทีมในไม้นั้น ๆ */
-export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack, main, onMakeMain, conflicts = [], blocked, part = 'all' }: Props) {
+export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack, main, onMakeMain, conflicts = [], blocked, part = 'all', onSaveHeroStats }: Props) {
   const [showGear, setShowGear] = useState(false)
   const heroNotes = option.heroNotes ?? []
   const inTeam = new Set(option.team.slots.filter(Boolean).map((id) => baseId(id!)))
@@ -92,6 +94,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
         className={part === 'panel' ? 'flex-1' : ''}
         team={option.team}
         heroNotes={heroNotes}
+        onSaveHeroStats={onSaveHeroStats}
         skills={option.skills}
         editable={editing}
         title={teamTitle(option)}
