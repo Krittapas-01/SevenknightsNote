@@ -341,16 +341,16 @@ a.pill:active { transform: scale(.98); }
   box-shadow: 0 0 0 1px #4b3480, 0 4px 12px #05081480;
 }
 
-/* หน้าจองสกิล: รูปวงกลม — ขอบเงินบาง 1 ชั้นแนบรูปพอดี พื้นเทาไล่เฉด (วงนอกเป็น SVG แยก) */
+/* Only the SVG outer ornament frames queue portraits. */
 .skill-queue-face {
-  padding: 3px;
-  background: linear-gradient(160deg, #f3f1ea, #a9adb3 55%, #e6e2d6);
-  box-shadow: 0 0 0 1px #2b3140, 0 4px 12px #0009;
+  padding: 0;
+  background: none;
+  box-shadow: none;
 }
 .unit-card.skill-queue-portrait {
   border: 0;
   background: radial-gradient(circle at 40% 30%, #9aa0a8, #5b626c 60%, #3c434d);
-  box-shadow: inset 0 0 10px #0006;
+  box-shadow: none;
 }
 .unit-card.skill-queue-portrait::after { display: none; }
 

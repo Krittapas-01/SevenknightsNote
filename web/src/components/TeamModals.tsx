@@ -69,7 +69,7 @@ export function FormationModal({ open, front, onSelect, onClose }: { open: boole
 /** จองสกิล: กดสกิลตามลำดับที่ต้องการ (กดซ้ำ = ยกเลิก) สูงสุด MAX_SKILL_QUEUE */
 /* ---------- กรอบหน้าจองสกิล (วัดจากภาพในเกม แล้วย่อสเกลให้รูปฮีโร่รัศมี 54) ----------
  * พิกัดอิงจุดกลางรูปฮีโร่ = (0,0) · องศาเริ่มที่ 12 นาฬิกา หมุนตามเข็ม
- * วงในเกมไม่ได้ร่วมศูนย์กับรูปทั้งหมด: วงนอก 2 วงใช้ศูนย์ C1 ที่เยื้องขวาบนนิดหน่อย
+ * เก็บเฉพาะวงนอกที่เว้นช่วงและเครื่องประดับปลายเส้น
  */
 type Pt = readonly [number, number]
 const at = (c: Pt, r: number, deg: number): Pt => {
@@ -84,18 +84,13 @@ const arcPath = (c: Pt, r: number, a0: number, a1: number) => {
 }
 const P0: Pt = [0, 0]
 const C1: Pt = [8.6, -7.6] // ศูนย์ของวงนอก
-const C4: Pt = [-13.6, -16.2] // เส้นโค้งที่ม้วนเข้าหารูปด้านซ้าย
 /** [ศูนย์, รัศมี, องศาเริ่ม, องศาจบ, จุดวงกลมที่ปลายไหน] */
 const FRAME_ARCS: [Pt, number, number, number, ('start' | 'end')[]][] = [
   [C1, 72.7, 258, 1.6, ['end']], //  วงนอกซ้าย→บน
   [C1, 72.7, 15, 60, ['start']], //  วงนอกต่อทางขวา (ลอดใต้ไอคอน)
-  [C1, 66.1, 329, 50, ['start']], // วงกลาง
-  [C4, 42.4, 256, 332, ['end']], //  เส้นม้วนเข้ารูป
   [P0, 60.6, 208, 242, ['start', 'end']], // เส้นล่างซ้าย
   [C1, 72.7, 148, 202, []], //       วงนอกด้านล่าง
-  [P0, 57.5, 139, 196, []], //       ขอบล่างแนบรูป
 ]
-const FRAME_NODES: Pt[] = [at(P0, 57.5, 158)]
 const FRAME_LINES: [Pt, Pt][] = [[[33.3, 56], [50, 72.2]], [[60.6, 53], [73.7, 65.1]]]
 const FRAME_DOTS: [number, number, number][] = [[73.7, 65.1, 3], [80.2, 71.7, 1.5], [54, 76.7, 1.3]]
 
@@ -113,7 +108,6 @@ function SkillFrame({ gid }: { gid: string }) {
       </g>
       <g fill="#1d2436" stroke={`url(#${gid})`} strokeWidth="1.2">
         {FRAME_ARCS.flatMap(([c, r, a0, a1, ends]) => ends.map((e) => at(c, r, e === 'start' ? a0 : a1)))
-          .concat(FRAME_NODES)
           .map(([x, y], i) => <circle key={i} cx={x} cy={y} r="2.3" />)}
       </g>
       <g fill={`url(#${gid})`}>{FRAME_DOTS.map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} />)}</g>
@@ -121,10 +115,10 @@ function SkillFrame({ gid }: { gid: string }) {
   )
 }
 
-/** รูปฮีโร่: วงกลมขอบเงินบาง รูปตัดพอดีวง (แบบเดิมที่ชอบ) */
+/** รูปตัดเป็นวงกลมโดยไม่มีขอบซ้อนกับวงนอก */
 function SkillPortrait({ id }: { id: string }) {
   return (
-    <div className="skill-queue-face absolute left-[12px] top-[28px] h-[108px] w-[108px] rounded-full" style={{ fontSize: 16 }}>
+    <div className="skill-queue-face absolute left-[11px] top-[25px] h-[97px] w-[97px] overflow-hidden rounded-full sm:left-3 sm:top-7 sm:h-[108px] sm:w-[108px]" style={{ fontSize: 16 }}>
       <UnitCard id={id} shape="round" className="skill-queue-portrait [&>img]:origin-[50%_22%] [&>img]:scale-[1.9]" />
     </div>
   )
@@ -160,10 +154,10 @@ export function SkillQueueModal({
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
           {heroes.map((h) => {
             return (
-            <div key={h.slot} className="relative h-[164px] w-[170px] shrink-0">
+            <div key={h.slot} className="relative h-[148px] w-[153px] shrink-0 sm:h-[164px] sm:w-[170px]">
               <SkillFrame gid={`${frameId}-${h.slot}`} />
-              <SkillPortrait id={h.id!} />
-              <div className="absolute left-[111px] top-[16px] z-20 flex flex-col gap-[2px]">
+              <SkillPortrait id={h.id} />
+              <div className="absolute left-[95px] top-[21px] z-20 flex flex-col gap-2 sm:left-[105px] sm:top-6">
                 {([1, 2] as const).map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
@@ -177,7 +171,7 @@ export function SkillQueueModal({
                       title={description}
                       onClick={() => toggle(h.slot, k)}
                       disabled={readOnly || (q < 0 && full)}
-                      className={`relative h-[54px] w-[54px] rounded-[8px] border-[3px] bg-[#101727] p-0 text-[10px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold ${
+                      className={`relative h-[49px] w-[49px] rounded-[8px] border-[3px] bg-[#101727] p-0 text-[10px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold sm:h-[54px] sm:w-[54px] ${
                         q >= 0 ? 'border-gold shadow-[0_0_0_1px_#6b5220,0_0_14px_rgba(244,213,141,.55)]'
                           : 'border-[#dcdcdc] shadow-[0_0_0_1px_#8c8c8c,0_2px_6px_#0008] enabled:hover:border-gold/80'
                       }`}
