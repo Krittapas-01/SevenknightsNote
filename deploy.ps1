@@ -6,19 +6,27 @@ $project = "7k-note"
 
 function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Yellow }
 
+# Run a command and return all its output as text. Windows PowerShell treats
+# anything a tool prints to stderr (even a harmless wrangler WARNING) as a fatal
+# error when "Stop" is on, so relax it while capturing.
+function Capture([scriptblock]$cmd) {
+  $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+  try { ((& $cmd 2>&1) | ForEach-Object { "$_" }) -join "`n" } finally { $ErrorActionPreference = $old }
+}
+
 # ---------- API ----------
 Set-Location "$root\api"
 Step "Installing API packages"
 npm install --no-audit --no-fund | Out-Null
 
 Step "Checking Cloudflare login (a browser window may open - click Allow)"
-$who = (npx wrangler whoami 2>&1) -join "`n"
+$who = Capture { npx wrangler whoami }
 if ($who -match "not authenticated|You are not") { npx wrangler login }
 
-$toml = Get-Content "$root\api\wrangler.toml" -Raw
+$toml = Get-Content "$root\api\wrangler.toml" -Raw -Encoding UTF8
 if ($toml -match '00000000-0000-0000-0000-000000000000') {
   Step "Creating D1 database"
-  $out = (npx wrangler d1 create $project 2>&1) -join "`n"
+  $out = Capture { npx wrangler d1 create $project }
   Write-Host $out
   if ($out -match '([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})') {
     $toml = $toml -replace '00000000-0000-0000-0000-000000000000', $Matches[1]
@@ -53,9 +61,12 @@ if (-not (Test-Path "$root\api\.pandoara-seeded")) {
 $pandoaraKey = if (Test-Path "$root\api\.pandoara-key") { (Get-Content "$root\api\.pandoara-key" -Raw).Trim() } else { "" }
 
 Step "Deploying API"
-$dep = (npx wrangler deploy 2>&1) -join "`n"
+$dep = Capture { npx wrangler deploy }
 Write-Host $dep
-if ($dep -notmatch '(https://[\w\.-]+\.workers\.dev)') { throw "API deploy failed (see above)" }
+if ($dep -notmatch '(https://[\w\.-]+\.workers\.dev)') {
+  if ($dep -match 'workers\.dev subdomain') { Write-Host "`nFirst time only: run  cd api ; npx wrangler deploy  and pick a workers.dev name, then run deploy.ps1 again." -ForegroundColor Magenta }
+  throw "API deploy failed (see above)"
+}
 $apiUrl = $Matches[1]
 Write-Host "API: $apiUrl" -ForegroundColor Green
 
@@ -67,8 +78,8 @@ npm install --no-audit --no-fund | Out-Null
 npm run build
 
 Step "Deploying web to Cloudflare Pages"
-npx wrangler pages project create $project --production-branch main 2>&1 | Out-Null
-$pages = (npx wrangler pages deploy dist --project-name $project --branch main --commit-dirty=true 2>&1) -join "`n"
+Capture { npx wrangler pages project create $project --production-branch main } | Out-Null
+$pages = Capture { npx wrangler pages deploy dist --project-name $project --branch main --commit-dirty=true }
 Write-Host $pages
 
 Set-Location $root

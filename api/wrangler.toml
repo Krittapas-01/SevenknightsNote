@@ -10,4 +10,4 @@ ALLOWED_ORIGIN = "*"
 binding = "DB"
 database_name = "7k-note"
 # ได้จากคำสั่ง: npx wrangler d1 create 7k-note  (ตอน dev แบบ local ใช้ค่าอะไรก็ได้)
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "0452d0ac-94bf-4c7d-b2da-820406af4ce6"
