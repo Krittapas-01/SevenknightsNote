@@ -103,7 +103,7 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
         {mode === 'role' && (
           <>
             <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Role ID เช่น 123456789012345678" inputMode="numeric" className={field} />
-            <p className="mt-1 text-xs text-white/40">เปิด Developer Mode (ตั้งค่าผู้ใช้ → Advanced) แล้วไป Server Settings → Roles → คลิกขวาที่ยศ → Copy Role ID</p>
+            <p className="mt-1 text-xs text-white/40">เปิด Developer Mode (ตั้งค่าผู้ใช้ → Advanced) แล้วกดชื่อคนที่มียศนั้น → คลิกขวาที่ป้ายยศ → Copy Role ID (ไม่ต้องเป็นแอดมิน)</p>
           </>
         )}
 
