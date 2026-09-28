@@ -393,9 +393,9 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side }: {
   queue: { n: number; skill: 1 | 2 }[]
   side: 'left' | 'right'
 }) {
-  // เลขอยู่ตามตำแหน่งสกิลแบบในเกม: สกิลบน (สกิล 2) = ป้ายบน, สกิลล่าง (สกิล 1) = ป้ายล่าง
-  const top = queue.filter((q) => q.skill === 2).map((q) => q.n)
-  const bottom = queue.filter((q) => q.skill === 1).map((q) => q.n)
+  // เลขอยู่ตามตำแหน่งสกิลแบบในเกม: สกิลบน = ป้ายบน, สกิลล่าง = ป้ายล่าง
+  const top = queue.filter((q) => q.skill === 1).map((q) => q.n)
+  const bottom = queue.filter((q) => q.skill === 2).map((q) => q.n)
   // ป้ายยื่นออกข้างการ์ด · สกิลบน = มุมบน · สกิลล่าง = มุมล่าง (ขยับเข้าในนิดนึง ไม่ให้ชนการ์ดบน/ล่าง)
   const badge = (nums: number[], pos: string, label: string) => (
     <span className={`pointer-events-none absolute ${pos} z-10 flex gap-0.5`} title={`${label} ลำดับ ${nums.join(', ')}`}>

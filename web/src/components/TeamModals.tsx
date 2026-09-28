@@ -148,11 +148,10 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
               <SkillFrame gid={`${frameId}-${h.slot}`} />
               <SkillPortrait id={h.id} />
               <div className="absolute left-[95px] top-[10%] z-20 flex flex-col gap-2 sm:left-[105px]">
-                {/* ในเกม: สกิล 2 อยู่บน สกิล 1 อยู่ล่าง */}
-                {([2, 1] as const).map((k) => {
+                {([1, 2] as const).map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
-                  const label = k === 2 ? 'สกิลบน' : 'สกิลล่าง'
+                  const label = k === 1 ? 'สกิลบน' : 'สกิลล่าง'
                   const description = `${getUnit(h.id)?.name} · ${label}${art ? ` · ${art.name}` : ''}`
                   return (
                     <button
@@ -188,7 +187,7 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
       )}
       {skills.length > 0 && (
         <p className="mt-4 text-center text-sm text-white/70">
-          {skills.map((s, i) => `${i + 1}. ${baseName(getUnit(team.slots[s.slot])?.name ?? '')} ${s.skill === 2 ? 'บน' : 'ล่าง'}`).join('  →  ')}
+          {skills.map((s, i) => `${i + 1}. ${baseName(getUnit(team.slots[s.slot])?.name ?? '')} ${s.skill === 1 ? 'บน' : 'ล่าง'}`).join('  →  ')}
         </p>
       )}
     </>
