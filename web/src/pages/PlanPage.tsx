@@ -1,5 +1,5 @@
 import { AlertTriangle, Check, ChevronDown, ChevronLeft, ClipboardPaste, ImageDown, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
-import { tagStyle } from '../lib/tags'
+import { houseLabel, tagStyle } from '../lib/tags'
 import type { WarSlot } from '../lib/types'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
@@ -494,7 +494,7 @@ export default function PlanPage() {
                   <div className="flex h-full flex-col">
                     <div className="mb-4 flex min-h-8 items-center justify-center gap-2">
                       <span className="text-lg font-semibold text-red-200">บ้านที่จะตี</span>
-                      {slot.vsTag && <span className="rounded-full px-2.5 py-0.5 text-sm font-semibold" style={tagStyle(slot.vsTag)}>{slot.vsTag}</span>}
+                      {slot.vsTag && <span className="rounded-full px-2.5 py-0.5 text-sm font-semibold" style={tagStyle(slot.vsTag)}>{houseLabel(slot.vsTag)}</span>}
                     </div>
                     {slot.vs ? (
                       <TeamPanel
@@ -796,8 +796,8 @@ function AllocationBar({ slots, use, onAuto }: { slots: WarSlot[]; use: Map<stri
           return (
             <a key={s} href={`#slot-${s}`} className="flex items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-white/5">
               <span className="w-12 shrink-0 text-sm font-semibold text-gold">ไม้ {s + 1}</span>
-              <span className="w-16 shrink-0">
-                {slot.vsTag && <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={tagStyle(slot.vsTag)}>{slot.vsTag}</span>}
+              <span className="w-24 shrink-0">
+                {slot.vsTag && <span title="ประเภทบ้านศัตรูที่ไม้นี้จะไปตี" className="whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold" style={tagStyle(slot.vsTag)}>vs {houseLabel(slot.vsTag)}</span>}
               </span>
               <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                 {heroes.length ? heroes.map((id) => {

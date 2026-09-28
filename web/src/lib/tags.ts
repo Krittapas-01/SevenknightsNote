@@ -10,6 +10,14 @@ const FIXED: Record<string, string> = {
 }
 const PALETTE = ['#2fb67c', '#b45cf0', '#e0569b', '#17a8b8', '#c9a227', '#6f7cf2']
 
+/** แท็กนี้คือประเภท "บ้าน" (ทีมกันศัตรู) ไม่ใช่ทีมเรา → ชื่อสั้นแบบ "บ้านกาย" / "บ้านเวทย์" */
+export function houseLabel(tag: string) {
+  const t = tag.trim()
+  if (!t || t === 'ทั้งหมด') return t
+  if (t.startsWith('บ้าน')) return t
+  return `บ้าน${t === 'กายภาพ' ? 'กาย' : t === 'เวท' ? 'เวทย์' : t}`
+}
+
 export function tagColor(tag: string) {
   const t = tag.trim()
   if (FIXED[t]) return FIXED[t]

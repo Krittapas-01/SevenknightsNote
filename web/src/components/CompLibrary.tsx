@@ -1,4 +1,5 @@
 import { ArrowLeft, Search, Shield, Swords } from 'lucide-react'
+import { houseLabel } from '../lib/tags'
 import { useEffect, useMemo, useState } from 'react'
 import { getUnit } from '../data/heroes'
 import type { HeroNote, SkillStep, Team } from '../lib/types'
@@ -107,7 +108,7 @@ export default function CompLibrary({ open, initialTab, onPick, onPickDefense, f
                     onClick={() => { setType(t); setLimit(PAGE) }}
                     className={`rounded-full border px-3 py-0.5 text-sm ${type === t ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70 hover:bg-white/5'}`}
                   >
-                    {t}
+                    {houseLabel(t)}
                   </button>
                 ))}
               </div>
