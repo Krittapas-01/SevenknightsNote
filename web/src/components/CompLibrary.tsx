@@ -30,6 +30,20 @@ type Props = {
 const TYPES = ['ทั้งหมด', 'กายภาพ', 'เวทย์', 'ถึก', 'อื่นๆ']
 const PAGE = 24
 
+/** ประเภทของทีมเอง (ดูจากฮีโร่ส่วนใหญ่): กาย / เวทย์ / ถึก — ซัพ/สมดุลไม่นับ */
+const TEAM_TYPE: Record<string, string> = { attack: 'กายภาพ', magic: 'เวทย์', defense: 'ถึก' }
+export function teamType(t: Team) {
+  const n: Record<string, number> = {}
+  for (const id of t.slots) {
+    const k = id ? TEAM_TYPE[getUnit(id)?.type ?? ''] : undefined
+    if (k) n[k] = (n[k] ?? 0) + 1
+  }
+  const best = Object.entries(n).sort((a, b) => b[1] - a[1])
+  return !best.length || (best[1] && best[1][1] === best[0][1]) ? 'อื่นๆ' : best[0][0]
+}
+/** ทีมกัน → "บ้านกาย", ทีมบุก → "ทีมกาย" */
+const typeLabel = (t: string, attack: boolean) => (t === 'ทั้งหมด' ? t : attack ? `ทีม${t === 'กายภาพ' ? 'กาย' : t}` : houseLabel(t))
+
 const teamText = (t: Team, extra = '') =>
   [...t.slots, t.pet, ...t.extras].map((id) => getUnit(id)?.name ?? '').join(' ') + ' ' + extra
 
@@ -58,11 +72,12 @@ export default function CompLibrary({ open, initialTab, onPick, onPickDefense, f
   const list = useMemo(() => {
     if (!lib) return []
     const s = q.trim().toLowerCase()
-    const defs = lib.defenses.filter((d) => type === 'ทั้งหมด' || d.type === type)
+    // แท็บทีมกัน: กรองตามประเภทบ้าน · แท็บทีมบุก: กรองตามประเภทของทีมบุกเอง (ไม่ใช่บ้านที่แก้)
+    const defs = lib.defenses.filter((d) => type === 'ทั้งหมด' || tab === 'attack' || d.type === type)
     const items =
       vs ? vs.counters.map((c) => ({ comp: c, vs })) :
       tab === 'defense' ? defs.map((d) => ({ comp: d as Comp, vs: null as Defense | null, def: d })) :
-      defs.flatMap((d) => d.counters.map((c) => ({ comp: c, vs: d })))
+      defs.flatMap((d) => d.counters.filter((c) => type === 'ทั้งหมด' || teamType(c.team) === type).map((c) => ({ comp: c, vs: d })))
     return items.filter((it) => !s || teamText(it.comp.team, it.comp.note).toLowerCase().includes(s))
   }, [lib, q, type, tab, vs])
 
@@ -108,14 +123,14 @@ export default function CompLibrary({ open, initialTab, onPick, onPickDefense, f
                     onClick={() => { setType(t); setLimit(PAGE) }}
                     className={`rounded-full border px-3 py-0.5 text-sm ${type === t ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70 hover:bg-white/5'}`}
                   >
-                    {houseLabel(t)}
+                    {typeLabel(t, tab === 'attack')}
                   </button>
                 ))}
               </div>
             )}
           </div>
           <p className="mt-2 text-xs text-white/45">
-            {list.length} ทีม {tab === 'attack' && !vs && type !== 'ทั้งหมด' && `(ที่ใช้แก้บ้าน${type})`} · ข้อมูลจากกิลด์ {lib.source.name} บน 7k-combo
+            {list.length} ทีม {!vs && type !== 'ทั้งหมด' && `(${typeLabel(type, tab === 'attack')})`} · ข้อมูลจากกิลด์ {lib.source.name} บน 7k-combo
             {lib.source.sample && ' (ตัวอย่าง — รันสคริปต์ import เพื่อดึงข้อมูลทั้งหมด)'}
           </p>
 
