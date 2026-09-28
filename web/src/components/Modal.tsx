@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom'
 
 export default function Modal({ open, title, onClose, children, wide }: { open: boolean; title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean }) {
   const surface = useRef<HTMLDivElement>(null)
+  // ปิดเมื่อกดและปล่อยบนพื้นหลังเท่านั้น — ลากคลุมข้อความในช่องแล้วเมาส์หลุดออกนอกกรอบจะไม่ปิดหน้าต่าง
+  const downOnBackdrop = useRef(false)
   const titleId = useId()
   useEffect(() => {
     if (!open) return
@@ -23,7 +25,9 @@ export default function Modal({ open, title, onClose, children, wide }: { open: 
   if (!open) return null
   // portal ไปที่ body: ถ้าอยู่ใน .panel (มี backdrop-filter) ตำแหน่ง fixed จะเพี้ยน
   return createPortal(
-    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4"
+      onPointerDown={(e) => { downOnBackdrop.current = e.target === e.currentTarget }}
+      onClick={(e) => { if (e.target === e.currentTarget && downOnBackdrop.current) onClose(); downOnBackdrop.current = false }}>
       <div
         ref={surface} data-app-modal role="dialog" aria-modal="true" aria-labelledby={titleId}
         className={`modal-surface panel panel-gold flex max-h-[88dvh] w-full ${wide ? 'max-w-6xl' : 'max-w-2xl'} flex-col rounded-b-none sm:rounded-b-[18px]`}
