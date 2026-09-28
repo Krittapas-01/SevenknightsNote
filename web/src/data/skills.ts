@@ -8,7 +8,8 @@ const images = import.meta.glob('../assets/skills/*.webp', { eager: true, query:
 /** Resolve legacy IDs first; never substitute a different hero or form. */
 export function getSkillArt(id: string, skill: 1 | 2) {
   const unit = getUnit(id)
-  const art = unit && skills[unit.name]?.[skill - 1]
+  // คิวจองสกิล: 1 = สกิลบน, 2 = สกิลล่าง (ตามตำแหน่งในเกม) · ในไฟล์รูปเรียงกลับกัน (…03 = บน, …02 = ล่าง)
+  const art = unit && skills[unit.name]?.[skill === 1 ? 1 : 0]
   if (!art) return null
   const src = images[`../assets/skills/${art.file}`]
   return src ? { src, name: art.name } : null
