@@ -1,12 +1,22 @@
-import { equipmentNames, ringImage, setImages } from '../data/equipment'
+import { equipmentNames, ringImage, setIcon, setImages } from '../data/equipment'
 
 export default function EquipmentLoadout({ sets, rings }: { sets: string[]; rings: string[] }) {
   if (!sets.length && !rings.length) return null
   return (
     <div className="mt-2 flex flex-wrap items-start gap-2">
-      {sets.map((name, index) => <EquipmentItem key={`set-${index}`} name={name} kind="set" />)}
+      {sets.map((name, index) => <SetBadge key={`set-${index}`} name={name} />)}
       {rings.map((name, index) => <EquipmentItem key={`ring-${index}`} name={name} kind="ring" />)}
     </div>
+  )
+}
+
+/** เซ็ตที่ต้องใส่: โชว์แค่สัญลักษณ์เซ็ต (ชี้ค้างดูชื่อ) */
+function SetBadge({ name }: { name: string }) {
+  const src = setIcon(name)
+  if (!src) return <EquipmentItem name={name} kind="set" />
+  return (
+    <img src={src} alt={`ชุด${name}`} title={`ชุด${name}`} width={40} height={40} loading="lazy" decoding="async" draggable={false}
+      className="h-10 w-10 rounded-lg ring-1 ring-gold/30" />
   )
 }
 

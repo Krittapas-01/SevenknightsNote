@@ -1,5 +1,5 @@
 import { Ban } from 'lucide-react'
-import { ringImage, setImages } from '../data/equipment'
+import { ringImage, setIcon } from '../data/equipment'
 import { getUnit } from '../data/heroes'
 import { queueStyle } from '../lib/queue'
 import { SLOT_COUNT, type HeroNote, type SkillStep, type Team } from '../lib/types'
@@ -78,7 +78,7 @@ export default function AtlasTeam({ team, skills, heroNotes = [], title }: { tea
 /** ไอคอนเซ็ต (ชิ้นแรกของเซ็ต) + แหวน ใต้ฮีโร่ */
 function Gear({ note }: { note?: HeroNote }) {
   const icons = [
-    ...(note?.sets ?? []).map((s) => ({ src: setImages(s)[0], label: `ชุด${s}` })),
+    ...(note?.sets ?? []).map((s) => ({ src: setIcon(s), label: `ชุด${s}` })),
     ...(note?.rings ?? []).map((r) => ({ src: ringImage(r), label: r })),
   ].filter((x) => x.src)
   if (!icons.length) return null
