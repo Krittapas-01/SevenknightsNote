@@ -77,12 +77,14 @@ npm install --no-audit --no-fund | Out-Null
 npm run build
 
 Step "Deploying web to Cloudflare Pages"
-# Create the Pages project only the first time (skip if it already exists)
-$projects = Capture -Quiet { npx wrangler pages project list }
-if ($projects -notmatch "(?m)\b$([regex]::Escape($project))\b") {
-  Capture { npx wrangler pages project create $project --production-branch main } | Out-Null
-}
+# Deploy straight away (no hidden "project list" check - it could hang silently).
+# Only the very first time, when the project does not exist yet, create it and deploy again.
 $pages = Capture { npx wrangler pages deploy dist --project-name $project --branch main --commit-dirty=true }
+if ($pages -match "(?i)project not found|could not find project|8000007") {
+  Step "Creating the Pages project (first time only)"
+  Capture { npx wrangler pages project create $project --production-branch main } | Out-Null
+  $pages = Capture { npx wrangler pages deploy dist --project-name $project --branch main --commit-dirty=true }
+}
 
 Set-Location $root
 Write-Host "`nDONE!" -ForegroundColor Green
