@@ -37,10 +37,13 @@ body {
 }
 
 ::selection { background: #f4d58d40; color: #fff1cb; }
-:where(button, a, input, select, textarea):focus-visible {
+:where(button, a, input[type="checkbox"], input[type="radio"]):focus-visible {
   outline: 2px solid #f4d58d;
   outline-offset: 4px;
 }
+/* ช่องพิมพ์: ใช้ขอบช่องเปลี่ยนเป็นสีทองแทนกรอบสี่เหลี่ยมซ้อน */
+:where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus-visible { outline: none; }
+:where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus { border-color: #f4d58d; }
 button:not(:disabled), a { -webkit-tap-highlight-color: transparent; }
 button:not(:disabled) { cursor: pointer; }
 h1, h2, h3 { text-wrap: balance; }
