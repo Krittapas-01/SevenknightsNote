@@ -22,7 +22,7 @@ function ago(ts: number, now: number) {
   return `${Math.floor(h / 24)} วันที่แล้ว`
 }
 
-/** แถบประกาศติดใต้หัวเว็บ ทุกหน้าของกิลด์ อัปเดตเองทุก 15 วิ */
+/** แถบประกาศติดใต้หัวเว็บ ทุกหน้าของกิลด์ อัปเดตเองทุก 30 วิ */
 export default function AnnouncementBar({ gid }: { gid: string }) {
   const pulse = usePulse(gid)
   const [now, setNow] = useState(Date.now())
