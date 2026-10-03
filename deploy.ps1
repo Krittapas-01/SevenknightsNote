@@ -94,7 +94,7 @@ Write-Host "`nDONE!" -ForegroundColor Green
 Write-Host "Website : https://$project.pages.dev  (may take ~1 min the first time)" -ForegroundColor Green
 Write-Host "API     : $apiUrl" -ForegroundColor Green
 if ($pandoaraKey) {
-  Write-Host "Pandoara (edit): https://$project.pages.dev/g/pandoara?key=$pandoaraKey" -ForegroundColor Cyan
-  Write-Host "Pandoara (view): https://$project.pages.dev/g/pandoara" -ForegroundColor Cyan
+  Write-Host "Drinkeenassu (edit): https://$project.pages.dev/g/drinkeenassu?key=$pandoaraKey" -ForegroundColor Cyan
+  Write-Host "Drinkeenassu (view): https://$project.pages.dev/g/drinkeenassu" -ForegroundColor Cyan
 }
 Write-Host "ThousandSunny  : https://$project.pages.dev/g/iWMpFr9g  (add ?key=<your key> to edit)" -ForegroundColor Cyan

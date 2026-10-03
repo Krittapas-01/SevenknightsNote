@@ -12,6 +12,7 @@ const BiscuitPage = lazy(() => import('./pages/BiscuitPage'))
 const loading = <p className="py-24 text-center text-white/50">กำลังโหลด...</p>
 import NotFound from './pages/NotFound'
 
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

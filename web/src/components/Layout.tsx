@@ -1,6 +1,7 @@
 import { Menu } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { Link, Outlet, useMatch } from 'react-router'
+import { Link, Navigate, Outlet, useLocation, useMatch } from 'react-router'
+import { GUILD_ALIASES } from '../lib/api'
 import Account from './Account'
 import AnnouncementBar from './AnnouncementBar'
 import HeaderClock from './HeaderClock'
@@ -12,6 +13,12 @@ export default function Layout() {
   const gid = m?.params.gid
   const [menuOpen, setMenuOpen] = useState(false)
   const closeMenu = useCallback(() => setMenuOpen(false), [])
+  // ลิงก์กิลด์เก่า (เช่น /g/pandoara/...) → ลิงก์ใหม่ เก็บส่วนที่เหลือของลิงก์ไว้
+  const loc = useLocation()
+  if (gid && GUILD_ALIASES[gid]) {
+    const rest = loc.pathname.slice(`/g/${gid}`.length)
+    return <Navigate to={`/g/${GUILD_ALIASES[gid]}${rest}${loc.search}${loc.hash}`} replace />
+  }
   return (
     <div className="min-h-dvh">
       <header className="site-header sticky top-0 z-40 border-b border-gold/15 bg-[#0c1425]/95 backdrop-blur">

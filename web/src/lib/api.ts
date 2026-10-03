@@ -31,6 +31,19 @@ function writeJson(k: string, v: unknown) {
   }
 }
 
+/** ลิงก์กิลด์ที่ย้ายแล้ว: id เก่า → id ใหม่ */
+export const GUILD_ALIASES: Record<string, string> = { pandoara: 'drinkeenassu' }
+// ย้ายรหัสแก้ไข/รายการที่เคยเปิดในเครื่องตาม id ใหม่ (ทำครั้งเดียวตอนโหลด)
+{
+  const keys = readJson<Record<string, string>>(KEYS, {})
+  const recent = readJson<{ id: string; name: string }[]>(RECENT, [])
+  let changed = false
+  for (const [from, to] of Object.entries(GUILD_ALIASES)) {
+    if (keys[from]) { keys[to] ??= keys[from]; delete keys[from]; changed = true }
+    for (const r of recent) if (r.id === from) { r.id = to; changed = true }
+  }
+  if (changed) { writeJson(KEYS, keys); writeJson(RECENT, recent.filter((r, i) => recent.findIndex((x) => x.id === r.id) === i)) }
+}
 export const getEditKey = (gid: string) => readJson<Record<string, string>>(KEYS, {})[gid] ?? null
 export function saveEditKey(gid: string, key: string) {
   writeJson(KEYS, { ...readJson<Record<string, string>>(KEYS, {}), [gid]: key })

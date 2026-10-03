@@ -6,7 +6,7 @@
 import { createHash, randomInt } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
-const GUILD_ID = 'pandoara'
+const GUILD_ID = 'drinkeenassu' // เดิม pandoara
 const GUILD_NAME = 'Drinkeenassu'
 const root = new URL('..', import.meta.url)
 const keyFile = new URL('api/.pandoara-key', root)
