@@ -604,6 +604,8 @@ export default function PlanPage() {
       )}
 
       <CompLibrary
+        targets={data?.targets ?? []}
+        guildName={data?.guild.name ?? ''}
         open={vsLibrary !== null}
         initialTab="defense"
         onPick={() => {}}
@@ -643,6 +645,8 @@ export default function PlanPage() {
       )}
 
       <CompLibrary
+        targets={data?.targets ?? []}
+        guildName={data?.guild.name ?? ''}
         open={!!library}
         focusDefenseId={library ? draft.slots[library.s].vsId || undefined : undefined}
         initialTab={library ? draft.slots[library.s].kind : 'defense'}

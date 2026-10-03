@@ -1,9 +1,9 @@
-import { ArrowUpRight, ChevronRight, Shield, Swords } from 'lucide-react'
+import { ArrowUpRight, Shield, Swords } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
 import VsArena from '../components/VsArena'
-import { api, getRecent, pushRecent, saveEditKey } from '../lib/api'
+import { api, pushRecent, saveEditKey } from '../lib/api'
 import type { Team } from '../lib/types'
 
 const DEMO_ALLY: Team = { front: 2, slots: ['ลูดี้ awake', null, 'ยอนฮี', 'เรเชล', null], pet: 'อีรีน', extras: ['เจโอ', null, null, null], speed: 210 }
@@ -15,7 +15,6 @@ export default function LandingPage() {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const recent = getRecent()
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -64,18 +63,6 @@ export default function LandingPage() {
         <p className="relative mt-4 text-xs text-white/45">ใช้ฟรี · ไม่ต้องสมัคร · พร้อมใช้บนมือถือและคอม</p>
         {err && <p className="mt-3 text-sm text-red-300">{err}</p>}
 
-        {recent.length > 0 && (
-          <div className="mx-auto mt-6 max-w-lg text-left">
-            <p className="mb-2 text-sm text-white/50">กิลด์ที่เคยเปิด</p>
-            <div className="flex flex-wrap gap-2">
-              {recent.map((r) => (
-                <Link key={r.id} to={`/g/${r.id}`} className="pill flex items-center gap-1 px-3 py-1.5 text-sm hover:border-gold">
-                  {r.name} <ChevronRight className="h-4 w-4" />
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
 
       <section className="arena-showcase relative mt-12 sm:mt-16">

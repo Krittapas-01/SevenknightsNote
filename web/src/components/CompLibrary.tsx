@@ -2,21 +2,39 @@ import { ArrowLeft, Search, Shield, Swords } from 'lucide-react'
 import { houseLabel } from '../lib/tags'
 import { useEffect, useMemo, useState } from 'react'
 import { getUnit } from '../data/heroes'
-import type { HeroNote, SkillStep, Team } from '../lib/types'
+import type { HeroNote, SkillStep, Target, Team } from '../lib/types'
 import Modal from './Modal'
 import EquipmentLoadout from './EquipmentLoadout'
 import TeamPanel from './TeamPanel'
 
 export type Comp = { id: string; team: Team; skills: SkillStep[]; note: string; heroNotes: HeroNote[] }
 export type Defense = Comp & { type: string; counters: Comp[] }
-type Library = { source: { name: string; url: string; fetchedAt: string; sample?: boolean }; defenses: Defense[] }
+type Library = { defenses: Defense[] }
 
-let cache: Promise<Library> | null = null
-// โหลดไฟล์คลังตอนเปิดครั้งแรก (ไฟล์ใหญ่ ไม่ให้หน้าเว็บหลักช้า)
-const load = () => (cache ??= import('../data/comps.json').then((m) => m.default as unknown as Library))
+/** ประเภทบ้านจากแท็กของทีมเป้าหมาย (แท็กแรกที่เป็น กาย/เวทย์/ถึก) */
+function houseType(tags: string[]) {
+  for (const t of tags.map((x) => x.trim())) {
+    if (t === 'กายภาพ' || t === 'กาย') return 'กายภาพ'
+    if (t === 'เวทย์' || t === 'เวท') return 'เวทย์'
+    if (t === 'ถึก') return 'ถึก'
+  }
+  return 'อื่นๆ'
+}
+/** คลังคอมพ์ = ทีมที่กิลด์นี้จดไว้เอง (แยกกันทุกกิลด์ ไม่ใช้ข้อมูลกลาง) */
+function libraryOf(targets: Target[]): Library {
+  return {
+    defenses: targets.map((t) => ({
+      id: t.id, type: houseType(t.tags), team: t.team, skills: t.team.skills ?? [], note: t.note, heroNotes: [],
+      counters: t.counters.map((c) => ({ id: c.id, team: c.team, skills: c.skills, note: c.note, heroNotes: c.heroNotes ?? [] })),
+    })),
+  }
+}
 
 type Props = {
   open: boolean
+  /** ทีมเป้าหมาย + ทีมแก้ของกิลด์นี้ */
+  targets: Target[]
+  guildName: string
   /** ไม้กัน → เปิดแท็บทีมกันก่อน, ไม้บุก → เปิดแท็บทีมแก้ก่อน */
   initialTab: 'defense' | 'attack'
   onPick: (c: Comp) => void
@@ -47,7 +65,7 @@ const typeLabel = (t: string, attack: boolean) => (t === 'ทั้งหมด'
 const teamText = (t: Team, extra = '') =>
   [...t.slots, t.pet, ...t.extras].map((id) => getUnit(id)?.name ?? '').join(' ') + ' ' + extra
 
-export default function CompLibrary({ open, initialTab, onPick, onPickDefense, focusDefenseId, onClose }: Props) {
+export default function CompLibrary({ open, targets, guildName, initialTab, onPick, onPickDefense, focusDefenseId, onClose }: Props) {
   const pickMode = !!onPickDefense
   const [lib, setLib] = useState<Library | null>(null)
   const [tab, setTab] = useState<'defense' | 'attack'>(initialTab)
@@ -58,15 +76,14 @@ export default function CompLibrary({ open, initialTab, onPick, onPickDefense, f
 
   useEffect(() => {
     if (!open) return
-    load().then((l) => {
-      setLib(l)
-      setVs(focusDefenseId ? l.defenses.find((d) => d.id === focusDefenseId) ?? null : null)
-    })
+    const l = libraryOf(targets)
+    setLib(l)
+    setVs(focusDefenseId ? l.defenses.find((d) => d.id === focusDefenseId) ?? null : null)
     setTab(pickMode ? 'defense' : initialTab)
     setQ('')
     setType('ทั้งหมด')
-    setVs(null)
     setLimit(PAGE)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialTab, focusDefenseId, pickMode])
 
   const list = useMemo(() => {
@@ -130,10 +147,14 @@ export default function CompLibrary({ open, initialTab, onPick, onPickDefense, f
             )}
           </div>
           <p className="mt-2 text-xs text-white/45">
-            {list.length} ทีม {!vs && type !== 'ทั้งหมด' && `(${typeLabel(type, tab === 'attack')})`} · ข้อมูลจากกิลด์ {lib.source.name} บน 7k-combo
-            {lib.source.sample && ' (ตัวอย่าง — รันสคริปต์ import เพื่อดึงข้อมูลทั้งหมด)'}
+            {list.length} ทีม {!vs && type !== 'ทั้งหมด' && `(${typeLabel(type, tab === 'attack')})`} · ทีมที่กิลด์ {guildName} จดไว้ในแท็บ "จดทีมศัตรู"
           </p>
 
+          {lib.defenses.length === 0 && (
+            <p className="mt-6 rounded-xl border border-dashed border-white/15 p-8 text-center text-white/55">
+              กิลด์นี้ยังไม่ได้จดทีมศัตรู — ไปเพิ่มทีมเป้าหมายและทีมแก้ที่แท็บ "จดทีมศัตรู" ก่อน แล้วคลังจะมีให้เลือก
+            </p>
+          )}
           <div className="mt-4 grid gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
             {list.slice(0, limit).map(({ comp, vs: against, def }: { comp: Comp; vs: Defense | null; def?: Defense }) => (
               <div key={comp.id} className="flex flex-col">

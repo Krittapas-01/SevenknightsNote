@@ -383,7 +383,7 @@ export default function TargetPage() {
         )}
       </div>
 
-      <CompLibrary open={!!library} initialTab={library === 'counter' ? 'attack' : 'defense'} onPick={pickComp} onClose={() => setLibrary(null)} />
+      <CompLibrary targets={data?.targets ?? []} guildName={data?.guild.name ?? ''} open={!!library} initialTab={library === 'counter' ? 'attack' : 'defense'} onPick={pickComp} onClose={() => setLibrary(null)} />
 
       <UnitPicker
         open={!!picker}
