@@ -12,7 +12,7 @@ function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Yellow }
 # relax it while running.
 function Capture([scriptblock]$cmd, [switch]$Quiet) {
   $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-  try { ((& $cmd 2>&1) | ForEach-Object { $l = "$_"; if (-not $Quiet) { Write-Host $l }; $l }) -join "`n" } finally { $ErrorActionPreference = $old }
+  try { (& $cmd 2>&1 | ForEach-Object { $l = "$_"; if (-not $Quiet) { Write-Host $l }; $l }) -join "`n" } finally { $ErrorActionPreference = $old }
 }
 
 # ---------- API ----------
