@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import UnitCard from '../components/UnitCard'
 import UnitPicker from '../components/UnitPicker'
+import { FormationDiagram } from '../components/TeamModals'
 import { HEROES, getUnit } from '../data/heroes'
 import { baseAtkOf } from '../data/stats'
 import { SLOT_COUNT } from '../lib/types'
@@ -143,15 +144,20 @@ export default function BiscuitPage() {
           </span>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="w-full text-sm font-medium text-gold sm:w-auto">ค่ายกล (Lv.40)</span>
+        <p className="mt-4 text-sm font-medium text-gold">ค่ายกล (Lv.40)</p>
+        {/* รูปค่ายกลแบบเดียวกับตอนเลือกในคอมพ์ */}
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {FORMATION_ATK.map((f) => (
             <button
               key={f.front}
               onClick={() => setState((s) => ({ ...s, front: f.front }))}
-              className={`rounded-full border px-3 py-1 text-sm ${f.front === front ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/75 hover:bg-white/5'}`}
+              className={`rounded-2xl border-2 p-1.5 text-center transition ${
+                f.front === front ? 'border-gold bg-gold/15 shadow-[0_0_14px_rgba(244,213,141,.4)]' : 'border-white/15 bg-black/20 hover:border-white/40'
+              }`}
             >
-              {f.name} <span className="text-white/50">· หลัง +{f.atk}%</span>
+              <FormationDiagram front={f.front} />
+              <div className="text-sm font-semibold">{f.front === front && '✓ '}ค่าย{f.name}</div>
+              <div className="text-xs text-[#ff8f9a]">หลัง +{f.atk}% โจมตี</div>
             </button>
           ))}
         </div>

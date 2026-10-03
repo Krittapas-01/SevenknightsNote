@@ -11,7 +11,7 @@ import UnitCard from './UnitCard'
  * รูปค่ายกลแบบในเกม: แถวหลัง = หมากแดง, แถวหน้า = โล่น้ำเงิน
  * เรียงเฉียงขึ้นขวา ตัวเลข = ลำดับตำแหน่ง
  */
-function FormationDiagram({ front }: { front: number }) {
+export function FormationDiagram({ front }: { front: number }) {
   const back = SLOT_COUNT - front
   const row = (n: number, start: number, x0: number, y0: number, kind: 'back' | 'front') =>
     Array.from({ length: n }, (_, i) => {
