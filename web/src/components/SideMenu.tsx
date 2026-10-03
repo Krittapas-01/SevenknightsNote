@@ -42,17 +42,14 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
           </NavLink>
         ))}
 
-        {recent.length > 0 && (
-          <>
-            <hr className="my-3 border-white/10" />
-            <p className="mb-1 px-3 text-xs text-white/45">กิลด์ที่เคยเปิด</p>
-            {recent.map((r) => (
-              <NavLink key={r.id} to={`/g/${r.id}`} onClick={onClose} className={item}>
-                <Shield className="h-5 w-5 shrink-0" /> <span className="truncate">{r.name}</span>
-              </NavLink>
-            ))}
-          </>
-        )}
+        <hr className="my-3 border-white/10" />
+        <p className="mb-1 px-3 text-xs text-white/45">กิลด์ที่เคยเปิด</p>
+        {recent.length === 0 && <p className="px-3 py-2 text-sm text-white/40">ยังไม่มี เปิดลิงก์กิลด์แล้วจะขึ้นที่นี่</p>}
+        {recent.map((r) => (
+          <NavLink key={r.id} to={`/g/${r.id}`} onClick={onClose} className={item}>
+            <Shield className="h-5 w-5 shrink-0" /> <span className="truncate">{r.name}</span>
+          </NavLink>
+        ))}
       </nav>
     </div>
   )
