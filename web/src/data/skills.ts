@@ -19,5 +19,8 @@ export function getSkillArt(id: string, skill: 1 | 2 | 3) {
 /** สกิลที่จองได้ของฮีโร่: ตัวร่าง awake มี 3 สกิล (อเวคอยู่บนสุดแบบในเกม) */
 export function skillKeysOf(id: string): (1 | 2 | 3)[] {
   const unit = getUnit(id)
-  return unit && skills[unit.name]?.[2] ? [3, 1, 2] : [1, 2]
+  const art = unit && skills[unit.name]
+  if (!art) return [1, 2] // ไม่มีข้อมูล (เช่นชื่อที่พิมพ์เอง) → ให้จองได้ทั้งบน/ล่าง
+  // ตัวที่มีสกิลเดียว (เช่น บาลิสต้า) ไม่แสดงช่องสกิลที่ไม่มี
+  return ([3, 1, 2] as const).filter((k) => art[k === 3 ? 2 : k === 1 ? 1 : 0])
 }

@@ -24,7 +24,12 @@ const MAX_OPTIONS = 8
 const MAX_PLANS = 50
 const MAX_ANNOUNCEMENTS = 200
 // จันทร์..อาทิตย์: ตี จ/พ/ส, จัดบ้านกัน อ/ศ/อา, พักพฤหัส
-const DEFAULT_SCHEDULE = ['attack', 'defense', 'attack', 'rest', 'defense', 'attack', 'defense']
+// ตารางวอร์และ Season ของเกม — เหมือนกันทุกกิลด์ (เกมกำหนด ไม่ต้องให้แต่ละกิลด์ตั้งเอง)
+// จันทร์..อาทิตย์: ตี / จัดบ้านกัน / พัก
+const GAME_SCHEDULE = ['attack', 'defense', 'attack', 'rest', 'defense', 'attack', 'defense']
+// Season ที่รู้วันแน่นอน (06/08/2026 – 17/09/2026) · Season ถัดไปนับต่อเอง: เริ่มหลังจบ 1 สัปดาห์ ยาวเท่าเดิม (season.ts)
+// ถ้าเกมเปลี่ยนรอบ Season แก้ 2 บรรทัดนี้แล้ว deploy
+const GAME_SEASON = { start: '2026-08-06', end: '2026-09-17' }
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -245,9 +250,9 @@ app.get('/api/guild/:id', async (c) => {
   const planAnn = (ap.results as any[])[0]
   if (planAnn && !announcements.some((x) => x.id === planAnn.id)) announcements.push(toAnnouncement(planAnn))
   const settings = (st.results as any[])[0]
-  const schedule = settings ? JSON.parse(settings.schedule) : DEFAULT_SCHEDULE
+  const schedule = GAME_SCHEDULE
   const autoAnnounce = settings ? !!settings.auto_announce : true
-  const season = { start: settings?.season_start ?? '', end: settings?.season_end ?? '' }
+  const season = GAME_SEASON
   const discord = { // ไม่ส่ง webhook URL ออกไป
     connected: !!settings?.discord_webhook, mention: settings?.discord_mention ?? '',
     serverId: settings?.discord_guild_id ?? '', editRoles: JSON.parse(settings?.discord_edit_roles || '[]') as string[],
@@ -438,8 +443,8 @@ app.get('/api/guild/:id/pulse', async (c) => {
     guildName: guild.name,
     latest: a ? toAnnouncement(a) : null,
     activePlan: p ? { id: p.plan_id, title: p.title } : null,
-    schedule: s ? JSON.parse(s.schedule) : DEFAULT_SCHEDULE,
-    season: { start: s?.season_start ?? '', end: s?.season_end ?? '' },
+    schedule: GAME_SCHEDULE,
+    season: GAME_SEASON,
   })
 })
 
@@ -521,7 +526,7 @@ app.put('/api/guild/:id/discord', async (c) => {
   await c.env.DB.prepare(
     `INSERT INTO guild_settings (guild_id, schedule, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names) VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(guild_id) DO UPDATE SET ${sets.join(', ')}`,
-  ).bind(gid, JSON.stringify(DEFAULT_SCHEDULE), webhook ?? '', mention, serverId ?? '', JSON.stringify(editRoles ?? []), JSON.stringify(roleNames ?? [])).run()
+  ).bind(gid, JSON.stringify(GAME_SCHEDULE), webhook ?? '', mention, serverId ?? '', JSON.stringify(editRoles ?? []), JSON.stringify(roleNames ?? [])).run()
   const row = await c.env.DB.prepare('SELECT discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
   return c.json({
     connected: !!row?.discord_webhook, mention: row?.discord_mention ?? '', serverId: row?.discord_guild_id ?? '',
@@ -588,20 +593,15 @@ app.put('/api/guild/:id/schedule', async (c) => {
   const auth = await checkKey(c, gid)
   if (auth !== 'ok') return deny(c, auth)
   const body = await c.req.json().catch(() => ({}))
-  const raw = Array.isArray(body.schedule) ? body.schedule : []
-  const schedule = Array.from({ length: 7 }, (_, i) => (['attack', 'defense', 'rest'].includes(raw[i]) ? raw[i] : 'rest'))
+  // ตาราง/Season เป็นของเกม (เหมือนทุกกิลด์) — แต่ละกิลด์ตั้งได้แค่เปิด/ปิดประกาศอัตโนมัติ
   const autoAnnounce = body.autoAnnounce !== false
-  // Season: ใส่ทั้งคู่ หรือเว้นว่างทั้งคู่
-  const start = isDateKey(body.seasonStart) ? body.seasonStart : ''
-  const end = isDateKey(body.seasonEnd) ? body.seasonEnd : ''
-  if (!!start !== !!end || (start && end < start)) return c.json({ error: 'ใส่วันเริ่มและวันจบ Season ให้ครบ (วันจบต้องไม่ก่อนวันเริ่ม)' }, 400)
   await c.env.DB.prepare(
-    `INSERT INTO guild_settings (guild_id, schedule, auto_announce, season_start, season_end) VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(guild_id) DO UPDATE SET schedule = excluded.schedule, auto_announce = excluded.auto_announce, season_start = excluded.season_start, season_end = excluded.season_end`,
+    `INSERT INTO guild_settings (guild_id, schedule, auto_announce) VALUES (?, ?, ?)
+     ON CONFLICT(guild_id) DO UPDATE SET auto_announce = excluded.auto_announce`,
   )
-    .bind(gid, JSON.stringify(schedule), autoAnnounce ? 1 : 0, start, end)
+    .bind(gid, JSON.stringify(GAME_SCHEDULE), autoAnnounce ? 1 : 0)
     .run()
-  return c.json({ schedule, autoAnnounce, season: { start, end } })
+  return c.json({ schedule: GAME_SCHEDULE, autoAnnounce, season: GAME_SEASON })
 })
 
 app.notFound((c) => c.json({ error: 'not found' }, 404))
@@ -750,8 +750,7 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   let posted = 0
   for (const g of results) {
     if (g.last_at && gameDayKey(g.last_at) === todayKey) continue // วันนี้มีประกาศแล้ว (หรือรันซ้ำ)
-    const schedule: string[] = g.schedule ? JSON.parse(g.schedule) : DEFAULT_SCHEDULE
-    const body = dailyAnnouncement(schedule[today] ?? 'rest', DAY_NAMES[today], todayKey, g.season_start ?? '', g.season_end ?? '')
+    const body = dailyAnnouncement(GAME_SCHEDULE[today] ?? 'rest', DAY_NAMES[today], todayKey, GAME_SEASON.start, GAME_SEASON.end)
     if (!body) continue
     await env.DB.batch([
       env.DB.prepare('INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at, auto) VALUES (?, ?, ?, NULL, ?, ?, 1)')

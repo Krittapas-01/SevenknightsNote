@@ -5,7 +5,10 @@ import { Link } from 'react-router'
 import { api } from '../lib/api'
 import { notifyGuildChanged } from '../lib/usePulse'
 import type { Announcement, DayType, GuildData } from '../lib/types'
-import { DAYS, DAYS_SHORT, DAY_TYPE, activePlanId, dayIndex, fmtTime, isToday } from '../lib/war'
+import { DAYS, DAYS_SHORT, DAY_TYPE, activePlanId, dateKey, dayIndex, fmtTime, isToday } from '../lib/war'
+import { currentSeason } from '../lib/season'
+
+const fmtDate = (key: string) => new Date(`${key}T00:00:00+07:00`).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
 import DiscordSettings from './DiscordSettings'
 import Modal from './Modal'
 
@@ -243,29 +246,24 @@ function ComposeModal({ open, onClose, gid, data, activeId, reload }: { open: bo
 
 
 function ScheduleModal({ open, onClose, gid, schedule, auto, season, reload }: { open: boolean; onClose: () => void; gid: string; schedule: DayType[]; auto: boolean; season: { start: string; end: string }; reload: () => Promise<void> }) {
-  const [draft, setDraft] = useState<DayType[]>(schedule)
   const [autoDraft, setAutoDraft] = useState(auto)
-  const [start, setStart] = useState(season.start)
-  const [end, setEnd] = useState(season.end)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [prevOpen, setPrevOpen] = useState(open)
   if (open !== prevOpen) {
     setPrevOpen(open)
     if (open) {
-      setDraft(schedule)
       setAutoDraft(auto)
-      setStart(season.start)
-      setEnd(season.end)
       setErr(null)
     }
   }
+  const s = currentSeason(season.start, season.end, dateKey())
 
   async function save() {
     setBusy(true)
     setErr(null)
     try {
-      await api.saveSchedule(gid, draft, autoDraft, { start, end })
+      await api.saveSchedule(gid, autoDraft)
       await reload()
       onClose()
     } catch (e) {
@@ -277,41 +275,29 @@ function ScheduleModal({ open, onClose, gid, schedule, auto, season, reload }: {
 
   return (
     <Modal open={open} title="ตารางวอร์รายสัปดาห์" onClose={onClose}>
-      <div className="space-y-2">
+      <p className="mb-3 text-sm text-white/55">ตารางวันตี/วันจัดบ้านกัน และ Season เป็นของเกม ทุกกิลด์ใช้เหมือนกัน (ไม่ต้องตั้งเอง)</p>
+      <div className="grid grid-cols-7 gap-1.5 text-center text-sm">
         {DAYS.map((d, i) => (
-          <div key={d} className="flex items-center gap-3">
-            <span className="w-16">{d}</span>
-            <div className="pill flex p-0.5 text-sm">
-              {(['attack', 'defense', 'rest'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setDraft((x) => x.map((v, j) => (j === i ? t : v)))}
-                  className={`rounded-full px-3 py-1 ${draft[i] === t ? 'bg-gold font-semibold text-ink' : 'text-white/70 hover:bg-white/10'}`}
-                >
-                  {DAY_TYPE[t].label}
-                </button>
-              ))}
-            </div>
+          <div key={d} className="rounded-lg bg-black/25 px-1 py-2">
+            <div className="text-white/60">{DAYS_SHORT[i]}</div>
+            <div className="mt-1 font-semibold">{DAY_TYPE[schedule[i] ?? 'rest'].label}</div>
           </div>
         ))}
       </div>
-      <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl bg-black/25 px-4 py-3">
+      {s && (
+        <p className="mt-3 rounded-xl bg-black/25 px-4 py-3 text-sm text-white/70">
+          <span className="font-semibold text-white">Season</span> {fmtDate(s.start)} – {fmtDate(s.end)}
+          {s.phase === 'off' && <span className="text-white/50"> · ตอนนี้ช่วงพัก Season ถัดไปเริ่ม {fmtDate(s.nextStart)}</span>}
+          {s.phase === 'before' && <span className="text-white/50"> · ยังไม่เริ่ม</span>}
+        </p>
+      )}
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl bg-black/25 px-4 py-3">
         <input type="checkbox" checked={autoDraft} onChange={(e) => setAutoDraft(e.target.checked)} className="mt-1 h-4 w-4 accent-[#e2bf72]" />
         <span>
           <span className="font-semibold">ประกาศวันใหม่อัตโนมัติ 07:00</span>
           <span className="block text-sm text-white/55">บอกว่าวันนี้วันตีหรือจัดบ้านกันตามตารางนี้ (วันพักไม่แจ้ง) และแจ้งวันเริ่ม/วันสุดท้ายของ Season ส่วนแผนที่ใช้ไม่เปลี่ยน</span>
         </span>
       </label>
-      <div className="mt-4 rounded-xl bg-black/25 px-4 py-3">
-        <p className="font-semibold">Season</p>
-        <p className="text-sm text-white/55">ดูจากหน้า Guild War ในเกม (Official Season) · ช่วงพักระหว่าง Season จะไม่แจ้ง · ถ้าไม่ได้อัปเดต ระบบนับ Season ถัดไปให้เอง (เริ่มหลังจบ 1 สัปดาห์ ยาวเท่าเดิม)</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="rounded-lg border border-white/15 bg-[#161c2e] px-2.5 py-1.5 outline-none [color-scheme:dark] focus:border-gold" />
-          <span className="text-white/50">ถึง</span>
-          <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="rounded-lg border border-white/15 bg-[#161c2e] px-2.5 py-1.5 outline-none [color-scheme:dark] focus:border-gold" />
-          {(start || end) && <button type="button" onClick={() => { setStart(''); setEnd('') }} className="text-white/45 hover:text-white">ล้าง</button>}
-        </div>
-      </div>
       {err && <p className="mt-3 text-sm text-red-300">{err}</p>}
       <div className="mt-5 flex gap-2">
         <button disabled={busy} onClick={save} className="btn-gold px-6 py-2">{busy ? 'กำลังบันทึก...' : 'บันทึก'}</button>

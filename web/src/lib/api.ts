@@ -97,8 +97,9 @@ export const api = {
   saveDiscord: (gid: string, body: { webhook?: string; mention: string; serverId?: string; editRoles?: string[]; roleNames?: { id: string; name: string }[] }) =>
     req<NonNullable<GuildData['discord']>>(`/api/guild/${gid}/discord`, { method: 'PUT', body: JSON.stringify(body), gid }),
   testDiscord: (gid: string) => req<{ ok: true }>(`/api/guild/${gid}/discord/test`, { method: 'POST', gid }),
-  saveSchedule: (gid: string, schedule: DayType[], autoAnnounce: boolean, season: { start: string; end: string }) =>
+  /** ตารางวอร์/Season เป็นของเกม (เหมือนทุกกิลด์) — กิลด์ตั้งได้แค่เปิด/ปิดประกาศอัตโนมัติ */
+  saveSchedule: (gid: string, autoAnnounce: boolean) =>
     req<{ schedule: DayType[]; autoAnnounce: boolean }>(`/api/guild/${gid}/schedule`, {
-      method: 'PUT', body: JSON.stringify({ schedule, autoAnnounce, seasonStart: season.start, seasonEnd: season.end }), gid,
+      method: 'PUT', body: JSON.stringify({ autoAnnounce }), gid,
     }),
 }
