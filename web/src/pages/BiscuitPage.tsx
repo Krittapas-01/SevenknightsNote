@@ -14,8 +14,8 @@ type Row = { name: string; base: string; screen: string; extra: string }
 const ROW_GRID = 'grid-cols-[1fr_1fr_4rem_2rem] sm:grid-cols-[1fr_6rem_7rem_5rem_2rem]'
 // base โจมตีที่เช็กจากในเกมแล้ว (เติมเพิ่มได้เมื่อรู้ค่าของสายอื่น)
 const BASE_PRESETS = [
-  { value: 1500, label: 'ไฟ / สายโจมตี' },
-  { value: 1712, label: 'ไฟ / สายโจมตี awake' },
+  { value: 1500, label: 'ไฟ/น้ำ สายโจมตี' },
+  { value: 1712, label: 'ไฟ/น้ำ สายโจมตี awake' },
 ]
 const PLACEHOLDER = { base: 'base', screen: 'หน้าตัวละคร', extra: 'บัฟ%' } as const
 
@@ -159,7 +159,7 @@ export default function BiscuitPage() {
           </button>
         )}
         <p className="mt-3 text-xs text-white/45">
-          "บัฟ%เพิ่ม" ใช้กับบัฟที่ได้เฉพาะตัวนั้น (เช่น สกิลติดตัว) · base ของตัวไฟ/สายโจมตี: ปกติ 1,500 · awake 1,712 · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
+          "บัฟ%เพิ่ม" ใช้กับบัฟที่ได้เฉพาะตัวนั้น (เช่น สกิลติดตัว) · base ของตัวไฟ/น้ำ สายโจมตี (กายหรือเวทเท่ากัน): ปกติ 1,500 · awake 1,712 · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
         </p>
       </section>
 
