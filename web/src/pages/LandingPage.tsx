@@ -1,4 +1,4 @@
-import { ArrowUpRight, Shield, Swords } from 'lucide-react'
+import { ArrowUpRight, Eye, EyeOff, Shield, Swords } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
@@ -13,16 +13,21 @@ const DEMO_SKILLS = [{ slot: 2, skill: 1 as const }, { slot: 2, skill: 2 as cons
 export default function LandingPage() {
   const nav = useNavigate()
   const [name, setName] = useState('')
+  const [pw, setPw] = useState('')
+  const [pw2, setPw2] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
+    if (pw.trim().length < 6) return setErr('รหัสแก้ไขต้องยาวอย่างน้อย 6 ตัวอักษร')
+    if (pw.trim() !== pw2.trim()) return setErr('รหัสสองช่องไม่ตรงกัน')
     setBusy(true)
     setErr(null)
     try {
-      const g = await api.createGuild(name.trim())
+      const g = await api.createGuild(name.trim(), pw.trim())
       saveEditKey(g.id, g.editKey)
       pushRecent({ id: g.id, name: g.name })
       nav(`/g/${g.id}`)
@@ -45,8 +50,8 @@ export default function LandingPage() {
         </h1>
         <p className="relative mx-auto mt-5 max-w-lg text-sm leading-relaxed text-white/60 sm:text-base">จดทีม Guild War จัดทีมแก้และลำดับสกิล<br className="sm:hidden" /> แชร์ให้ทั้งกิลด์ดูได้ในลิงก์เดียว</p>
 
-        <form onSubmit={submit} className="panel panel-gold mx-auto mt-7 flex max-w-xl flex-col gap-3 p-5 text-left sm:flex-row sm:items-end sm:p-6">
-          <label className="flex-1">
+        <form onSubmit={submit} className="panel panel-gold mx-auto mt-7 grid max-w-xl gap-3 p-5 text-left sm:grid-cols-2 sm:p-6">
+          <label className="sm:col-span-2">
             <span className="text-sm font-medium text-gold">ชื่อกิลด์ของคุณ</span>
             <input
               value={name}
@@ -56,7 +61,25 @@ export default function LandingPage() {
               className="pill mt-1.5 w-full px-4 py-2.5 outline-none focus:border-gold"
             />
           </label>
-          <button disabled={busy || !name.trim()} className="btn-gold flex items-center justify-center gap-2 px-6 py-2.5">
+          {/* รหัสแก้ไขกิลด์: บอกเฉพาะคนที่ให้แก้แผนได้ (เปลี่ยนทีหลังได้ที่ปุ่ม "รหัสแก้ไข") */}
+          <label>
+            <span className="text-sm font-medium text-gold">ตั้งรหัสแก้ไข</span>
+            <span className="relative mt-1.5 block">
+              <input type={showPw ? 'text' : 'password'} value={pw} onChange={(e) => setPw(e.target.value)} maxLength={64}
+                autoComplete="new-password" placeholder="อย่างน้อย 6 ตัว" className="pill w-full px-4 py-2.5 pr-10 outline-none focus:border-gold" />
+              <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'ซ่อนรหัส' : 'แสดงรหัส'}
+                className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-white/50 hover:text-white">
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </span>
+          </label>
+          <label>
+            <span className="text-sm font-medium text-gold">ยืนยันรหัส</span>
+            <input type={showPw ? 'text' : 'password'} value={pw2} onChange={(e) => setPw2(e.target.value)} maxLength={64}
+              autoComplete="new-password" className="pill mt-1.5 w-full px-4 py-2.5 outline-none focus:border-gold" />
+          </label>
+          <p className="text-xs text-white/45 sm:col-span-2">ใช้รหัสนี้ตอนจะแก้ไขกิลด์จากเครื่องอื่น บอกเฉพาะคนที่ให้แก้แผนได้ · เปลี่ยนทีหลังได้</p>
+          <button disabled={busy || !name.trim() || !pw.trim() || !pw2.trim()} className="btn-gold flex items-center justify-center gap-2 px-6 py-2.5 sm:col-span-2">
             {busy ? 'กำลังสร้าง...' : 'สร้างกิลด์'} <ArrowUpRight className="h-4 w-4" />
           </button>
         </form>

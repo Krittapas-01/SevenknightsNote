@@ -41,6 +41,20 @@ app.use('/api/*', async (c, next) =>
   })(c, next),
 )
 
+// All write endpoints accept JSON objects. JSON null/arrays are valid JSON,
+// but must not reach handlers that dereference body fields.
+app.use('/api/*', async (c, next) => {
+  if (['POST', 'PUT', 'DELETE'].includes(c.req.method)) {
+    const text = await c.req.text()
+    if (text.trim()) {
+      let body: unknown
+      try { body = JSON.parse(text) } catch { return c.json({ error: 'ข้อมูล JSON ไม่ถูกต้อง' }, 400) }
+      if (!body || typeof body !== 'object' || Array.isArray(body)) return c.json({ error: 'ข้อมูลต้องเป็น JSON object' }, 400)
+    }
+  }
+  await next()
+})
+
 // ---------- helpers ----------
 const ALPHABET = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 function randomId(len = 8) {
@@ -61,6 +75,8 @@ function parseTeam(raw: any): Team | null {
   if (!Array.isArray(raw.slots) || raw.slots.length !== SLOT_COUNT) return null
   const slots = raw.slots.map(idOrNull)
   if (slots.filter(Boolean).length > MAX_HEROES) return null
+  const heroes = slots.filter(Boolean)
+  if (new Set(heroes).size !== heroes.length) return null
   const extras = Array.from({ length: EXTRA_COUNT }, (_, i) => (Array.isArray(raw.extras) ? idOrNull(raw.extras[i]) : null))
   const speed = Math.max(0, Math.min(99999, Math.floor(Number(raw.speed) || 0)))
   const team: Team = { front, slots, pet: idOrNull(raw.pet), extras, speed }
@@ -227,8 +243,11 @@ app.post('/api/guild', async (c) => {
   // ชื่อกิลด์ห้ามซ้ำ (ไม่สนตัวพิมพ์เล็ก/ใหญ่ และช่องว่างหัวท้าย)
   const taken = await c.env.DB.prepare('SELECT 1 FROM guilds WHERE lower(trim(name)) = lower(?) LIMIT 1').bind(name.trim()).first()
   if (taken) return c.json({ error: `มีกิลด์ชื่อ "${name.trim()}" อยู่แล้ว ลองใช้ชื่ออื่น` }, 409)
+  // รหัสแก้ไขกิลด์: ผู้สร้างตั้งเองตอนสร้าง (6–64 ตัว) · ไม่ส่งมา = สุ่มให้ (แบบเดิม)
+  const password = typeof body.password === 'string' ? body.password.trim() : ''
+  if (password && (password.length < 6 || password.length > 64)) return c.json({ error: 'รหัสต้องยาว 6–64 ตัวอักษร' }, 400)
   const id = randomId(8)
-  const editKey = randomId(20)
+  const editKey = password || randomId(20)
   await c.env.DB.prepare('INSERT INTO guilds (id, name, edit_hash, created_at) VALUES (?, ?, ?, ?)')
     .bind(id, name, await sha256(editKey), Date.now())
     .run()

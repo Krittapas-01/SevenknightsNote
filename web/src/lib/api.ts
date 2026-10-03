@@ -91,8 +91,8 @@ async function req<T>(path: string, init: RequestInit & { gid?: string; key?: st
 }
 
 export const api = {
-  createGuild: (name: string) =>
-    req<{ id: string; name: string; editKey: string }>('/api/guild', { method: 'POST', body: JSON.stringify({ name }) }),
+  createGuild: (name: string, password: string) =>
+    req<{ id: string; name: string; editKey: string }>('/api/guild', { method: 'POST', body: JSON.stringify({ name, password }) }),
   getGuild: (gid: string) => req<GuildData>(`/api/guild/${gid}`),
   pulse: (gid: string) => req<Pulse>(`/api/guild/${gid}/pulse`),
   checkEdit: (gid: string, key?: string) => req<{ canEdit: boolean; locked?: boolean }>(`/api/guild/${gid}/check`, { gid, key }),
