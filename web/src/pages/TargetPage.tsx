@@ -11,7 +11,7 @@ import CompLibrary, { type Comp } from '../components/CompLibrary'
 import VsArena from '../components/VsArena'
 import { PRESET_TAGS, getUnit } from '../data/heroes'
 import { api } from '../lib/api'
-import { MAX_HEROES, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type HeroNote, type SkillStep, type Team } from '../lib/types'
+import { MAX_HEROES, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, SKILL_LABEL, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import NotFound from './NotFound'
 import { EquipmentNoteText } from '../components/EquipmentLoadout'
@@ -409,7 +409,7 @@ function SkillOrder({ team, skills }: { team: Team; skills: SkillStep[] }) {
         <li key={i} className="flex items-center gap-1.5">
           <span className="flex items-center gap-1.5 rounded-full bg-black/30 py-0.5 pl-0.5 pr-3">
             <span className="grid h-5 w-5 place-items-center rounded-full text-xs font-bold" style={queueStyle(i + 1)}>{i + 1}</span>
-            {getUnit(team.slots[s.slot])?.name} · S{s.skill}
+            {getUnit(team.slots[s.slot])?.name} · {SKILL_LABEL[s.skill]}
           </span>
           {i < skills.length - 1 && <span className="text-white/40">→</span>}
         </li>

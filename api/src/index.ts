@@ -12,7 +12,7 @@ type Team = {
   speed: number
   skills?: SkillStep[] // จองสกิลของทีมนี้ (ใช้กับทีมศัตรู/บ้าน)
 }
-type SkillStep = { slot: number; skill: 1 | 2 }
+type SkillStep = { slot: number; skill: 1 | 2 | 3 } // 3 = สกิลอเวค (ตัวร่าง awake)
 
 const SLOT_COUNT = 5
 const MAX_HEROES = 3
@@ -66,7 +66,7 @@ function parseSkills(raw: any, team: Team): SkillStep[] {
   if (!Array.isArray(raw)) return []
   return raw
     .slice(0, 10)
-    .map((s: any) => ({ slot: Number(s?.slot), skill: Number(s?.skill) === 2 ? 2 : 1 }) as SkillStep)
+    .map((s: any) => ({ slot: Number(s?.slot), skill: Number(s?.skill) === 3 ? 3 : Number(s?.skill) === 2 ? 2 : 1 }) as SkillStep)
     .filter((s) => Number.isInteger(s.slot) && s.slot >= 0 && s.slot < SLOT_COUNT && team.slots[s.slot])
 }
 function parseTags(raw: any): string[] {

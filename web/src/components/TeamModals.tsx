@@ -1,9 +1,9 @@
 import { RotateCcw } from 'lucide-react'
 import { useId } from 'react'
 import { queueStyle } from '../lib/queue'
-import { FORMATIONS, MAX_SKILL_QUEUE, SLOT_COUNT, type SkillStep, type Team } from '../lib/types'
+import { FORMATIONS, MAX_SKILL_QUEUE, SKILL_LABEL, SLOT_COUNT, type SkillKey, type SkillStep, type Team } from '../lib/types'
 import { baseName, getUnit } from '../data/heroes'
-import { getSkillArt } from '../data/skills'
+import { getSkillArt, skillKeysOf } from '../data/skills'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
 
@@ -130,7 +130,7 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
   const readOnly = !onChange
   const heroes = team.slots.map((id, slot) => ({ id, slot })).filter((h) => h.id) as { id: string; slot: number }[]
   const full = skills.length >= MAX_SKILL_QUEUE
-  function toggle(slot: number, skill: 1 | 2) {
+  function toggle(slot: number, skill: SkillKey) {
     const i = skills.findIndex((s) => s.slot === slot && s.skill === skill)
     if (!onChange) return
     if (i >= 0) onChange(skills.filter((_, j) => j !== i))
@@ -143,15 +143,17 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
       ) : (
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
           {heroes.map((h) => {
+            const keys = skillKeysOf(h.id)
+            const three = keys.length === 3
             return (
             <div key={h.slot} className="relative aspect-[170/164] w-[153px] shrink-0 sm:w-[170px]">
               <SkillFrame gid={`${frameId}-${h.slot}`} />
               <SkillPortrait id={h.id} />
-              <div className="absolute left-[95px] top-[10%] z-20 flex flex-col gap-2 sm:left-[105px]">
-                {([1, 2] as const).map((k) => {
+              <div className={`absolute left-[95px] z-20 flex flex-col sm:left-[105px] ${three ? '-top-[6%] gap-1' : 'top-[10%] gap-2'}`}>
+                {keys.map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
-                  const label = k === 1 ? 'สกิลบน' : 'สกิลล่าง'
+                  const label = `สกิล${SKILL_LABEL[k]}`
                   const description = `${getUnit(h.id)?.name} · ${label}${art ? ` · ${art.name}` : ''}`
                   return (
                     <button
@@ -161,8 +163,9 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
                       title={description}
                       onClick={() => toggle(h.slot, k)}
                       disabled={readOnly || (q < 0 && full)}
-                      className={`relative h-[49px] w-[49px] rounded-[8px] border-[3px] bg-[#101727] p-0 text-[10px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold sm:h-[54px] sm:w-[54px] ${
+                      className={`relative rounded-[8px] border-[3px] bg-[#101727] p-0 text-[10px] font-semibold ${three ? 'h-[44px] w-[44px] sm:h-[48px] sm:w-[48px]' : 'h-[49px] w-[49px] sm:h-[54px] sm:w-[54px]'} transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold ${
                         q >= 0 ? 'border-gold shadow-[0_0_0_1px_#6b5220,0_0_14px_rgba(244,213,141,.55)]'
+                          : k === 3 ? 'border-[#a77bff] shadow-[0_0_0_1px_#5b3aa8,0_2px_6px_#0008] enabled:hover:border-gold/80'
                           : 'border-[#dcdcdc] shadow-[0_0_0_1px_#8c8c8c,0_2px_6px_#0008] enabled:hover:border-gold/80'
                       }`}
                     >
@@ -187,7 +190,7 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
       )}
       {skills.length > 0 && (
         <p className="mt-4 text-center text-sm text-white/70">
-          {skills.map((s, i) => `${i + 1}. ${baseName(getUnit(team.slots[s.slot])?.name ?? '')} ${s.skill === 1 ? 'บน' : 'ล่าง'}`).join('  →  ')}
+          {skills.map((s, i) => `${i + 1}. ${baseName(getUnit(team.slots[s.slot])?.name ?? '')} ${SKILL_LABEL[s.skill]}`).join('  →  ')}
         </p>
       )}
     </>

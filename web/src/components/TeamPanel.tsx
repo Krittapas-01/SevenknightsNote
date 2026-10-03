@@ -390,12 +390,13 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side }: {
   inspectable?: boolean
   onClick: () => void
   /** จองสกิลของช่องนี้: n = ลำดับ, skill = บน(1)/ล่าง(2) */
-  queue: { n: number; skill: 1 | 2 }[]
+  queue: { n: number; skill: 1 | 2 | 3 }[]
   side: 'left' | 'right'
 }) {
   // เลขอยู่ตามตำแหน่งสกิลแบบในเกม: สกิลบน = ป้ายบน, สกิลล่าง = ป้ายล่าง
   const top = queue.filter((q) => q.skill === 1).map((q) => q.n)
   const bottom = queue.filter((q) => q.skill === 2).map((q) => q.n)
+  const awake = queue.filter((q) => q.skill === 3).map((q) => q.n)
   // ป้ายยื่นออกข้างการ์ด · สกิลบน = มุมบน · สกิลล่าง = มุมล่าง (ขยับเข้าในนิดนึง ไม่ให้ชนการ์ดบน/ล่าง)
   const badge = (nums: number[], pos: string, label: string) => (
     <span className={`pointer-events-none absolute ${pos} z-10 flex gap-0.5`} title={`${label} ลำดับ ${nums.join(', ')}`}>
@@ -422,6 +423,7 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side }: {
       </button>
       {/* ป้ายแดงแบบในเกม = ลำดับจองสกิล (บน = สกิลบน, ล่าง = สกิลล่าง) */}
       {id && top.length > 0 && badge(top, `top-0 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, 'สกิลบน')}
+      {id && awake.length > 0 && badge(awake, `top-1/2 -translate-y-1/2 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, 'สกิลอเวค')}
       {id && bottom.length > 0 && badge(bottom, `bottom-0 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, 'สกิลล่าง')}
     </div>
   )

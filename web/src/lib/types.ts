@@ -19,7 +19,10 @@ export type Team = {
   skills?: SkillStep[]
 }
 
-export type SkillStep = { slot: number; skill: 1 | 2 }
+/** skill: 1 = สกิลบน, 2 = สกิลล่าง, 3 = สกิลอเวค (เฉพาะตัวร่าง awake ที่มีสกิลอเวค) */
+export type SkillKey = 1 | 2 | 3
+export type SkillStep = { slot: number; skill: SkillKey }
+export const SKILL_LABEL: Record<SkillKey, string> = { 1: 'บน', 2: 'ล่าง', 3: 'อเวค' }
 
 export type Counter = {
   id: string
