@@ -43,6 +43,15 @@ export function forgetEditKey(gid: string) {
 }
 
 export type Recent = { id: string; name: string }
+/** อัปเดตรายการที่เคยเปิดให้ตรงกับเซิร์ฟเวอร์: ชื่อใหม่ + เอากิลด์ที่ถูกลบออก (ลำดับเดิม) */
+export async function refreshRecent(): Promise<Recent[]> {
+  const list = getRecent()
+  if (!list.length) return list
+  const names = await req<Record<string, string>>(`/api/guilds/names?ids=${list.map((r) => encodeURIComponent(r.id)).join(',')}`)
+  const next = list.filter((r) => names[r.id]).map((r) => ({ id: r.id, name: names[r.id] }))
+  writeJson(RECENT, next)
+  return next
+}
 /** เอากิลด์ออกจากรายการที่เคยเปิด (เช่น หลังลบกิลด์) */
 export function forgetRecent(gid: string) {
   writeJson(RECENT, getRecent().filter((x) => x.id !== gid))

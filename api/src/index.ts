@@ -235,6 +235,14 @@ app.post('/api/guild', async (c) => {
   return c.json({ id, name, editKey }, 201)
 })
 
+// ชื่อปัจจุบันของกิลด์ที่เคยเปิด (เมนูข้าง) — กิลด์ที่ถูกลบจะไม่อยู่ในผลลัพธ์
+app.get('/api/guilds/names', async (c) => {
+  const ids = (c.req.query('ids') ?? '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 20)
+  if (!ids.length) return c.json({})
+  const { results } = await c.env.DB.prepare(`SELECT id, name FROM guilds WHERE id IN (${ids.map(() => '?').join(',')})`).bind(...ids).all<{ id: string; name: string }>()
+  return c.json(Object.fromEntries(results.map((r) => [r.id, r.name])))
+})
+
 // ลบกิลด์ทั้งหมด (ถาวร) — ต้องมีสิทธิ์แก้ไข และส่งชื่อกิลด์มายืนยันให้ตรง
 app.delete('/api/guild/:id', async (c) => {
   const gid = c.req.param('id')

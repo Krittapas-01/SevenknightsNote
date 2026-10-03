@@ -1,7 +1,7 @@
 import { Cookie, Home, Shield, X } from 'lucide-react'
-import { useEffect, type ComponentType } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { NavLink } from 'react-router'
-import { getRecent } from '../lib/api'
+import { getRecent, refreshRecent } from '../lib/api'
 
 // เมนูหลักของเว็บ เพิ่มหน้า/เครื่องมือใหม่ที่นี่ที่เดียว
 const NAV: { to: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
@@ -17,7 +17,12 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  const recent = open ? getRecent() : []
+  const [recent, setRecent] = useState(getRecent)
+  useEffect(() => {
+    if (!open) return
+    setRecent(getRecent())
+    refreshRecent().then(setRecent).catch(() => {}) // ชื่อล่าสุด + ตัดกิลด์ที่ถูกลบ
+  }, [open])
   const item = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-lg px-3 py-2 ${isActive ? 'bg-white/10 text-gold' : 'text-white/85 hover:bg-white/5'}`
 
