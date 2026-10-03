@@ -275,7 +275,6 @@ function ScheduleModal({ open, onClose, gid, schedule, auto, season, reload }: {
 
   return (
     <Modal open={open} title="ตารางวอร์รายสัปดาห์" onClose={onClose}>
-      <p className="mb-3 text-sm text-white/55">ตารางวันตี/วันจัดบ้านกัน และ Season เป็นของเกม ทุกกิลด์ใช้เหมือนกัน (ไม่ต้องตั้งเอง)</p>
       <div className="grid grid-cols-7 gap-1.5 text-center text-sm">
         {DAYS.map((d, i) => (
           <div key={d} className="rounded-lg bg-black/25 px-1 py-2">
