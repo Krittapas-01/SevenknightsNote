@@ -45,7 +45,7 @@ const equipmentPattern = new RegExp(`(${equipmentNames.join('|')})`, 'g')
 export function EquipmentNoteText({ text }: { text: string }) {
   return <div className="mt-3 whitespace-pre-wrap text-white/80">{text.split(equipmentPattern).map((part, index) =>
     equipmentNames.includes(part)
-      ? <EquipmentItem key={index} name={part.startsWith('ชุด') ? part.slice(3) : part} kind={part.startsWith('ชุด') ? 'set' : 'ring'} />
+      ? part.startsWith('ชุด') ? <SetBadge key={index} name={part.slice(3)} /> : <EquipmentItem key={index} name={part} kind="ring" />
       : part,
   )}</div>
 }

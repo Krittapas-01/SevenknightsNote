@@ -1,6 +1,6 @@
 import { Plus, X } from 'lucide-react'
 import { useState } from 'react'
-import { RING_NAMES, SET_NAMES, ringImage, setImages } from '../data/equipment'
+import { RING_NAMES, SET_NAMES, ringImage, setIcon, setImages } from '../data/equipment'
 import Modal from './Modal'
 
 const MAX_SETS = 3
@@ -17,20 +17,19 @@ export default function EquipmentEditor({ sets, rings, onChange }: {
   const add = (name: string) => {
     if (pick === 'set') onChange([...sets, name].slice(0, MAX_SETS), rings)
     else onChange(sets, [...rings, name].slice(0, MAX_RINGS))
-    const full = pick === 'set' ? sets.length + 1 >= MAX_SETS : rings.length + 1 >= MAX_RINGS
-    if (full) setPick(null)
+    setPick(null) // เลือก 1 อันแล้วปิด (กด + อีกครั้งเพื่อเพิ่ม)
   }
   return (
     <div className="mt-2 flex flex-wrap items-center gap-3">
-      <Group label="เซ็ต" items={sets.map((s) => ({ name: `ชุด${s}`, src: setImages(s)[0] }))} max={MAX_SETS}
+      <Group label="เซ็ต" items={sets.map((s) => ({ name: `ชุด${s}`, src: setIcon(s) ?? setImages(s)[0] }))} max={MAX_SETS}
         onRemove={(i) => onChange(sets.filter((_, j) => j !== i), rings)} onAdd={() => setPick('set')} />
       <Group label="แหวน" items={rings.map((r) => ({ name: r, src: ringImage(r) }))} max={MAX_RINGS}
         onRemove={(i) => onChange(sets, rings.filter((_, j) => j !== i))} onAdd={() => setPick('ring')} />
 
-      <Modal open={pick !== null} title={pick === 'set' ? 'เลือกเซ็ตไอเทม' : 'เลือกแหวน (เลือกซ้ำได้)'} onClose={() => setPick(null)}>
+      <Modal open={pick !== null} title={pick === 'set' ? 'เลือกเซ็ตไอเทม' : 'เลือกแหวน'} onClose={() => setPick(null)}>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
           {options.map((name) => {
-            const src = pick === 'set' ? setImages(name)[0] : ringImage(name)
+            const src = pick === 'set' ? setIcon(name) ?? setImages(name)[0] : ringImage(name)
             return (
               <button key={name} type="button" onClick={() => add(name)} title={pick === 'set' ? `ชุด${name}` : name}
                 className="flex flex-col items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1.5 hover:border-gold">

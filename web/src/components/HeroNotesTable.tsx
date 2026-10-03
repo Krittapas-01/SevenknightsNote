@@ -1,7 +1,7 @@
 import { X } from 'lucide-react'
 import { StatsGrid, StatsImport, upsertStats } from './HeroStats'
 import { baseName, getUnit } from '../data/heroes'
-import { ringImage, setImages } from '../data/equipment'
+import { ringImage, setIcon, setImages } from '../data/equipment'
 import type { HeroNote } from '../lib/types'
 import UnitCard from './UnitCard'
 import EquipmentEditor from './EquipmentEditor'
@@ -47,8 +47,8 @@ export default function HeroNotesTable({ notes, editing, onChange, team }: {
               </div>
             ) : (
               <div className="min-w-0 space-y-1.5">
+                <Slots label="เซ็ต" items={n.sets.map((s) => ({ name: `ชุด${s}`, src: setIcon(s) ?? setImages(s)[0] }))} />
                 <Slots label="แหวน" items={n.rings.map((r) => ({ name: r, src: ringImage(r) }))} />
-                <Slots label="เซ็ตไอเทม" items={n.sets.map((s) => ({ name: `ชุด${s}`, src: setImages(s)[0] }))} />
               </div>
             )}
           </div>
