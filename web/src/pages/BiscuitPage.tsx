@@ -86,16 +86,14 @@ export default function BiscuitPage() {
     setState((s) => ({ ...s, slots: s.slots.map((r, j) => (j === i ? { ...r, ...patch } : r)) }))
   const pick = (i: number, id: string | null) => {
     if (!id) setSlot(i, { ...EMPTY_SLOT })
-    else {
-      const b = baseAtkOf(id) // รู้ค่า → เติม base ให้เอง
-      setSlot(i, b ? { id, base: String(b) } : { id })
-    }
+    else setSlot(i, { id })
     setPicking(null)
   }
 
   const filled = slots
     .map((r, i) => {
-      const base = num(r.base)
+      // base ตายตัวตามตัวละคร (7K Atlas) แก้ไม่ได้
+      const base = r.id ? baseAtkOf(r.id) ?? 0 : 0
       const screen = num(r.screen)
       const back = isBack(i)
       const pct = petBuff + (back ? formation.atk : 0) + num(r.extra)
@@ -188,10 +186,11 @@ export default function BiscuitPage() {
                   <>
                     <input value={r.screen} onChange={(e) => setSlot(i, { screen: e.target.value })} inputMode="decimal"
                       placeholder="หน้าตัว" aria-label="โจมตีหน้าตัวละคร" className={input} />
-                    <input value={r.base} onChange={(e) => setSlot(i, { base: e.target.value })} inputMode="decimal"
-                      placeholder="base" aria-label="base โจมตี" className={`${input} text-white/70`} />
                     <input value={r.extra} onChange={(e) => setSlot(i, { extra: e.target.value })} inputMode="decimal"
                       placeholder="บัฟ%+" aria-label="บัฟ % เพิ่มเฉพาะตัว" className={`${input} text-white/70`} />
+                    <span className="text-center text-[11px] text-white/45 tabular-nums">
+                      {r.id && baseAtkOf(r.id) ? `base ${fmt(baseAtkOf(r.id)!)}` : 'ไม่มี base'}
+                    </span>
                   </>
                 )}
               </div>
@@ -199,7 +198,7 @@ export default function BiscuitPage() {
           })}
         </div>
         <p className="mt-4 text-xs text-white/45">
-          กดช่องเพื่อเลือกตัวละคร base เติมให้เอง (ค่าจาก 7K Atlas) · ช่องแรกใต้รูป = โจมตีหน้าตัวละคร · ช่องที่ 2 = base · ช่องที่ 3 = บัฟ % เพิ่มเฉพาะตัว (เช่น สกิลติดตัว)
+          กดช่องเพื่อเลือกตัวละคร · ช่องแรกใต้รูป = โจมตีหน้าตัวละคร · ช่องที่ 2 = บัฟ % เพิ่มเฉพาะตัว (เช่น สกิลติดตัว) · base ตายตัวตามตัวละคร (ค่าจาก 7K Atlas)
           · ค่ายกลให้ All Attack % เฉพาะแถวหลัง (แถวหน้าได้ป้องกัน %) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
         </p>
       </section>
