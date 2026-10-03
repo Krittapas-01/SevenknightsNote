@@ -1,6 +1,9 @@
 # 7K Note - one-click deploy to Cloudflare (free)
 # Run in PowerShell:  cd C:\Dev\7k-note ; powershell -ExecutionPolicy Bypass -File .\deploy.ps1
 $ErrorActionPreference = "Stop"
+# Read tool output as UTF-8 (otherwise wrangler's "─" lines show up as "ΓöÇ")
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$OutputEncoding = [Text.Encoding]::UTF8
 $root = $PSScriptRoot
 $project = "7k-note"
 
