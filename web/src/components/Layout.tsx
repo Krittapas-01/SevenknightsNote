@@ -1,22 +1,32 @@
+import { Menu } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { Link, Outlet, useMatch } from 'react-router'
 import AnnouncementBar from './AnnouncementBar'
+import SideMenu from './SideMenu'
 
 export default function Layout() {
   // อยู่ในหน้าของกิลด์ไหน → โชว์แถบประกาศของกิลด์นั้นทุกหน้า
   const m = useMatch({ path: '/g/:gid', end: false })
   const gid = m?.params.gid
+  const [menuOpen, setMenuOpen] = useState(false)
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#161c2e]/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
+          <button
+            onClick={() => setMenuOpen(true)}
+            aria-label="เปิดเมนู"
+            className="grid h-9 w-9 place-items-center rounded-lg border border-white/20 text-white/80 hover:border-gold hover:text-gold"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           <Link to="/" className="flex items-center gap-2 text-lg font-bold">
             <span className="text-gold">✦</span> 7K Note
           </Link>
-          <Link to="/biscuit" className="ml-auto text-sm text-white/70 hover:text-gold">
-            🍪 เช็กบัฟบิสกิต
-          </Link>
         </div>
       </header>
+      <SideMenu open={menuOpen} onClose={closeMenu} />
       {gid && <AnnouncementBar key={gid} gid={gid} />}
       <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
         <Outlet />

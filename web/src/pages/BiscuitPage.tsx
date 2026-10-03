@@ -26,19 +26,21 @@ const BASE_PRESETS = [
 const PLACEHOLDER = { base: 'base', screen: 'หน้าตัวละคร', extra: 'บัฟ%' } as const
 
 const EMPTY_ROW: Row = { name: '', base: '', screen: '', extra: '' }
+// บัฟ % ของทั้งทีมมาจาก "ศักยภาพ" ของสัตว์เลี้ยง: บรรทัด All Attack (%) สูงสุด 4 บรรทัด
+const PET_LINES = 4
 const DEFAULT_STATE = {
-  buff: '10',
+  pet: ['13', '13', '11', '11'],
   rows: [
     { name: 'ตัว A', base: '1500', screen: '4523', extra: '' },
     { name: 'ตัว B', base: '1712', screen: '4505', extra: '' },
-    { name: 'ตัว C', base: '1400', screen: '4510', extra: '' },
+    { name: 'ตัว C', base: '1457', screen: '4510', extra: '' },
   ] as Row[],
 }
 
 function load(): typeof DEFAULT_STATE {
   try {
     const s = JSON.parse(localStorage.getItem(STORE_KEY) ?? '')
-    if (Array.isArray(s?.rows) && typeof s?.buff === 'string') return s
+    if (Array.isArray(s?.rows) && Array.isArray(s?.pet)) return s
   } catch {
     /* ใช้ค่าเริ่มต้น */
   }
@@ -61,7 +63,8 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
 
 export default function BiscuitPage() {
   const [state, setState] = useState(load)
-  const { buff, rows } = state
+  const { pet, rows } = state
+  const buff = pet.reduce((sum, v) => sum + num(v), 0)
 
   useEffect(() => {
     try {
@@ -78,7 +81,7 @@ export default function BiscuitPage() {
     .map((r, i) => {
       const base = num(r.base)
       const screen = num(r.screen)
-      const pct = num(buff) + num(r.extra)
+      const pct = buff + num(r.extra)
       return { i, name: r.name.trim() || `ตัวที่ ${i + 1}`, base, screen, pct, game: screen + (base * pct) / 100 }
     })
     .filter((r) => r.screen > 0)
@@ -103,15 +106,24 @@ export default function BiscuitPage() {
       </p>
 
       <section className="panel mt-6 p-4 sm:p-5">
-        <label className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-gold">บัฟโจมตี % ที่ทั้งทีมได้ตอนเริ่มเกม</span>
-          <input
-            value={buff}
-            onChange={(e) => setState((s) => ({ ...s, buff: e.target.value }))}
-            inputMode="decimal"
-            className="pill w-24 px-3 py-1.5 text-center tabular-nums outline-none focus:border-gold"
-          />
-        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-full text-sm font-medium text-gold sm:w-auto">ศักยภาพสัตว์เลี้ยง All Attack (%)</span>
+          {Array.from({ length: PET_LINES }, (_, i) => (
+            <input
+              key={i}
+              value={pet[i] ?? ''}
+              onChange={(e) =>
+                setState((s) => ({ ...s, pet: Array.from({ length: PET_LINES }, (_, j) => (j === i ? e.target.value : s.pet[j] ?? '')) }))
+              }
+              inputMode="decimal"
+              aria-label={`ศักยภาพบรรทัดที่ ${i + 1}`}
+              className="pill w-16 px-2 py-1.5 text-center tabular-nums outline-none focus:border-gold"
+            />
+          ))}
+          <span className="text-sm text-white/70">
+            = <b className="text-gold tabular-nums">{buff}%</b>
+          </span>
+        </div>
 
         <div className={`mt-4 hidden gap-2 text-xs text-white/50 sm:grid ${ROW_GRID}`}>
           <span>ชื่อตัวละคร</span>
