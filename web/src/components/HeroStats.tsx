@@ -1,6 +1,6 @@
 import { Camera, ClipboardPaste, Loader2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { baseName, englishOf, getUnit } from '../data/heroes'
+import { HEROES, baseName, englishOf, getUnit } from '../data/heroes'
 import { readImageText } from '../lib/ocr'
 import { STATS, fmtStat, hasStats, parseStats, type HeroStats, type StatKey } from '../lib/stats'
 import type { HeroNote } from '../lib/types'
@@ -79,12 +79,17 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
   const [hero, setHero] = useState<string>('')
   const [stats, setStats] = useState<HeroStats>({})
   const [raw, setRaw] = useState('')
+  // ฮีโร่ในภาพไม่อยู่ในคอมพ์นี้ (ชื่อที่อ่านได้) / ไม่เจอชื่อฮีโร่ในทีมเลย
+  const [mismatch, setMismatch] = useState<string | null>(null)
+  const [noHero, setNoHero] = useState(false)
 
   async function run(file: Blob) {
     setOpen(true)
     setErr(null)
     setStats({})
     setRaw('')
+    setMismatch(null)
+    setNoHero(false)
     setImg((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(file) })
     setProgress(0)
     try {
@@ -94,7 +99,13 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
       setStats(s)
       const found = detectHero(text, heroes)
       if (found) setHero(found)
-      else if (!hero && heroes[0]) setHero(heroes[0])
+      else {
+        if (!hero && heroes[0]) setHero(heroes[0])
+        // ภาพเป็นฮีโร่ตัวอื่นที่ไม่ได้อยู่ในคอมพ์ → เตือน
+        const other = detectHero(text, HEROES.map((h) => h.id))
+        if (other) setMismatch(baseName(getUnit(other)?.name ?? other))
+        else setNoHero(true)
+      }
       if (!hasStats(s)) setErr('อ่านสเตตัสไม่เจอ — ใช้ภาพหน้าข้อมูลฮีโร่ในเกม (ภาษาอังกฤษ) หรือพิมพ์ค่าเองด้านล่าง')
     } catch (e) {
       setErr('อ่านรูปไม่สำเร็จ: ' + (e as Error).message)
@@ -148,6 +159,16 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
               </div>
             )}
             {err && <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-100">{err}</p>}
+            {mismatch && (
+              <p role="alert" className="mt-3 rounded-lg border border-red-400/50 bg-red-500/15 px-3 py-2 text-sm text-red-100">
+                ⚠️ ภาพนี้เป็นสเตตัสของ <b>{mismatch}</b> ซึ่งไม่ได้อยู่ในคอมพ์นี้ — เช็กว่าใช้รูปถูกตัว ก่อนกดใส่ให้ {hero ? baseName(getUnit(hero)?.name ?? hero) : 'ฮีโร่ในทีม'}
+              </p>
+            )}
+            {noHero && !err && (
+              <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                ไม่เจอชื่อฮีโร่ในทีมนี้ในภาพ — เช็กว่าเลือกตัวถูกด้านขวาก่อนกดใส่
+              </p>
+            )}
           </div>
 
           <div>
@@ -182,7 +203,12 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
           </div>
         </div>
         <div className="mt-5 flex gap-2">
-          <button disabled={!hero || !hasStats(stats) || progress !== null} onClick={() => { onApply(hero, stats); setOpen(false) }} className="btn-gold flex-1 py-2">
+          <button disabled={!hero || !hasStats(stats) || progress !== null}
+            onClick={() => {
+              if (mismatch && !confirm(`ภาพนี้เป็นของ ${mismatch} ไม่ใช่ตัวในคอมพ์ ยืนยันจะใส่สเตตัสให้ ${baseName(getUnit(hero)?.name ?? hero)}?`)) return
+              onApply(hero, stats)
+              setOpen(false)
+            }} className="btn-gold flex-1 py-2">
             ใส่สเตตัสให้ {hero ? baseName(getUnit(hero)?.name ?? hero) : ''}
           </button>
           <button onClick={() => setOpen(false)} className="pill flex items-center gap-1 px-5 py-2"><X className="h-4 w-4" /> ยกเลิก</button>
