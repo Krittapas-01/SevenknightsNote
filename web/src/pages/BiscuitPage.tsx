@@ -12,6 +12,11 @@ type Row = { name: string; base: string; screen: string; extra: string }
 
 // มือถือ: ชื่อ+ปุ่มลบบรรทัดแรก แล้วช่องตัวเลข 3 ช่องบรรทัดที่สอง · จอใหญ่: แถวเดียว
 const ROW_GRID = 'grid-cols-[1fr_1fr_4rem_2rem] sm:grid-cols-[1fr_6rem_7rem_5rem_2rem]'
+// base โจมตีที่เช็กจากในเกมแล้ว (เติมเพิ่มได้เมื่อรู้ค่าของสายอื่น)
+const BASE_PRESETS = [
+  { value: 1500, label: 'ไฟ / สายโจมตี' },
+  { value: 1712, label: 'ไฟ / สายโจมตี awake' },
+]
 const PLACEHOLDER = { base: 'base', screen: 'หน้าตัวละคร', extra: 'บัฟ%' } as const
 
 const EMPTY_ROW: Row = { name: '', base: '', screen: '', extra: '' }
@@ -19,7 +24,7 @@ const DEFAULT_STATE = {
   buff: '10',
   rows: [
     { name: 'ตัว A', base: '1500', screen: '4523', extra: '' },
-    { name: 'ตัว B', base: '1700', screen: '4505', extra: '' },
+    { name: 'ตัว B', base: '1712', screen: '4505', extra: '' },
     { name: 'ตัว C', base: '1400', screen: '4510', extra: '' },
   ] as Row[],
 }
@@ -114,6 +119,11 @@ export default function BiscuitPage() {
             <option key={h} value={h} />
           ))}
         </datalist>
+        <datalist id="biscuit-bases">
+          {BASE_PRESETS.map((b) => (
+            <option key={b.value} value={b.value} label={b.label} />
+          ))}
+        </datalist>
         <div className="mt-1 flex flex-col gap-2">
           {rows.map((r, i) => (
             <div key={i} className={`grid gap-2 border-b border-white/10 pb-2 sm:border-0 sm:pb-0 ${ROW_GRID}`}>
@@ -131,6 +141,7 @@ export default function BiscuitPage() {
                   value={r[k]}
                   onChange={(e) => setRow(i, { [k]: e.target.value })}
                   inputMode="decimal"
+                  list={k === 'base' ? 'biscuit-bases' : undefined}
                   placeholder={PLACEHOLDER[k]}
                   aria-label={PLACEHOLDER[k]}
                   className="pill min-w-0 px-2 py-1.5 text-center tabular-nums outline-none focus:border-gold"
@@ -148,7 +159,7 @@ export default function BiscuitPage() {
           </button>
         )}
         <p className="mt-3 text-xs text-white/45">
-          "บัฟ%เพิ่ม" ใช้กับบัฟที่ได้เฉพาะตัวนั้น (เช่น สกิลติดตัว) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
+          "บัฟ%เพิ่ม" ใช้กับบัฟที่ได้เฉพาะตัวนั้น (เช่น สกิลติดตัว) · base ของตัวไฟ/สายโจมตี: ปกติ 1,500 · awake 1,712 · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
         </p>
       </section>
 
