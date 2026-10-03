@@ -1,47 +1,58 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { HEROES } from '../data/heroes'
+import UnitCard from '../components/UnitCard'
+import UnitPicker from '../components/UnitPicker'
+import { HEROES, getUnit } from '../data/heroes'
 import { baseAtkOf } from '../data/stats'
+import { SLOT_COUNT } from '../lib/types'
 
 // บิสกิตบัฟให้ตัวที่ "โจมตีในเกม" สูงสุด 2 อันดับ
 // โจมตีในเกม = โจมตีหน้าตัวละคร + base × บัฟ% (บัฟ % คิดจาก base ไม่ใช่ค่ารวม)
 const BISCUIT_TARGETS = 2
-const MAX_ROWS = 5
 const STORE_KEY = '7k-note:biscuit'
 
-type Row = { name: string; base: string; screen: string; extra: string }
+type Slot = { id: string | null; base: string; screen: string; extra: string }
 
-// มือถือ: ชื่อ+ปุ่มลบบรรทัดแรก แล้วช่องตัวเลข 3 ช่องบรรทัดที่สอง · จอใหญ่: แถวเดียว
-const ROW_GRID = 'grid-cols-[1fr_1fr_4rem_2rem] sm:grid-cols-[1fr_6rem_7rem_5rem_2rem]'
-// base โจมตีที่เช็กจากในเกมแล้ว (เติมเพิ่มได้เมื่อรู้ค่าของสายอื่น)
-const BASE_PRESETS = [
-  { value: 1500, label: 'ไฟ/น้ำ สายโจมตี' },
-  { value: 1712, label: 'ไฟ/น้ำ สายโจมตี awake' },
-  { value: 1095, label: 'แสง สายสนับสนุน' },
-  { value: 1253, label: 'แสง สายสนับสนุน awake' },
-  { value: 1306, label: 'มืด สายสมดุล' },
-  { value: 1457, label: 'มืด สายสมดุล awake' },
-  { value: 727, label: 'ดิน สายป้องกัน' },
-  { value: 832, label: 'ดิน สายป้องกัน awake' },
+// ค่ายกล Lv.40 (จากในเกม): แถวหลังได้ All Attack % · แถวหน้าได้แค่ Defense % (ไม่มีผลกับบัฟบิสกิต)
+const FORMATION_ATK: { front: number; name: string; atk: number }[] = [
+  { front: 2, name: 'พื้นฐาน', atk: 14 },
+  { front: 3, name: 'สมดุล', atk: 21 },
+  { front: 1, name: 'บุก', atk: 10.5 },
+  { front: 4, name: 'ป้องกัน', atk: 42 },
 ]
-const PLACEHOLDER = { base: 'base', screen: 'หน้าตัวละคร', extra: 'บัฟ%' } as const
+// คอลัมน์ (ซ้าย→ขวา) ที่เป็นแถวหน้า ตามค่ายกล (เหมือนในเกม/AtlasTeam)
+const FRONT_COLS: Record<number, number[]> = { 1: [2], 2: [1, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4] }
 
-const EMPTY_ROW: Row = { name: '', base: '', screen: '', extra: '' }
+const EMPTY_SLOT: Slot = { id: null, base: '', screen: '', extra: '' }
 // บัฟ % ของทั้งทีมมาจาก "ศักยภาพ" ของสัตว์เลี้ยง: บรรทัด All Attack (%) สูงสุด 4 บรรทัด
 const PET_LINES = 4
-const DEFAULT_STATE = {
+type State = { pet: string[]; front: number; slots: Slot[] }
+const DEFAULT_STATE: State = {
   pet: ['13', '13', '11', '11'],
-  rows: [
-    { name: 'ตัว A', base: '1500', screen: '4523', extra: '' },
-    { name: 'ตัว B', base: '1712', screen: '4505', extra: '' },
-    { name: 'ตัว C', base: '1457', screen: '4510', extra: '' },
-  ] as Row[],
+  front: 2,
+  slots: [
+    { id: 'ทันจิโร่', base: '1500', screen: '4523', extra: '' },
+    { ...EMPTY_SLOT },
+    { id: 'ซอรัน awake', base: '1712', screen: '4505', extra: '' },
+    { ...EMPTY_SLOT },
+    { id: 'ไอลีน', base: '1457', screen: '4510', extra: '' },
+  ],
 }
 
-function load(): typeof DEFAULT_STATE {
+function load(): State {
   try {
     const s = JSON.parse(localStorage.getItem(STORE_KEY) ?? '')
-    if (Array.isArray(s?.rows) && Array.isArray(s?.pet)) return s
+    const pet = Array.isArray(s?.pet) ? s.pet : DEFAULT_STATE.pet
+    if (Array.isArray(s?.slots)) return { pet, front: FRONT_COLS[s.front] ? s.front : 2, slots: Array.from({ length: SLOT_COUNT }, (_, i) => ({ ...EMPTY_SLOT, ...s.slots[i] })) }
+    // ข้อมูลแบบเก่า (เป็นแถวชื่อ) → ย้ายมาเป็นช่องในทีม
+    if (Array.isArray(s?.rows)) {
+      const known = new Set(HEROES.map((h) => h.id))
+      const slots = Array.from({ length: SLOT_COUNT }, (_, i) => {
+        const r = s.rows[i]
+        return r ? { id: known.has(r.name) ? r.name : null, base: r.base ?? '', screen: r.screen ?? '', extra: r.extra ?? '' } : { ...EMPTY_SLOT }
+      })
+      return { pet, front: 2, slots }
+    }
   } catch {
     /* ใช้ค่าเริ่มต้น */
   }
@@ -54,18 +65,13 @@ const num = (v: string) => {
 }
 const fmt = (n: number) => Math.round(n).toLocaleString('th-TH')
 
-function RemoveButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button onClick={onClick} aria-label="ลบแถว" className="grid place-items-center text-white/40 hover:text-red-300 sm:order-last">
-      <Trash2 className="h-4 w-4" />
-    </button>
-  )
-}
-
 export default function BiscuitPage() {
   const [state, setState] = useState(load)
-  const { pet, rows } = state
-  const buff = pet.reduce((sum, v) => sum + num(v), 0)
+  const [picking, setPicking] = useState<number | null>(null)
+  const { pet, front, slots } = state
+  const petBuff = pet.reduce((sum, v) => sum + num(v), 0)
+  const formation = FORMATION_ATK.find((f) => f.front === front) ?? FORMATION_ATK[0]
+  const isBack = (col: number) => !FRONT_COLS[front].includes(col)
 
   useEffect(() => {
     try {
@@ -75,15 +81,25 @@ export default function BiscuitPage() {
     }
   }, [state])
 
-  const setRow = (i: number, patch: Partial<Row>) =>
-    setState((s) => ({ ...s, rows: s.rows.map((r, j) => (j === i ? { ...r, ...patch } : r)) }))
+  const setSlot = (i: number, patch: Partial<Slot>) =>
+    setState((s) => ({ ...s, slots: s.slots.map((r, j) => (j === i ? { ...r, ...patch } : r)) }))
+  const pick = (i: number, id: string | null) => {
+    if (!id) setSlot(i, { ...EMPTY_SLOT })
+    else {
+      const b = baseAtkOf(id) // รู้ค่า → เติม base ให้เอง
+      setSlot(i, b ? { id, base: String(b) } : { id })
+    }
+    setPicking(null)
+  }
 
-  const filled = rows
+  const filled = slots
     .map((r, i) => {
       const base = num(r.base)
       const screen = num(r.screen)
-      const pct = buff + num(r.extra)
-      return { i, name: r.name.trim() || `ตัวที่ ${i + 1}`, base, screen, pct, game: screen + (base * pct) / 100 }
+      const back = isBack(i)
+      const pct = petBuff + (back ? formation.atk : 0) + num(r.extra)
+      const name = r.id ? getUnit(r.id)?.name ?? r.id : `ช่องที่ ${i + 1}`
+      return { i, name, back, base, screen, pct, game: screen + (base * pct) / 100 }
     })
     .filter((r) => r.screen > 0)
 
@@ -95,6 +111,7 @@ export default function BiscuitPage() {
   const flipped = filled.filter(
     (r) => (screenRank.get(r.i)! < BISCUIT_TARGETS) !== (gameRank.get(r.i)! < BISCUIT_TARGETS),
   )
+  const input = 'pill w-full min-w-0 px-1 py-1 text-center text-xs tabular-nums outline-none focus:border-gold sm:text-sm'
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -122,70 +139,75 @@ export default function BiscuitPage() {
             />
           ))}
           <span className="text-sm text-white/70">
-            = <b className="text-gold tabular-nums">{buff}%</b>
+            = <b className="text-gold tabular-nums">{petBuff}%</b>
           </span>
         </div>
 
-        <div className={`mt-4 hidden gap-2 text-xs text-white/50 sm:grid ${ROW_GRID}`}>
-          <span>ชื่อตัวละคร</span>
-          <span>base</span>
-          <span>หน้าตัวละคร</span>
-          <span>บัฟ%เพิ่ม</span>
-          <span />
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="w-full text-sm font-medium text-gold sm:w-auto">ค่ายกล (Lv.40)</span>
+          {FORMATION_ATK.map((f) => (
+            <button
+              key={f.front}
+              onClick={() => setState((s) => ({ ...s, front: f.front }))}
+              className={`rounded-full border px-3 py-1 text-sm ${f.front === front ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/75 hover:bg-white/5'}`}
+            >
+              {f.name} <span className="text-white/50">· หลัง +{f.atk}%</span>
+            </button>
+          ))}
         </div>
-        <datalist id="biscuit-heroes">
-          {HEROES.map((h) => {
-            const b = baseAtkOf(h.id)
-            return <option key={h.id} value={h.name} label={b ? `base ${fmt(b)}` : undefined} />
+
+        {/* ทีมแนวนอนแบบในเกม: แถวหลัง (B) ยกสูง · แถวหน้า (F) ต่ำลง */}
+        <div className="mt-5 grid grid-cols-5 items-start gap-1.5 sm:gap-3">
+          {slots.map((r, i) => {
+            const back = isBack(i)
+            return (
+              <div key={i} className={`flex min-w-0 flex-col gap-1.5 ${back ? '' : 'mt-8 sm:mt-12'}`}>
+                <span className={`text-center text-[11px] font-semibold ${back ? 'text-[#ff8f9a]' : 'text-[#8fa8ff]'}`}>
+                  {back ? `หลัง +${formation.atk}%` : 'หน้า'}
+                </span>
+                <button
+                  onClick={() => setPicking(i)}
+                  aria-label={r.id ? `เปลี่ยน ${getUnit(r.id)?.name}` : `เลือกตัวละครช่องที่ ${i + 1}`}
+                  className="aspect-square w-full text-[12px] transition hover:-translate-y-0.5"
+                >
+                  {r.id ? (
+                    <UnitCard id={r.id} />
+                  ) : (
+                    <span className="slot-empty grid h-full w-full place-items-center rounded-[24%_4%_24%_4%] border border-dashed border-white/20 text-white/50">
+                      <Plus className="h-1/3 w-1/3" />
+                    </span>
+                  )}
+                </button>
+                {(r.id || r.screen) && (
+                  <>
+                    <input value={r.screen} onChange={(e) => setSlot(i, { screen: e.target.value })} inputMode="decimal"
+                      placeholder="หน้าตัว" aria-label="โจมตีหน้าตัวละคร" className={input} />
+                    <input value={r.base} onChange={(e) => setSlot(i, { base: e.target.value })} inputMode="decimal"
+                      placeholder="base" aria-label="base โจมตี" className={`${input} text-white/70`} />
+                    <input value={r.extra} onChange={(e) => setSlot(i, { extra: e.target.value })} inputMode="decimal"
+                      placeholder="บัฟ%+" aria-label="บัฟ % เพิ่มเฉพาะตัว" className={`${input} text-white/70`} />
+                  </>
+                )}
+              </div>
+            )
           })}
-        </datalist>
-        <datalist id="biscuit-bases">
-          {BASE_PRESETS.map((b) => (
-            <option key={b.value} value={b.value} label={b.label} />
-          ))}
-        </datalist>
-        <div className="mt-1 flex flex-col gap-2">
-          {rows.map((r, i) => (
-            <div key={i} className={`grid gap-2 border-b border-white/10 pb-2 sm:border-0 sm:pb-0 ${ROW_GRID}`}>
-              <input
-                value={r.name}
-                onChange={(e) => {
-                  // เลือกชื่อที่รู้ค่า → เติม base ให้เอง (แก้เองทีหลังได้)
-                  const b = baseAtkOf(e.target.value.trim())
-                  setRow(i, b ? { name: e.target.value, base: String(b) } : { name: e.target.value })
-                }}
-                list="biscuit-heroes"
-                placeholder={`ตัวที่ ${i + 1}`}
-                className="pill col-span-3 min-w-0 px-3 py-1.5 outline-none focus:border-gold sm:col-span-1"
-              />
-              <RemoveButton onClick={() => setState((s) => ({ ...s, rows: s.rows.filter((_, j) => j !== i) }))} />
-              {(['base', 'screen', 'extra'] as const).map((k) => (
-                <input
-                  key={k}
-                  value={r[k]}
-                  onChange={(e) => setRow(i, { [k]: e.target.value })}
-                  inputMode="decimal"
-                  list={k === 'base' ? 'biscuit-bases' : undefined}
-                  placeholder={PLACEHOLDER[k]}
-                  aria-label={PLACEHOLDER[k]}
-                  className="pill min-w-0 px-2 py-1.5 text-center tabular-nums outline-none focus:border-gold"
-                />
-              ))}
-            </div>
-          ))}
         </div>
-        {rows.length < MAX_ROWS && (
-          <button
-            onClick={() => setState((s) => ({ ...s, rows: [...s.rows, { ...EMPTY_ROW }] }))}
-            className="pill mt-3 flex items-center gap-1 px-3 py-1.5 text-sm hover:border-gold"
-          >
-            <Plus className="h-4 w-4" /> เพิ่มตัวละคร
-          </button>
-        )}
-        <p className="mt-3 text-xs text-white/45">
-          เลือกชื่อตัวละครจากรายการแล้ว base เติมให้เอง (ค่าจาก 7K Atlas) · "บัฟ%เพิ่ม" ใช้กับบัฟที่ได้เฉพาะตัวนั้น (เช่น สกิลติดตัว) · base กดเลือกได้ที่ช่อง base (ไฟ/น้ำ สายโจมตี, แสง สายสนับสนุน, มืด สายสมดุล, ดิน สายป้องกัน) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
+        <p className="mt-4 text-xs text-white/45">
+          กดช่องเพื่อเลือกตัวละคร base เติมให้เอง (ค่าจาก 7K Atlas) · ช่องแรกใต้รูป = โจมตีหน้าตัวละคร · ช่องที่ 2 = base · ช่องที่ 3 = บัฟ % เพิ่มเฉพาะตัว (เช่น สกิลติดตัว)
+          · ค่ายกลให้ All Attack % เฉพาะแถวหลัง (แถวหน้าได้ป้องกัน %) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
         </p>
       </section>
+
+      <UnitPicker
+        open={picking !== null}
+        kind="hero"
+        index={picking ?? 0}
+        current={picking !== null ? slots[picking].id : null}
+        used={slots.map((r) => r.id).filter(Boolean) as string[]}
+        full={false}
+        onPick={(id) => picking !== null && pick(picking, id)}
+        onClose={() => setPicking(null)}
+      />
 
       {filled.length > 0 && (
         <section className="panel panel-gold mt-8 p-4 sm:p-5">
@@ -202,8 +224,8 @@ export default function BiscuitPage() {
                 >
                   <span className="w-5 text-white/50 tabular-nums">{k + 1}</span>
                   <span className="flex-1 font-medium">{r.name}</span>
-                  <span className="text-sm text-white/55 tabular-nums">
-                    {fmt(r.screen)} + {fmt((r.base * r.pct) / 100)}
+                  <span className="text-sm text-white/55 tabular-nums" title={`บัฟรวม ${r.pct}% ของ base ${fmt(r.base)}`}>
+                    {fmt(r.screen)} + {fmt((r.base * r.pct) / 100)} <span className="text-white/35">({r.back ? 'หลัง' : 'หน้า'} {r.pct}%)</span>
                   </span>
                   <span className="w-16 text-right font-semibold tabular-nums">{fmt(r.game)}</span>
                   <span className={`w-full text-xs sm:w-40 sm:text-right ${gets ? 'text-gold' : 'text-white/45'}`}>
