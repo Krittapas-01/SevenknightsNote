@@ -1,4 +1,4 @@
-import { ChevronLeft, Eraser, Library, ListOrdered, Pencil, Plus, Trash2, Undo2, X } from 'lucide-react'
+import { ChevronLeft, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, Trash2, Undo2, X } from 'lucide-react'
 import { queueStyle } from '../lib/queue'
 import { tagColor, tagStyle } from '../lib/tags'
 import { useEffect, useState } from 'react'
@@ -9,6 +9,7 @@ import { DndHub } from '../components/DndHub'
 import HeroDock from '../components/HeroDock'
 import CompLibrary, { type Comp } from '../components/CompLibrary'
 import VsArena from '../components/VsArena'
+import Modal from '../components/Modal'
 import { PRESET_TAGS, getUnit } from '../data/heroes'
 import { api } from '../lib/api'
 import { MAX_HEROES, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, SKILL_LABEL, type HeroNote, type SkillStep, type Team } from '../lib/types'
@@ -32,6 +33,7 @@ export default function TargetPage() {
   const target = data?.targets.find((t) => t.id === tid)
 
   const [sel, setSel] = useState(0)
+  const [showAll, setShowAll] = useState(false) // หน้าต่างดูทีมแก้ทั้งหมด
   const [mode, setMode] = useState<Mode>('view')
   const [tDraft, setTDraft] = useState({ team: emptyTeam(), tags: [] as string[], note: '' })
   const [cDraft, setCDraft] = useState({ id: null as string | null, team: emptyTeam(), skills: [] as SkillStep[], note: '', heroNotes: [] as HeroNote[] })
@@ -219,8 +221,36 @@ export default function TargetPage() {
               </button>
             )}
           </div>
+          {counters.length > 1 && (
+            <button disabled={mode !== 'view'} onClick={() => setShowAll(true)}
+              className="pill ml-2 flex shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm text-gold hover:bg-white/10 disabled:opacity-40">
+              <LayoutGrid className="h-4 w-4" /> ดูทั้งหมด
+            </button>
+          )}
         </div>
       )}
+
+      {/* ดูทีมแก้ทั้งหมดพร้อมกัน (แบบ 7k-combo) · กดการ์ดเพื่อเปิดทีมนั้น */}
+      <Modal open={showAll} title={`ทีมแก้ทั้งหมด (${counters.length})`} onClose={() => setShowAll(false)} wide>
+        <div className="mb-5 flex justify-center">
+          <div className="w-full max-w-md">
+            <p className="mb-2 text-sm font-semibold text-red-300">ทีมเป้าหมาย</p>
+            <TeamPanel variant="enemy" size="sm" team={target?.team ?? emptyTeam()} skills={target?.team.skills ?? []} />
+          </div>
+        </div>
+        {/* แนวนอน เลื่อนซ้าย-ขวาได้ */}
+        <div className="scrollbar-thin -mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-3">
+          {counters.map((c, i) => (
+            <button key={c.id} type="button" onClick={() => { setSel(i); setShowAll(false) }}
+              className={`flex w-[min(340px,85vw)] shrink-0 snap-start flex-col rounded-2xl border border-white/10 p-3 text-left transition hover:bg-white/5 ${i === Math.min(sel, counters.length - 1) ? 'ring-1 ring-gold/60' : ''}`}>
+              <span className="mb-2 text-sm font-semibold text-gold">ทีมแก้ #{i + 1}</span>
+              <span className="pointer-events-none block"><TeamPanel variant="ally" size="sm" team={c.team} skills={c.skills} heroNotes={c.heroNotes} /></span>
+              {c.note && <span className="mt-2 line-clamp-2 text-sm text-white/80">{c.note}</span>}
+              <span className="mt-2 self-end text-xs text-white/50">เปิดทีมนี้ ›</span>
+            </button>
+          ))}
+        </div>
+      </Modal>
 
       <div className="mt-8">
         <VsArena
