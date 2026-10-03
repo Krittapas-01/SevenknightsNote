@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS counters (
   updated_at  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_counters_target ON counters(target_id);
+CREATE INDEX IF NOT EXISTS idx_counters_guild ON counters(guild_id, created_at);
 
 -- แผนวอร์ (5 ไม้ แต่ละไม้มีหลายทางเลือก) เก็บเป็น JSON ก้อนเดียว
 CREATE TABLE IF NOT EXISTS plans (
