@@ -90,17 +90,20 @@ export default function BiscuitPage() {
     setPicking(null)
   }
 
-  const filled = slots
+  let filled = slots
     .map((r, i) => {
-      // base ตายตัวตามตัวละคร (7K Atlas) แก้ไม่ได้
-      const base = r.id ? baseAtkOf(r.id) ?? 0 : 0
+      // base ตายตัวตามตัวละคร (7K Atlas) แก้ไม่ได้ · ไม่รู้ base = null (ไม่นับเป็น 0)
+      const base = r.id ? baseAtkOf(r.id) : null
       const screen = num(r.screen)
       const back = isBack(i)
       const pct = petBuff + (back ? formation.atk : 0) + num(r.extra)
       const name = r.id ? getUnit(r.id)?.name ?? r.id : `ช่องที่ ${i + 1}`
-      return { i, name, back, base, screen, pct, game: screen + (base * pct) / 100 }
+      return { i, name, back, base: base ?? 0, known: base !== null, screen, pct, game: screen + ((base ?? 0) * pct) / 100 }
     })
     .filter((r) => r.screen > 0)
+  // ตัวที่ไม่รู้ base คำนวณโจมตีในเกมไม่ได้ → ไม่เอาไปจัดอันดับ (กันผลผิดแบบเงียบ ๆ)
+  const unknownBase = filled.filter((r) => !r.known)
+  filled = filled.filter((r) => r.known)
 
   const byScreen = [...filled].sort((a, b) => b.screen - a.screen)
   const byGame = [...filled].sort((a, b) => b.game - a.game)
@@ -210,9 +213,16 @@ export default function BiscuitPage() {
         current={picking !== null ? slots[picking].id : null}
         used={slots.map((r) => r.id).filter(Boolean) as string[]}
         full={false}
+        allowCustom={false}
         onPick={(id) => picking !== null && pick(picking, id)}
         onClose={() => setPicking(null)}
       />
+
+      {unknownBase.length > 0 && (
+        <p role="alert" className="mt-6 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          ⚠️ ไม่รู้ค่า base ของ {unknownBase.map((r) => r.name).join(', ')} — ไม่ได้นับในอันดับด้านล่าง เลือกตัวละครจากรายการแทน
+        </p>
+      )}
 
       {filled.length > 0 && (
         <section className="panel panel-gold mt-8 p-4 sm:p-5">
@@ -242,11 +252,16 @@ export default function BiscuitPage() {
               )
             })}
           </ol>
+          {unknownBase.length > 0 && (
+            <p className="mt-4 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+              อันดับนี้ยังไม่รวม {unknownBase.map((r) => r.name).join(', ')} — ผลจริงอาจต่างจากนี้
+            </p>
+          )}
           {flipped.length > 0 ? (
             <p className="mt-4 rounded-xl bg-red-500/15 px-3 py-2 text-sm text-red-200">
               ⚠️ อันดับในเกมไม่ตรงกับหน้าตัวละคร: {flipped.map((r) => r.name).join(', ')} — ดูจากหน้าตัวละครอย่างเดียวจะเข้าใจผิดว่าบัฟลงใคร
             </p>
-          ) : (
+          ) : unknownBase.length > 0 ? null : (
             <p className="mt-4 text-sm text-white/55">อันดับในเกมตรงกับหน้าตัวละคร บัฟลงตามที่เห็นในหน้าตัวละคร</p>
           )}
         </section>

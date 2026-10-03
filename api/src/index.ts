@@ -15,6 +15,8 @@ type Team = {
 type SkillStep = { slot: number; skill: 1 | 2 | 3 } // 3 = สกิลอเวค (ตัวร่าง awake)
 
 const SLOT_COUNT = 5
+/** จองสกิลได้สูงสุดกี่ครั้ง — ต้องตรงกับ MAX_SKILL_QUEUE ฝั่งเว็บ (web/src/lib/types.ts) */
+const MAX_SKILL_QUEUE = 3
 const MAX_HEROES = 3
 const MAX_TARGETS = 300
 const MAX_COUNTERS = 30
@@ -86,9 +88,10 @@ function parseTeam(raw: any): Team | null {
 function parseSkills(raw: any, team: Team): SkillStep[] {
   if (!Array.isArray(raw)) return []
   return raw
-    .slice(0, 10)
+    .slice(0, 50) // กันข้อมูลก้อนใหญ่ผิดปกติ
     .map((s: any) => ({ slot: Number(s?.slot), skill: Number(s?.skill) === 3 ? 3 : Number(s?.skill) === 2 ? 2 : 1 }) as SkillStep)
     .filter((s) => Number.isInteger(s.slot) && s.slot >= 0 && s.slot < SLOT_COUNT && team.slots[s.slot])
+    .slice(0, MAX_SKILL_QUEUE) // คิวเกิน (ข้อมูลเก่า/ส่งผ่าน API) ตัดเหลือ 3 อันแรกตอนบันทึก
 }
 function parseTags(raw: any): string[] {
   if (!Array.isArray(raw)) return []

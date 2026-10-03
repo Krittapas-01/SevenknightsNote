@@ -1,6 +1,6 @@
 import { Search, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { HEROES, HERO_TYPES, PETS, customId, type HeroType } from '../data/heroes'
+import { HEROES, HERO_TYPES, PETS, customId, matchUnit, type HeroType } from '../data/heroes'
 import Modal from './Modal'
 import type { SlotKind } from './TeamPanel'
 import UnitCard from './UnitCard'
@@ -16,9 +16,11 @@ type Props = {
   full: boolean
   onPick: (id: string | null) => void
   onClose: () => void
+  /** ให้พิมพ์ชื่อที่ไม่มีในรายการได้ (ค่าเริ่มต้น: ได้) */
+  allowCustom?: boolean
 }
 
-export default function UnitPicker({ open, kind, index, current, used, full, onPick, onClose }: Props) {
+export default function UnitPicker({ open, kind, index, current, used, full, onPick, onClose, allowCustom = true }: Props) {
   const [q, setQ] = useState('')
   const [type, setType] = useState<HeroType | 'all'>('all')
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function UnitPicker({ open, kind, index, current, used, full, onP
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase()
-    return list.filter((u) => (type === 'all' || u.type === type) && (!s || u.name.toLowerCase().includes(s) || u.id.includes(s)))
+    return list.filter((u) => (type === 'all' || u.type === type) && matchUnit(u, s))
   }, [list, q, type])
 
   const exact = list.some((u) => u.name === q.trim())
@@ -92,7 +94,7 @@ export default function UnitPicker({ open, kind, index, current, used, full, onP
         })}
       </div>
 
-      {q.trim() && !exact && !blocked && (
+      {allowCustom && q.trim() && !exact && !blocked && (
         <button
           type="button"
           onClick={() => onPick(customId(q))}
