@@ -12,6 +12,9 @@ export default function Layout() {
           <Link to="/" className="flex items-center gap-2 text-lg font-bold">
             <span className="text-gold">✦</span> 7K Note
           </Link>
+          <Link to="/biscuit" className="ml-auto text-sm text-white/70 hover:text-gold">
+            🍪 เช็กบัฟบิสกิต
+          </Link>
         </div>
       </header>
       {gid && <AnnouncementBar key={gid} gid={gid} />}

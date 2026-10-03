@@ -8,6 +8,7 @@ import GuildPage from './pages/GuildPage'
 import TargetPage from './pages/TargetPage'
 import PlanPage from './pages/PlanPage'
 import NotFound from './pages/NotFound'
+import BiscuitPage from './pages/BiscuitPage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -18,6 +19,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="g/:gid" element={<GuildPage />} />
           <Route path="g/:gid/t/:tid" element={<TargetPage />} />
           <Route path="g/:gid/p/:pid" element={<PlanPage />} />
+          <Route path="biscuit" element={<BiscuitPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
