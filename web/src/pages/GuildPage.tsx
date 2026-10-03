@@ -57,7 +57,7 @@ export default function GuildPage() {
             {copied === 'view' ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />} ลิงก์ดูอย่างเดียว
           </button>
           {canEdit
-            ? <EditSettings gid={gid} onLogout={recheck} />
+            ? <EditSettings gid={gid} guildName={data.guild.name} onLogout={recheck} />
             : <EditLogin gid={gid} onLogin={() => setCanEdit(true)} />}
         </div>
       </div>

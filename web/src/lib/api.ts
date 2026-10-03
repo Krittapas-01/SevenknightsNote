@@ -43,6 +43,10 @@ export function forgetEditKey(gid: string) {
 }
 
 export type Recent = { id: string; name: string }
+/** เอากิลด์ออกจากรายการที่เคยเปิด (เช่น หลังลบกิลด์) */
+export function forgetRecent(gid: string) {
+  writeJson(RECENT, getRecent().filter((x) => x.id !== gid))
+}
 export const getRecent = () => readJson<Recent[]>(RECENT, [])
 export function pushRecent(r: Recent) {
   writeJson(RECENT, [r, ...getRecent().filter((x) => x.id !== r.id)].slice(0, 8))
@@ -77,6 +81,8 @@ export const api = {
     req<Target>(`/api/guild/${gid}/targets`, { method: 'POST', body: JSON.stringify(body), gid }),
   updateTarget: (gid: string, tid: string, body: { team: Team; tags: string[]; note: string }) =>
     req(`/api/guild/${gid}/targets/${tid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
+  /** ลบทั้งกิลด์ถาวร (ต้องพิมพ์ชื่อกิลด์ยืนยัน) */
+  deleteGuild: (gid: string, confirmName: string) => req(`/api/guild/${gid}`, { method: 'DELETE', body: JSON.stringify({ confirmName }), gid }),
   deleteTarget: (gid: string, tid: string) => req(`/api/guild/${gid}/targets/${tid}`, { method: 'DELETE', gid }),
 
   createCounter: (gid: string, tid: string, body: { team: Team; skills: SkillStep[]; note: string; heroNotes?: HeroNote[] }) =>

@@ -1,6 +1,7 @@
-import { Check, Eye, EyeOff, KeyRound, LogOut } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
-import { api, forgetEditKey, saveEditKey } from '../lib/api'
+import { AlertTriangle, Check, Eye, EyeOff, KeyRound, LogOut, Trash2 } from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router'
+import { api, forgetEditKey, forgetRecent, saveEditKey } from '../lib/api'
 import { loginWithDiscord, useAuth } from '../lib/auth'
 import Modal from './Modal'
 
@@ -89,7 +90,7 @@ export function EditLogin({ gid, onLogin }: { gid: string; onLogin: () => void }
 }
 
 /** คนที่แก้ได้อยู่แล้ว: ตั้งรหัสใหม่ / ออกจากโหมดแก้ไข */
-export function EditSettings({ gid, onLogout }: { gid: string; onLogout: () => void }) {
+export function EditSettings({ gid, guildName, onLogout }: { gid: string; guildName: string; onLogout: () => void }) {
   const [open, setOpen] = useState(false)
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
@@ -148,7 +149,89 @@ export function EditSettings({ gid, onLogout }: { gid: string; onLogout: () => v
           </button>
           <p className="mt-2 text-center text-xs text-white/40">ใช้ตอนยืมเครื่องคนอื่น กลับมาแก้ได้โดยใส่รหัสอีกครั้ง</p>
         </div>
+        <DeleteGuild gid={gid} guildName={guildName} />
       </Modal>
     </>
+  )
+}
+
+/**
+ * ลบกิลด์ถาวร — ยืนยัน 3 ชั้นกันกดผิด:
+ * 1) กดปุ่มลบ → อ่านคำเตือน  2) พิมพ์ชื่อกิลด์ให้ตรง  3) รอนับถอยหลัง 5 วิ แล้วกดลบถาวร
+ */
+function DeleteGuild({ gid, guildName }: { gid: string; guildName: string }) {
+  const navigate = useNavigate()
+  const [step, setStep] = useState(0)
+  const [typed, setTyped] = useState('')
+  const [wait, setWait] = useState(5)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    if (step !== 3 || wait <= 0) return
+    const t = setTimeout(() => setWait((w) => w - 1), 1000)
+    return () => clearTimeout(t)
+  }, [step, wait])
+  const reset = () => { setStep(0); setTyped(''); setWait(5); setErr('') }
+
+  async function del() {
+    setBusy(true)
+    setErr('')
+    try {
+      await api.deleteGuild(gid, typed)
+      forgetEditKey(gid)
+      forgetRecent(gid)
+      navigate('/', { replace: true })
+    } catch (e) {
+      setErr((e as Error).message)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+      <p className="flex items-center gap-1.5 text-sm font-semibold text-red-300"><AlertTriangle className="h-4 w-4" /> โซนอันตราย</p>
+      {step === 0 && (
+        <button type="button" onClick={() => setStep(1)}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full border border-red-400/50 px-4 py-2 text-sm text-red-300 hover:bg-red-500/15">
+          <Trash2 className="h-4 w-4" /> ลบกิลด์นี้
+        </button>
+      )}
+      {step === 1 && (
+        <div className="mt-3 space-y-3 text-sm">
+          <p className="text-white/75">จะลบ <b className="text-white">{guildName}</b> ทั้งหมด: ทีมเป้าหมาย ทีมแก้ แผนวอร์ ประกาศ และการตั้งค่า Discord <b className="text-red-300">กู้คืนไม่ได้</b> และทุกคนที่มีลิงก์จะเข้าไม่ได้อีก</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setStep(2)} className="flex-1 rounded-full bg-red-500/80 px-4 py-2 font-semibold text-white hover:bg-red-500">เข้าใจแล้ว ลบต่อ</button>
+            <button type="button" onClick={reset} className="pill flex-1 px-4 py-2">ยกเลิก</button>
+          </div>
+        </div>
+      )}
+      {step === 2 && (
+        <div className="mt-3 space-y-3 text-sm">
+          <label className="block text-white/75">
+            พิมพ์ชื่อกิลด์ <b className="select-all text-white">{guildName}</b> เพื่อยืนยัน
+            <input value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus
+              className="mt-1 w-full rounded-lg border border-red-400/40 bg-black/30 px-3 py-2 outline-none focus:border-red-400" />
+          </label>
+          <div className="flex gap-2">
+            <button type="button" disabled={typed.trim() !== guildName.trim()} onClick={() => { setWait(5); setStep(3) }}
+              className="flex-1 rounded-full bg-red-500/80 px-4 py-2 font-semibold text-white enabled:hover:bg-red-500 disabled:opacity-40">ถัดไป</button>
+            <button type="button" onClick={reset} className="pill flex-1 px-4 py-2">ยกเลิก</button>
+          </div>
+        </div>
+      )}
+      {step === 3 && (
+        <div className="mt-3 space-y-3 text-sm">
+          <p className="text-white/75">ยืนยันครั้งสุดท้าย: ลบ <b className="text-white">{guildName}</b> ถาวร</p>
+          {err && <p className="text-red-400">{err}</p>}
+          <div className="flex gap-2">
+            <button type="button" disabled={wait > 0 || busy} onClick={del}
+              className="flex-1 rounded-full bg-red-600 px-4 py-2 font-semibold text-white enabled:hover:bg-red-500 disabled:opacity-50">
+              {busy ? 'กำลังลบ...' : wait > 0 ? `ลบถาวร (รอ ${wait})` : 'ลบถาวร'}
+            </button>
+            <button type="button" onClick={reset} className="pill flex-1 px-4 py-2">ยกเลิก</button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

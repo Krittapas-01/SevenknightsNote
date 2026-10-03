@@ -235,6 +235,20 @@ app.post('/api/guild', async (c) => {
   return c.json({ id, name, editKey }, 201)
 })
 
+// ลบกิลด์ทั้งหมด (ถาวร) — ต้องมีสิทธิ์แก้ไข และส่งชื่อกิลด์มายืนยันให้ตรง
+app.delete('/api/guild/:id', async (c) => {
+  const gid = c.req.param('id')
+  const auth = await checkKey(c, gid)
+  if (auth !== 'ok') return deny(c, auth)
+  const body = await c.req.json().catch(() => ({}))
+  const g = await c.env.DB.prepare('SELECT name FROM guilds WHERE id = ?').bind(gid).first<{ name: string }>()
+  if (!g) return c.json({ error: 'not found' }, 404)
+  if (String(body.confirmName ?? '').trim() !== g.name.trim()) return c.json({ error: 'ชื่อกิลด์ที่พิมพ์ยืนยันไม่ตรง' }, 400)
+  await c.env.DB.batch(['counters', 'targets', 'plans', 'announcements', 'guild_settings'].map((t) =>
+    c.env.DB.prepare(`DELETE FROM ${t} WHERE guild_id = ?`).bind(gid)).concat(c.env.DB.prepare('DELETE FROM guilds WHERE id = ?').bind(gid)))
+  return c.json({ ok: true })
+})
+
 // ข้อมูลทั้งกิลด์ (ทีมเป้าหมาย + ทีมแก้) ในครั้งเดียว
 app.get('/api/guild/:id', async (c) => {
   const id = c.req.param('id')

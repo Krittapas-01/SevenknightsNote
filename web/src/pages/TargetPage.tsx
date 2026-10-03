@@ -1,7 +1,7 @@
 import { ChevronLeft, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, Trash2, Undo2, X } from 'lucide-react'
 import { queueStyle } from '../lib/queue'
 import { tagColor, tagStyle } from '../lib/tags'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import TeamPanel, { type SlotKind } from '../components/TeamPanel'
 import UnitPicker from '../components/UnitPicker'
@@ -10,6 +10,7 @@ import HeroDock from '../components/HeroDock'
 import CompLibrary, { type Comp } from '../components/CompLibrary'
 import VsArena from '../components/VsArena'
 import Modal from '../components/Modal'
+import { useDragScroll } from '../lib/useDragScroll'
 import { PRESET_TAGS, getUnit } from '../data/heroes'
 import { api } from '../lib/api'
 import { MAX_HEROES, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, SKILL_LABEL, type HeroNote, type SkillStep, type Team } from '../lib/types'
@@ -34,6 +35,9 @@ export default function TargetPage() {
 
   const [sel, setSel] = useState(0)
   const [showAll, setShowAll] = useState(false) // หน้าต่างดูทีมแก้ทั้งหมด
+  const allStrip = useRef<HTMLDivElement>(null)
+  const allDrag = useDragScroll(allStrip)
+  const [delAsk, setDelAsk] = useState<string | null>(null) // ทีมแก้ที่กดลบครั้งแรกแล้ว (รอกดยืนยัน)
   const [mode, setMode] = useState<Mode>('view')
   const [tDraft, setTDraft] = useState({ team: emptyTeam(), tags: [] as string[], note: '' })
   const [cDraft, setCDraft] = useState({ id: null as string | null, team: emptyTeam(), skills: [] as SkillStep[], note: '', heroNotes: [] as HeroNote[] })
@@ -239,15 +243,36 @@ export default function TargetPage() {
           </div>
         </div>
         {/* แนวนอน เลื่อนซ้าย-ขวาได้ */}
-        <div className="scrollbar-thin -mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-3">
+        <div ref={allStrip} {...allDrag} className="scrollbar-thin -mx-1 flex cursor-grab gap-4 overflow-x-auto px-1 pb-3 select-none active:cursor-grabbing">
           {counters.map((c, i) => (
-            <button key={c.id} type="button" onClick={() => { setSel(i); setShowAll(false) }}
-              className={`flex w-[min(340px,85vw)] shrink-0 snap-start flex-col rounded-2xl border border-white/10 p-3 text-left transition hover:bg-white/5 ${i === Math.min(sel, counters.length - 1) ? 'ring-1 ring-gold/60' : ''}`}>
-              <span className="mb-2 text-sm font-semibold text-gold">ทีมแก้ #{i + 1}</span>
+            <div key={c.id} role="button" tabIndex={0} onClick={() => { setSel(i); setShowAll(false) }}
+              onKeyDown={(e) => e.key === 'Enter' && (setSel(i), setShowAll(false))}
+              className={`flex w-[min(340px,85vw)] shrink-0 cursor-pointer flex-col rounded-2xl border border-white/10 p-3 text-left transition hover:bg-white/5 ${i === Math.min(sel, counters.length - 1) ? 'ring-1 ring-gold/60' : ''}`}>
+              <span className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-gold">ทีมแก้ #{i + 1}</span>
+                {canEdit && (
+                  // กด 2 ครั้งถึงลบ กันกดพลาด
+                  <button type="button" disabled={busy}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (delAsk !== c.id) return setDelAsk(c.id)
+                      run(async () => {
+                        await api.deleteCounter(gid, c.id)
+                        await reload()
+                        setSel(0)
+                        setDelAsk(null)
+                      })
+                    }}
+                    onBlur={() => setDelAsk((x) => (x === c.id ? null : x))}
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${delAsk === c.id ? 'bg-red-600 font-semibold text-white' : 'text-white/45 hover:bg-red-500/15 hover:text-red-300'}`}>
+                    <Trash2 className="h-3.5 w-3.5" /> {delAsk === c.id ? 'กดอีกครั้งเพื่อลบ' : 'ลบ'}
+                  </button>
+                )}
+              </span>
               <span className="pointer-events-none block"><TeamPanel variant="ally" size="sm" team={c.team} skills={c.skills} heroNotes={c.heroNotes} /></span>
               {c.note && <span className="mt-2 line-clamp-2 text-sm text-white/80">{c.note}</span>}
               <span className="mt-2 self-end text-xs text-white/50">เปิดทีมนี้ ›</span>
-            </button>
+            </div>
           ))}
         </div>
       </Modal>
