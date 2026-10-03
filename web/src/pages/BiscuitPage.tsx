@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import catalog from '../data/catalog.json'
+import { HEROES } from '../data/heroes'
+import { baseAtkOf } from '../data/stats'
 
 // บิสกิตบัฟให้ตัวที่ "โจมตีในเกม" สูงสุด 2 อันดับ
 // โจมตีในเกม = โจมตีหน้าตัวละคร + base × บัฟ% (บัฟ % คิดจาก base ไม่ใช่ค่ารวม)
@@ -121,9 +122,10 @@ export default function BiscuitPage() {
           <span />
         </div>
         <datalist id="biscuit-heroes">
-          {catalog.heroes.map((h) => (
-            <option key={h} value={h} />
-          ))}
+          {HEROES.map((h) => {
+            const b = baseAtkOf(h.id)
+            return <option key={h.id} value={h.name} label={b ? `base ${fmt(b)}` : undefined} />
+          })}
         </datalist>
         <datalist id="biscuit-bases">
           {BASE_PRESETS.map((b) => (
@@ -135,7 +137,11 @@ export default function BiscuitPage() {
             <div key={i} className={`grid gap-2 border-b border-white/10 pb-2 sm:border-0 sm:pb-0 ${ROW_GRID}`}>
               <input
                 value={r.name}
-                onChange={(e) => setRow(i, { name: e.target.value })}
+                onChange={(e) => {
+                  // เลือกชื่อที่รู้ค่า → เติม base ให้เอง (แก้เองทีหลังได้)
+                  const b = baseAtkOf(e.target.value.trim())
+                  setRow(i, b ? { name: e.target.value, base: String(b) } : { name: e.target.value })
+                }}
                 list="biscuit-heroes"
                 placeholder={`ตัวที่ ${i + 1}`}
                 className="pill col-span-3 min-w-0 px-3 py-1.5 outline-none focus:border-gold sm:col-span-1"
@@ -165,7 +171,7 @@ export default function BiscuitPage() {
           </button>
         )}
         <p className="mt-3 text-xs text-white/45">
-          "บัฟ%เพิ่ม" ใช้กับบัฟที่ได้เฉพาะตัวนั้น (เช่น สกิลติดตัว) · base กดเลือกได้ที่ช่อง base (ไฟ/น้ำ สายโจมตี, แสง สายสนับสนุน, มืด สายสมดุล, ดิน สายป้องกัน) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
+          เลือกชื่อตัวละครจากรายการแล้ว base เติมให้เอง (ค่าจาก 7K Atlas) · "บัฟ%เพิ่ม" ใช้กับบัฟที่ได้เฉพาะตัวนั้น (เช่น สกิลติดตัว) · base กดเลือกได้ที่ช่อง base (ไฟ/น้ำ สายโจมตี, แสง สายสนับสนุน, มืด สายสมดุล, ดิน สายป้องกัน) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
         </p>
       </section>
 
