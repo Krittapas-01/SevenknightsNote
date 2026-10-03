@@ -76,7 +76,8 @@ export function pushRecent(r: Recent) {
 
 // ---------- fetch ----------
 async function req<T>(path: string, init: RequestInit & { gid?: string; key?: string } = {}): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  // ส่ง Content-Type เฉพาะตอนมีข้อมูล — GET ธรรมดาจะได้ไม่ต้องมี preflight (OPTIONS) ทุกครั้ง (API อยู่คนละโดเมน)
+  const headers: Record<string, string> = init.body ? { 'Content-Type': 'application/json' } : {}
   if (init.gid) {
     const key = init.key ?? getEditKey(init.gid)
     // encode: header ใส่ภาษาไทยตรง ๆ ไม่ได้ (API decode กลับ)
@@ -86,7 +87,7 @@ async function req<T>(path: string, init: RequestInit & { gid?: string; key?: st
   if (session) headers.Authorization = `Bearer ${session}`
   const res = await fetch(BASE + path, { ...init, headers })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error((data as any).error ?? `HTTP ${res.status}`)
+  if (!res.ok) throw Object.assign(new Error((data as any).error ?? `HTTP ${res.status}`), { status: res.status })
   return data as T
 }
 
@@ -115,7 +116,7 @@ export const api = {
 
   createPlan: (gid: string, body: { title: string; data: PlanData }) =>
     req<Plan>(`/api/guild/${gid}/plans`, { method: 'POST', body: JSON.stringify(body), gid }),
-  updatePlan: (gid: string, pid: string, body: { title: string; data: PlanData }) =>
+  updatePlan: (gid: string, pid: string, body: { title: string; data: PlanData; baseUpdatedAt?: number }) =>
     req(`/api/guild/${gid}/plans/${pid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
   deletePlan: (gid: string, pid: string) => req(`/api/guild/${gid}/plans/${pid}`, { method: 'DELETE', gid }),
 

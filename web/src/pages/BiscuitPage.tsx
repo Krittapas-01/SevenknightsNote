@@ -249,6 +249,7 @@ export default function BiscuitPage() {
         used={slots.map((r) => r.id).filter(Boolean) as string[]}
         full={false}
         allowCustom={false}
+        includeBaseForms
         onPick={(id) => picking !== null && pick(picking, id)}
         onClose={() => setPicking(null)}
       />

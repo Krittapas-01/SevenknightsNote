@@ -9,7 +9,7 @@ export default defineConfig({
       output: {
         // แยกไลบรารีที่ไม่ค่อยเปลี่ยนออกเป็นไฟล์ของมันเอง (deploy รอบหน้าเบราว์เซอร์ใช้ของเดิมใน cache ได้)
         manualChunks: {
-          react: ['react', 'react-dom', 'react-router'],
+          react: ['react', 'react-dom', 'react-dom/client', 'react-router'],
           dnd: ['@dnd-kit/core'],
         },
       },

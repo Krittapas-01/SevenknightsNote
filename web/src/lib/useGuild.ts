@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, getEditKey, pushRecent, saveEditKey } from './api'
+import { api, forgetEditKey, getEditKey, pushRecent, saveEditKey } from './api'
 import { getSession, onAuthChange } from './auth'
 import type { GuildData } from './types'
 
@@ -24,7 +24,11 @@ export function useGuild(gid: string) {
   const recheck = useCallback(async () => {
     if (!getEditKey(gid) && !getSession()) return setCanEdit(false)
     try {
-      setCanEdit((await api.checkEdit(gid)).canEdit)
+      const r = await api.checkEdit(gid)
+      setCanEdit(r.canEdit)
+      // รหัสในเครื่องใช้ไม่ได้แล้ว (หัวกิลด์เปลี่ยนรหัส) → ลบทิ้ง ไม่งั้นทุกครั้งที่เปิดหน้าจะนับเป็นใส่รหัสผิด
+      // และอาจทำให้คนอื่นที่ใช้ IP เดียวกัน (เน็ตมือถือ) โดนล็อกไปด้วย
+      if (!r.canEdit && !r.locked && getEditKey(gid)) forgetEditKey(gid)
     } catch {
       setCanEdit(false)
     }

@@ -1,6 +1,6 @@
 import { Search, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { HEROES, HERO_TYPES, PETS, customId, matchUnit, type HeroType } from '../data/heroes'
+import { HEROES, HEROES_WITH_BASE, HERO_TYPES, PETS, customId, matchUnit, type HeroType } from '../data/heroes'
 import Modal from './Modal'
 import type { SlotKind } from './TeamPanel'
 import UnitCard from './UnitCard'
@@ -18,16 +18,18 @@ type Props = {
   onClose: () => void
   /** ให้พิมพ์ชื่อที่ไม่มีในรายการได้ (ค่าเริ่มต้น: ได้) */
   allowCustom?: boolean
+  /** แสดงร่างปกติของตัวที่มีร่าง awake ด้วย */
+  includeBaseForms?: boolean
 }
 
-export default function UnitPicker({ open, kind, index, current, used, full, onPick, onClose, allowCustom = true }: Props) {
+export default function UnitPicker({ open, kind, index, current, used, full, onPick, onClose, allowCustom = true, includeBaseForms = false }: Props) {
   const [q, setQ] = useState('')
   const [type, setType] = useState<HeroType | 'all'>('all')
   useEffect(() => {
     if (open) { setQ(''); setType('all') }
   }, [open])
 
-  const list = kind === 'hero' ? HEROES : PETS
+  const list = kind === 'hero' ? (includeBaseForms ? HEROES_WITH_BASE : HEROES) : PETS
   const title = kind === 'hero' ? 'เลือกฮีโร่' : kind === 'pet' ? 'เลือกสัตว์เลี้ยงหลัก' : `เลือกสัตว์เลี้ยงเสริม ${index + 1}`
 
   const filtered = useMemo(() => {

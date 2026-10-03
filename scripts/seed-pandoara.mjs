@@ -35,7 +35,7 @@ const now = Date.now()
 const sql = [
   `DELETE FROM counters WHERE guild_id = ${q(GUILD_ID)};`,
   `DELETE FROM targets WHERE guild_id = ${q(GUILD_ID)};`,
-  `INSERT INTO guilds (id, name, edit_hash, created_at) VALUES (${q(GUILD_ID)}, ${q(GUILD_NAME)}, ${q(hash)}, ${now}) ON CONFLICT(id) DO UPDATE SET name = excluded.name, edit_hash = excluded.edit_hash;`,
+  `INSERT INTO guilds (id, name, edit_hash, created_at) VALUES (${q(GUILD_ID)}, ${q(GUILD_NAME)}, ${q(hash)}, ${now}) ON CONFLICT(id) DO NOTHING; -- กิลด์มีอยู่แล้ว: ไม่ทับชื่อ/รหัสที่หัวกิลด์ตั้งไว้`,
 ]
 let nC = 0
 const upgrade = []

@@ -13,28 +13,42 @@ export const notifyGuildChanged = (gid: string) => window.dispatchEvent(new Cust
 export function usePulse(gid: string | undefined) {
   const [pulse, setPulse] = useState<Pulse | null>(null)
   const lastId = useRef<string | null | undefined>(undefined)
+  const lastAt = useRef(0) // กันเช็กซ้อน (กลับมาที่แท็บ = visibilitychange + focus ยิงพร้อมกัน)
+  const gone = useRef(false) // ไม่พบกิลด์ (ลิงก์ผิด/ถูกลบ) → หยุดเช็ก
 
-  const check = useCallback(async () => {
-    if (!gid || document.visibilityState !== 'visible') return
+  const selfNotify = useRef(false) // event ที่ตัวเองยิง ไม่ต้องเช็กซ้ำ
+
+  const check = useCallback(async (force = false) => {
+    if (!gid || gone.current || document.visibilityState !== 'visible') return
+    if (!force && Date.now() - lastAt.current < 3_000) return
+    lastAt.current = Date.now()
     try {
       const p = await api.pulse(gid)
       setPulse(p)
       const id = p.latest?.id ?? null
-      if (lastId.current !== undefined && lastId.current !== id) notifyGuildChanged(gid)
+      if (lastId.current !== undefined && lastId.current !== id) {
+        selfNotify.current = true
+        notifyGuildChanged(gid)
+        selfNotify.current = false
+      }
       lastId.current = id
-    } catch {
-      /* เน็ตหลุดชั่วคราว รอบหน้าค่อยลองใหม่ */
+    } catch (e) {
+      if ((e as { status?: number }).status === 404) gone.current = true
+      /* อื่น ๆ: เน็ตหลุดชั่วคราว รอบหน้าค่อยลองใหม่ */
     }
   }, [gid])
 
   useEffect(() => {
     if (!gid) return
     lastId.current = undefined
+    lastAt.current = 0
+    gone.current = false
     setPulse(null)
     check()
-    const t = setInterval(check, INTERVAL)
+    const t = setInterval(() => check(), INTERVAL)
     const onVisible = () => document.visibilityState === 'visible' && check()
-    const onChanged = (e: Event) => (e as CustomEvent).detail === gid && check()
+    // มีคนในหน้านี้โพสต์/แก้ → เช็กทันที (ไม่สนช่วงกันซ้อน) · ถ้าเป็น event ที่ตัวเองยิงก็ข้าม
+    const onChanged = (e: Event) => (e as CustomEvent).detail === gid && !selfNotify.current && check(true)
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('focus', onVisible)
     window.addEventListener('7knote:changed', onChanged)

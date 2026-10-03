@@ -51,6 +51,7 @@ export default function PlanPage() {
   const isNew = pid === 'new'
   const { data, error, canEdit, reload } = useGuild(gid)
   const plan = data?.plans.find((p) => p.id === pid)
+  const editBase = useRef<number | null>(null)
 
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState('')
@@ -133,6 +134,7 @@ export default function PlanPage() {
 
   // ---------- edit helpers ----------
   function startEdit() {
+    editBase.current = plan!.updatedAt // กันแก้ทับกัน (ถ้ามีคนบันทึกไปก่อน API ตอบ 409)
     setTitle(plan!.title)
     setDraft(clone(plan!.data))
     setErr(null)
@@ -258,7 +260,7 @@ export default function PlanPage() {
         await reload()
         nav(`/g/${gid}/p/${p.id}`, { replace: true })
       } else {
-        await api.updatePlan(gid, pid, body)
+        await api.updatePlan(gid, pid, { ...body, baseUpdatedAt: editBase.current ?? undefined })
         await reload()
       }
       setEditing(false)

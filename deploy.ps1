@@ -1,7 +1,7 @@
 # 7K Note - one-click deploy to Cloudflare (free)
 # Run in PowerShell:  cd C:\Dev\7k-note ; powershell -ExecutionPolicy Bypass -File .\deploy.ps1
 $ErrorActionPreference = "Stop"
-# Read tool output as UTF-8 (otherwise wrangler's "─" lines show up as "ΓöÇ")
+# Read tool output as UTF-8 (otherwise box-drawing lines from wrangler show up as mojibake)
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 $OutputEncoding = [Text.Encoding]::UTF8
 $root = $PSScriptRoot
@@ -45,22 +45,9 @@ $env:CI = "true"   # skip the y/n prompt
 npx wrangler d1 migrations apply $project --remote
 Remove-Item Env:CI
 
-# Local data (ThousandSunny + Pandoara exported from dev): import only once
-if ((Test-Path "$root\api\seed-local-data.sql") -and -not (Test-Path "$root\api\.local-data-imported")) {
-  Step "Importing local data (ThousandSunny + Pandoara, first time only)"
-  npx wrangler d1 execute $project --remote --file=seed-local-data.sql -y
-  if ($LASTEXITCODE -ne 0) { throw "Import failed (see above)" }
-  Set-Content "$root\api\.local-data-imported" "done"
-  Set-Content "$root\api\.pandoara-seeded" "done"   # Pandoara came with the local data
-}
-
-# Pandoara comps: seed only once (re-running would bring back teams you already deleted)
-if (-not (Test-Path "$root\api\.pandoara-seeded")) {
-  Step "Adding guild Pandoara with all comps (first time only)"
-  node "$root\scripts\seed-pandoara.mjs"
-  npx wrangler d1 execute $project --remote --file=seed-pandoara.sql -y
-  if ($LASTEXITCODE -eq 0) { Set-Content "$root\api\.pandoara-seeded" "done" }
-}
+# Starter data (ThousandSunny + Pandoara/Drinkeenassu) is already in production - no automatic seeding any more.
+# (Before: if a marker file went missing, deploy re-seeded - wiping edited teams and resetting the guild password.)
+# Manual only, if ever needed: cd api ; node ..\scripts\seed-pandoara.mjs ; npx wrangler d1 execute 7k-note --remote --file=seed-pandoara.sql
 $pandoaraKey = if (Test-Path "$root\api\.pandoara-key") { (Get-Content "$root\api\.pandoara-key" -Raw).Trim() } else { "" }
 
 Step "Deploying API"

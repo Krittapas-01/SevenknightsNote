@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { currentSeason, isDateKey } from './season'
+import { currentSeason } from './season'
 
 type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string }
 
@@ -18,8 +18,10 @@ const SLOT_COUNT = 5
 /** จองสกิลได้สูงสุดกี่ครั้ง — ต้องตรงกับ MAX_SKILL_QUEUE ฝั่งเว็บ (web/src/lib/types.ts) */
 const MAX_SKILL_QUEUE = 3
 const MAX_HEROES = 3
-const MAX_TARGETS = 300
-const MAX_COUNTERS = 30
+// จำกัดขนาดกิลด์ให้หน้ากิลด์โหลดได้ในเวลา CPU 10 ms ของแผนฟรี (กิลด์ใหญ่สุดตอนนี้ ~70 ทีม × ≤ 11 ทีมแก้)
+// ข้อมูลเดิมที่เกินอยู่แล้วไม่ถูกลบ แค่เพิ่มใหม่ไม่ได้
+const MAX_TARGETS = 150
+const MAX_COUNTERS = 15
 const EXTRA_COUNT = 4
 const WAR_SLOTS = 5
 const MAX_OPTIONS = 8
@@ -37,11 +39,32 @@ const app = new Hono<{ Bindings: Env }>()
 
 app.use('/api/*', async (c, next) =>
   cors({
-    origin: c.env.ALLOWED_ORIGIN || '*',
+    origin: (origin) => (allowedOrigin(origin, c.env) ? origin : null),
     allowHeaders: ['Content-Type', 'X-Edit-Key', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    // ให้เบราว์เซอร์จำผล preflight ไว้ 2 ชม. (ไม่งั้น Chrome จำแค่ 5 วิ → ทุก request กลายเป็น 2 ครั้ง กินโควตา Worker)
+    maxAge: 7200,
   })(c, next),
 )
+
+/**
+ * เว็บที่เรียก API ได้: ALLOWED_ORIGIN (เช่น https://7k-note.pages.dev) + ลิงก์ preview ของ Pages (xxxx.7k-note.pages.dev)
+ * + เครื่องตัวเองตอน dev · ALLOWED_ORIGIN = '*' = ยอมทุกเว็บ
+ */
+function allowedOrigin(origin: string, env: Env) {
+  const allow = (env.ALLOWED_ORIGIN || '*').trim()
+  if (allow === '*') return true
+  try {
+    const u = new URL(origin)
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true
+    return allow.split(',').some((a) => {
+      const site = new URL(a.trim())
+      return u.origin === site.origin || (u.protocol === 'https:' && u.hostname.endsWith('.' + site.hostname))
+    })
+  } catch {
+    return false
+  }
+}
 
 // All write endpoints accept JSON objects. JSON null/arrays are valid JSON,
 // but must not reach handlers that dereference body fields.
@@ -178,6 +201,7 @@ const toPlan = (r: any) => ({ id: r.id, title: r.title, data: JSON.parse(r.data)
 
 // ใส่รหัสผิดเกิน MAX_FAILS ครั้งใน LOCK_MS → ล็อก (เฉพาะ IP นั้น ของกิลด์นั้น) กันการสุ่มเดารหัส
 const MAX_FAILS = 10
+const CREATE_PER_HOUR = 5
 const LOCK_MS = 15 * 60 * 1000
 
 async function checkKey(c: any, guildId: string): Promise<'ok' | 'notfound' | 'forbidden' | 'locked'> {
@@ -246,6 +270,13 @@ app.post('/api/guild', async (c) => {
   // ชื่อกิลด์ห้ามซ้ำ (ไม่สนตัวพิมพ์เล็ก/ใหญ่ และช่องว่างหัวท้าย)
   const taken = await c.env.DB.prepare('SELECT 1 FROM guilds WHERE lower(trim(name)) = lower(?) LIMIT 1').bind(name.trim()).first()
   if (taken) return c.json({ error: `มีกิลด์ชื่อ "${name.trim()}" อยู่แล้ว ลองใช้ชื่ออื่น` }, 409)
+  // กันสแปมสร้างกิลด์: สูงสุด CREATE_PER_HOUR กิลด์/ชม. ต่อ IP (ใช้ตาราง auth_fails เก็บตัวนับ)
+  // (เครื่อง dev/ทดสอบไม่มี CF-Connecting-IP → ไม่จำกัด)
+  const ip = c.req.header('CF-Connecting-IP')
+  const rk = `create:${ip}`
+  const nowMs = Date.now()
+  const rl = ip ? await c.env.DB.prepare('SELECT count, since FROM auth_fails WHERE k = ?').bind(rk).first<{ count: number; since: number }>() : null
+  if (rl && nowMs - rl.since < 3600_000 && rl.count >= CREATE_PER_HOUR) return c.json({ error: 'สร้างกิลด์บ่อยเกินไป ลองใหม่ในอีก 1 ชั่วโมง' }, 429)
   // รหัสแก้ไขกิลด์: ผู้สร้างตั้งเองตอนสร้าง (6–64 ตัว) · ไม่ส่งมา = สุ่มให้ (แบบเดิม)
   const password = typeof body.password === 'string' ? body.password.trim() : ''
   if (password && (password.length < 6 || password.length > 64)) return c.json({ error: 'รหัสต้องยาว 6–64 ตัวอักษร' }, 400)
@@ -254,6 +285,9 @@ app.post('/api/guild', async (c) => {
   await c.env.DB.prepare('INSERT INTO guilds (id, name, edit_hash, created_at) VALUES (?, ?, ?, ?)')
     .bind(id, name, await sha256(editKey), Date.now())
     .run()
+  if (ip) await c.env.DB.prepare(
+    'INSERT INTO auth_fails (k, count, since) VALUES (?, 1, ?) ON CONFLICT(k) DO UPDATE SET count = CASE WHEN ? - since < 3600000 THEN count + 1 ELSE 1 END, since = CASE WHEN ? - since < 3600000 THEN since ELSE ? END',
+  ).bind(rk, nowMs, nowMs, nowMs, nowMs).run()
   return c.json({ id, name, editKey }, 201)
 })
 
@@ -275,7 +309,10 @@ app.delete('/api/guild/:id', async (c) => {
   if (!g) return c.json({ error: 'not found' }, 404)
   if (String(body.confirmName ?? '').trim() !== g.name.trim()) return c.json({ error: 'ชื่อกิลด์ที่พิมพ์ยืนยันไม่ตรง' }, 400)
   await c.env.DB.batch(['counters', 'targets', 'plans', 'announcements', 'guild_settings'].map((t) =>
-    c.env.DB.prepare(`DELETE FROM ${t} WHERE guild_id = ?`).bind(gid)).concat(c.env.DB.prepare('DELETE FROM guilds WHERE id = ?').bind(gid)))
+    c.env.DB.prepare(`DELETE FROM ${t} WHERE guild_id = ?`).bind(gid)).concat(
+    c.env.DB.prepare('DELETE FROM guilds WHERE id = ?').bind(gid),
+    c.env.DB.prepare("DELETE FROM auth_fails WHERE k LIKE ? || ':%'").bind(gid), // ตัวนับใส่รหัสผิดของกิลด์นี้
+  ))
   return c.json({ ok: true })
 })
 
@@ -451,11 +488,18 @@ app.put('/api/guild/:id/plans/:pid', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const data = parsePlan(body.data)
   if (!data) return c.json({ error: 'ข้อมูลแผนไม่ถูกต้อง' }, 400)
-  const res = await c.env.DB.prepare('UPDATE plans SET title = ?, data = ?, updated_at = ? WHERE id = ? AND guild_id = ?')
-    .bind(str(body.title, 60) || 'แผนวอร์', JSON.stringify(data), Date.now(), c.req.param('pid'), gid)
+  // กันแก้ทับกัน: ส่ง baseUpdatedAt (เวลาแก้ล่าสุดตอนเริ่มแก้) มา → ถ้าระหว่างนั้นมีคนบันทึกไปก่อน ตอบ 409
+  const base = Number.isFinite(body.baseUpdatedAt) ? Number(body.baseUpdatedAt) : null
+  const now = Date.now()
+  const res = await c.env.DB.prepare(`UPDATE plans SET title = ?, data = ?, updated_at = ? WHERE id = ? AND guild_id = ?${base !== null ? ' AND updated_at = ?' : ''}`)
+    .bind(...[str(body.title, 60) || 'แผนวอร์', JSON.stringify(data), now, c.req.param('pid'), gid, ...(base !== null ? [base] : [])])
     .run()
-  if (!res.meta.changes) return c.json({ error: 'ไม่พบแผน' }, 404)
-  return c.json({ ok: true })
+  if (!res.meta.changes) {
+    if (base !== null && (await c.env.DB.prepare('SELECT 1 FROM plans WHERE id = ? AND guild_id = ?').bind(c.req.param('pid'), gid).first()))
+      return c.json({ error: 'มีคนบันทึกแผนนี้ไปก่อนระหว่างที่คุณแก้ — กดยกเลิก แล้วเปิดแก้ใหม่เพื่อดูของล่าสุด (คัดลอกส่วนที่แก้ไว้ก่อน)' }, 409)
+    return c.json({ error: 'ไม่พบแผน' }, 404)
+  }
+  return c.json({ ok: true, updatedAt: now })
 })
 
 app.delete('/api/guild/:id/plans/:pid', async (c) => {
@@ -469,22 +513,20 @@ app.delete('/api/guild/:id/plans/:pid', async (c) => {
   return c.json({ ok: true })
 })
 
-// ---- pulse: ข้อมูลเล็ก ๆ สำหรับแถบประกาศ (เว็บเรียกทุก 15 วิ) ----
+// ---- pulse: ข้อมูลเล็ก ๆ สำหรับแถบประกาศ (เว็บเรียกทุก 30 วิ — ให้เบาที่สุด) ----
 app.get('/api/guild/:id/pulse', async (c) => {
   const gid = c.req.param('id')
-  const [g, latest, withPlan, st] = await c.env.DB.batch([
+  const [g, latest, withPlan] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT name FROM guilds WHERE id = ?').bind(gid),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 1').bind(gid),
     c.env.DB.prepare(
       'SELECT a.plan_id, p.title FROM announcements a JOIN plans p ON p.id = a.plan_id WHERE a.guild_id = ? ORDER BY a.created_at DESC LIMIT 1',
     ).bind(gid),
-    c.env.DB.prepare('SELECT schedule, season_start, season_end FROM guild_settings WHERE guild_id = ?').bind(gid),
   ])
   const guild = (g.results as any[])[0]
   if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
   const a = (latest.results as any[])[0]
   const p = (withPlan.results as any[])[0]
-  const s = (st.results as any[])[0]
   c.header('Cache-Control', 'no-store')
   return c.json({
     guildName: guild.name,
@@ -598,6 +640,14 @@ async function notifyDiscord(env: Env, gid: string, a: { body: string; planId: s
      FROM guilds g JOIN guild_settings s ON s.guild_id = g.id LEFT JOIN plans p ON p.id = ? AND p.guild_id = g.id WHERE g.id = ?`,
   ).bind(a.planId, gid).first<any>()
   if (!row?.url) return 'none'
+  return postDiscord(env, gid, row, a, test)
+}
+
+/** ส่งข้อความเข้า webhook (ข้อมูลกิลด์ดึงมาแล้ว — cron ใช้ส่งทีละหลายกิลด์โดยไม่ต้อง query ซ้ำ) */
+async function postDiscord(
+  env: Env, gid: string, row: { url: string; mention: string; name: string; plan_title?: string | null },
+  a: { body: string; planId: string | null; opponent: string; auto?: boolean; author?: { name: string; avatar: string; role?: string } | null }, test = false,
+) {
   const site = (env.SITE_URL || '').replace(/\/$/, '')
   const mention = row.mention === 'everyone' ? '@everyone' : row.mention === 'here' ? '@here' : row.mention ? `<@&${row.mention}>` : ''
   const fields = [
@@ -785,30 +835,48 @@ export function dailyAnnouncement(type: string, day: string, todayKey: string, s
   return `วันนี้ (${day}) ${DAY_LABEL[type]}`
 }
 
+// แผนฟรี: 1 รอบ cron เรียก D1 ได้ ≤ 50 ครั้ง และ fetch ภายนอก ≤ 50 ครั้ง → ทำทุกกิลด์ด้วย query รวม (ไม่วนทีละกิลด์)
+// แล้วส่ง Discord ได้สูงสุด DISCORD_PER_RUN กิลด์ (เหลือที่ไว้ให้ query D1)
+const DISCORD_PER_RUN = 40
+
 export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   const today = gameDayIndex(now)
   const todayKey = gameDayKey(now)
-  // เฉพาะกิลด์ที่เปิดไว้ และเคยใช้ประกาศแล้ว (กิลด์ที่สร้างทิ้งไว้จะไม่โดนประกาศรัว ๆ)
-  const { results } = await env.DB.prepare(
-    `SELECT g.id, s.schedule, s.season_start, s.season_end, (SELECT MAX(created_at) FROM announcements a WHERE a.guild_id = g.id) AS last_at
+  // เก็บกวาดวันละครั้ง: ตัวนับรหัสผิด/สร้างกิลด์, แคชยศ Discord, session/ล็อกอินที่หมดอายุ (ไม่งั้นโตไปเรื่อย ๆ)
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM auth_fails WHERE since < ?').bind(now - 86400_000),
+    env.DB.prepare('DELETE FROM member_cache WHERE at < ?').bind(now - 86400_000),
+    env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now),
+    env.DB.prepare('DELETE FROM oauth_states WHERE created_at < ?').bind(now - 3600_000),
+  ])
+  const body = dailyAnnouncement(GAME_SCHEDULE[today] ?? 'rest', DAY_NAMES[today], todayKey, GAME_SEASON.start, GAME_SEASON.end)
+  if (!body) return 0 // วันพัก / ช่วงพัก Season: ไม่ประกาศ (ข้อความเหมือนกันทุกกิลด์)
+  const dayStart = Date.parse(`${todayKey}T00:00:00Z`)
+  // 1) ใส่ประกาศให้ทุกกิลด์ที่เปิดไว้ + เคยใช้ประกาศ + วันนี้ยังไม่มีประกาศ (รันซ้ำก็ไม่ซ้ำ) — query เดียว
+  const ins = await env.DB.prepare(
+    `INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at, auto)
+     SELECT lower(hex(randomblob(5))), g.id, ?, NULL, '', ?, 1
      FROM guilds g LEFT JOIN guild_settings s ON s.guild_id = g.id
-     WHERE COALESCE(s.auto_announce, 1) = 1 AND EXISTS (SELECT 1 FROM announcements a WHERE a.guild_id = g.id)`,
-  ).all<any>()
-  let posted = 0
-  for (const g of results) {
-    if (g.last_at && gameDayKey(g.last_at) === todayKey) continue // วันนี้มีประกาศแล้ว (หรือรันซ้ำ)
-    const body = dailyAnnouncement(GAME_SCHEDULE[today] ?? 'rest', DAY_NAMES[today], todayKey, GAME_SEASON.start, GAME_SEASON.end)
-    if (!body) continue
-    await env.DB.batch([
-      env.DB.prepare('INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at, auto) VALUES (?, ?, ?, NULL, ?, ?, 1)')
-        .bind(randomId(10), g.id, body, '', now),
-      env.DB.prepare(
-        'DELETE FROM announcements WHERE guild_id = ? AND id NOT IN (SELECT id FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?)',
-      ).bind(g.id, g.id, MAX_ANNOUNCEMENTS),
-    ])
-    await notifyDiscord(env, g.id, { body, planId: null, opponent: '', auto: true }).catch((e) => console.error('discord', e))
-    posted++
-  }
+     WHERE COALESCE(s.auto_announce, 1) = 1
+       AND EXISTS (SELECT 1 FROM announcements a WHERE a.guild_id = g.id)
+       AND NOT EXISTS (SELECT 1 FROM announcements a WHERE a.guild_id = g.id AND a.created_at >= ?)`,
+  ).bind(body, now, dayStart).run()
+  const posted = ins.meta.changes ?? 0
+  if (!posted) return 0
+  // 2) เก็บแค่ล่าสุด MAX_ANNOUNCEMENTS อันต่อกิลด์ — query เดียวทุกกิลด์
+  await env.DB.prepare(
+    `DELETE FROM announcements WHERE id IN (
+       SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY guild_id ORDER BY created_at DESC) AS rn FROM announcements) WHERE rn > ?)`,
+  ).bind(MAX_ANNOUNCEMENTS).run()
+  // 3) กิลด์ที่เพิ่งได้ประกาศ + ต่อ Discord ไว้ — query เดียว แล้วส่ง webhook
+  const { results } = await env.DB.prepare(
+    `SELECT a.guild_id AS gid, g.name, s.discord_webhook AS url, s.discord_mention AS mention
+     FROM announcements a JOIN guilds g ON g.id = a.guild_id JOIN guild_settings s ON s.guild_id = a.guild_id
+     WHERE a.auto = 1 AND a.created_at = ? AND s.discord_webhook <> ''`,
+  ).bind(now).all<any>()
+  if (results.length > DISCORD_PER_RUN) console.warn(`discord: ${results.length} webhooks, sending first ${DISCORD_PER_RUN}`)
+  await Promise.all(results.slice(0, DISCORD_PER_RUN).map((r) =>
+    postDiscord(env, r.gid, r, { body, planId: null, opponent: '', auto: true }).catch((e) => console.error('discord', r.gid, e))))
   return posted
 }
 

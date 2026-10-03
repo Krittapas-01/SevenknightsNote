@@ -329,11 +329,13 @@ const rank = (u: Unit) => {
 const typeRank = (u: Unit) => (u.type ? TYPE_ORDER.indexOf(u.type) : TYPE_ORDER.length)
 // ตัวที่มีร่าง awake แล้ว → ไม่ต้องโชว์ร่างปกติ (ในเกมเหลือแต่ร่าง awake)
 const awakened = new Set(allHeroes.filter((u) => isAwake(u.name)).map((u) => baseName(u.name)))
-export const HEROES: Unit[] = allHeroes
-  .filter((u) => isAwake(u.name) || !awakened.has(u.name))
+const sortUnits = (list: Unit[]) => list
   .map((u, i) => ({ u, i, d: releaseOf(u.name) }))
   .sort((a, b) => rank(a.u) - rank(b.u) || b.d.localeCompare(a.d) || typeRank(a.u) - typeRank(b.u) || a.i - b.i)
   .map((x) => x.u)
+export const HEROES: Unit[] = sortUnits(allHeroes.filter((u) => isAwake(u.name) || !awakened.has(u.name)))
+/** รวมร่างปกติของตัวที่มีร่าง awake ด้วย (หน้าบิสกิต: คนที่ยังไม่ awake ค่า base ต่างกัน) */
+export const HEROES_WITH_BASE: Unit[] = sortUnits(allHeroes)
 
 export const PETS: Unit[] = uniq([...catalog.pets, ...EXTRA_PETS]).map((name) => ({ id: name, name, img: imageFor(name) }))
 

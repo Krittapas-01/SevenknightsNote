@@ -182,8 +182,6 @@ export function changeFormation(team: Team, skills: SkillStep[], front: number) 
 }
 
 /** @deprecated ใช้ changeFormation แทน */
-export const withFormation = (team: Team, front: number): Team => changeFormation(team, [], front).team
-
 /** ลากสลับตำแหน่ง: ฮีโร่ ↔ ฮีโร่, สัตว์เลี้ยงหลัก/เสริม ↔ กันเอง */
 export function moveSlot(team: Team, skills: SkillStep[], from: SlotRef, to: SlotRef) {
   const t: Team = { ...team, slots: [...team.slots], extras: Array.from({ length: EXTRA_COUNT }, (_, i) => team.extras[i] ?? null) }
