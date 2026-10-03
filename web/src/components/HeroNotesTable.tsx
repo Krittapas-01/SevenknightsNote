@@ -60,7 +60,7 @@ export default function HeroNotesTable({ notes, editing, onChange, team }: {
                   onChange={(e) => onChange?.(notes.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))}
                   maxLength={300}
                   rows={3}
-                  className="h-full min-h-20 w-full rounded-lg border border-white/15 bg-black/20 p-2 pr-8 text-sm outline-none focus:border-gold"
+                  className="block min-h-20 w-full resize-y rounded-lg border border-white/15 bg-black/20 p-2 pr-8 text-sm outline-none focus:border-gold"
                 />
                 <button type="button" onClick={() => onChange?.(notes.filter((_, j) => j !== i))} title="ลบแถวนี้"
                   className="absolute right-4 top-4 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-red-300">
