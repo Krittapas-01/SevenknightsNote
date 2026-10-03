@@ -18,7 +18,8 @@ export default function Layout() {
             <HeaderClock />
           </div>
           <span className="ml-auto mr-3 hidden text-xs font-medium tracking-[.2em] text-white/45 md:inline">GUILD WAR COMPANION</span>
-          <div className="ml-auto md:ml-0"><Account /></div>
+          <Link to="/biscuit" className="ml-auto mr-3 whitespace-nowrap text-sm text-white/70 hover:text-gold md:ml-0">🍪 <span className="hidden sm:inline">เช็กบัฟบิสกิต</span></Link>
+          <div><Account /></div>
         </div>
       </header>
       {gid && <AnnouncementBar key={gid} gid={gid} />}
