@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { DndContext, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { useEffect, useState, type ReactNode } from 'react'
 import UnitCard from '../components/UnitCard'
 import UnitPicker from '../components/UnitPicker'
 import { FormationDiagram } from '../components/TeamModals'
@@ -69,6 +70,35 @@ const fmt = (n: number) => Math.round(n).toLocaleString('th-TH')
 export default function BiscuitPage() {
   const [state, setState] = useState(load)
   const [picking, setPicking] = useState<number | null>(null)
+  // แบบหน้าจัดทีม: กดตัวที่มีอยู่ 1 ครั้ง = เลือก · กดซ้ำ = เปลี่ยนตัว · กดช่องอื่น = สลับตำแหน่ง
+  const [selected, setSelected] = useState<number | null>(null)
+  const tapSlot = (i: number) => {
+    if (selected === null) {
+      if (slots[i].id) setSelected(i)
+      else setPicking(i)
+      return
+    }
+    if (selected === i) { setSelected(null); setPicking(i); return }
+    swap(selected, i)
+    setSelected(null)
+  }
+  // ย้าย/สลับ 2 ช่อง พร้อมค่าที่กรอกไว้ (ใช้ทั้งกดเลือก และลากวาง)
+  const swap = (a: number, b: number) => {
+    if (a === b) return
+    setState((s) => {
+      const next = [...s.slots]
+      ;[next[a], next[b]] = [next[b], next[a]]
+      return { ...s, slots: next }
+    })
+  }
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+  )
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    setSelected(null)
+    if (over) swap(Number(active.id), Number(over.id))
+  }
   const { pet, front, slots } = state
   const petBuff = pet.reduce((sum, v) => sum + num(v), 0)
   const formation = FORMATION_ATK.find((f) => f.front === front) ?? FORMATION_ATK[0]
@@ -164,6 +194,7 @@ export default function BiscuitPage() {
         </div>
 
         {/* ทีมแนวนอนแบบในเกม: แถวหลัง (B) ยกสูง · แถวหน้า (F) ต่ำลง */}
+        <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <div className="mt-5 grid grid-cols-5 items-start gap-1.5 sm:gap-3">
           {slots.map((r, i) => {
             const back = isBack(i)
@@ -172,10 +203,12 @@ export default function BiscuitPage() {
                 <span className={`text-center text-[11px] font-semibold ${back ? 'text-[#ff8f9a]' : 'text-[#8fa8ff]'}`}>
                   {back ? `หลัง +${formation.atk}%` : 'หน้า'}
                 </span>
+                <DragSlot index={i} draggable={!!r.id}>
                 <button
-                  onClick={() => setPicking(i)}
-                  aria-label={r.id ? `เปลี่ยน ${getUnit(r.id)?.name}` : `เลือกตัวละครช่องที่ ${i + 1}`}
-                  className="aspect-square w-full text-[12px] transition hover:-translate-y-0.5"
+                  onClick={() => tapSlot(i)}
+                  aria-pressed={selected === i}
+                  aria-label={r.id ? `${getUnit(r.id)?.name}${selected === i ? ' (เลือกอยู่ · กดอีกครั้งเพื่อเปลี่ยนตัว)' : ''}` : `เลือกตัวละครช่องที่ ${i + 1}`}
+                  className={`aspect-square w-full text-[12px] transition hover:-translate-y-0.5 ${selected === i ? 'rounded-[24%_4%_24%_4%] ring-2 ring-gold ring-offset-2 ring-offset-[#151c2e]' : ''}`}
                 >
                   {r.id ? (
                     <UnitCard id={r.id} />
@@ -185,10 +218,11 @@ export default function BiscuitPage() {
                     </span>
                   )}
                 </button>
+                </DragSlot>
                 {(r.id || r.screen) && (
                   <>
                     <input value={r.screen} onChange={(e) => setSlot(i, { screen: e.target.value })} inputMode="decimal"
-                      placeholder="หน้าตัว" aria-label="โจมตีหน้าตัวละคร" className={input} />
+                      placeholder="โจมตี" aria-label="โจมตีหน้าตัวละคร" className={input} />
                     <input value={r.extra} onChange={(e) => setSlot(i, { extra: e.target.value })} inputMode="decimal"
                       placeholder="บัฟ%+" aria-label="บัฟ % เพิ่มเฉพาะตัว" className={`${input} text-white/70`} />
                     <span className="text-center text-[11px] text-white/45 tabular-nums">
@@ -200,8 +234,9 @@ export default function BiscuitPage() {
             )
           })}
         </div>
+        </DndContext>
         <p className="mt-4 text-xs text-white/45">
-          กดช่องเพื่อเลือกตัวละคร · ช่องแรกใต้รูป = โจมตีหน้าตัวละคร · ช่องที่ 2 = บัฟ % เพิ่มเฉพาะตัว (เช่น สกิลติดตัว) · base ตายตัวตามตัวละคร (ค่าจาก 7K Atlas)
+          กดช่องว่างเพื่อเลือกตัวละคร · กดตัวที่มีอยู่ 1 ครั้งเพื่อเลือก แล้วกดซ้ำเพื่อเปลี่ยนตัว หรือกดช่องอื่นเพื่อสลับตำแหน่ง · ช่องแรกใต้รูป = โจมตี (ตามหน้าตัวละคร) · ช่องที่ 2 = บัฟ % เพิ่มเฉพาะตัว (เช่น สกิลติดตัว) · base ตายตัวตามตัวละคร (ค่าจาก 7K Atlas)
           · ค่ายกลให้ All Attack % เฉพาะแถวหลัง (แถวหน้าได้ป้องกัน %) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
         </p>
       </section>
@@ -266,6 +301,20 @@ export default function BiscuitPage() {
           )}
         </section>
       )}
+    </div>
+  )
+}
+
+/** ช่องในทีมที่ลากไปวางช่องอื่นได้ (สลับตำแหน่ง) — มือถือกดค้างแล้วลาก */
+function DragSlot({ index, draggable, children }: { index: number; draggable: boolean; children: ReactNode }) {
+  const drag = useDraggable({ id: String(index), disabled: !draggable })
+  const drop = useDroppable({ id: String(index) })
+  const t = drag.transform
+  return (
+    <div ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el) }} {...drag.listeners}
+      className={`relative touch-manipulation ${drag.isDragging ? 'z-20 opacity-80' : ''} ${drop.isOver && !drag.isDragging ? 'rounded-[24%_4%_24%_4%] ring-2 ring-gold/70' : ''}`}
+      style={t ? { transform: `translate3d(${t.x}px, ${t.y}px, 0)` } : undefined}>
+      {children}
     </div>
   )
 }
