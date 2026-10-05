@@ -1,4 +1,4 @@
-import { Cookie, Home, Shield, X } from 'lucide-react'
+import { Cookie, ExternalLink, Home, Shield, Sparkles, X } from 'lucide-react'
 import { useEffect, useState, type ComponentType } from 'react'
 import { NavLink } from 'react-router'
 import { getRecent, refreshRecent } from '../lib/api'
@@ -7,6 +7,11 @@ import { getRecent, refreshRecent } from '../lib/api'
 const NAV: { to: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
   { to: '/', label: 'หน้าแรก', icon: Home },
   { to: '/biscuit', label: 'เช็กบัฟบิสกิต', icon: Cookie },
+]
+
+// ลิงก์ออกไปหน้าทางการของ Netmarble (เปิดแท็บใหม่)
+const EXTERNAL = [
+  { href: 'https://skre-shop.netmarble.com/en/event/daily_gift', label: 'เปิดไพ่ทาโรต์', sub: 'ของขวัญรายวัน · หน้าทางการ', icon: Sparkles },
 ]
 
 export default function SideMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -45,6 +50,16 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
           <NavLink key={to} to={to} end onClick={onClose} className={item}>
             <Icon className="h-5 w-5 shrink-0" /> {label}
           </NavLink>
+        ))}
+        {EXTERNAL.map(({ href, label, sub, icon: Icon }) => (
+          <a key={href} href={href} target="_blank" rel="noreferrer" onClick={onClose} className={item({ isActive: false })}>
+            <Icon className="h-5 w-5 shrink-0" />
+            <span className="min-w-0 flex-1">
+              <span className="block">{label}</span>
+              <span className="block text-xs text-white/45">{sub}</span>
+            </span>
+            <ExternalLink className="h-4 w-4 shrink-0 text-white/40" />
+          </a>
         ))}
 
         <hr className="my-3 border-white/10" />
