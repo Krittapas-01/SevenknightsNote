@@ -1,4 +1,4 @@
-import { Menu } from 'lucide-react'
+import { Bug, Check, Menu } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Link, Outlet, useMatch } from 'react-router'
 import Account from './Account'
@@ -40,8 +40,30 @@ export default function Layout() {
           <p>7K Note · เครื่องมือวางแผนกิลวอร์ Seven Knights Re:BIRTH · โปรเจกต์แฟนเมด</p>
           <p className="sm:text-right">ไม่มีส่วนเกี่ยวข้องหรือได้รับการรับรองจาก Netmarble Corp.</p>
         </div>
-        <p className="mt-2 text-center sm:text-left">ภาพตัวละคร © Netmarble Corp. & Netmarble Nexus Inc. · <a className="underline underline-offset-4 hover:text-gold" href="https://sena.netmarble.com/en/pcplay" target="_blank" rel="noreferrer">เว็บไซต์เกมทางการ</a></p>
+        <div className="mt-2 flex flex-col items-center gap-1.5 text-center sm:flex-row sm:justify-between sm:text-left">
+          <p>ภาพตัวละคร © Netmarble Corp. & Netmarble Nexus Inc. · <a className="underline underline-offset-4 hover:text-gold" href="https://sena.netmarble.com/en/pcplay" target="_blank" rel="noreferrer">เว็บไซต์เกมทางการ</a></p>
+          <BugReport />
+        </div>
       </footer>
     </div>
+  )
+}
+
+// แจ้งบั๊กทาง Discord — ชื่อผู้ใช้ Discord ลิงก์ตรงไม่ได้ เลยกดแล้วคัดลอกชื่อให้
+const BUG_DISCORD = 'bruhh_exe'
+function BugReport() {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    navigator.clipboard?.writeText(BUG_DISCORD).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {})
+  }
+  return (
+    <button onClick={copy} title="กดเพื่อคัดลอกชื่อ Discord" className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-white/5 hover:text-gold">
+      {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Bug className="h-3.5 w-3.5" />}
+      แจ้งบั๊ก Discord: <span className="font-semibold text-white/70">{BUG_DISCORD}</span>
+      {copied && <span className="text-emerald-400">คัดลอกแล้ว</span>}
+    </button>
   )
 }
