@@ -1,4 +1,4 @@
-import { Cookie, ExternalLink, Home, Shield, Sparkles, X } from 'lucide-react'
+import { Cookie, ExternalLink, Home, MessagesSquare, Shield, Sparkles, X } from 'lucide-react'
 import { useEffect, useState, type ComponentType } from 'react'
 import { NavLink } from 'react-router'
 import { getRecent, refreshRecent } from '../lib/api'
@@ -12,6 +12,8 @@ const NAV: { to: string; label: string; icon: ComponentType<{ className?: string
 // ลิงก์ออกไปหน้าทางการของ Netmarble (เปิดแท็บใหม่)
 const EXTERNAL = [
   { href: 'https://skre-shop.netmarble.com/en/event/daily_gift', label: 'เปิดไพ่ทาโรต์', sub: 'ของขวัญรายวัน · หน้าทางการ', icon: Sparkles },
+  { href: 'https://forum.netmarble.com/sk_rebirth_gl', label: 'ฟอรัมไทย', sub: 'Netmarble Forum · ทางการ', icon: MessagesSquare },
+  { href: 'https://forum.netmarble.com/sena_rebirth', label: 'ฟอรัมเกาหลี', sub: 'Netmarble Forum · ทางการ', icon: MessagesSquare },
 ]
 
 export default function SideMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
