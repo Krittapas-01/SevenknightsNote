@@ -74,7 +74,7 @@ export default function TargetPage() {
   }
   function cancel() {
     setErr(null)
-    if (isNew) nav(`/g/${gid}`)
+    if (isNew) nav(`/g/${gid}?tab=targets`)
     else setMode('view')
   }
 
@@ -134,7 +134,7 @@ export default function TargetPage() {
     run(async () => {
       await api.deleteTarget(gid, tid)
       await reload()
-      nav(`/g/${gid}`, { replace: true })
+      nav(`/g/${gid}?tab=targets`, { replace: true })
     })
   }
   const saveCounter = () =>
@@ -191,7 +191,7 @@ export default function TargetPage() {
   return (
     <DndHub>
     <div className={mode !== 'view' ? 'pb-56' : ''}>
-      <Link to={`/g/${gid}`} className="inline-flex items-center gap-1 text-white/70 hover:text-white">
+      <Link to={`/g/${gid}?tab=targets`} className="inline-flex items-center gap-1 text-white/70 hover:text-white">
         <ChevronLeft className="h-5 w-5" /> {data.guild.name}
       </Link>
 
