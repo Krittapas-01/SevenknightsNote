@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { currentSeason } from './season'
 
-type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string }
+type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string }
 
 type Team = {
   front: number // จำนวนช่องแถวหน้า (1-4) ที่เหลือเป็นแถวหลัง รวม 5 ช่อง
@@ -643,6 +643,9 @@ async function notifyDiscord(env: Env, gid: string, a: { body: string; planId: s
   return postDiscord(env, gid, row, a, test)
 }
 
+// กิลด์ที่มี webhook ที่ 2 (ตั้ง URL ด้วย: npx wrangler secret put EXTRA_WEBHOOK) — ThousandSunny
+const EXTRA_WEBHOOK_GUILD = 'iWMpFr9g'
+
 /** ส่งข้อความเข้า webhook (ข้อมูลกิลด์ดึงมาแล้ว — cron ใช้ส่งทีละหลายกิลด์โดยไม่ต้อง query ซ้ำ) */
 async function postDiscord(
   env: Env, gid: string, row: { url: string; mention: string; name: string; plan_title?: string | null },
@@ -654,25 +657,28 @@ async function postDiscord(
     row.plan_title && { name: 'แผนที่ใช้', value: site ? `[${row.plan_title}](${site}/g/${gid}/p/${a.planId})` : row.plan_title, inline: true },
     a.opponent && { name: 'เจอกิลด์', value: a.opponent, inline: true },
   ].filter(Boolean)
-  const res = await fetch(row.url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      username: '7K Note',
-      avatar_url: site ? `${site}/logo-1024.png` : undefined, // โลโก้เว็บแทนรูป Discord เริ่มต้น
-      content: test ? undefined : mention || undefined,
-      allowed_mentions: row.mention === 'everyone' || row.mention === 'here' ? { parse: ['everyone'] } : { parse: [], roles: row.mention ? [row.mention] : [] },
-      embeds: [{
-        author: a.author ? { name: a.author.role ? `${a.author.name} · ${a.author.role}` : a.author.name, icon_url: a.author.avatar || undefined } : undefined,
-        title: `📢 ประกาศ ${row.name}`,
-        description: a.body || undefined,
-        url: site ? `${site}/g/${gid}` : undefined,
-        color: 0xe2bf72,
-        fields,
-        footer: a.auto ? { text: 'ประกาศอัตโนมัติ 07:00' } : undefined,
-      }],
-    }),
+  const body = JSON.stringify({
+    username: '7K Note',
+    avatar_url: site ? `${site}/logo-1024.png` : undefined, // โลโก้เว็บแทนรูป Discord เริ่มต้น
+    content: test ? undefined : mention || undefined,
+    allowed_mentions: row.mention === 'everyone' || row.mention === 'here' ? { parse: ['everyone'] } : { parse: [], roles: row.mention ? [row.mention] : [] },
+    embeds: [{
+      author: a.author ? { name: a.author.role ? `${a.author.name} · ${a.author.role}` : a.author.name, icon_url: a.author.avatar || undefined } : undefined,
+      title: `📢 ประกาศ ${row.name}`,
+      description: a.body || undefined,
+      url: site ? `${site}/g/${gid}` : undefined,
+      color: 0xe2bf72,
+      fields,
+      footer: a.auto ? { text: 'ประกาศอัตโนมัติ 07:00' } : undefined,
+    }],
   })
+  const send = (url: string) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+  // webhook ที่ 2 (เฉพาะกิลด์ที่กำหนด) — ส่งข้อความเดียวกัน ถ้าพังไม่กระทบอันหลัก
+  const extra = gid === EXTRA_WEBHOOK_GUILD && env.EXTRA_WEBHOOK && (WEBHOOK_RE.test(env.EXTRA_WEBHOOK) || env.DISCORD_ALLOW_ANY) ? env.EXTRA_WEBHOOK : ''
+  const [res] = await Promise.all([
+    send(row.url),
+    extra && send(extra).then((r) => { if (!r.ok) console.error('discord extra', gid, r.status) }, (e) => console.error('discord extra', gid, e)),
+  ])
   return res.ok ? 'ok' : String(res.status)
 }
 
