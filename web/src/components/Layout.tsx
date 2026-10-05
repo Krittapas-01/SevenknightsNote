@@ -34,10 +34,13 @@ export default function Layout() {
       <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
         <Outlet />
       </main>
-      <footer className="mx-auto max-w-6xl px-4 pb-8 pt-10 text-center text-xs leading-relaxed text-white/40">
-        <p className="mb-2 text-gold/65" aria-hidden="true">— ✦ —</p>
-        <p>7K Note · เครื่องมือวางแผนของผู้เล่น Seven Knights Re:BIRTH</p>
-        <p className="mt-1">ภาพตัวละคร © Netmarble Corp. & Netmarble Nexus Inc. · <a className="underline underline-offset-4 hover:text-gold" href="https://sena.netmarble.com/en/pcplay" target="_blank" rel="noreferrer">เว็บไซต์เกมทางการ</a></p>
+      <footer className="mx-auto max-w-6xl px-4 pb-8 pt-10 text-xs leading-relaxed text-white/40">
+        <p className="mb-4 text-center text-gold/65" aria-hidden="true">— ✦ —</p>
+        <div className="flex flex-col items-center gap-1.5 border-t border-white/10 pt-4 text-center sm:flex-row sm:justify-between sm:text-left">
+          <p>7K Note · เครื่องมือวางแผนกิลวอร์ Seven Knights Re:BIRTH · โปรเจกต์แฟนเมด</p>
+          <p className="sm:text-right">ไม่มีส่วนเกี่ยวข้องหรือได้รับการรับรองจาก Netmarble Corp.</p>
+        </div>
+        <p className="mt-2 text-center sm:text-left">ภาพตัวละคร © Netmarble Corp. & Netmarble Nexus Inc. · <a className="underline underline-offset-4 hover:text-gold" href="https://sena.netmarble.com/en/pcplay" target="_blank" rel="noreferrer">เว็บไซต์เกมทางการ</a></p>
       </footer>
     </div>
   )
