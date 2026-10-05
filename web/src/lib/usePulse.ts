@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type Pulse } from './api'
 
-const INTERVAL = 30_000 // เช็กประกาศทุก 30 วิ (ประหยัดโควตา API ฟรี 100k/วัน)
+const INTERVAL = 60_000 // เช็กประกาศทุก 60 วิ (ประหยัดโควตา API ฟรี 100k/วัน · ตอนโพสต์เองหรือกลับมาที่แท็บจะเช็กทันที)
 
 /** แจ้งทุกหน้าว่ามีการเปลี่ยนแปลง (โพสต์ประกาศ/แก้ตาราง) ให้โหลดใหม่ */
 export const notifyGuildChanged = (gid: string) => window.dispatchEvent(new CustomEvent('7knote:changed', { detail: gid }))
 
 /**
- * เช็กประกาศล่าสุดเป็นระยะ (ทุก 30 วิ ตอนแท็บเปิดอยู่ + ทันทีที่กลับมาที่แท็บ)
+ * เช็กประกาศล่าสุดเป็นระยะ (ทุก 60 วิ ตอนแท็บเปิดอยู่ + ทันทีที่กลับมาที่แท็บ)
  * ถ้าประกาศล่าสุดเปลี่ยน → ยิง event ให้หน้าอื่น ๆ โหลดข้อมูลใหม่ด้วย
  */
 export function usePulse(gid: string | undefined) {
