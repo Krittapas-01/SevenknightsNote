@@ -838,6 +838,8 @@ export function dailyAnnouncement(type: string, day: string, todayKey: string, s
 // แผนฟรี: 1 รอบ cron เรียก D1 ได้ ≤ 50 ครั้ง และ fetch ภายนอก ≤ 50 ครั้ง → ทำทุกกิลด์ด้วย query รวม (ไม่วนทีละกิลด์)
 // แล้วส่ง Discord ได้สูงสุด DISCORD_PER_RUN กิลด์ (เหลือที่ไว้ให้ query D1)
 const DISCORD_PER_RUN = 40
+// กิลด์ที่ต้องได้ข้อความ Discord ก่อนเสมอ (ถ้ากิลด์ที่ต่อ Discord เกิน DISCORD_PER_RUN) — ThousandSunny
+const DISCORD_PRIORITY = ['iWMpFr9g']
 
 export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   const today = gameDayIndex(now)
@@ -872,8 +874,9 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   const { results } = await env.DB.prepare(
     `SELECT a.guild_id AS gid, g.name, s.discord_webhook AS url, s.discord_mention AS mention
      FROM announcements a JOIN guilds g ON g.id = a.guild_id JOIN guild_settings s ON s.guild_id = a.guild_id
-     WHERE a.auto = 1 AND a.created_at = ? AND s.discord_webhook <> ''`,
-  ).bind(now).all<any>()
+     WHERE a.auto = 1 AND a.created_at = ? AND s.discord_webhook <> ''
+     ORDER BY CASE WHEN a.guild_id IN (${DISCORD_PRIORITY.map(() => '?').join(',')}) THEN 0 ELSE 1 END`,
+  ).bind(now, ...DISCORD_PRIORITY).all<any>()
   if (results.length > DISCORD_PER_RUN) console.warn(`discord: ${results.length} webhooks, sending first ${DISCORD_PER_RUN}`)
   await Promise.all(results.slice(0, DISCORD_PER_RUN).map((r) =>
     postDiscord(env, r.gid, r, { body, planId: null, opponent: '', auto: true }).catch((e) => console.error('discord', r.gid, e))))
