@@ -27,7 +27,7 @@ export default function HeaderClock() {
         <time dateTime={new Date(now).toISOString()} className="text-lg font-semibold leading-6 tabular-nums tracking-wide text-gold sm:text-2xl">{clock.format(now)}</time>
         <span className="text-[10px] leading-3 text-white/55">เวลาไทย</span>
       </div>
-      {/* วันในเกม (เปลี่ยน 07:00) + ช่วงของวัน — จอใหญ่อยู่ข้างนาฬิกา · มือถือที่ไม่พอ ไปอยู่ในแถบประกาศแทน (AnnouncementBar) */}
+      {/* วันในเกม (เปลี่ยน 07:00) + ช่วงของวัน — จอใหญ่อยู่ข้างนาฬิกา · มือถือไปอยู่ในแถบประกาศ/แถบ Season แทน (DayPhaseChips) */}
       <div className="hidden flex-col gap-0.5 text-[11px] leading-4 sm:flex" title={`${ph ? `${ph.label} ถึง ${ph.until} (อีก ${ph.left}) · ${phaseHelp(type)} · ` : ''}วันใหม่เริ่ม 07:00 (อีก ${resetLabel(now)})`}>
         <span className="flex items-center gap-1.5 whitespace-nowrap">
           <span className="font-semibold text-white/90">{DAYS[today]}</span>

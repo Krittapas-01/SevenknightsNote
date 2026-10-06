@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import { Link, Outlet, useMatch } from 'react-router'
 import Account from './Account'
 import AnnouncementBar from './AnnouncementBar'
+import TopStrip from './TopStrip'
 import HeaderClock from './HeaderClock'
 import SideMenu from './SideMenu'
 
@@ -30,7 +31,11 @@ export default function Layout() {
         </div>
       </header>
       <SideMenu open={menuOpen} onClose={closeMenu} />
-      {gid && <AnnouncementBar key={gid} gid={gid} />}
+      {/* Season ขึ้นทุกหน้า (เหมือนทุกกิลด์) · หน้ากิลด์มีแถบประกาศต่อท้าย — ติดใต้หัวเว็บไปด้วยกัน */}
+      <div className="sticky top-14 z-30">
+        <TopStrip inGuild={!!gid} />
+        {gid && <AnnouncementBar key={gid} gid={gid} />}
+      </div>
       <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
         <Outlet />
       </main>
