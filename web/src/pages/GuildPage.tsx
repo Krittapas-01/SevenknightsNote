@@ -158,7 +158,6 @@ export default function GuildPage() {
                   </span>
                 }
               />
-              {t.note && <p className="mt-3 line-clamp-1 px-2 text-sm text-white/55">{t.note}</p>}
             </Link>
             )
           })}
