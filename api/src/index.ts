@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { currentSeason } from './season'
+import { currentSeason } from '../../shared/season'
+import { DAY_NAMES, DAY_PLACEHOLDER, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay } from '../../shared/game'
 
 type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string }
 
@@ -27,13 +28,7 @@ const WAR_SLOTS = 5
 const MAX_OPTIONS = 8
 const MAX_PLANS = 50
 const MAX_ANNOUNCEMENTS = 200
-// จันทร์..อาทิตย์: ตี จ/พ/ส, จัดบ้านกัน อ/ศ/อา, พักพฤหัส
-// ตารางวอร์และ Season ของเกม — เหมือนกันทุกกิลด์ (เกมกำหนด ไม่ต้องให้แต่ละกิลด์ตั้งเอง)
-// จันทร์..อาทิตย์: ตี / จัดบ้านกัน / พัก
-const GAME_SCHEDULE = ['attack', 'defense', 'attack', 'rest', 'defense', 'attack', 'defense']
-// Season ที่รู้วันแน่นอน (06/08/2026 – 17/09/2026) · Season ถัดไปนับต่อเอง: เริ่มหลังจบ 1 สัปดาห์ ยาวเท่าเดิม (season.ts)
-// ถ้าเกมเปลี่ยนรอบ Season แก้ 2 บรรทัดนี้แล้ว deploy
-const GAME_SEASON = { start: '2026-08-06', end: '2026-09-17' }
+// ตารางวอร์ / Season / เวลาเฟส / ข้อความประกาศเริ่มต้น — กติกาเกม เหมือนทุกกิลด์ อยู่ที่ shared/game.ts ที่เดียว
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -828,16 +823,8 @@ app.post('/api/auth/logout', async (c) => {
 
 // ---------- ประกาศอัตโนมัติ 07:00 เวลาไทย (Cron Trigger "0 0 * * *" = 00:00 UTC) ----------
 // เวลาไทย = UTC+7 ตลอด และวันในเกมเริ่ม 07:00 ไทย = 00:00 UTC → "วันในเกม" ตรงกับวันที่ UTC พอดี
-const DAY_NAMES = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์', 'อาทิตย์']
 const gameDayIndex = (ts: number) => (new Date(ts).getUTCDay() + 6) % 7 // 0 = จันทร์
 const gameDayKey = (ts: number) => new Date(ts).toISOString().slice(0, 10)
-/** ข้อความเริ่มต้นตอน 07:00 — บอกช่วงแรกของวันด้วย ทั้งกิลด์จะได้รู้ (ต้องตรงกับ AUTO_DEFAULT ฝั่งเว็บ) */
-const DAY_DEFAULT: Record<string, string> = {
-  attack: 'วันนี้ ({วัน}) วันตี · ช่วงตี 07:00–00:00',
-  defense: 'วันนี้ ({วัน}) วันจัดบ้านกัน · ช่วงแก้ทีม 07:00–18:00 (18:00 เริ่มจัดบ้าน)',
-}
-/** ข้อความประกาศอัตโนมัติที่กิลด์ตั้งเอง ยาวสุด (ตัวอักษร) */
-const MAX_AUTO_TEXT = 300
 
 const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 const thDate = (key: string) => `${+key.slice(8, 10)} ${TH_MONTHS[+key.slice(5, 7) - 1]}`
@@ -854,7 +841,7 @@ export function dailyAnnouncement(type: string, day: string, todayKey: string, s
     if (s.phase !== 'in') return null
   }
   if (type !== 'attack' && type !== 'defense') return null
-  return DAY_DEFAULT[type].replaceAll('{วัน}', day)
+  return fillDay(defaultAutoText(type), day)
 }
 
 // แผนฟรี: 1 รอบ cron เรียก D1 ได้ ≤ 50 ครั้ง และ fetch ภายนอก ≤ 50 ครั้ง → ทำทุกกิลด์ด้วย query รวม (ไม่วนทีละกิลด์)
@@ -878,10 +865,10 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   const dayStart = Date.parse(`${todayKey}T00:00:00Z`)
   // วันตี/วันจัดบ้านปกติ (ไม่ใช่วันเริ่ม/จบ Season) → กิลด์ที่ตั้งข้อความเองใช้ข้อความนั้น ({วัน} = ชื่อวัน)
   const type = GAME_SCHEDULE[today] ?? 'rest'
-  const col = (type === 'attack' || type === 'defense') && body === DAY_DEFAULT[type].replaceAll('{วัน}', DAY_NAMES[today])
+  const col = (type === 'attack' || type === 'defense') && body === fillDay(defaultAutoText(type), DAY_NAMES[today])
     ? (type === 'attack' ? 's.auto_text_attack' : 's.auto_text_defense') : null
-  const bodySql = col ? `CASE WHEN COALESCE(${col}, '') <> '' THEN replace(${col}, '{วัน}', ?) ELSE ? END` : '?'
-  const bodyArgs = col ? [DAY_NAMES[today], body] : [body]
+  const bodySql = col ? `CASE WHEN COALESCE(${col}, '') <> '' THEN replace(${col}, ?, ?) ELSE ? END` : '?'
+  const bodyArgs = col ? [DAY_PLACEHOLDER, DAY_NAMES[today], body] : [body]
   // 1) ใส่ประกาศให้ทุกกิลด์ที่เปิดไว้ + เคยใช้ประกาศ + วันนี้ยังไม่มีประกาศ (รันซ้ำก็ไม่ซ้ำ) — query เดียว
   const ins = await env.DB.prepare(
     `INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at, auto)

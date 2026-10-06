@@ -16,6 +16,8 @@ export default defineConfig({
     },
   },
   server: {
+    // ให้ dev server อ่านไฟล์กลาง ../shared (กติกาเกมที่ใช้ร่วมกับ API) ได้
+    fs: { allow: ['..'] },
     // ตอน dev: ส่ง /api ไปที่ Worker (wrangler dev รันที่พอร์ต 8787)
     proxy: { '/api': 'http://127.0.0.1:8787' },
   },

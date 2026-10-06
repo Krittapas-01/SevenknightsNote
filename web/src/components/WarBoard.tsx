@@ -7,6 +7,7 @@ import { notifyGuildChanged } from '../lib/usePulse'
 import type { Announcement, DayType, GuildData } from '../lib/types'
 import { DAYS, DAYS_SHORT, DAY_TYPE, activePlanId, dateKey, dayIndex, fmtTime, isToday } from '../lib/war'
 import { currentSeason } from '../lib/season'
+import { DAY_PLACEHOLDER, MAX_AUTO_TEXT, defaultAutoText, fillDay } from '../../../shared/game'
 
 const fmtDate = (key: string) => new Date(`${key}T00:00:00+07:00`).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
 import DiscordSettings from './DiscordSettings'
@@ -245,12 +246,8 @@ function ComposeModal({ open, onClose, gid, data, activeId, reload }: { open: bo
 
 
 
-/** ข้อความเริ่มต้นของประกาศอัตโนมัติ (ตรงกับฝั่ง API) */
-const AUTO_DEFAULT = {
-  attack: 'วันนี้ ({วัน}) วันตี · ช่วงตี 07:00–00:00',
-  defense: 'วันนี้ ({วัน}) วันจัดบ้านกัน · ช่วงแก้ทีม 07:00–18:00 (18:00 เริ่มจัดบ้าน)',
-}
-const MAX_AUTO_TEXT = 300
+/** ข้อความเริ่มต้นของประกาศอัตโนมัติ — สร้างจาก shared/game.ts ที่เดียวกับ API */
+const AUTO_DEFAULT = { attack: defaultAutoText('attack'), defense: defaultAutoText('defense') }
 
 function ScheduleModal({ open, onClose, gid, schedule, auto, autoText, season, reload }: { open: boolean; onClose: () => void; gid: string; schedule: DayType[]; auto: boolean; autoText: { attack: string; defense: string }; season: { start: string; end: string }; reload: () => Promise<void> }) {
   const [autoDraft, setAutoDraft] = useState(auto)
@@ -310,7 +307,7 @@ function ScheduleModal({ open, onClose, gid, schedule, auto, autoText, season, r
         <p className="text-sm font-semibold">ข้อความที่ประกาศ</p>
         {(['attack', 'defense'] as const).map((k) => {
           const v = textDraft[k]
-          const preview = (v.trim() || AUTO_DEFAULT[k]).replaceAll('{วัน}', DAYS[dayIndex()])
+          const preview = fillDay(v.trim() || AUTO_DEFAULT[k], DAYS[dayIndex()])
           return (
             <label key={k} className="block">
               <span className="text-sm text-white/70">{DAY_TYPE[k].label}</span>
@@ -326,7 +323,7 @@ function ScheduleModal({ open, onClose, gid, schedule, auto, autoText, season, r
           )
         })}
         <p className="text-xs text-white/45">
-          พิมพ์ <code className="rounded bg-white/10 px-1">{'{วัน}'}</code> แทนชื่อวัน (เช่น อังคาร) · เว้นว่าง = ใช้ข้อความเริ่มต้น ·
+          พิมพ์ <code className="rounded bg-white/10 px-1">{DAY_PLACEHOLDER}</code> แทนชื่อวัน (เช่น อังคาร) · เว้นว่าง = ใช้ข้อความเริ่มต้น ·
           วันเริ่ม/วันสุดท้ายของ Season ยังใช้ข้อความ Season เหมือนเดิม · ส่งเข้า Discord ด้วย (ถ้าเชื่อมไว้)
         </p>
       </div>

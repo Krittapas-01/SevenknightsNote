@@ -90,7 +90,9 @@ export type PlanData = {
 }
 export type Plan = { id: string; title: string; data: PlanData; createdAt: number; updatedAt: number }
 
-export type DayType = 'attack' | 'defense' | 'rest'
+/** ชนิดวัน — กติกาเกมอยู่ที่ shared/game.ts */
+export type { DayType } from '../../../shared/game'
+import type { DayType } from '../../../shared/game'
 export type Announcement = { id: string; body: string; planId: string | null; opponent: string; createdAt: number; /** ระบบประกาศเองตอน 07:00 */ auto?: boolean; /** คนประกาศ (ถ้าล็อกอิน Discord) */ author?: { name: string; avatar: string; role?: string } | null }
 
 export type GuildData = {
