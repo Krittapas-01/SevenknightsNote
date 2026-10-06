@@ -398,9 +398,10 @@ export default function TargetPage() {
             <div className="panel panel-gold p-5">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gold">{current ? `ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}` : 'ทีมแก้'}</h3>
-                {canEdit && current && (
-                  <button onClick={() => editCounter(false)} className="flex items-center gap-1 text-sm text-white/70 hover:text-gold">
-                    <Pencil className="h-4 w-4" /> แก้ไข
+                {canEdit && (
+                  // ยังไม่มีทีมแก้ = ปุ่มเพิ่ม (เหมือนกด "เพิ่มทีมแก้" ด้านบน)
+                  <button onClick={() => editCounter(!current)} className="flex items-center gap-1 text-sm text-white/70 hover:text-gold">
+                    {current ? <><Pencil className="h-4 w-4" /> แก้ไข</> : <><Plus className="h-4 w-4" /> เพิ่มทีมแก้</>}
                   </button>
                 )}
               </div>
@@ -410,7 +411,7 @@ export default function TargetPage() {
                   {current.note ? <EquipmentNoteText text={current.note} /> : <p className="mt-3 text-white/40">ไม่มีโน้ต</p>}
                 </>
               ) : (
-                <p className="mt-2 text-white/50">{canEdit ? 'กด “เพิ่มทีมแก้” ด้านบนเพื่อจดทีมที่ใช้ตีทีมนี้' : 'ยังไม่มีใครจดทีมแก้'}</p>
+                <p className="mt-2 text-white/50">{canEdit ? 'กด “เพิ่มทีมแก้” เพื่อจดทีมที่ใช้ตีทีมนี้' : 'ยังไม่มีใครจดทีมแก้'}</p>
               )}
             </div>
             <div className="panel panel-enemy p-5">
