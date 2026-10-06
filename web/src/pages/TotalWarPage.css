@@ -16,10 +16,9 @@
 .tw-phase-scroll { scrollbar-color: #c9a35a66 transparent; scrollbar-width: thin; }
 .tw-phase-scroll::-webkit-scrollbar { height: 4px; }
 .tw-phase-scroll::-webkit-scrollbar-thumb { border-radius: 99px; background: #c9a35a66; }
-.tw-phase-track { border: 1px solid #f4d58d35; background: linear-gradient(180deg, #0e1726, #151e2e); padding: 4px; box-shadow: inset 0 1px 3px #0008, 0 3px 10px #05091544; }
+.tw-phase-track { clip-path: polygon(1% 0, 99% 0, 100% 50%, 99% 100%, 1% 100%, 0 50%); border: 1px solid #f4d58d4a; background: linear-gradient(180deg, #0e1726, #151e2e); padding: 4px 6px; box-shadow: inset 0 1px 3px #0008, 0 3px 10px #05091544; }
 .tw-phase { position: relative; display: flex; min-height: 3.25rem; min-width: 8rem; align-items: center; justify-content: center; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%); color: #aeb9ce; background: linear-gradient(180deg, #2b3850, #202c40); text-align: center; transition: color 140ms ease, background-color 140ms ease; }
-.tw-phase-first { clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%); }
-.tw-phase-last { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%); }
+.tw-phase-first { clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%); }
 .tw-phase:not(.tw-phase-active) { border: 1px solid #ffffff12; }
 .tw-phase-active { z-index: 1; color: #171d2a; background: linear-gradient(180deg, #fff0bd 0%, #efd083 52%, #d9ae59 100%); box-shadow: inset 0 1px 0 #fff8, inset 0 0 0 2px #f8e2a255; }
 .tw-stage { isolation: isolate; border: 1px solid #f4d58d42; background: repeating-conic-gradient(from -90deg at 50% 8%, #f4d58d12 0deg 1.5deg, transparent 1.5deg 10deg), radial-gradient(ellipse at 50% 36%, #344665 0%, #1d2b43 48%, #111a2a 100%); box-shadow: inset 0 0 38px #050a1677; }
@@ -48,7 +47,7 @@
   .tw-heading p { max-width: 28rem; font-size: .8rem; }
   .tw-countdown { min-height: 2.6rem; gap: .42rem; padding-right: .85rem; padding-left: .85rem; font-size: .8rem; }
   .tw-phase { min-height: 2.8rem; min-width: 7rem; padding-right: .85rem; padding-left: 1rem; font-size: .7rem; }
-  .tw-phase-track { padding: 3px; }
+  .tw-phase-track { padding: 3px 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
