@@ -127,7 +127,12 @@ export default function GuildPage() {
         </div>
       ) : (
         <div className="mt-8 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((t) => (
+          {list.map((t) => {
+            // แก้/เพิ่มภายใน 24 ชม. (ตัวทีมศัตรูหรือทีมแก้ข้างใน) → จุดเขียว ให้คนในกิลรู้ว่ามีการแก้
+            const last = Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
+            const ago = Date.now() - last
+            const recent = ago < 24 * 3600_000
+            return (
             <Link key={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex flex-col transition hover:-translate-y-1" style={t.tags[0] ? ({ '--tag': tagColor(t.tags[0]) } as React.CSSProperties) : undefined}>
               <TeamPanel
                 variant="enemy"
@@ -141,15 +146,22 @@ export default function GuildPage() {
                         <span key={x} className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={tagStyle(x)}>{x}</span>
                       )) : <span className="text-white/50">ทีมเป้าหมาย</span>}
                     </span>
-                    <span className="flex shrink-0 items-center gap-1 text-xs font-normal text-gold">
-                      <Swords className="h-3.5 w-3.5" /> {t.counters.length} ทีมแก้
+                    <span className="flex shrink-0 items-center gap-2 text-xs font-normal">
+                      {recent && (
+                        <span className="flex items-center gap-1 text-emerald-300/90" title="มีการแก้ใน 24 ชม.">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                          {ago < 3600_000 ? `${Math.max(1, Math.floor(ago / 60_000))} นาที` : `${Math.floor(ago / 3600_000)} ชม.`}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1 text-gold"><Swords className="h-3.5 w-3.5" /> {t.counters.length} ทีมแก้</span>
                     </span>
                   </span>
                 }
               />
               {t.note && <p className="mt-3 line-clamp-1 px-2 text-sm text-white/55">{t.note}</p>}
             </Link>
-          ))}
+            )
+          })}
         </div>
       )}
         </>
