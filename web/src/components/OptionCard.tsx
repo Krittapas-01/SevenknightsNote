@@ -199,7 +199,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
       )}
 
       {conflicts.length > 0 && (
-        <p className={`mt-3 flex items-start gap-1.5 rounded-lg px-3 py-1.5 text-sm ${main ? 'bg-red-500/20 text-red-100' : 'bg-amber-500/10 text-amber-100/90'}`}>
+        <p className={`mt-3 flex items-start gap-1.5 rounded-lg px-3 py-1.5 text-sm ${main ? 'border border-red-400/60 bg-red-500/20 font-semibold text-red-200' : 'border border-red-400/40 bg-red-500/10 font-semibold text-red-300'}`}>
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             {main ? 'ใช้ตัวซ้ำกับไม้อื่น: ' : 'ถ้าใช้ทีมนี้จะชน: '}
