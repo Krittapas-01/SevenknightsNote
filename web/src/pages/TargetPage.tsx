@@ -13,7 +13,7 @@ import Modal from '../components/Modal'
 import { useDragScroll } from '../lib/useDragScroll'
 import { PRESET_TAGS, getUnit } from '../data/heroes'
 import { api } from '../lib/api'
-import { MAX_HEROES, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, SKILL_LABEL, type HeroNote, type SkillStep, type Team } from '../lib/types'
+import { MAX_HEROES, addHeroToTeam, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, SKILL_LABEL, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import NotFound from './NotFound'
 import { EquipmentNoteText } from '../components/EquipmentLoadout'
@@ -344,7 +344,8 @@ export default function TargetPage() {
             />
             <div className="mt-4">
               <p className="mb-2 text-sm text-white/60">ของ/สเตตัสรายตัว</p>
-              <HeroNotesTable notes={cDraft.heroNotes} editing team={cDraft.team.slots} onChange={(heroNotes) => setCDraft((d) => ({ ...d, heroNotes }))} />
+              <HeroNotesTable notes={cDraft.heroNotes} editing team={cDraft.team.slots} onChange={(heroNotes) => setCDraft((d) => ({ ...d, heroNotes }))}
+                onAddHero={(hero) => setCDraft((d) => ({ ...d, team: addHeroToTeam(d.team, hero) }))} />
             </div>
             <Actions busy={busy} onSave={saveCounter} onCancel={cancel} onDelete={cDraft.id ? deleteCounter : undefined} />
           </div>

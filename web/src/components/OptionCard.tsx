@@ -12,7 +12,7 @@ import { noteFor } from './HeroDetailModal'
 import { hasStats } from '../lib/stats'
 import AddHeroNote from './AddHeroNote'
 import { baseName, getUnit } from '../data/heroes'
-import { changeFormation, moveSlot, placeUnit, type HeroNote, type WarOption } from '../lib/types'
+import { addHeroToTeam, changeFormation, moveSlot, placeUnit, type HeroNote, type WarOption } from '../lib/types'
 import TeamPanel, { type SlotKind } from './TeamPanel'
 import { SkillQueueBoard } from './TeamModals'
 import AtlasTeam from './AtlasTeam'
@@ -245,7 +245,8 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
               ))}
             </ul>
           )}
-          {editing && <StatsImport team={option.team.slots} onApply={(hero, stats) => set({ heroNotes: upsertStats(heroNotes, hero, stats) })} />}
+          {editing && <StatsImport team={option.team.slots} onApply={(hero, stats) => set({ heroNotes: upsertStats(heroNotes, hero, stats) })}
+            onAddHero={(hero) => set({ team: addHeroToTeam(option.team, hero) })} />}
           {editing && <AddHeroNote team={option.team.slots} have={heroNotes.map((n) => n.hero)}
             onAdd={(hero) => set({ heroNotes: [...heroNotes, { hero, text: '', sets: [], rings: [] }].slice(0, 5) })} />}
         </div>

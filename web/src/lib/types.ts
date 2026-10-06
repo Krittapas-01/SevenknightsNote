@@ -134,6 +134,13 @@ export const emptyTeam = (): Team => ({
 
 export const heroCount = (t: Team) => t.slots.filter(Boolean).length
 
+/** ใส่ฮีโร่ลงช่องว่างช่องแรก (ทีมมีได้ 3 ตัว · มีอยู่แล้ว/เต็มแล้ว = ไม่เปลี่ยน) */
+export function addHeroToTeam(t: Team, id: string): Team {
+  if (heroCount(t) >= MAX_HEROES || t.slots.includes(id)) return t
+  const i = t.slots.indexOf(null)
+  return i < 0 ? t : { ...t, slots: t.slots.map((s, j) => (j === i ? id : s)) }
+}
+
 export type SlotRef = { kind: 'hero' | 'pet' | 'extra'; index: number }
 
 const remap = (skills: SkillStep[], map: Map<number, number>) =>

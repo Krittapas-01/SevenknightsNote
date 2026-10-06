@@ -1,11 +1,12 @@
-import { Camera, ClipboardPaste, Loader2, X } from 'lucide-react'
+import { Camera, ClipboardPaste, Loader2, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { HEROES, baseName, englishOf, getUnit } from '../data/heroes'
 import { readImageText } from '../lib/ocr'
 import { STATS, fmtStat, hasStats, parseStats, type HeroStats, type StatKey } from '../lib/stats'
-import type { HeroNote } from '../lib/types'
+import { MAX_HEROES, type HeroNote } from '../lib/types'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
+import UnitPicker from './UnitPicker'
 
 /** ไอคอนสเตตัสแบบในเกม (จาก 7K Atlas) */
 const ICON_FILES = import.meta.glob('../assets/stats/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
@@ -55,25 +56,58 @@ export function upsertStats(notes: HeroNote[], hero: string, stats: HeroStats): 
   return [...notes, { hero, text: '', sets: [], rings: [], stats }].slice(0, 5)
 }
 
-/** หาชื่อฮีโร่ในข้อความ (เทียบชื่ออังกฤษ/ไทย เลือกชื่อที่ยาวที่สุดที่เจอ) */
-function detectHero(text: string, team: string[]) {
+/** ตัดสระบน/ล่าง/วรรณยุกต์ไทย + ช่องว่าง — OCR มักอ่านพวกนี้เพี้ยน (ซอรัน → ซอร์น) */
+const thaiSkeleton = (x: string) => x.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E\s]/g, '').replace(/ช/g, 'ซ') // ช/ซ OCR สลับกันบ่อย
+
+/** ชื่อในเกมที่ต่างจากชื่อในเว็บ (ชื่อเต็ม/สะกดต่าง) — ใช้หาฮีโร่จากภาพเท่านั้น */
+const OCR_ALIASES: Record<string, string[]> = {
+  'ทันจิโร่': ['คามาโดะ'],
+  'เซนอิทสึ': ['อางาซึมะ', 'เซนอิทซึ', 'เซนอิท'],
+}
+
+/** ส่วนหัวของภาพ (ก่อนแถวโจมตี) — ชื่อฮีโร่อยู่ตรงนี้ ส่วนล่างของภาพมีชื่อฮีโร่ตัวอื่นในคลังปนอยู่ */
+const header = (text: string) => {
+  const i = text.search(/[กภ]ายภ|เวท|[พผ]ลังโจ|attack/i)
+  return i > 0 ? text.slice(0, i) : text
+}
+
+/**
+ * หาชื่อฮีโร่ในข้อความ (เทียบชื่ออังกฤษ/ไทย เลือกชื่อที่ยาวที่สุดที่เจอ)
+ * loose = เทียบชื่อไทยแบบตัดสระ/วรรณยุกต์ (ใช้กับฮีโร่ในทีม) · ไม่ loose = ต้องตรงเป๊ะ (กันเตือนผิดตัว)
+ */
+function detectHero(texts: string[], team: string[], loose = true) {
+  const text = texts.map(header).join('\n')
   const t = text.toLowerCase()
-  const flat = text.replace(/\s+/g, '') // OCR ไทยมักเว้นวรรคแทรก
+  const flat = text.replace(/\s+/g, '')
+  const skel = thaiSkeleton(text)
   let best: { id: string; len: number } | null = null
+  const hit = (id: string, len: number) => { if (!best || len > best.len) best = { id, len } }
   for (const id of team) {
     const en = englishOf(id)?.toLowerCase()
-    if (en && new RegExp(`\\b${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(t) && (!best || en.length > best.len)) best = { id, len: en.length }
+    if (en && new RegExp(`\\b${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(t)) hit(id, en.length)
     // ชื่อไทย (ภาพเกมภาษาไทย) — ชื่อสั้นเกินไปข้าม กันไปตรงกับคำอื่นในภาพ
-    const th = baseName(getUnit(id)?.name ?? '').replace(/\s+/g, '')
-    if (th.length >= 3 && flat.includes(th) && (!best || th.length > best.len)) best = { id, len: th.length }
+    const base = baseName(getUnit(id)?.name ?? '')
+    for (const name of [base, ...(OCR_ALIASES[base] ?? [])]) {
+      const th = name.replace(/\s+/g, '')
+      if (th.length >= 3 && flat.includes(th)) hit(id, th.length)
+      else if (loose) {
+        const k = thaiSkeleton(th)
+        if (k.length >= 3 && skel.includes(k)) hit(id, k.length)
+      }
+    }
   }
-  return best?.id ?? null
+  return (best as { id: string } | null)?.id ?? null
 }
 
 /**
  * ปุ่ม "อ่านสเตตัสจากรูป": เลือกรูป / วางรูป (Ctrl+V) → อ่านตัวเลข → ตรวจทาน → ใส่ให้ฮีโร่ในทีม
  */
-export function StatsImport({ team, onApply }: { team: (string | null)[]; onApply: (hero: string, stats: HeroStats) => void }) {
+export function StatsImport({ team, onApply, onAddHero }: {
+  team: (string | null)[]
+  onApply: (hero: string, stats: HeroStats) => void
+  /** เพิ่มฮีโร่เข้าทีม (ทีมยังไม่ครบ 3 ตัว) — ไม่ส่งมา = ไม่มีปุ่มเพิ่ม */
+  onAddHero?: (hero: string) => void
+}) {
   const heroes = team.filter((h): h is string => !!h)
   const input = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
@@ -84,30 +118,46 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
   const [stats, setStats] = useState<HeroStats>({})
   const [raw, setRaw] = useState('')
   // ฮีโร่ในภาพไม่อยู่ในคอมพ์นี้ (ชื่อที่อ่านได้) / ไม่เจอชื่อฮีโร่ในทีมเลย
-  const [mismatch, setMismatch] = useState<string | null>(null)
+  const [mismatchId, setMismatchId] = useState<string | null>(null)
   const [noHero, setNoHero] = useState(false)
+  // ภาพเป็นคนละตัว → กดใส่ครั้งแรก = ถามยืนยัน, ครั้งที่สอง = ใส่จริง
+  const [confirming, setConfirming] = useState(false)
+  const [picking, setPicking] = useState(false)
+  const nameOf = (id: string) => baseName(getUnit(id)?.name ?? id)
+  const mismatch = mismatchId ? nameOf(mismatchId) : null
+  const canAdd = !!onAddHero && heroes.length < MAX_HEROES
+  const addHero = (id: string) => {
+    onAddHero?.(id)
+    setHero(id)
+    setMismatchId(null)
+    setNoHero(false)
+    setConfirming(false)
+  }
+  useEffect(() => setConfirming(false), [hero])
 
   async function run(file: Blob) {
     setOpen(true)
     setErr(null)
     setStats({})
     setRaw('')
-    setMismatch(null)
+    setMismatchId(null)
     setNoHero(false)
+    setConfirming(false)
     setImg((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(file) })
     setProgress(0)
     try {
-      const text = await readImageText(file, setProgress)
-      setRaw(text)
+      // ไม่เจอชื่อฮีโร่ในทีม → อ่านซ้ำแบบกระจายเพื่อหาชื่อ (สเตตัสใช้ผลรอบแรก)
+      const { text, extra } = await readImageText(file, setProgress, (t) => !detectHero([t], heroes))
+      setRaw(extra ? `${text}\n---\n${extra}` : text)
       const s = parseStats(text)
       setStats(s)
-      const found = detectHero(text, heroes)
+      const found = detectHero([text, extra], heroes)
       if (found) setHero(found)
       else {
         if (!hero && heroes[0]) setHero(heroes[0])
         // ภาพเป็นฮีโร่ตัวอื่นที่ไม่ได้อยู่ในคอมพ์ → เตือน
-        const other = detectHero(text, HEROES.map((h) => h.id))
-        if (other) setMismatch(baseName(getUnit(other)?.name ?? other))
+        const other = detectHero([text, extra], HEROES.map((h) => h.id), false)
+        if (other) setMismatchId(other)
         else setNoHero(true)
       }
       if (!hasStats(s)) setErr('อ่านสเตตัสไม่เจอ — ใช้ภาพหน้าข้อมูลฮีโร่ในเกม (ภาษาไทยหรืออังกฤษ) หรือพิมพ์ค่าเองด้านล่าง')
@@ -130,7 +180,7 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  if (!heroes.length) return null
+  if (!heroes.length && !onAddHero) return null
   const set = (k: StatKey, v: string) => setStats((s) => ({ ...s, [k]: v === '' ? undefined : Number(v) }))
 
   return (
@@ -159,7 +209,7 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
               <div className="mt-3">
                 <div className="flex items-center gap-2 text-sm text-white/70"><Loader2 className="h-4 w-4 animate-spin" /> กำลังอ่านตัวเลข… {Math.round(progress * 100)}%</div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-gold transition-all" style={{ width: `${progress * 100}%` }} /></div>
-                <p className="mt-1 text-xs text-white/40">ครั้งแรกต้องโหลดตัวอ่านประมาณ 7MB</p>
+                <p className="mt-1 text-xs text-white/40">ครั้งแรกต้องโหลดตัวอ่านประมาณ 8MB</p>
               </div>
             )}
             {err && <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-100">{err}</p>}
@@ -185,7 +235,21 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
                   {baseName(getUnit(h)?.name ?? h)}
                 </button>
               ))}
+              {canAdd && mismatchId && (
+                <button type="button" onClick={() => addHero(mismatchId)}
+                  className="flex items-center gap-2 rounded-full border border-dashed border-emerald-300/60 py-0.5 pl-0.5 pr-3 text-sm text-emerald-100 hover:bg-emerald-400/10">
+                  <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={mismatchId} shape="round" /></span>
+                  <Plus className="h-3.5 w-3.5" /> เพิ่ม {mismatch} เข้าทีม
+                </button>
+              )}
+              {canAdd && (
+                <button type="button" onClick={() => setPicking(true)}
+                  className="flex items-center gap-1 rounded-full border border-dashed border-white/25 px-3 py-1 text-sm text-white/70 hover:border-gold hover:text-gold">
+                  <Plus className="h-4 w-4" /> เพิ่มตัวละคร
+                </button>
+              )}
             </div>
+            {canAdd && <p className="mt-1 text-xs text-white/40">ทีมนี้มี {heroes.length}/{MAX_HEROES} ตัว — เพิ่มตัวละครเข้าทีมได้จากตรงนี้</p>}
             <div className="mt-4 grid grid-flow-row-dense grid-cols-2 gap-x-3 gap-y-1.5">
               {STATS.map((s) => (
                 <label key={s.key} className={`${col(s.key)} flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2 py-1 text-sm`}>
@@ -209,16 +273,24 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
         <div className="mt-5 flex gap-2">
           <button disabled={!hero || !hasStats(stats) || progress !== null}
             onClick={() => {
-              if (mismatch && !confirm(`ภาพนี้เป็นของ ${mismatch} ไม่ใช่ตัวในคอมพ์ ยืนยันจะใส่สเตตัสให้ ${baseName(getUnit(hero)?.name ?? hero)}?`)) return
+              if (mismatch && !confirming) { setConfirming(true); return }
               onApply(hero, stats)
               setOpen(false)
-            }} className="btn-gold flex-1 py-2">
-            ใส่สเตตัสให้ {hero ? baseName(getUnit(hero)?.name ?? hero) : ''}
+            }} className={confirming
+              ? 'flex-1 rounded-full border border-red-400/70 bg-red-500/25 py-2 font-semibold text-red-50 hover:bg-red-500/35'
+              : 'btn-gold flex-1 py-2'}>
+            {confirming
+              ? `ยืนยัน: ใส่สเตตัสของ ${mismatch} ให้ ${hero ? nameOf(hero) : ''}`
+              : `ใส่สเตตัสให้ ${hero ? nameOf(hero) : ''}`}
           </button>
           <button onClick={() => setOpen(false)} className="pill flex items-center gap-1 px-5 py-2"><X className="h-4 w-4" /> ยกเลิก</button>
         </div>
-        <p className="mt-2 text-xs text-white/40">ตรวจตัวเลขก่อนกดใส่ · ยังไม่บันทึกจนกด "บันทึก" ของหน้านั้น</p>
+        <p className="mt-2 text-xs text-white/40">
+          {confirming ? 'ภาพกับตัวที่เลือกไม่ตรงกัน — กดอีกครั้งเพื่อยืนยัน หรือเลือกตัวใหม่ด้านบน' : 'ตรวจตัวเลขก่อนกดใส่ · ยังไม่บันทึกจนกด "บันทึก" ของหน้านั้น'}
+        </p>
       </Modal>
+      <UnitPicker open={picking} kind="hero" index={0} current={null} used={heroes} full={!canAdd} allowCustom={false}
+        onPick={(id) => { if (id) addHero(id); setPicking(false) }} onClose={() => setPicking(false)} />
     </>
   )
 }

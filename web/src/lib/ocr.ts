@@ -13,6 +13,7 @@ async function prepare(file: Blob): Promise<HTMLCanvasElement> {
   c.width = Math.round(bmp.width * scale)
   c.height = Math.round(bmp.height * scale)
   const g = c.getContext('2d', { willReadFrequently: true })!
+  g.imageSmoothingQuality = 'high' // ภาพเล็ก (ครอปมา) ขยายแล้วตัวหนังสือคมกว่า
   g.drawImage(bmp, 0, 0, c.width, c.height)
   const img = g.getImageData(0, 0, c.width, c.height)
   const d = img.data
@@ -25,7 +26,15 @@ async function prepare(file: Blob): Promise<HTMLCanvasElement> {
   return c
 }
 
-export async function readImageText(file: Blob, onProgress?: (p: number) => void): Promise<string> {
+/**
+ * อ่านแบบเป็นบล็อก (psm 6 — แถวสเตตัสไม่หลุด) แล้วถ้า needMore(ข้อความ) = true
+ * อ่านซ้ำแบบกระจาย (psm 11) — ชื่อฮีโร่ตัวใหญ่ภาษาไทยอ่านออกแม่นกว่าแบบนี้
+ */
+export async function readImageText(
+  file: Blob,
+  onProgress?: (p: number) => void,
+  needMore?: (text: string) => boolean,
+): Promise<{ text: string; extra: string }> {
   const { createWorker } = await import('tesseract.js')
   const canvas = await prepare(file)
   const worker = await createWorker(['eng', 'tha'], 1, {
@@ -38,8 +47,10 @@ export async function readImageText(file: Blob, onProgress?: (p: number) => void
   })
   try {
     await worker.setParameters({ tessedit_pageseg_mode: '6' as never, preserve_interword_spaces: '1' })
-    const { data } = await worker.recognize(canvas)
-    return data.text
+    const text = (await worker.recognize(canvas)).data.text
+    if (!needMore?.(text)) return { text, extra: '' }
+    await worker.setParameters({ tessedit_pageseg_mode: '11' as never })
+    return { text, extra: (await worker.recognize(canvas)).data.text }
   } finally {
     await worker.terminate()
   }

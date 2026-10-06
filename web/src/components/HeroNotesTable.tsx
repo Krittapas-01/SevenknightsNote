@@ -12,16 +12,18 @@ import AddHeroNote from './AddHeroNote'
  * [ตัวละคร] [แหวน 3 ช่อง / เซ็ตไอเทม 3 ช่อง] [รายละเอียด]
  * editing = แก้ข้อความรายละเอียดได้ + ลบแถวได้ (แหวน/เซ็ตมาจากคลังคอมพ์)
  */
-export default function HeroNotesTable({ notes, editing, onChange, team }: {
+export default function HeroNotesTable({ notes, editing, onChange, team, onAddHero }: {
   notes: HeroNote[]
   editing?: boolean
   onChange?: (n: HeroNote[]) => void
   /** ทีม (ใช้ปุ่มเพิ่มแถวตอนแก้ไข) */
   team?: (string | null)[]
+  /** เพิ่มฮีโร่เข้าทีมจากหน้าต่างอ่านสเตตัส (ทีมยังไม่ครบ 3) */
+  onAddHero?: (hero: string) => void
 }) {
   const addRow = editing && team && (
     <div className="flex flex-wrap items-center gap-x-3">
-      <StatsImport team={team} onApply={(hero, stats) => onChange?.(upsertStats(notes, hero, stats))} />
+      <StatsImport team={team} onApply={(hero, stats) => onChange?.(upsertStats(notes, hero, stats))} onAddHero={onAddHero} />
       <AddHeroNote team={team} have={notes.map((n) => n.hero)} onAdd={(hero) => onChange?.([...notes, { hero, text: '', sets: [], rings: [] }].slice(0, 5))} />
     </div>
   )
