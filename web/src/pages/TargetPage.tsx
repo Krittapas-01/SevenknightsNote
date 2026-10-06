@@ -1,5 +1,4 @@
 import { ChevronLeft, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, Trash2, Undo2, X } from 'lucide-react'
-import { queueStyle } from '../lib/queue'
 import { tagColor, tagStyle } from '../lib/tags'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
@@ -13,7 +12,7 @@ import Modal from '../components/Modal'
 import { useDragScroll } from '../lib/useDragScroll'
 import { PRESET_TAGS, getUnit } from '../data/heroes'
 import { api } from '../lib/api'
-import { MAX_HEROES, addHeroToTeam, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, SKILL_LABEL, type HeroNote, type SkillStep, type Team } from '../lib/types'
+import { MAX_HEROES, addHeroToTeam, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import NotFound from './NotFound'
 
@@ -381,7 +380,6 @@ export default function TargetPage() {
               </button>
               <span className="text-xs text-white/50">กดวงกลมดาวล่างสุดเพื่อจองสกิล · กดตัวละคร 2 ครั้งเพื่อเอาออก</span>
             </div>
-            <SkillOrder team={cDraft.team} skills={cDraft.skills} />
             <textarea
               value={cDraft.note}
               onChange={(e) => setCDraft((d) => ({ ...d, note: e.target.value }))}
@@ -502,23 +500,6 @@ export default function TargetPage() {
       {mode !== 'view' && <HeroDock />}
     </div>
     </DndHub>
-  )
-}
-
-function SkillOrder({ team, skills }: { team: Team; skills: SkillStep[] }) {
-  if (!skills.length) return null
-  return (
-    <ol className="mt-3 flex flex-wrap items-center gap-1.5 text-sm">
-      {skills.map((s, i) => (
-        <li key={i} className="flex items-center gap-1.5">
-          <span className="flex items-center gap-1.5 rounded-full bg-black/30 py-0.5 pl-0.5 pr-3">
-            <span className="grid h-5 w-5 place-items-center rounded-full text-xs font-bold" style={queueStyle(i + 1)}>{i + 1}</span>
-            {getUnit(team.slots[s.slot])?.name} · {SKILL_LABEL[s.skill]}
-          </span>
-          {i < skills.length - 1 && <span className="text-white/40">→</span>}
-        </li>
-      ))}
-    </ol>
   )
 }
 

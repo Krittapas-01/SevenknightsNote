@@ -448,13 +448,19 @@ app.put('/api/guild/:id/counters/:cid', async (c) => {
         .bind(JSON.stringify(team), JSON.stringify(parseSkills(body.skills, team)), str(body.note, 500), Date.now(), c.req.param('cid'), gid)
         .run()
   if (!res.meta.changes) return c.json({ error: 'ไม่พบทีม' }, 404)
+  await touchTargetOf(c.env, c.req.param('cid'), gid)
   return c.json({ ok: true })
 })
+
+/** แก้/ลบทีมแก้ = ทีมเป้าหมายนั้นมีการแก้ → ขึ้นบนสุดในหน้ากิลด์ (เรียงตาม targets.updated_at) */
+const touchTargetOf = (env: Env, cid: string, gid: string) =>
+  env.DB.prepare('UPDATE targets SET updated_at = ? WHERE id = (SELECT target_id FROM counters WHERE id = ? AND guild_id = ?)').bind(Date.now(), cid, gid).run()
 
 app.delete('/api/guild/:id/counters/:cid', async (c) => {
   const gid = c.req.param('id')
   const auth = await checkKey(c, gid)
   if (auth !== 'ok') return deny(c, auth)
+  await touchTargetOf(c.env, c.req.param('cid'), gid) // ก่อนลบ (ยังหา target_id ได้)
   await c.env.DB.prepare('DELETE FROM counters WHERE id = ? AND guild_id = ?').bind(c.req.param('cid'), gid).run()
   return c.json({ ok: true })
 })

@@ -29,7 +29,9 @@ export default function GuildPage() {
   const allTags = useMemo(() => [...new Set(data?.targets.flatMap((t) => t.tags) ?? [])], [data])
   const list = useMemo(() => {
     const s = q.trim().toLowerCase()
-    return (data?.targets ?? []).filter((t) => (!tag || t.tags.includes(tag)) && (!s || matches(t, s)))
+    // แก้ล่าสุดอยู่บนสุด (ตัวทีมเป้าหมายหรือทีมแก้ข้างใน — เวลาเดียวกับจุดเขียว)
+    const last = (t: Target) => Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
+    return (data?.targets ?? []).filter((t) => (!tag || t.tags.includes(tag)) && (!s || matches(t, s))).sort((a, b) => last(b) - last(a))
   }, [data, q, tag])
 
   if (error) return <NotFound message={error} />
