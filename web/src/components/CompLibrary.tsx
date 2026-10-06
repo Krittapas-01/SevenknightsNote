@@ -11,10 +11,10 @@ export type Comp = { id: string; team: Team; skills: SkillStep[]; note: string; 
 export type Defense = Comp & { type: string; counters: Comp[] }
 type Library = { defenses: Defense[] }
 
-/** ประเภทบ้านจากแท็กของทีมเป้าหมาย (แท็กแรกที่เป็น กาย/เวทย์/ถึก) */
+/** ประเภทบ้านจากแท็กของทีมเป้าหมาย (แท็กแรกที่เป็น โจมตี/เวทย์/ถึก · กายภาพ = โจมตี) */
 function houseType(tags: string[]) {
   for (const t of tags.map((x) => x.trim())) {
-    if (t === 'กายภาพ' || t === 'กาย') return 'กายภาพ'
+    if (t === 'โจมตี' || t === 'กายภาพ' || t === 'กาย') return 'โจมตี'
     if (t === 'เวทย์' || t === 'เวท') return 'เวทย์'
     if (t === 'ถึก') return 'ถึก'
   }
@@ -45,11 +45,11 @@ type Props = {
   onClose: () => void
 }
 
-const TYPES = ['ทั้งหมด', 'กายภาพ', 'เวทย์', 'ถึก', 'อื่นๆ']
+const TYPES = ['ทั้งหมด', 'โจมตี', 'เวทย์', 'ถึก', 'อื่นๆ']
 const PAGE = 24
 
-/** ประเภทของทีมเอง (ดูจากฮีโร่ส่วนใหญ่): กาย / เวทย์ / ถึก — ซัพ/สมดุลไม่นับ */
-const TEAM_TYPE: Record<string, string> = { attack: 'กายภาพ', magic: 'เวทย์', defense: 'ถึก' }
+/** ประเภทของทีมเอง (ดูจากฮีโร่ส่วนใหญ่): โจมตี / เวทย์ / ถึก — ซัพ/สมดุลไม่นับ */
+const TEAM_TYPE: Record<string, string> = { attack: 'โจมตี', magic: 'เวทย์', defense: 'ถึก' }
 export function teamType(t: Team) {
   const n: Record<string, number> = {}
   for (const id of t.slots) {
@@ -59,8 +59,8 @@ export function teamType(t: Team) {
   const best = Object.entries(n).sort((a, b) => b[1] - a[1])
   return !best.length || (best[1] && best[1][1] === best[0][1]) ? 'อื่นๆ' : best[0][0]
 }
-/** ทีมกัน → "บ้านกาย", ทีมบุก → "ทีมกาย" */
-const typeLabel = (t: string, attack: boolean) => (t === 'ทั้งหมด' ? t : attack ? `ทีม${t === 'กายภาพ' ? 'กาย' : t}` : houseLabel(t))
+/** ทีมกัน → "บ้านโจมตี", ทีมบุก → "ทีมโจมตี" */
+const typeLabel = (t: string, attack: boolean) => (t === 'ทั้งหมด' ? t : attack ? `ทีม${t}` : houseLabel(t))
 
 const teamText = (t: Team, extra = '') =>
   [...t.slots, t.pet, ...t.extras].map((id) => getUnit(id)?.name ?? '').join(' ') + ' ' + extra

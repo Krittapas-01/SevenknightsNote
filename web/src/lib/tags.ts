@@ -16,7 +16,7 @@ export function houseLabel(tag: string) {
   const t = tag.trim()
   if (!t || t === 'ทั้งหมด') return t
   if (t.startsWith('บ้าน')) return t
-  return `บ้าน${t === 'กายภาพ' ? 'กาย' : t === 'เวท' ? 'เวทย์' : t}`
+  return `บ้าน${t === 'กายภาพ' || t === 'กาย' ? 'โจมตี' : t === 'เวท' ? 'เวทย์' : t}` // แผนเก่าที่เก็บ "กายภาพ" ไว้ ขึ้นเป็นบ้านโจมตี
 }
 
 export function tagColor(tag: string) {
