@@ -32,10 +32,37 @@ export function minutesToReset(ts = Date.now()) {
   const reset = RESET_HOUR * 60
   return (reset - mins + 24 * 60) % (24 * 60) || 24 * 60
 }
-export function resetLabel(ts = Date.now()) {
-  const m = minutesToReset(ts)
+const fmtLeft = (m: number) => {
   const h = Math.floor(m / 60)
   return h > 0 ? `${h} ชม. ${m % 60} นาที` : `${m} นาที`
+}
+export function resetLabel(ts = Date.now()) {
+  return fmtLeft(minutesToReset(ts))
+}
+
+/**
+ * ช่วงย่อยของวัน (เวลาไทย) — วันในเกมเริ่ม 07:00 แล้วแบ่ง 2 ช่วง:
+ * วันตี: 07:00–24:00 ช่วงตี → 00:00–07:00 คำนวณผลวอร์
+ * วันจัดบ้าน: 07:00–18:00 สมาชิกแก้ทีม → 18:00–07:00 ช่วงจัดบ้าน
+ */
+const PHASES: Partial<Record<DayType, { switchHour: number; first: string; second: string }>> = {
+  attack: { switchHour: 24, first: 'ช่วงตี', second: 'คำนวณผลวอร์' },
+  defense: { switchHour: 18, first: 'ช่วงแก้ทีม', second: 'ช่วงจัดบ้าน' },
+}
+export function dayPhase(type: DayType, ts = Date.now()) {
+  const p = PHASES[type]
+  if (!p) return null
+  const bkk = new Date(ts + 7 * HOUR)
+  const mins = bkk.getUTCHours() * 60 + bkk.getUTCMinutes()
+  const first = mins >= RESET_HOUR * 60 && mins < p.switchHour * 60
+  return first
+    ? { step: 1 as const, label: p.first, until: `${String(p.switchHour % 24).padStart(2, '0')}:00`, left: fmtLeft(p.switchHour * 60 - mins) }
+    : { step: 2 as const, label: p.second, until: `0${RESET_HOUR}:00`, left: resetLabel(ts) }
+}
+/** คำอธิบายช่วงของวันนั้น (ไว้ใส่ tooltip) */
+export const phaseHelp = (type: DayType) => {
+  const p = PHASES[type]
+  return p ? `07:00–${String(p.switchHour % 24).padStart(2, '0')}:00 ${p.first} · ${String(p.switchHour % 24).padStart(2, '0')}:00–07:00 ${p.second}` : ''
 }
 
 export const fmtTime = (ts: number) =>
