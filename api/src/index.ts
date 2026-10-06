@@ -154,35 +154,48 @@ type PlanData = {
   op: string[]
   banned: string[][] // ชุดทีมที่ยกเลิก เช่น [['gale','klemis','mist']]
   note: string
-  slots: { name: string; kind: 'attack' | 'defense'; vs: Team | null; vsTag: string; vsId: string; main: number; options: { team: Team; skills: SkillStep[]; condition: string; notes: string; heroNotes: HeroNote[]; custom?: true; logged?: true }[] }[]
+  slots: (WarHouse & { name: string; kind: 'attack' | 'defense'; alts?: WarHouse[] })[]
+}
+type WarHouse = { vs: Team | null; vsTag: string; vsId: string; main: number; options: { team: Team; skills: SkillStep[]; condition: string; notes: string; heroNotes: HeroNote[]; custom?: true; logged?: true }[] }
+/** ไม้บุกเข้าได้หลายบ้าน: บ้านหลัก + บ้านทางเลือกอีกไม่เกินนี้ (ต้องตรงกับ MAX_HOUSES - 1 ฝั่งเว็บ) */
+const MAX_ALT_HOUSES = 2
+function parseHouse(s: any): WarHouse {
+  const options = (Array.isArray(s?.options) ? s.options : []).slice(0, MAX_OPTIONS).flatMap((o: any) => {
+    const team = parseTeam(o?.team)
+    if (!team) return []
+    return [{
+      team, skills: parseSkills(o.skills, team), condition: str(o.condition, 60), notes: str(o.notes, 1000), heroNotes: parseHeroNotes(o.heroNotes),
+      ...(o.custom === true ? { custom: true as const } : {}), ...(o.logged === true ? { logged: true as const } : {}),
+    }]
+  })
+  return {
+    vs: s?.vs ? parseTeam(s.vs) : null, // บ้านที่จะตี (ไม้บุก)
+    vsTag: str(s?.vsTag, 20),
+    vsId: str(s?.vsId, 80),
+    main: Number.isInteger(s?.main) && s.main >= 0 && s.main < options.length ? s.main : 0,
+    options,
+  }
 }
 function parsePlan(raw: any): PlanData | null {
   if (!raw || typeof raw !== 'object') return null
   const slots = Array.from({ length: WAR_SLOTS }, (_, i) => {
     const s = Array.isArray(raw.slots) ? raw.slots[i] ?? {} : {}
-    const options = (Array.isArray(s.options) ? s.options : []).slice(0, MAX_OPTIONS).flatMap((o: any) => {
-      const team = parseTeam(o?.team)
-      if (!team) return []
-      return [{
-        team, skills: parseSkills(o.skills, team), condition: str(o.condition, 60), notes: str(o.notes, 1000), heroNotes: parseHeroNotes(o.heroNotes),
-        ...(o.custom === true ? { custom: true as const } : {}), ...(o.logged === true ? { logged: true as const } : {}),
-      }]
-    })
+    const alts = (Array.isArray(s.alts) ? s.alts : []).slice(0, MAX_ALT_HOUSES).map(parseHouse)
     return {
       name: str(s.name, 40),
       kind: s.kind === 'attack' ? ('attack' as const) : ('defense' as const),
-      vs: s.vs ? parseTeam(s.vs) : null, // บ้านที่จะตี (ไม้บุก)
-      vsTag: str(s.vsTag, 20),
-      vsId: str(s.vsId, 80),
-      main: Number.isInteger(s.main) && s.main >= 0 && s.main < options.length ? s.main : 0,
-      options,
+      ...parseHouse(s),
+      ...(alts.length ? { alts } : {}),
     }
   })
   // แผนบุก / แผนกัน: ทุกไม้เป็นแบบเดียวกัน (แผนเก่าไม่มี kind → ดูจากไม้ส่วนใหญ่)
   const kind: 'attack' | 'defense' = raw.kind === 'defense' || raw.kind === 'attack'
     ? raw.kind
     : slots.filter((s) => s.kind === 'defense').length > slots.filter((s) => s.kind === 'attack').length ? 'defense' : 'attack'
-  for (const s of slots) s.kind = kind
+  for (const s of slots) {
+    s.kind = kind
+    if (kind === 'defense') delete s.alts // หลายบ้านมีเฉพาะไม้บุก
+  }
   const banned = (Array.isArray(raw.banned) ? raw.banned : [])
     .map((g: any) => idList(typeof g === 'string' ? [g] : g, 5))
     .filter((g: string[]) => g.length)

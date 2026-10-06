@@ -21,7 +21,7 @@ import VsArena from '../components/VsArena'
 import { baseName, getUnit } from '../data/heroes'
 import { api } from '../lib/api'
 import {
-  MAX_HEROES, MAX_OPTIONS, changeFormation, emptyOption, emptyPlan, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type PlanData, type PlanKind, type Team, type WarOption, PLAN_KIND_LABEL, planKind, withPlanKind,
+  MAX_HEROES, MAX_HOUSES, MAX_OPTIONS, changeFormation, emptyHouse, houseApply, houseView, emptyOption, emptyPlan, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type PlanData, type PlanKind, type Team, type WarOption, PLAN_KIND_LABEL, planKind, withPlanKind,
 } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import { activePlanId } from '../lib/war'
@@ -61,6 +61,11 @@ export default function PlanPage() {
   const [library, setLibrary] = useState<{ s: number; o: number | null } | null>(null)
   /** เปิดคลังเพื่อเลือกบ้านที่จะตีของไม้ s */
   const [vsLibrary, setVsLibrary] = useState<number | null>(null)
+  /** ไม้บุกที่มีหลายบ้าน: บ้านที่กำลังดู/แก้ของแต่ละไม้ (0 = บ้านหลัก) */
+  const [house, setHouse] = useState<Record<number, number>>({})
+  const houseOf = (slot: WarSlot | undefined, s: number) => Math.min(house[s] ?? 0, slot?.alts?.length ?? 0)
+  /** ไม้ s ในมุมของบ้านที่เลือกอยู่ (ใช้ตอนแก้) */
+  const curSlot = (s: number) => houseView(draft.slots[s], houseOf(draft.slots[s], s))
   const [toast, setToast] = useState<string | null>(null)
   // ถามหลังบันทึกแผน: จดทีมที่จัดเองลงจดทีมศัตรูด้วยไหม
   const [logAsk, setLogAsk] = useState<{ items: LogItem[]; planId: string; body: { title: string; data: PlanData }; picked: boolean[] } | null>(null)
@@ -144,8 +149,52 @@ export default function PlanPage() {
     if (isNew) nav(`/g/${gid}`)
     else setEditing(false)
   }
+  // แก้ไม้ s = แก้บ้านที่เลือกอยู่ของไม้นั้น (ชื่อไม้ใช้ร่วมกันทุกบ้าน)
   const patchSlot = (s: number, fn: (slot: PlanData['slots'][number]) => PlanData['slots'][number]) =>
-    setDraft((d) => ({ ...d, slots: d.slots.map((x, i) => (i === s ? fn(clone(x)) : x)) }))
+    setDraft((d) => ({
+      ...d,
+      slots: d.slots.map((x, i) => {
+        if (i !== s) return x
+        const h = houseOf(x, s)
+        return houseApply(x, h, fn(clone(houseView(x, h))))
+      }),
+    }))
+  /** เพิ่ม/ลบ/ตั้งบ้านหลัก (ไม้บุก) */
+  const addHouse = (s: number) => {
+    const n = draft.slots[s].alts?.length ?? 0
+    if (n + 1 >= MAX_HOUSES) return
+    setDraft((d) => ({ ...d, slots: d.slots.map((x, i) => (i === s ? { ...x, alts: [...(x.alts ?? []), emptyHouse()] } : x)) }))
+    setHouse((m) => ({ ...m, [s]: n + 1 }))
+  }
+  const removeHouse = (s: number, h: number) => {
+    setDraft((d) => ({
+      ...d,
+      slots: d.slots.map((x, i) => {
+        if (i !== s) return x
+        const alts = x.alts ?? []
+        if (h === 0) { // ลบบ้านหลัก → บ้านถัดไปขึ้นเป็นหลัก
+          if (!alts.length) return { ...x, vs: null, vsTag: '', vsId: '', main: 0, options: [] }
+          const [first, ...rest] = alts
+          return { ...x, ...first, vs: first.vs ?? null, alts: rest }
+        }
+        return { ...x, alts: alts.filter((_, j) => j !== h - 1) }
+      }),
+    }))
+    setHouse((m) => ({ ...m, [s]: Math.max(0, h - 1) }))
+  }
+  const makeMainHouse = (s: number, h: number) => {
+    if (h <= 0) return
+    setDraft((d) => ({
+      ...d,
+      slots: d.slots.map((x, i) => {
+        if (i !== s || !x.alts?.[h - 1]) return x
+        const alt = x.alts[h - 1]
+        const old = { vs: x.vs ?? null, vsTag: x.vsTag ?? '', vsId: x.vsId ?? '', main: x.main ?? 0, options: x.options }
+        return { ...x, vs: alt.vs ?? null, vsTag: alt.vsTag ?? '', vsId: alt.vsId ?? '', main: alt.main ?? 0, options: alt.options, alts: x.alts.map((a, j) => (j === h - 1 ? old : a)) }
+      }),
+    }))
+    setHouse((m) => ({ ...m, [s]: 0 }))
+  }
   const patchOption = (s: number, o: number, opt: WarOption) =>
     patchSlot(s, (slot) => ({ ...slot, options: slot.options.map((x, i) => (i === o ? opt : x)) }))
 
@@ -172,7 +221,7 @@ export default function PlanPage() {
       })
     } else {
       const { s, o, kind, index } = picker
-      const opt = clone(draft.slots[s].options[o])
+      const opt = clone(curSlot(s).options[o])
       if (kind === 'hero') opt.team.slots[index] = id
       else if (kind === 'pet') opt.team.pet = id
       else opt.team.extras[index] = id
@@ -184,8 +233,8 @@ export default function PlanPage() {
 
   // ข้อมูลสำหรับ picker
   const pOpt =
-    picker?.target === 'opt' ? draft.slots[picker.s].options[picker.o]
-    : picker?.target === 'vs' ? { team: draft.slots[picker.s].vs ?? emptyTeam() }
+    picker?.target === 'opt' ? curSlot(picker.s).options[picker.o]
+    : picker?.target === 'vs' ? { team: curSlot(picker.s).vs ?? emptyTeam() }
     : null
   const pickerCurrent =
     (picker?.target === 'opt' || picker?.target === 'vs') && pOpt
@@ -212,7 +261,7 @@ export default function PlanPage() {
   function pickDefense(d: Defense) {
     if (vsLibrary === null) return
     const s = vsLibrary
-    const addAll = draft.slots[s].options.length === 0
+    const addAll = curSlot(s).options.length === 0
     patchSlot(s, (slot) => ({
       ...slot,
       vs: clone(d.team),
@@ -394,8 +443,11 @@ export default function PlanPage() {
 
       {/* ---------- 5 ไม้ ---------- */}
       <div className="mt-12 space-y-14">
-        {view.slots.map((slot, s) => {
-          if (!editing && slot.options.length === 0 && !slot.vs) return null
+        {view.slots.map((raw, s) => {
+          if (!editing && raw.options.length === 0 && !raw.vs && !raw.alts?.length) return null
+          const h = houseOf(raw, s)
+          const houses = 1 + (raw.alts?.length ?? 0)
+          const slot = houseView(raw, h)
           const Icon = slot.kind === 'attack' ? Swords : Shield
           const isAtk = slot.kind === 'attack'
           const main = mainIndex(slot)
@@ -486,6 +538,36 @@ export default function PlanPage() {
                   </>
                 )}
               </div>
+
+              {/* ไม้บุกเข้าได้หลายบ้าน: แท็บเลือกบ้าน (บ้าน 1 = บ้านหลัก) */}
+              {isAtk && (editing || houses > 1) && (
+                <div className="mb-5 flex flex-wrap items-center gap-2">
+                  <div className="pill flex flex-wrap gap-1 p-1">
+                    {Array.from({ length: houses }, (_, i) => {
+                      const hv = houseView(raw, i)
+                      const label = hv.vsTag ? houseLabel(hv.vsTag) : hv.vs ? teamNames(hv.vs) || `บ้าน ${i + 1}` : `บ้าน ${i + 1}`
+                      return (
+                        <button key={i} type="button" onClick={() => setHouse((m) => ({ ...m, [s]: i }))}
+                          className={`max-w-[14rem] truncate rounded-full px-3 py-1 text-sm ${i === h ? 'bg-gradient-to-b from-[#fff1c9] to-[#e2bf72] font-semibold text-ink' : 'text-white/70 hover:bg-white/10'}`}>
+                          {i === 0 && '★ '}{label}
+                        </button>
+                      )
+                    })}
+                    {editing && houses < MAX_HOUSES && (
+                      <button type="button" onClick={() => addHouse(s)} className="flex items-center gap-1 rounded-full px-3 py-1 text-sm text-gold hover:bg-white/10">
+                        <Plus className="h-4 w-4" /> เพิ่มบ้าน
+                      </button>
+                    )}
+                  </div>
+                  {houses > 1 && <span className="text-xs text-white/45">★ = บ้านหลัก · บ้านอื่นเป็นทางเลือกถ้าบ้านหลักโดนตีไปแล้ว</span>}
+                  {editing && houses > 1 && (
+                    <span className="ml-auto flex gap-2 text-sm">
+                      {h > 0 && <button type="button" onClick={() => makeMainHouse(s, h)} className="text-gold hover:underline">ตั้งเป็นบ้านหลัก</button>}
+                      <button type="button" onClick={() => removeHouse(s, h)} className="text-white/50 hover:text-red-300">ลบบ้านนี้</button>
+                    </span>
+                  )}
+                </div>
+              )}
 
               {isAtk ? (
                 <>
