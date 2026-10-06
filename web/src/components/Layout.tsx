@@ -49,6 +49,7 @@ export default function Layout() {
           <p>ภาพตัวละคร © Netmarble Corp. & Netmarble Nexus Inc. · <a className="underline underline-offset-4 hover:text-gold" href="https://sena.netmarble.com/en/pcplay" target="_blank" rel="noreferrer">เว็บไซต์เกมทางการ</a></p>
           <BugReport />
         </div>
+        <p className="mt-2 text-center sm:text-left">ข้อมูลและไอคอนบางส่วนจาก <a className="underline underline-offset-4 hover:text-gold" href="https://7katlas.com" target="_blank" rel="noreferrer">7K Atlas</a> · ขอบคุณมากครับ</p>
       </footer>
     </div>
   )
