@@ -154,12 +154,15 @@ type PlanData = {
   op: string[]
   banned: string[][] // ชุดทีมที่ยกเลิก เช่น [['gale','klemis','mist']]
   note: string
-  slots: (WarHouse & { name: string; kind: 'attack' | 'defense'; alts?: WarHouse[] })[]
+  slots: (AltHouse & { name: string; kind: 'attack' | 'defense'; main: number; options: WarOption[]; alts?: AltHouse[] })[]
 }
-type WarHouse = { vs: Team | null; vsTag: string; vsId: string; main: number; options: { team: Team; skills: SkillStep[]; condition: string; notes: string; heroNotes: HeroNote[]; custom?: true; logged?: true }[] }
-/** ไม้บุกเข้าได้หลายบ้าน: บ้านหลัก + บ้านทางเลือกอีกไม่เกินนี้ (ต้องตรงกับ MAX_HOUSES - 1 ฝั่งเว็บ) */
+/** บ้านอื่นที่ทีมบุกชุดเดียวกันตีได้ */
+type AltHouse = { vs: Team | null; vsTag: string; vsId: string }
+type WarOption = { team: Team; skills: SkillStep[]; condition: string; notes: string; heroNotes: HeroNote[]; custom?: true; logged?: true }
+/** ไม้บุกเข้าได้หลายบ้าน: บ้านหลัก + บ้านอื่นอีกไม่เกินนี้ (ต้องตรงกับ MAX_HOUSES - 1 ฝั่งเว็บ) */
 const MAX_ALT_HOUSES = 2
-function parseHouse(s: any): WarHouse {
+const parseAltHouse = (s: any): AltHouse => ({ vs: s?.vs ? parseTeam(s.vs) : null, vsTag: str(s?.vsTag, 20), vsId: str(s?.vsId, 80) })
+function parseHouse(s: any) {
   const options = (Array.isArray(s?.options) ? s.options : []).slice(0, MAX_OPTIONS).flatMap((o: any) => {
     const team = parseTeam(o?.team)
     if (!team) return []
@@ -180,7 +183,7 @@ function parsePlan(raw: any): PlanData | null {
   if (!raw || typeof raw !== 'object') return null
   const slots = Array.from({ length: WAR_SLOTS }, (_, i) => {
     const s = Array.isArray(raw.slots) ? raw.slots[i] ?? {} : {}
-    const alts = (Array.isArray(s.alts) ? s.alts : []).slice(0, MAX_ALT_HOUSES).map(parseHouse)
+    const alts = (Array.isArray(s.alts) ? s.alts : []).slice(0, MAX_ALT_HOUSES).map(parseAltHouse)
     return {
       name: str(s.name, 40),
       kind: s.kind === 'attack' ? ('attack' as const) : ('defense' as const),

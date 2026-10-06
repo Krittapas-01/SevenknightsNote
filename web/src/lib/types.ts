@@ -76,23 +76,23 @@ export type WarSlot = {
   /** ไม้บุก: index ทีมหลักที่จะใช้จริง (ไม่ใส่ = ทีมแรก) */
   main?: number
   options: WarOption[]
-  /** ไม้บุก: บ้านทางเลือกเพิ่ม (บ้านหลัก = ช่องด้านบน) แต่ละบ้านมีทีมของตัวเอง · รวมไม่เกิน MAX_HOUSES บ้าน */
+  /** ไม้บุก: ทีมเดียวกันนี้ตีบ้านอื่นได้อีก (บ้านหลัก = vs ด้านบน) · รวมไม่เกิน MAX_HOUSES บ้าน */
   alts?: WarHouse[]
 }
-/** บ้านที่จะตี + ทีมที่จะใช้ตีบ้านนั้น */
-export type WarHouse = Pick<WarSlot, 'vs' | 'vsTag' | 'vsId' | 'main' | 'options'>
+/** บ้านที่จะตีอีกบ้าน (ใช้ทีมบุกชุดเดียวกับไม้นี้) */
+export type WarHouse = Pick<WarSlot, 'vs' | 'vsTag' | 'vsId'>
 export const MAX_HOUSES = 3
-export const emptyHouse = (): WarHouse => ({ vs: null, vsTag: '', vsId: '', main: 0, options: [] })
-/** ไม้นี้ในมุมของบ้านที่ h (0 = บ้านหลัก) */
+export const emptyHouse = (): WarHouse => ({ vs: null, vsTag: '', vsId: '' })
+/** ไม้นี้ในมุมของบ้านที่ h (0 = บ้านหลัก) — ทีมบุก (options) ใช้ร่วมกันทุกบ้าน */
 export function houseView(slot: WarSlot, h: number): WarSlot {
   const alt = h > 0 ? slot.alts?.[h - 1] : undefined
-  return alt ? { ...slot, vs: alt.vs ?? null, vsTag: alt.vsTag ?? '', vsId: alt.vsId ?? '', main: alt.main ?? 0, options: alt.options } : slot
+  return alt ? { ...slot, vs: alt.vs ?? null, vsTag: alt.vsTag ?? '', vsId: alt.vsId ?? '' } : slot
 }
-/** เขียนผลที่แก้ในมุมบ้าน h กลับเข้าไม้ (ชื่อ/ประเภทไม้ใช้ร่วมกันทุกบ้าน) */
+/** เขียนผลที่แก้ในมุมบ้าน h กลับเข้าไม้: บ้าน → alts[h-1], ที่เหลือ (ชื่อ/ทีมบุก) → ตัวไม้ */
 export function houseApply(orig: WarSlot, h: number, v: WarSlot): WarSlot {
   if (h <= 0 || !orig.alts?.[h - 1]) return { ...v, alts: orig.alts }
-  const house: WarHouse = { vs: v.vs ?? null, vsTag: v.vsTag ?? '', vsId: v.vsId ?? '', main: v.main ?? 0, options: v.options }
-  return { ...orig, name: v.name, kind: v.kind, alts: orig.alts.map((a, i) => (i === h - 1 ? house : a)) }
+  const house: WarHouse = { vs: v.vs ?? null, vsTag: v.vsTag ?? '', vsId: v.vsId ?? '' }
+  return { ...v, vs: orig.vs, vsTag: orig.vsTag, vsId: orig.vsId, alts: orig.alts.map((a, i) => (i === h - 1 ? house : a)) }
 }
 export const MAX_OPTIONS = 8
 export type PlanKind = 'attack' | 'defense'

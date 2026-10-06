@@ -173,9 +173,9 @@ export default function PlanPage() {
         if (i !== s) return x
         const alts = x.alts ?? []
         if (h === 0) { // ลบบ้านหลัก → บ้านถัดไปขึ้นเป็นหลัก
-          if (!alts.length) return { ...x, vs: null, vsTag: '', vsId: '', main: 0, options: [] }
+          if (!alts.length) return { ...x, vs: null, vsTag: '', vsId: '' }
           const [first, ...rest] = alts
-          return { ...x, ...first, vs: first.vs ?? null, alts: rest }
+          return { ...x, vs: first.vs ?? null, vsTag: first.vsTag ?? '', vsId: first.vsId ?? '', alts: rest }
         }
         return { ...x, alts: alts.filter((_, j) => j !== h - 1) }
       }),
@@ -189,8 +189,8 @@ export default function PlanPage() {
       slots: d.slots.map((x, i) => {
         if (i !== s || !x.alts?.[h - 1]) return x
         const alt = x.alts[h - 1]
-        const old = { vs: x.vs ?? null, vsTag: x.vsTag ?? '', vsId: x.vsId ?? '', main: x.main ?? 0, options: x.options }
-        return { ...x, vs: alt.vs ?? null, vsTag: alt.vsTag ?? '', vsId: alt.vsId ?? '', main: alt.main ?? 0, options: alt.options, alts: x.alts.map((a, j) => (j === h - 1 ? old : a)) }
+        const old = { vs: x.vs ?? null, vsTag: x.vsTag ?? '', vsId: x.vsId ?? '' }
+        return { ...x, vs: alt.vs ?? null, vsTag: alt.vsTag ?? '', vsId: alt.vsId ?? '', alts: x.alts.map((a, j) => (j === h - 1 ? old : a)) }
       }),
     }))
     setHouse((m) => ({ ...m, [s]: 0 }))
@@ -559,7 +559,7 @@ export default function PlanPage() {
                       </button>
                     )}
                   </div>
-                  {houses > 1 && <span className="text-xs text-white/45">★ = บ้านหลัก · บ้านอื่นเป็นทางเลือกถ้าบ้านหลักโดนตีไปแล้ว</span>}
+                  {houses > 1 && <span className="text-xs text-white/45">ทีมนี้ตีได้ {houses} บ้าน · ★ = บ้านหลัก</span>}
                   {editing && houses > 1 && (
                     <span className="ml-auto flex gap-2 text-sm">
                       {h > 0 && <button type="button" onClick={() => makeMainHouse(s, h)} className="text-gold hover:underline">ตั้งเป็นบ้านหลัก</button>}
