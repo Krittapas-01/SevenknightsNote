@@ -7,6 +7,7 @@ import { FormationDiagram } from '../components/TeamModals'
 import { HEROES, getUnit } from '../data/heroes'
 import { baseAtkOf } from '../data/stats'
 import { SLOT_COUNT } from '../lib/types'
+import './BiscuitPage.css'
 
 // บิสกิตบัฟให้ตัวที่ "โจมตีในเกม" สูงสุด 2 อันดับ
 // โจมตีในเกม = โจมตีหน้าตัวละคร + base × บัฟ% (บัฟ % คิดจาก base ไม่ใช่ค่ารวม)
@@ -146,18 +147,21 @@ export default function BiscuitPage() {
   const input = 'pill w-full min-w-0 px-1 py-1 text-center text-xs tabular-nums outline-none focus:border-gold sm:text-sm'
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-3xl font-bold sm:text-4xl">
-        เช็กบัฟ<span className="text-gold">บิสกิต</span>
-      </h1>
+    <div className="biscuit-page mx-auto max-w-4xl">
+      <header className="biscuit-heading">
+        <span className="biscuit-eyebrow">SEVEN KNIGHTS · BATTLE PREP</span>
+        <h1 className="text-3xl font-extrabold sm:text-4xl">
+          เช็กบัฟ<span className="text-gold">บิสกิต</span>
+        </h1>
       <p className="mt-2 text-white/65">
         บิสกิตบัฟให้ตัวที่โจมตีสูงสุด {BISCUIT_TARGETS} ตัวในทีม แต่เกมนับจาก<b className="text-white">โจมตีในเกม</b> ซึ่งรวมบัฟ %
         ที่คิดจาก base ของแต่ละตัวแล้ว ตัวที่หน้าตัวละครสูงกว่าจึงอาจไม่ได้บัฟ
       </p>
+      </header>
 
-      <section className="panel mt-6 p-4 sm:p-5">
+      <section className="biscuit-setup panel panel-gold mt-5 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="w-full text-sm font-medium text-gold sm:w-auto">ศักยภาพสัตว์เลี้ยง All Attack (%)</span>
+          <span className="biscuit-section-label w-full text-sm font-medium text-gold sm:w-auto">ศักยภาพสัตว์เลี้ยง · All Attack (%)</span>
           {Array.from({ length: PET_LINES }, (_, i) => (
             <input
               key={i}
@@ -175,15 +179,15 @@ export default function BiscuitPage() {
           </span>
         </div>
 
-        <p className="mt-4 text-sm font-medium text-gold">ค่ายกล (Lv.40)</p>
+        <p className="biscuit-section-label mt-5 text-sm font-medium text-gold">ค่ายกล <span className="text-white/45">· Lv.40</span></p>
         {/* รูปค่ายกลแบบเดียวกับตอนเลือกในคอมพ์ */}
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {FORMATION_ATK.map((f) => (
             <button
               key={f.front}
               onClick={() => setState((s) => ({ ...s, front: f.front }))}
-              className={`rounded-2xl border-2 p-1.5 text-center transition ${
-                f.front === front ? 'border-gold bg-gold/15 shadow-[0_0_14px_rgba(244,213,141,.4)]' : 'border-white/15 bg-black/20 hover:border-white/40'
+              className={`biscuit-formation rounded-2xl border-2 p-1.5 text-center transition ${
+                f.front === front ? 'biscuit-formation-active' : ''
               }`}
             >
               <FormationDiagram front={f.front} />
@@ -195,12 +199,12 @@ export default function BiscuitPage() {
 
         {/* ทีมแนวนอนแบบในเกม: แถวหลัง (B) ยกสูง · แถวหน้า (F) ต่ำลง */}
         <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="mt-5 grid grid-cols-5 items-start gap-1.5 sm:gap-3">
+        <div className="biscuit-team mt-5 grid grid-cols-5 items-start gap-1.5 sm:gap-3">
           {slots.map((r, i) => {
             const back = isBack(i)
             return (
               <div key={i} className={`flex min-w-0 flex-col gap-1.5 ${back ? '' : 'mt-8 sm:mt-12'}`}>
-                <span className={`text-center text-[11px] font-semibold ${back ? 'text-[#ff8f9a]' : 'text-[#8fa8ff]'}`}>
+                <span className={`biscuit-row-label text-center text-[11px] font-semibold ${back ? 'text-[#ff8f9a]' : 'text-[#8fa8ff]'}`}>
                   {back ? `หลัง +${formation.atk}%` : 'หน้า'}
                 </span>
                 <DragSlot index={i} draggable={!!r.id}>
@@ -235,7 +239,7 @@ export default function BiscuitPage() {
           })}
         </div>
         </DndContext>
-        <p className="mt-4 text-xs text-white/45">
+        <p className="biscuit-help mt-4 text-xs text-white/45">
           กดช่องว่างเพื่อเลือกตัวละคร · กดตัวที่มีอยู่ 1 ครั้งเพื่อเลือก แล้วกดซ้ำเพื่อเปลี่ยนตัว หรือกดช่องอื่นเพื่อสลับตำแหน่ง · ช่องแรกใต้รูป = โจมตี (ตามหน้าตัวละคร) · ช่องที่ 2 = บัฟ % เพิ่มเฉพาะตัว (เช่น สกิลติดตัว) · base ตายตัวตามตัวละคร (ค่าจาก 7K Atlas)
           · ค่ายกลให้ All Attack % เฉพาะแถวหลัง (แถวหน้าได้ป้องกัน %) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
         </p>
@@ -261,8 +265,8 @@ export default function BiscuitPage() {
       )}
 
       {filled.length > 0 && (
-        <section className="panel panel-gold mt-8 p-4 sm:p-5">
-          <h2 className="font-semibold text-gold">อันดับโจมตีในเกม</h2>
+        <section className="biscuit-results panel panel-gold mt-8 p-4 sm:p-5">
+          <h2 className="biscuit-section-label font-semibold text-gold">อันดับโจมตีในเกม</h2>
           <ol className="mt-3 flex flex-col gap-2">
             {byGame.map((r, k) => {
               const gets = k < BISCUIT_TARGETS
@@ -271,7 +275,7 @@ export default function BiscuitPage() {
               return (
                 <li
                   key={r.i}
-                  className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-3 py-2 ${gets ? 'bg-gold/15 ring-1 ring-gold/60' : 'bg-white/5'}`}
+                  className={`biscuit-result-row flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-3 py-2 ${gets ? 'biscuit-result-winner' : ''}`}
                 >
                   <span className="w-5 text-white/50 tabular-nums">{k + 1}</span>
                   <span className="flex-1 font-medium">{r.name}</span>
