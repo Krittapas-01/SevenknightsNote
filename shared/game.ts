@@ -101,9 +101,9 @@ export function totalWarNow(ts = Date.now(), start = TOTAL_WAR_SEASON_START) {
  * reward = รางวัลระดับตอนจบซีซัน (ตามในเกม)
  */
 export const TOTAL_WAR_RANKS = [
-  { key: 'normal', name: 'ทั่วไป', min: 0, teams: 2, reward: '' },
-  { key: 'high', name: 'ระดับสูง', min: 1500, teams: 3, reward: '' },
-  { key: 'rare', name: 'หายาก', min: 3500, teams: 4, reward: '' },
+  { key: 'normal', name: 'ทั่วไป', min: 0, teams: 2, reward: 'รูบี้ 200' },
+  { key: 'high', name: 'ระดับสูง', min: 1500, teams: 3, reward: 'รูบี้ 1,200' },
+  { key: 'rare', name: 'หายาก', min: 3500, teams: 4, reward: 'รูบี้ 2,000' },
   { key: 'legend', name: 'ตำนาน', min: 6000, teams: 5, reward: 'รูบี้ 3,000' },
   { key: 'god', name: 'เทพเจ้า', min: 8000, teams: 5, reward: 'กรอบโปรไฟล์' },
 ] as const

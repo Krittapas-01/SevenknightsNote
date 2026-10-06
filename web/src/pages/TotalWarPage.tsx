@@ -51,7 +51,7 @@ export default function TotalWarPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-3xl font-bold sm:text-4xl">คำนวณแต้ม<span className="text-gold">เบ็ดเสร็จ</span></h1>
-      <p className="mt-2 text-white/65">คิดคะแนนรอบนี้ และดูว่าต้องชนะเท่าไหร่ถึงจะทันแรงค์ที่อยากได้ · ซีซันละ {TOTAL_WAR_ROUNDS} รอบ</p>
+
 
       {/* รอบ/เฟสตอนนี้ (นับจากวันเริ่มซีซันใน shared/game.ts) */}
       <section className="panel mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 p-4 text-sm">
@@ -82,7 +82,7 @@ export default function TotalWarPage() {
               <span className="shrink-0 text-white/60">/ {fights}</span>
             </span>
             <span className="mt-2 block text-sm text-white/55">
-              {validWins ? <>อัตราชนะ <b className="text-white/85">{pct((w / fights) * 100)}</b></> : wins !== '' ? <span className="text-red-300">ใส่ 0–{fights}</span> : `ทีมละ 20 ครั้ง · ชนะเกินครึ่ง (${half}) 1 ครั้ง = +40`}
+              {validWins ? <>อัตราชนะ <b className="text-white/85">{pct((w / fights) * 100)}</b></> : wins !== '' ? <span className="text-red-300">ใส่ 0–{fights}</span> : null}
             </span>
           </label>
         </div>
@@ -95,28 +95,26 @@ export default function TotalWarPage() {
               <ArrowRight className="h-6 w-6 text-white/40" />
               <span className="text-gold">{fmt(res.next)}</span>
             </div>
-            <p className="mt-2 text-center text-sm text-white/55">
-              (({pct(res.rate)} − 50) ÷ 5) × {res.rank.teams} ทีม × 40 = ({w} − {half}) × 40 = <b className="text-white/80">{signed(res.raw)}</b>
-            </p>
+            <p className="mt-2 text-center text-sm text-white/55">{pct(res.rate)} · เกิน 50% = <b className="text-white/80">{signed(res.raw)}</b></p>
             {res.promoted && (
               <p className="mt-3 rounded-lg bg-emerald-400/10 px-3 py-2 text-center text-sm text-emerald-100">
-                🎉 เลื่อนขั้นเป็น <b>{res.promoted.name}</b> · คะแนนหยุดที่ {fmt(res.promoted.min)} (ได้จริง {signed(res.change)} จาก {signed(res.raw)}) · รอบหน้าใช้ {res.promoted.teams} ทีม
+                🎉 ขึ้น <b>{res.promoted.name}</b> · หยุดที่ {fmt(res.promoted.min)} · รอบหน้า {res.promoted.teams} ทีม
               </p>
             )}
             {!res.promoted && res.capped && (
               <p className="mt-3 rounded-lg bg-amber-400/10 px-3 py-2 text-center text-sm text-amber-100">
-                ไม่ตกต่ำกว่า {fmt(res.rank.min)} (เกณฑ์แรงค์{res.rank.name}) · เสียจริง {signed(res.change)} จาก {signed(res.raw)}
+                ไม่ตกต่ำกว่า {fmt(res.rank.min)} ({res.rank.name})
               </p>
             )}
             <button type="button" onClick={() => { setScore(String(res.next)); setWins('') }} className="pill mx-auto mt-4 flex items-center gap-1.5 px-4 py-1.5 text-sm">
-              <RotateCcw className="h-4 w-4" /> ใช้ {fmt(res.next)} เป็นคะแนนปัจจุบัน (คิดรอบต่อไป)
+              <RotateCcw className="h-4 w-4" /> ใช้ {fmt(res.next)} คิดรอบต่อไป
             </button>
           </div>
         )}
 
         {validScore && (
           <details className="mt-4 text-sm">
-            <summary className="cursor-pointer text-white/60">ตาราง: ชนะเท่าไหร่ ได้เท่าไหร่ (แรงค์{rank.name})</summary>
+            <summary className="cursor-pointer text-white/60">ชนะเท่าไหร่ ได้เท่าไหร่</summary>
             <table className="mt-2 w-full text-center tabular-nums">
               <thead className="text-white/45"><tr><th className="py-1">ชนะ</th><th>อัตราชนะ</th><th>คะแนน</th><th>เป็น</th></tr></thead>
               <tbody>
@@ -147,19 +145,18 @@ export default function TotalWarPage() {
             </select>
           </label>
           <label className="block text-sm">
-            <span className="text-white/60">รอบที่ยังไม่ได้คิดคะแนน</span>
+            <span className="text-white/60">รอบที่เหลือ</span>
             <input type="number" inputMode="numeric" min={0} max={TOTAL_WAR_ROUNDS} value={roundsEdit ?? String(tw.resultsLeft)}
               onChange={(e) => setRoundsEdit(e.target.value)} className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 tabular-nums" />
-            <span className="mt-1 block text-xs text-white/40">นับจากรอบตอนนี้ให้เอง · แก้ได้ถ้าไม่ตรง</span>
           </label>
         </div>
         <div className="mt-4 rounded-2xl bg-black/25 p-4 text-center">
           {!validScore && <p className="text-white/50">ใส่คะแนนปัจจุบันด้านบนก่อน</p>}
           {plan?.done && <p className="text-emerald-200">ถึง{goal.name}แล้ว 🎉 ตกกลับไม่ได้</p>}
           {plan && !plan.done && (<>
-            <p className="text-white/70">ขาดอีก <b className="text-white">{fmt(goal.min - s)}</b> คะแนน ใน {roundsLeft} รอบ (เฉลี่ยรอบละ {fmt(plan.perRound)})</p>
+            <p className="text-white/70">ขาดอีก <b className="text-white">{fmt(goal.min - s)}</b> ใน {roundsLeft} รอบ</p>
             <p className="mt-2 text-2xl font-bold text-gold">ชนะ ≥ {plan.wins}/{plan.fights} ทุกรอบ</p>
-            <p className="mt-1 text-sm text-white/55">อัตราชนะ {pct((plan.wins / plan.fights) * 100)} ขึ้นไป{rank.teams < 5 ? ' · เลื่อนขั้นแล้วทีมเพิ่ม ใช้ % ใกล้เคียงเดิม' : ''}</p>
+            <p className="mt-1 text-sm text-white/55">{pct((plan.wins / plan.fights) * 100)} ขึ้นไป</p>
           </>)}
           {validScore && plan === null && <p className="text-red-200">{roundsLeft ? `ชนะ 100% ทุกรอบที่เหลือก็ไม่ทัน${goal.name}` : 'ไม่เหลือรอบให้เล่นแล้ว'}</p>}
         </div>
@@ -167,36 +164,26 @@ export default function TotalWarPage() {
 
       <section className="panel mt-5 p-4 sm:p-5">
         <h2 className="font-semibold text-gold">แรงค์</h2>
-        {/* คะแนนต่อ 1% = (1 ÷ 5) × ทีม × 40 = 8 × ทีม · ชนะ 1 ครั้ง = +40 เสมอ (= 100 ÷ ครั้งที่สู้ %) */}
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm tabular-nums">
-            <thead className="text-xs text-white/45">
-              <tr><th className="py-1 text-left">แรงค์</th><th>เริ่มที่</th><th>ทีม</th><th>1% =</th><th>ชนะ 1 ครั้ง</th></tr>
-            </thead>
-            <tbody>
-              {TOTAL_WAR_RANKS.map((k, i) => {
-                const f = totalWarFights(k.teams)
-                return (
-                  <tr key={k.key} className={`border-t border-white/5 text-center ${validScore && i === rankIndex ? 'bg-gold/10' : ''}`}>
-                    <td className="py-2 text-left">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-semibold ${RANK_CLS[i]}`}><Shield className="h-3.5 w-3.5" /> {k.name}</span>
-                      {k.reward && <span className="mt-0.5 block text-[11px] text-white/50">{k.reward}</span>}
-                    </td>
-                    <td>{fmt(k.min)}</td>
-                    <td>{k.teams}<span className="block text-[11px] text-white/40">สู้ {f}</span></td>
-                    <td className="font-semibold text-emerald-200">±{8 * k.teams}</td>
-                    <td className="text-white/70">±40<span className="block text-[11px] text-white/40">= {pct(100 / f)}</span></td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-3 text-xs leading-relaxed text-white/45">
-          แต่ละทีมสู้ 20 ครั้ง · ได้/เสีย = ((อัตราชนะ% − 50) ÷ 5) × ทีม × 40 = (ชนะ − ครึ่งหนึ่ง) × 40 ·
-          ถึงเกณฑ์แรงค์ถัดไปแล้วคะแนนหยุดที่เกณฑ์ (3,480 + 720 → 3,500) · เลื่อนขั้นแล้วตกกลับไม่ได้ (6,120 − 240 → 6,000) ·
-          1 รอบ = เตรียมรอบ 5 ชม. → ต่อสู้ 6 ชม. → สรุปผล 1 ชม. · คะแนนปัจจุบันจำไว้ในเครื่องนี้
-        </p>
+        {/* คะแนนต่อ 1% ที่เกิน 50% = (1 ÷ 5) × ทีม × 40 = 8 × ทีม · ต่ำกว่า 50% เสียเท่ากัน */}
+        <table className="mt-3 w-full text-sm tabular-nums">
+          <thead className="text-xs text-white/45">
+            <tr><th className="py-1 text-left">แรงค์</th><th>เริ่มที่</th><th>ทีม</th><th>ทุก 1% เกิน 50</th><th className="text-right">รางวัล</th></tr>
+          </thead>
+          <tbody>
+            {TOTAL_WAR_RANKS.map((k, i) => (
+              <tr key={k.key} className={`border-t border-white/5 text-center ${validScore && i === rankIndex ? 'bg-gold/10' : ''}`}>
+                <td className="py-2 text-left">
+                  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold ${RANK_CLS[i]}`}><Shield className="h-3.5 w-3.5" /> {k.name}</span>
+                </td>
+                <td>{fmt(k.min)}</td>
+                <td>{k.teams}</td>
+                <td className="font-semibold text-emerald-200">+{8 * k.teams}</td>
+                <td className="text-right text-xs text-white/60">{k.reward}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-3 text-xs text-white/45">เช่น หายาก ชนะ 52.5% → เกิน 50 อยู่ 2.5% × 32 = +80 · ต่ำกว่า 50 เสียเท่ากัน · ขึ้นแรงค์แล้วไม่ตก</p>
       </section>
     </div>
   )
