@@ -38,7 +38,7 @@ export function StatsGrid({ stats, className = '', size = 'sm' }: { stats?: Hero
             : 'flex items-center justify-between gap-2 rounded-md bg-white/[.04] px-2 py-0.5')}>
             <dt className={`flex min-w-0 items-center ${lg ? 'gap-2 text-[15px] text-white/80' : 'gap-1.5 text-white/60'}`}>
               <StatIcon k={s.key} magic={stats!.magic} className={lg ? 'h-5 w-5' : 'h-4 w-4'} />
-              <span className="truncate">{s.key === 'atk' && stats!.magic ? 'โจมตีเวทย์' : s.th}</span>
+              <span className="truncate" title={s.key === 'atk' && stats!.magic ? 'โจมตีเวทย์' : s.th}>{s.key === 'atk' && stats!.magic ? 'โจมตีเวทย์' : s.th}</span>
             </dt>
             <dd className={lg ? 'text-base font-bold tabular-nums text-white' : 'font-semibold tabular-nums text-white'}>{fmtStat(s.key, stats![s.key]!)}</dd>
           </div>
@@ -55,13 +55,17 @@ export function upsertStats(notes: HeroNote[], hero: string, stats: HeroStats): 
   return [...notes, { hero, text: '', sets: [], rings: [], stats }].slice(0, 5)
 }
 
-/** หาชื่อฮีโร่ในข้อความ (เทียบชื่ออังกฤษ เลือกชื่อที่ยาวที่สุดที่เจอ) */
+/** หาชื่อฮีโร่ในข้อความ (เทียบชื่ออังกฤษ/ไทย เลือกชื่อที่ยาวที่สุดที่เจอ) */
 function detectHero(text: string, team: string[]) {
   const t = text.toLowerCase()
+  const flat = text.replace(/\s+/g, '') // OCR ไทยมักเว้นวรรคแทรก
   let best: { id: string; len: number } | null = null
   for (const id of team) {
     const en = englishOf(id)?.toLowerCase()
     if (en && new RegExp(`\\b${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(t) && (!best || en.length > best.len)) best = { id, len: en.length }
+    // ชื่อไทย (ภาพเกมภาษาไทย) — ชื่อสั้นเกินไปข้าม กันไปตรงกับคำอื่นในภาพ
+    const th = baseName(getUnit(id)?.name ?? '').replace(/\s+/g, '')
+    if (th.length >= 3 && flat.includes(th) && (!best || th.length > best.len)) best = { id, len: th.length }
   }
   return best?.id ?? null
 }
@@ -106,7 +110,7 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
         if (other) setMismatch(baseName(getUnit(other)?.name ?? other))
         else setNoHero(true)
       }
-      if (!hasStats(s)) setErr('อ่านสเตตัสไม่เจอ — ใช้ภาพหน้าข้อมูลฮีโร่ในเกม (ภาษาอังกฤษ) หรือพิมพ์ค่าเองด้านล่าง')
+      if (!hasStats(s)) setErr('อ่านสเตตัสไม่เจอ — ใช้ภาพหน้าข้อมูลฮีโร่ในเกม (ภาษาไทยหรืออังกฤษ) หรือพิมพ์ค่าเองด้านล่าง')
     } catch (e) {
       setErr('อ่านรูปไม่สำเร็จ: ' + (e as Error).message)
     } finally {
@@ -185,7 +189,7 @@ export function StatsImport({ team, onApply }: { team: (string | null)[]; onAppl
             <div className="mt-4 grid grid-flow-row-dense grid-cols-2 gap-x-3 gap-y-1.5">
               {STATS.map((s) => (
                 <label key={s.key} className={`${col(s.key)} flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2 py-1 text-sm`}>
-                  <span className="flex min-w-0 items-center gap-1.5 text-white/65"><StatIcon k={s.key} magic={stats.magic} className="h-4 w-4" /><span className="truncate">{s.key === 'atk' && stats.magic ? 'โจมตีเวทย์' : s.th}</span></span>
+                  <span className="flex min-w-0 items-center gap-1.5 text-white/65"><StatIcon k={s.key} magic={stats.magic} className="h-4 w-4" /><span className="truncate" title={s.key === 'atk' && stats.magic ? 'โจมตีเวทย์' : s.th}>{s.key === 'atk' && stats.magic ? 'โจมตีเวทย์' : s.th}</span></span>
                   <span className="flex items-center gap-0.5">
                     <input type="number" inputMode="decimal" value={stats[s.key] ?? ''} onChange={(e) => set(s.key, e.target.value)}
                       className="w-20 rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 text-right tabular-nums outline-none focus:border-gold" />

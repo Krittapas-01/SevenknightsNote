@@ -1,6 +1,7 @@
 /**
  * อ่านตัวหนังสือจากรูป (Tesseract.js) — ทำงานในเบราว์เซอร์ ฟรี ไม่ส่งรูปไปไหน
- * ไฟล์ engine + ภาษาอังกฤษ อยู่ใน public/ocr (โหลดครั้งแรกประมาณ 7MB แล้วเบราว์เซอร์จำไว้)
+ * ไฟล์ engine + ภาษาอังกฤษ + ไทย อยู่ใน public/ocr (โหลดครั้งแรกประมาณ 8MB แล้วเบราว์เซอร์จำไว้)
+ * อ่านพร้อมกันทั้ง 2 ภาษา → ใช้ได้ทั้งเกมที่ตั้งภาษาไทยและอังกฤษ
  */
 const BASE = `${import.meta.env.BASE_URL}ocr/`
 
@@ -27,7 +28,7 @@ async function prepare(file: Blob): Promise<HTMLCanvasElement> {
 export async function readImageText(file: Blob, onProgress?: (p: number) => void): Promise<string> {
   const { createWorker } = await import('tesseract.js')
   const canvas = await prepare(file)
-  const worker = await createWorker('eng', 1, {
+  const worker = await createWorker(['eng', 'tha'], 1, {
     workerPath: `${BASE}worker.min.js`,
     corePath: BASE,
     langPath: BASE,
@@ -36,7 +37,7 @@ export async function readImageText(file: Blob, onProgress?: (p: number) => void
     },
   })
   try {
-    await worker.setParameters({ tessedit_pageseg_mode: '6' as never })
+    await worker.setParameters({ tessedit_pageseg_mode: '6' as never, preserve_interword_spaces: '1' })
     const { data } = await worker.recognize(canvas)
     return data.text
   } finally {
