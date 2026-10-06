@@ -16,7 +16,7 @@
 .tw-phase-scroll { scrollbar-color: #c9a35a66 transparent; scrollbar-width: thin; }
 .tw-phase-scroll::-webkit-scrollbar { height: 4px; }
 .tw-phase-scroll::-webkit-scrollbar-thumb { border-radius: 99px; background: #c9a35a66; }
-.tw-phase-track { clip-path: polygon(1% 0, 99% 0, 100% 50%, 99% 100%, 1% 100%, 0 50%); border: 1px solid #f4d58d4a; background: linear-gradient(180deg, #0e1726, #151e2e); padding: 4px 6px; box-shadow: inset 0 1px 3px #0008, 0 3px 10px #05091544; }
+.tw-phase-track { clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%); border: 1px solid #f4d58d4a; background: linear-gradient(180deg, #0e1726, #151e2e); padding: 4px 0; box-shadow: inset 0 1px 3px #0008, 0 3px 10px #05091544; }
 .tw-phase { position: relative; display: flex; min-height: 3.25rem; min-width: 8rem; align-items: center; justify-content: center; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%); color: #aeb9ce; background: linear-gradient(180deg, #2b3850, #202c40); text-align: center; transition: color 140ms ease, background-color 140ms ease; }
 .tw-phase-first { clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%); }
 .tw-phase:not(.tw-phase-active) { border: 1px solid #ffffff12; }
@@ -47,7 +47,7 @@
   .tw-heading p { max-width: 28rem; font-size: .8rem; }
   .tw-countdown { min-height: 2.6rem; gap: .42rem; padding-right: .85rem; padding-left: .85rem; font-size: .8rem; }
   .tw-phase { min-height: 2.8rem; min-width: 7rem; padding-right: .85rem; padding-left: 1rem; font-size: .7rem; }
-  .tw-phase-track { padding: 3px 6px; }
+  .tw-phase-track { padding: 3px 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
