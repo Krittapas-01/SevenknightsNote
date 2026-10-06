@@ -118,4 +118,13 @@ export const api = {
     req<{ schedule: DayType[]; autoAnnounce: boolean; autoText: { attack: string; defense: string } }>(`/api/guild/${gid}/schedule`, {
       method: 'PUT', body: JSON.stringify({ autoAnnounce, autoText }), gid,
     }),
+  /** หน้าแอดมิน (ต้องล็อกอิน Discord ด้วยไอดีที่อยู่ใน ADMIN_DISCORD_IDS) */
+  adminStats: () => req<AdminStats>('/api/admin/stats'),
 }
+
+export type AdminGuild = {
+  id: string; name: string; createdAt: number; lastActive: number
+  targets: number; counters: number; plans: number; announcements: number; autoAnnouncements: number
+  webhook: number; discordLogin: number
+}
+export type AdminStats = { now: number; guilds: AdminGuild[]; discordUsers: number }

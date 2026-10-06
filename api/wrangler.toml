@@ -13,6 +13,8 @@ ALLOWED_ORIGIN = "https://7k-note.pages.dev"  # + preview (xxxx.7k-note.pages.de
 SITE_URL = "https://7k-note.pages.dev"
 # ล็อกอินด้วย Discord: Application ID (เปิดเผยได้) — ส่วน Client Secret ตั้งด้วย  npx wrangler secret put DISCORD_CLIENT_SECRET
 DISCORD_CLIENT_ID = "1553856052980621442"
+# Discord user ID ที่เข้าหน้า /admin ได้ (คั่นด้วย ,) — bruhh_exe
+ADMIN_DISCORD_IDS = "498371127601790976"
 
 [[d1_databases]]
 binding = "DB"

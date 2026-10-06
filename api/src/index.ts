@@ -3,7 +3,7 @@ import { cors } from 'hono/cors'
 import { currentSeason } from '../../shared/season'
 import { DAY_NAMES, DAY_PLACEHOLDER, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay } from '../../shared/game'
 
-type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string }
+type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string; /** Discord user ID ที่เข้าหน้า /admin ได้ (คั่นด้วย ,) */ ADMIN_DISCORD_IDS?: string }
 
 type Team = {
   front: number // จำนวนช่องแถวหน้า (1-4) ที่เหลือเป็นแถวหลัง รวม 5 ช่อง
@@ -819,6 +819,35 @@ app.post('/api/auth/logout', async (c) => {
   const token = (c.req.header('Authorization') || '').replace(/^Bearer\s+/i, '')
   if (token) await c.env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(await sha256(token)).run()
   return c.json({ ok: true })
+})
+
+// ---------- หน้าแอดมิน: ภาพรวมการใช้งานทุกกิลด์ (ล็อกอิน Discord + อยู่ใน ADMIN_DISCORD_IDS) ----------
+// ส่งแค่ตัวเลข/วันที่ — ไม่ส่ง webhook URL, edit key หรือเนื้อหาในกิลด์
+app.get('/api/admin/stats', async (c) => {
+  c.header('Cache-Control', 'no-store')
+  const user = await currentUser(c)
+  if (!user) return c.json({ error: 'กรุณาเข้าสู่ระบบด้วย Discord' }, 401)
+  const admins = (c.env.ADMIN_DISCORD_IDS || '').split(',').map((x) => x.trim()).filter(Boolean)
+  if (!admins.includes(user.id)) return c.json({ error: 'ไม่มีสิทธิ์เข้าหน้านี้' }, 403)
+  const now = Date.now()
+  const [guilds, users] = await c.env.DB.batch([
+    c.env.DB.prepare(`
+      WITH t AS (SELECT guild_id, COUNT(*) n, MAX(updated_at) last FROM targets GROUP BY guild_id),
+           k AS (SELECT guild_id, COUNT(*) n, MAX(updated_at) last FROM counters GROUP BY guild_id),
+           p AS (SELECT guild_id, COUNT(*) n, MAX(updated_at) last FROM plans GROUP BY guild_id),
+           a AS (SELECT guild_id, SUM(auto = 0) manual, SUM(auto = 1) auto, MAX(CASE WHEN auto = 0 THEN created_at END) last FROM announcements GROUP BY guild_id)
+      SELECT g.id, g.name, g.created_at AS createdAt,
+        COALESCE(t.n, 0) AS targets, COALESCE(k.n, 0) AS counters, COALESCE(p.n, 0) AS plans,
+        COALESCE(a.manual, 0) AS announcements, COALESCE(a.auto, 0) AS autoAnnouncements,
+        COALESCE(s.discord_webhook, '') <> '' AS webhook, COALESCE(s.discord_guild_id, '') <> '' AS discordLogin,
+        MAX(g.created_at, COALESCE(t.last, 0), COALESCE(k.last, 0), COALESCE(p.last, 0), COALESCE(a.last, 0)) AS lastActive
+      FROM guilds g
+      LEFT JOIN t ON t.guild_id = g.id LEFT JOIN k ON k.guild_id = g.id LEFT JOIN p ON p.guild_id = g.id
+      LEFT JOIN a ON a.guild_id = g.id LEFT JOIN guild_settings s ON s.guild_id = g.id
+      ORDER BY lastActive DESC`),
+    c.env.DB.prepare('SELECT COUNT(DISTINCT user_id) AS n FROM sessions WHERE expires_at > ?').bind(now),
+  ])
+  return c.json({ now, guilds: guilds.results, discordUsers: (users.results[0] as any)?.n ?? 0 })
 })
 
 // ---------- ประกาศอัตโนมัติ 07:00 เวลาไทย (Cron Trigger "0 0 * * *" = 00:00 UTC) ----------
