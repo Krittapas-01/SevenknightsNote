@@ -1,6 +1,7 @@
 import { Camera, ClipboardPaste, Loader2, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { HEROES, baseName, englishOf, getUnit } from '../data/heroes'
+import { matchHeroName, type HeroCandidate } from '../lib/heroMatch'
 import { readImageText } from '../lib/ocr'
 import { STATS, fmtStat, hasStats, parseStats, type HeroStats, type StatKey } from '../lib/stats'
 import { MAX_HEROES, type HeroNote } from '../lib/types'
@@ -64,6 +65,14 @@ const OCR_ALIASES: Record<string, string[]> = {
   'ทันจิโร่': ['คามาโดะ'],
   'เซนอิทสึ': ['อางาซึมะ', 'เซนอิทซึ', 'เซนอิท'],
 }
+
+/** ชื่อที่ใช้จับคู่ของฮีโร่ 1 ตัว: ชื่อไทย + ชื่อเต็ม/สะกดในเกม + ชื่ออังกฤษ */
+const candidate = (id: string): HeroCandidate => {
+  const base = baseName(getUnit(id)?.name ?? id)
+  const en = englishOf(id)
+  return { id, names: [base, ...(OCR_ALIASES[base] ?? []), ...(en ? [en] : [])] }
+}
+const ALL_CANDIDATES = HEROES.map((h) => candidate(h.id))
 
 /** ส่วนหัวของภาพ (ก่อนแถวโจมตี) — ชื่อฮีโร่อยู่ตรงนี้ ส่วนล่างของภาพมีชื่อฮีโร่ตัวอื่นในคลังปนอยู่ */
 const header = (text: string) => {
@@ -151,14 +160,17 @@ export function StatsImport({ team, onApply, onAddHero }: {
       setRaw(name ? `ชื่อ: ${name}\n---\n${text}` : text)
       const s = parseStats(text)
       setStats(s)
-      const found = detectHero([name, text], heroes)
+      // 1) บรรทัดชื่อ → เทียบกับชื่อฮีโร่ทุกตัวแบบยอมเพี้ยน (ในทีมได้ก่อนถ้าใกล้เท่ากัน)
+      const inTeam = name ? matchHeroName(name, heroes.map(candidate)) : null
+      const anyHero = name ? matchHeroName(name, ALL_CANDIDATES) : null
+      const byName = inTeam && (!anyHero || inTeam.dist <= anyHero.dist) ? inTeam.id : null
+      // 2) สำรอง: หาจากข้อความทั้งภาพแบบเดิม
+      const found = byName ?? detectHero([name, text], heroes)
       if (found) setHero(found)
       else {
         if (!hero && heroes[0]) setHero(heroes[0])
-        // ภาพเป็นฮีโร่ตัวอื่นที่ไม่ได้อยู่ในคอมพ์ → เตือน
-        // บรรทัดชื่อที่ครอปมามีแต่ชื่อ → เทียบแบบหลวมได้ · ข้อความทั้งภาพต้องตรงเป๊ะ (กันเตือนผิดตัว)
-        const all = HEROES.map((h) => h.id)
-        const other = detectHero([name], all) ?? detectHero([text], all, false)
+        // ภาพเป็นฮีโร่ตัวอื่นที่ไม่ได้อยู่ในคอมพ์ → เตือน (ข้อความทั้งภาพต้องตรงเป๊ะ กันเตือนผิดตัว)
+        const other = anyHero?.id ?? detectHero([text], HEROES.map((h) => h.id), false)
         if (other) setMismatchId(other)
         else setNoHero(true)
       }
