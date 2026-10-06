@@ -246,7 +246,10 @@ function ComposeModal({ open, onClose, gid, data, activeId, reload }: { open: bo
 
 
 /** ข้อความเริ่มต้นของประกาศอัตโนมัติ (ตรงกับฝั่ง API) */
-const AUTO_DEFAULT = { attack: 'วันนี้ ({วัน}) วันตี', defense: 'วันนี้ ({วัน}) วันจัดบ้านกัน' }
+const AUTO_DEFAULT = {
+  attack: 'วันนี้ ({วัน}) วันตี · ช่วงตี 07:00–00:00',
+  defense: 'วันนี้ ({วัน}) วันจัดบ้านกัน · ช่วงแก้ทีม 07:00–18:00 (18:00 เริ่มจัดบ้าน)',
+}
 const MAX_AUTO_TEXT = 300
 
 function ScheduleModal({ open, onClose, gid, schedule, auto, autoText, season, reload }: { open: boolean; onClose: () => void; gid: string; schedule: DayType[]; auto: boolean; autoText: { attack: string; defense: string }; season: { start: string; end: string }; reload: () => Promise<void> }) {

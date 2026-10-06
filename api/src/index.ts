@@ -831,7 +831,11 @@ app.post('/api/auth/logout', async (c) => {
 const DAY_NAMES = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์', 'อาทิตย์']
 const gameDayIndex = (ts: number) => (new Date(ts).getUTCDay() + 6) % 7 // 0 = จันทร์
 const gameDayKey = (ts: number) => new Date(ts).toISOString().slice(0, 10)
-const DAY_LABEL: Record<string, string> = { attack: 'วันตี', defense: 'วันจัดบ้านกัน', rest: 'วันพัก' }
+/** ข้อความเริ่มต้นตอน 07:00 — บอกช่วงแรกของวันด้วย ทั้งกิลด์จะได้รู้ (ต้องตรงกับ AUTO_DEFAULT ฝั่งเว็บ) */
+const DAY_DEFAULT: Record<string, string> = {
+  attack: 'วันนี้ ({วัน}) วันตี · ช่วงตี 07:00–00:00',
+  defense: 'วันนี้ ({วัน}) วันจัดบ้านกัน · ช่วงแก้ทีม 07:00–18:00 (18:00 เริ่มจัดบ้าน)',
+}
 /** ข้อความประกาศอัตโนมัติที่กิลด์ตั้งเอง ยาวสุด (ตัวอักษร) */
 const MAX_AUTO_TEXT = 300
 
@@ -850,7 +854,7 @@ export function dailyAnnouncement(type: string, day: string, todayKey: string, s
     if (s.phase !== 'in') return null
   }
   if (type !== 'attack' && type !== 'defense') return null
-  return `วันนี้ (${day}) ${DAY_LABEL[type]}`
+  return DAY_DEFAULT[type].replaceAll('{วัน}', day)
 }
 
 // แผนฟรี: 1 รอบ cron เรียก D1 ได้ ≤ 50 ครั้ง และ fetch ภายนอก ≤ 50 ครั้ง → ทำทุกกิลด์ด้วย query รวม (ไม่วนทีละกิลด์)
@@ -874,7 +878,7 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   const dayStart = Date.parse(`${todayKey}T00:00:00Z`)
   // วันตี/วันจัดบ้านปกติ (ไม่ใช่วันเริ่ม/จบ Season) → กิลด์ที่ตั้งข้อความเองใช้ข้อความนั้น ({วัน} = ชื่อวัน)
   const type = GAME_SCHEDULE[today] ?? 'rest'
-  const col = body === `วันนี้ (${DAY_NAMES[today]}) ${DAY_LABEL[type]}` && (type === 'attack' || type === 'defense')
+  const col = (type === 'attack' || type === 'defense') && body === DAY_DEFAULT[type].replaceAll('{วัน}', DAY_NAMES[today])
     ? (type === 'attack' ? 's.auto_text_attack' : 's.auto_text_defense') : null
   const bodySql = col ? `CASE WHEN COALESCE(${col}, '') <> '' THEN replace(${col}, '{วัน}', ?) ELSE ? END` : '?'
   const bodyArgs = col ? [DAY_NAMES[today], body] : [body]
