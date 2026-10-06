@@ -27,7 +27,7 @@ const input = 'mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py
 /** สงครามเบ็ดเสร็จ: รอบ/เฟสตอนนี้ · คิดคะแนนรอบนี้ · ต้องชนะเท่าไหร่ถึงทันแรงค์เป้าหมาย */
 export default function TotalWarPage() {
   const [score, setScore] = useState(() => { try { return localStorage.getItem(STORE_KEY) ?? '' } catch { return '' } })
-  const [wins, setWins] = useState('')
+  const [rate, setRate] = useState('')
   const [target, setTarget] = useState(3) // ตำนาน (รูบี้)
   const [roundsEdit, setRoundsEdit] = useState<string | null>(null)
   const [now, setNow] = useState(Date.now())
@@ -40,9 +40,13 @@ export default function TotalWarPage() {
   const rankIndex = validScore ? totalWarRankIndex(s) : 0
   const rank = TOTAL_WAR_RANKS[rankIndex]
   const fights = totalWarFights(rank.teams)
-  const w = wins === '' ? NaN : Math.floor(Number(wins))
-  const validWins = Number.isFinite(w) && w >= 0 && w <= fights
-  const res = validScore && validWins ? totalWarResult(s, w) : null
+  // ใส่เป็น % แบบที่เกมโชว์ → ปัดเป็นจำนวนชนะที่เกิดได้จริง (ทีมละ 20 ครั้ง เช่น 80 ครั้งขยับทีละ 1.25%)
+  const r = rate === '' ? NaN : Number(rate)
+  const validRate = Number.isFinite(r) && r >= 0 && r <= 100
+  const w = validRate ? Math.round((r / 100) * fights) : NaN
+  const usedRate = (w / fights) * 100
+  const snapped = validRate && Math.abs(usedRate - r) > 0.001
+  const res = validScore && validRate ? totalWarResult(s, w) : null
   const roundsLeft = roundsEdit !== null && roundsEdit !== '' ? Math.max(0, Math.min(TOTAL_WAR_ROUNDS, Math.floor(Number(roundsEdit)))) : tw.resultsLeft
   const goal = TOTAL_WAR_RANKS[target]
   const plan = validScore ? totalWarPlan(s, goal.min, roundsLeft) : undefined
@@ -76,13 +80,13 @@ export default function TotalWarPage() {
             </span>
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-gold">ชนะรอบนี้ (รวมทุกทีม)</span>
+            <span className="text-sm font-medium text-gold">อัตราชนะรอบนี้</span>
             <span className="mt-1 flex items-center gap-2">
-              <input type="number" inputMode="numeric" min={0} max={fights} value={wins} onChange={(e) => setWins(e.target.value)} placeholder={`เช่น ${half + 2}`} className={`${input} mt-0`} />
-              <span className="shrink-0 text-white/60">/ {fights}</span>
+              <input type="number" inputMode="decimal" min={0} max={100} step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="เช่น 52.5" className={`${input} mt-0`} />
+              <span className="shrink-0 text-white/60">%</span>
             </span>
             <span className="mt-2 block text-sm text-white/55">
-              {validWins ? <>อัตราชนะ <b className="text-white/85">{pct((w / fights) * 100)}</b></> : wins !== '' ? <span className="text-red-300">ใส่ 0–{fights}</span> : null}
+              {validRate ? <>ชนะ {w}/{fights}{snapped && <span className="text-amber-200"> · ใช้ {pct(usedRate)} (ค่าที่ใกล้สุดในเกม)</span>}</> : rate !== '' ? <span className="text-red-300">ใส่ 0–100</span> : null}
             </span>
           </label>
         </div>
@@ -95,7 +99,7 @@ export default function TotalWarPage() {
               <ArrowRight className="h-6 w-6 text-white/40" />
               <span className="text-gold">{fmt(res.next)}</span>
             </div>
-            <p className="mt-2 text-center text-sm text-white/55">{pct(res.rate)} · เกิน 50% = <b className="text-white/80">{signed(res.raw)}</b></p>
+            <p className="mt-2 text-center text-sm text-white/55">({pct(res.rate)} − 50) × {8 * res.rank.teams} = <b className="text-white/80">{signed(res.raw)}</b></p>
             {res.promoted && (
               <p className="mt-3 rounded-lg bg-emerald-400/10 px-3 py-2 text-center text-sm text-emerald-100">
                 🎉 ขึ้น <b>{res.promoted.name}</b> · หยุดที่ {fmt(res.promoted.min)} · รอบหน้า {res.promoted.teams} ทีม
@@ -106,7 +110,7 @@ export default function TotalWarPage() {
                 ไม่ตกต่ำกว่า {fmt(res.rank.min)} ({res.rank.name})
               </p>
             )}
-            <button type="button" onClick={() => { setScore(String(res.next)); setWins('') }} className="pill mx-auto mt-4 flex items-center gap-1.5 px-4 py-1.5 text-sm">
+            <button type="button" onClick={() => { setScore(String(res.next)); setRate('') }} className="pill mx-auto mt-4 flex items-center gap-1.5 px-4 py-1.5 text-sm">
               <RotateCcw className="h-4 w-4" /> ใช้ {fmt(res.next)} คิดรอบต่อไป
             </button>
           </div>
@@ -116,15 +120,15 @@ export default function TotalWarPage() {
           <details className="mt-4 text-sm">
             <summary className="cursor-pointer text-white/60">ชนะเท่าไหร่ ได้เท่าไหร่</summary>
             <table className="mt-2 w-full text-center tabular-nums">
-              <thead className="text-white/45"><tr><th className="py-1">ชนะ</th><th>อัตราชนะ</th><th>คะแนน</th><th>เป็น</th></tr></thead>
+              <thead className="text-white/45"><tr><th className="py-1">อัตราชนะ</th><th>ชนะ</th><th>คะแนน</th><th>เป็น</th></tr></thead>
               <tbody>
                 {[-4, -2, 0, 1, 2, 3, 4, 5, 6, 8, 10].map((d) => half + d).filter((x) => x >= 0 && x <= fights).map((x) => {
-                  const r = totalWarResult(s, x)
+                  const t = totalWarResult(s, x)
                   return (
                     <tr key={x} className={`border-t border-white/5 ${x === w ? 'bg-gold/10' : ''}`}>
-                      <td className="py-1">{x}/{fights}</td><td>{pct(r.rate)}</td>
-                      <td className={r.change > 0 ? 'text-emerald-300' : r.change < 0 ? 'text-red-300' : 'text-white/50'}>{signed(r.change)}</td>
-                      <td>{fmt(r.next)}{r.promoted ? ` · ${r.promoted.name}` : ''}</td>
+                      <td className="py-1">{pct(t.rate)}</td><td className="text-white/50">{x}/{fights}</td>
+                      <td className={t.change > 0 ? 'text-emerald-300' : t.change < 0 ? 'text-red-300' : 'text-white/50'}>{signed(t.change)}</td>
+                      <td>{fmt(t.next)}{t.promoted ? ` · ${t.promoted.name}` : ''}</td>
                     </tr>
                   )
                 })}
@@ -155,8 +159,8 @@ export default function TotalWarPage() {
           {plan?.done && <p className="text-emerald-200">ถึง{goal.name}แล้ว 🎉 ตกกลับไม่ได้</p>}
           {plan && !plan.done && (<>
             <p className="text-white/70">ขาดอีก <b className="text-white">{fmt(goal.min - s)}</b> ใน {roundsLeft} รอบ</p>
-            <p className="mt-2 text-2xl font-bold text-gold">ชนะ ≥ {plan.wins}/{plan.fights} ทุกรอบ</p>
-            <p className="mt-1 text-sm text-white/55">{pct((plan.wins / plan.fights) * 100)} ขึ้นไป</p>
+            <p className="mt-2 text-2xl font-bold text-gold">ชนะ ≥ {pct((plan.wins / plan.fights) * 100)} ทุกรอบ</p>
+            <p className="mt-1 text-sm text-white/55">= ชนะ {plan.wins}/{plan.fights} ขึ้นไป</p>
           </>)}
           {validScore && plan === null && <p className="text-red-200">{roundsLeft ? `ชนะ 100% ทุกรอบที่เหลือก็ไม่ทัน${goal.name}` : 'ไม่เหลือรอบให้เล่นแล้ว'}</p>}
         </div>
