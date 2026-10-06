@@ -455,7 +455,6 @@ export default function TargetPage() {
               </div>
               {current ? (
                 <>
-                  <SkillOrder team={current.team} skills={current.skills} />
                   {current.note ? <EquipmentNoteText text={current.note} /> : <p className="mt-3 text-white/40">ไม่มีโน้ต</p>}
                 </>
               ) : (
