@@ -29,6 +29,7 @@ import { EquipmentNoteText } from '../components/EquipmentLoadout'
 import HeroNotesTable from '../components/HeroNotesTable'
 import TagEditor from '../components/TagEditor'
 import LikeButton from '../components/LikeButton'
+import { PresetPickerButton, SavePresetButton } from '../components/Presets'
 import { rememberNotes } from '../lib/myStats'
 import { autoSpeed } from '../lib/teamSpeed'
 
@@ -382,6 +383,7 @@ export default function TargetPage() {
               <button onClick={() => setLibrary('counter')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
                 <Library className="h-4 w-4" /> เลือกจากคลังคอมพ์
               </button>
+              <PresetPickerButton onPick={(p) => setCDraft((d) => ({ ...d, team: clone(p.team), skills: [...p.skills], note: d.note || p.note.slice(0, 500), heroNotes: copyNotes(p.heroNotes) }))} />
               <span className="text-xs text-white/50">กดวงกลมดาวล่างสุดเพื่อจองสกิล · กดตัวละคร 2 ครั้งเพื่อเอาออก</span>
             </div>
             <textarea
@@ -428,6 +430,7 @@ export default function TargetPage() {
                 <h3 className="flex items-center gap-2 font-semibold text-gold">
                   {current ? `ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}` : 'ทีมแก้'}
                   {current && <LikeButton key={current.id} gid={gid} cid={current.id} count={current.likes ?? 0} onChanged={reload} />}
+                  {current && <SavePresetButton team={current.team} skills={current.skills} note={current.note} heroNotes={current.heroNotes} className="font-normal" />}
                 </h3>
                 {canEdit && (
                   // ยังไม่มีทีมแก้ = ปุ่มเพิ่ม (เหมือนกด "เพิ่มทีมแก้" ด้านบน)

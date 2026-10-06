@@ -9,6 +9,7 @@ import { DndHub, HideWhileDock, useListTarget } from '../components/DndHub'
 import { findLogItems, logToTargets, markLogged, type LogItem } from '../lib/logTargets'
 import Modal from '../components/Modal'
 import TagEditor from '../components/TagEditor'
+import { PresetPickerButton } from '../components/Presets'
 import { rememberNotes } from '../lib/myStats'
 import PasteNotesModal from '../components/PasteNotesModal'
 import { applyNotes } from '../lib/pasteNotes'
@@ -492,7 +493,7 @@ export default function PlanPage() {
           )
           const addBtns = editing && slot.options.length < MAX_OPTIONS ? (
             // สูงคงที่ ชิดบน — ไม่ยืดตามการ์ดทีมข้าง ๆ (ไม่ต้องเลื่อนลงไกล)
-            <div className="grid h-56 grid-rows-2 gap-3 self-start">
+            <div className="grid h-56 grid-rows-[1fr_1fr_auto] gap-3 self-start">
               <button
                 onClick={() => setLibrary({ s, o: null })}
                 title={slot.kind === 'attack' && slot.vsId ? 'เปิดที่ทีมแก้ของบ้านนี้' : undefined}
@@ -515,6 +516,10 @@ export default function PlanPage() {
                 <Plus className="h-7 w-7" />
                 จัดทีมเอง
               </button>
+              {slot.kind === 'attack' && (
+                <PresetPickerButton className="justify-center" label="ใช้พรีเซ็ตของฉัน"
+                  onPick={(p) => patchSlot(s, (x) => ({ ...x, options: [...x.options, { ...optionFrom({ id: p.id, team: p.team, skills: p.skills, note: p.note, heroNotes: p.heroNotes }), custom: true }].slice(0, MAX_OPTIONS) }))} />
+              )}
             </div>
           ) : null
           return (

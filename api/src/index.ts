@@ -951,6 +951,61 @@ app.get('/api/me/likes', async (c) => {
   })
 })
 
+// ---------- พรีเซ็ตทีมบุกส่วนตัว (ล็อกอิน Discord) ----------
+const MAX_PRESETS = 50
+function parsePreset(body: any) {
+  const team = parseTeam(body?.team)
+  if (!team) return null
+  return { team, skills: parseSkills(body.skills, team), note: str(body.note, 500), heroNotes: parseHeroNotes(body.heroNotes) }
+}
+const toPreset = (r: any) => ({ id: r.id, name: r.name, ...JSON.parse(r.data), createdAt: r.created_at, updatedAt: r.updated_at })
+
+app.get('/api/me/presets', async (c) => {
+  c.header('Cache-Control', 'no-store')
+  const user = await currentUser(c)
+  if (!user) return c.json({ error: 'เข้าสู่ระบบด้วย Discord ก่อน' }, 401)
+  const { results } = await c.env.DB.prepare('SELECT * FROM presets WHERE user_id = ? ORDER BY updated_at DESC LIMIT ?').bind(user.id, MAX_PRESETS).all<any>()
+  return c.json({ presets: results.map(toPreset) })
+})
+
+app.post('/api/me/presets', async (c) => {
+  const user = await currentUser(c)
+  if (!user) return c.json({ error: 'เข้าสู่ระบบด้วย Discord ก่อน' }, 401)
+  const body = await c.req.json().catch(() => ({}))
+  const data = parsePreset(body)
+  if (!data) return c.json({ error: 'ข้อมูลทีมไม่ถูกต้อง' }, 400)
+  const name = str(body.name, 40) || 'พรีเซ็ต'
+  const n = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM presets WHERE user_id = ?').bind(user.id).first<any>()
+  if ((n?.n ?? 0) >= MAX_PRESETS) return c.json({ error: `มีพรีเซ็ตได้ไม่เกิน ${MAX_PRESETS} ชุด ลบอันเก่าก่อน` }, 400)
+  const now = Date.now()
+  const row = { id: randomId(10), user_id: user.id, name, data: JSON.stringify(data), created_at: now, updated_at: now }
+  await c.env.DB.prepare('INSERT INTO presets (id, user_id, name, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(row.id, row.user_id, row.name, row.data, now, now).run()
+  return c.json(toPreset(row), 201)
+})
+
+/** เปลี่ยนชื่อ (และ/หรือทีม) — เฉพาะของตัวเอง */
+app.put('/api/me/presets/:pid', async (c) => {
+  const user = await currentUser(c)
+  if (!user) return c.json({ error: 'เข้าสู่ระบบด้วย Discord ก่อน' }, 401)
+  const body = await c.req.json().catch(() => ({}))
+  const name = str(body.name, 40)
+  const data = body.team ? parsePreset(body) : null
+  if (body.team && !data) return c.json({ error: 'ข้อมูลทีมไม่ถูกต้อง' }, 400)
+  const res = await c.env.DB.prepare(
+    `UPDATE presets SET name = CASE WHEN ? <> '' THEN ? ELSE name END, data = COALESCE(?, data), updated_at = ? WHERE id = ? AND user_id = ?`,
+  ).bind(name, name, data ? JSON.stringify(data) : null, Date.now(), c.req.param('pid'), user.id).run()
+  if (!res.meta.changes) return c.json({ error: 'ไม่พบพรีเซ็ต' }, 404)
+  return c.json({ ok: true })
+})
+
+app.delete('/api/me/presets/:pid', async (c) => {
+  const user = await currentUser(c)
+  if (!user) return c.json({ error: 'เข้าสู่ระบบด้วย Discord ก่อน' }, 401)
+  await c.env.DB.prepare('DELETE FROM presets WHERE id = ? AND user_id = ?').bind(c.req.param('pid'), user.id).run()
+  return c.json({ ok: true })
+})
+
 // ---------- หน้าแอดมิน: ภาพรวมการใช้งานทุกกิลด์ (ล็อกอิน Discord + อยู่ใน ADMIN_DISCORD_IDS) ----------
 // ส่งแค่ตัวเลข/วันที่ — ไม่ส่ง webhook URL, edit key หรือเนื้อหาในกิลด์
 app.get('/api/admin/stats', async (c) => {

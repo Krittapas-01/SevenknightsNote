@@ -1,8 +1,9 @@
-import { ThumbsUp } from 'lucide-react'
+import { Pencil, ThumbsUp, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
-import { api, type LikedCounter } from '../lib/api'
+import { api, type LikedCounter, type Preset } from '../lib/api'
+import { SavePresetButton } from '../components/Presets'
 import { loginWithDiscord, useAuth } from '../lib/auth'
 import { toggleLike } from '../lib/likes'
 import { tagStyle } from '../lib/tags'
@@ -11,10 +12,13 @@ import { tagStyle } from '../lib/tags'
 export default function FavoritesPage() {
   const auth = useAuth()
   const [list, setList] = useState<LikedCounter[] | null>(null)
+  const [presets, setPresets] = useState<Preset[] | null>(null)
+  const loadPresets = () => api.myPresets().then((r) => setPresets(r.presets)).catch(() => setPresets([]))
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
     if (!auth.ready || !auth.user) return
     api.myLikes().then((r) => setList(r.likes)).catch((e) => setError((e as Error).message))
+    loadPresets()
   }, [auth.ready, auth.user?.id])
 
   if (!auth.ready) return <p className="py-24 text-center text-white/50">กำลังโหลด...</p>
@@ -35,9 +39,42 @@ export default function FavoritesPage() {
     setList((l) => l?.filter((y) => y.counterId !== x.counterId) ?? null)
   }
 
+  const rename = async (p: Preset) => {
+    const name = prompt('ชื่อพรีเซ็ตใหม่', p.name)?.trim()
+    if (!name || name === p.name) return
+    await api.updatePreset(p.id, { name }).catch((e) => alert((e as Error).message))
+    loadPresets()
+  }
+  const remove = async (p: Preset) => {
+    if (!confirm(`ลบพรีเซ็ต "${p.name}"?`)) return
+    await api.deletePreset(p.id).catch((e) => alert((e as Error).message))
+    loadPresets()
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold sm:text-3xl">ทีมที่<span className="text-gold">ฉันชอบ</span></h1>
+      {/* ---------- พรีเซ็ตของฉัน ---------- */}
+      <h1 className="text-2xl font-bold sm:text-3xl">พรีเซ็ต<span className="text-gold">ของฉัน</span></h1>
+      <p className="mt-1 text-sm text-white/55">ทีมบุกที่บันทึกไว้ (รวมของ/สเตตัส) · ใช้ได้ตอนจัดทีมแก้และแผนบุก ปุ่ม "พรีเซ็ตของฉัน"</p>
+      {!presets ? <p className="mt-6 text-white/50">กำลังโหลด...</p> : !presets.length ? (
+        <div className="panel mt-6 p-8 text-center text-white/60">ยังไม่มี — กด "บันทึกเป็นพรีเซ็ต" ที่ทีมแก้ หรือที่การ์ดด้านล่าง</div>
+      ) : (
+        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {presets.map((p) => (
+            <div key={p.id} className="panel p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate font-semibold text-gold">{p.name}</span>
+                <button onClick={() => rename(p)} title="เปลี่ยนชื่อ" className="rounded-full p-1.5 text-white/60 hover:bg-white/10"><Pencil className="h-4 w-4" /></button>
+                <button onClick={() => remove(p)} title="ลบ" className="rounded-full p-1.5 text-white/50 hover:bg-red-500/15 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
+              </div>
+              <TeamPanel variant="ally" size="sm" team={p.team} skills={p.skills} heroNotes={p.heroNotes} />
+              {p.note && <p className="mt-2 line-clamp-2 text-sm text-white/65">{p.note}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h1 className="mt-14 text-2xl font-bold sm:text-3xl">ทีมที่<span className="text-gold">ฉันชอบ</span></h1>
       <p className="mt-1 text-sm text-white/55">ทีมแก้ที่กด 👍 ไว้ · {list.length} ทีม · เก็บกับบัญชี Discord ({auth.user.name})</p>
       {!list.length ? (
         <div className="panel mt-8 p-10 text-center text-white/60">ยังไม่มี — กด 👍 ที่ทีมแก้ที่ตีแล้วชนะในหน้าทีมเป้าหมาย</div>
@@ -56,7 +93,10 @@ export default function FavoritesPage() {
               </div>
               {x.note && <p className="mt-3 line-clamp-2 text-sm text-white/70">{x.note}</p>}
               <div className="mt-3 flex items-center justify-between text-sm">
-                <button onClick={() => unlike(x)} className="text-white/45 hover:text-red-300">เอาออกจากที่ชอบ</button>
+                <span className="flex items-center gap-3">
+                  <button onClick={() => unlike(x)} className="text-white/45 hover:text-red-300">เอาออกจากที่ชอบ</button>
+                  <span onClickCapture={() => setTimeout(loadPresets, 1500)}><SavePresetButton team={x.team} skills={x.skills} note={x.note} /></span>
+                </span>
                 <Link to={`/g/${x.guildId}/t/${x.targetId}`} className="text-gold hover:underline">เปิดทีมนี้ ›</Link>
               </div>
             </div>

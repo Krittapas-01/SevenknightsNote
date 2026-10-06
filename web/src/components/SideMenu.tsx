@@ -8,7 +8,7 @@ const NAV: { to: string; label: string; icon: ComponentType<{ className?: string
   { to: '/', label: 'หน้าแรก', icon: Home },
   { to: '/biscuit', label: 'เช็กบัฟบิสกิต', icon: Cookie },
   { to: '/totalwar', label: 'คำนวณแต้มเบ็ดเสร็จ', icon: Calculator },
-  { to: '/favorites', label: 'ทีมที่ฉันชอบ', icon: ThumbsUp },
+  { to: '/favorites', label: 'พรีเซ็ต & ทีมที่ชอบ', icon: ThumbsUp },
 ]
 
 // ลิงก์ออกไปหน้าทางการของ Netmarble (เปิดแท็บใหม่)

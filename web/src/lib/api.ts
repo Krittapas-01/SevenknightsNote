@@ -122,6 +122,11 @@ export const api = {
   likeCounter: (gid: string, cid: string) => req<{ liked: boolean; count: number }>(`/api/guild/${gid}/counters/${cid}/like`, { method: 'POST' }),
   /** ทีมที่ฉันชอบ (ทุกกิลด์) */
   myLikes: () => req<{ likes: LikedCounter[] }>('/api/me/likes'),
+  /** พรีเซ็ตทีมบุกส่วนตัว (ต้องล็อกอิน Discord) */
+  myPresets: () => req<{ presets: Preset[] }>('/api/me/presets'),
+  createPreset: (p: PresetInput) => req<Preset>('/api/me/presets', { method: 'POST', body: JSON.stringify(p) }),
+  updatePreset: (id: string, p: Partial<PresetInput>) => req<{ ok: true }>(`/api/me/presets/${id}`, { method: 'PUT', body: JSON.stringify(p) }),
+  deletePreset: (id: string) => req<{ ok: true }>(`/api/me/presets/${id}`, { method: 'DELETE' }),
   /** หน้าแอดมิน (ต้องล็อกอิน Discord ด้วยไอดีที่อยู่ใน ADMIN_DISCORD_IDS) */
   adminStats: () => req<AdminStats>('/api/admin/stats'),
 }
@@ -131,6 +136,8 @@ export type AdminGuild = {
   targets: number; counters: number; plans: number; announcements: number; autoAnnouncements: number
   webhook: number; discordLogin: number
 }
+export type PresetInput = { name: string; team: Team; skills: SkillStep[]; note: string; heroNotes: HeroNote[] }
+export type Preset = PresetInput & { id: string; createdAt: number; updatedAt: number }
 export type LikedCounter = {
   counterId: string; guildId: string; guildName: string; targetId: string; likedAt: number; likes: number
   team: Team; skills: SkillStep[]; note: string; targetTeam: Team; targetTags: string[]
