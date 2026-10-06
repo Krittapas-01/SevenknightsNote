@@ -167,14 +167,31 @@ export default function TotalWarPage() {
 
       <section className="panel mt-5 p-4 sm:p-5">
         <h2 className="font-semibold text-gold">แรงค์</h2>
-        <ul className="mt-3 grid gap-2">
-          {TOTAL_WAR_RANKS.map((k, i) => (
-            <li key={k.key} className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 ${RANK_CLS[i]} ${validScore && i === rankIndex ? 'ring-2 ring-gold/60' : 'opacity-80'}`}>
-              <span className="flex items-center gap-2 font-semibold"><Shield className="h-4 w-4" /> {k.name}{k.reward && <span className="text-xs font-normal opacity-80">· {k.reward}</span>}</span>
-              <span className="text-sm tabular-nums">{fmt(k.min)} คะแนน · {k.teams} ทีม</span>
-            </li>
-          ))}
-        </ul>
+        {/* คะแนนต่อ 1% = (1 ÷ 5) × ทีม × 40 = 8 × ทีม · ชนะ 1 ครั้ง = +40 เสมอ (= 100 ÷ ครั้งที่สู้ %) */}
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm tabular-nums">
+            <thead className="text-xs text-white/45">
+              <tr><th className="py-1 text-left">แรงค์</th><th>เริ่มที่</th><th>ทีม</th><th>1% =</th><th>ชนะ 1 ครั้ง</th></tr>
+            </thead>
+            <tbody>
+              {TOTAL_WAR_RANKS.map((k, i) => {
+                const f = totalWarFights(k.teams)
+                return (
+                  <tr key={k.key} className={`border-t border-white/5 text-center ${validScore && i === rankIndex ? 'bg-gold/10' : ''}`}>
+                    <td className="py-2 text-left">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-semibold ${RANK_CLS[i]}`}><Shield className="h-3.5 w-3.5" /> {k.name}</span>
+                      {k.reward && <span className="mt-0.5 block text-[11px] text-white/50">{k.reward}</span>}
+                    </td>
+                    <td>{fmt(k.min)}</td>
+                    <td>{k.teams}<span className="block text-[11px] text-white/40">สู้ {f}</span></td>
+                    <td className="font-semibold text-emerald-200">±{8 * k.teams}</td>
+                    <td className="text-white/70">±40<span className="block text-[11px] text-white/40">= {pct(100 / f)}</span></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
         <p className="mt-3 text-xs leading-relaxed text-white/45">
           แต่ละทีมสู้ 20 ครั้ง · ได้/เสีย = ((อัตราชนะ% − 50) ÷ 5) × ทีม × 40 = (ชนะ − ครึ่งหนึ่ง) × 40 ·
           ถึงเกณฑ์แรงค์ถัดไปแล้วคะแนนหยุดที่เกณฑ์ (3,480 + 720 → 3,500) · เลื่อนขั้นแล้วตกกลับไม่ได้ (6,120 − 240 → 6,000) ·
