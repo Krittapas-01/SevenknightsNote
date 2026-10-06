@@ -2,7 +2,7 @@ import { BellRing, Check, MessageCircle, Plus, Send, ShieldCheck, Trash2, Unlink
 import { useState } from 'react'
 import { api } from '../lib/api'
 import type { GuildData } from '../lib/types'
-import { BOSS_REVIVAL } from '../../../shared/game'
+import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT } from '../../../shared/game'
 import Modal from './Modal'
 
 type Mode = '' | 'everyone' | 'here' | 'role'
@@ -19,6 +19,8 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
   // ห้องที่ 2 บอสจุติ: API ส่ง bossConnected มาเฉพาะกิลด์ที่เปิดไว้
   const hasBoss = discord?.bossConnected !== undefined
   const bossConnected = !!discord?.bossConnected
+  const [bossStart, setBossStart] = useState('')
+  const [bossEnd, setBossEnd] = useState('')
   const [mode, setMode] = useState<Mode>('')
   const [role, setRole] = useState('')
   const [serverId, setServerId] = useState('')
@@ -31,6 +33,8 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
     const m = discord?.mention ?? ''
     setUrl('')
     setBossUrl('')
+    setBossStart(discord?.bossText?.start ?? BOSS_DEFAULT_TEXT.start)
+    setBossEnd(discord?.bossText?.end ?? BOSS_DEFAULT_TEXT.end)
     setMode(modeOf(m))
     setRole(modeOf(m) === 'role' ? m : '')
     setServerId(discord?.serverId ?? '')
@@ -71,6 +75,8 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
         roleNames: list.filter((r) => r.name).map((r) => ({ id: r.id, name: r.name })),
         ...(url.trim() ? { webhook: url.trim() } : {}),
         ...(hasBoss && bossUrl.trim() ? { bossWebhook: bossUrl.trim() } : {}),
+        // ข้อความเหมือนค่าเริ่มต้น = เก็บเป็น null (ถ้าแก้ค่าเริ่มต้นในโค้ดทีหลัง จะได้ตามไปด้วย)
+        ...(hasBoss ? { bossText: { start: bossStart.trim() === BOSS_DEFAULT_TEXT.start ? null : bossStart.trim(), end: bossEnd.trim() === BOSS_DEFAULT_TEXT.end ? null : bossEnd.trim() } } : {}),
       })
       setUrl('')
       setBossUrl('')
@@ -130,6 +136,16 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
             <p className={`mt-2 flex items-center gap-1.5 text-sm ${bossConnected ? 'text-green-400' : 'text-white/55'}`}>
               {bossConnected ? <><Check className="h-4 w-4" /> เชื่อมอยู่</> : 'ยังไม่ได้เชื่อม'}
             </p>
+            {([['วันเริ่มรอบ (07:00)', bossStart, setBossStart, 'start'], ['วันสุดท้าย (07:00)', bossEnd, setBossEnd, 'end']] as const).map(([label, v, set, k]) => (
+              <div key={k} className="mt-3">
+                <div className="flex items-center justify-between text-sm text-white/70">
+                  <span>ข้อความ{label}</span>
+                  {v !== BOSS_DEFAULT_TEXT[k] && <button type="button" onClick={() => set(BOSS_DEFAULT_TEXT[k])} className="text-xs text-gold hover:underline">ใช้ข้อความเริ่มต้น</button>}
+                </div>
+                <textarea value={v} onChange={(e) => set(e.target.value)} maxLength={MAX_BOSS_TEXT} rows={2} placeholder="เว้นว่าง = ไม่ส่งวันนี้" className={field} />
+              </div>
+            ))}
+            <p className="mt-1 text-xs text-white/40">{'{จบ}'} = วันจบรอบ · {'{รอบใหม่}'} = วันเริ่มรอบถัดไป · เว้นว่าง = ไม่ส่ง</p>
             <input value={bossUrl} onChange={(e) => setBossUrl(e.target.value)} placeholder={bossConnected ? 'เปลี่ยนห้อง (เว้นว่าง = ใช้ห้องเดิม)' : 'https://discord.com/api/webhooks/...'} className={field} autoComplete="off" />
             {bossConnected && (
               <div className="mt-2 flex flex-wrap gap-2">

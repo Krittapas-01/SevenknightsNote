@@ -176,3 +176,13 @@ export function bossRevivalDay(dayKey: string) {
   const start = addDays(dayKey, -day)
   return { day, start, end: addDays(start, BOSS_REVIVAL.days - 1), next: addDays(start, BOSS_REVIVAL.days) }
 }
+
+/** ข้อความแจ้งเตือนบอสจุติ (แก้ได้ในหน้า "เชื่อม Discord") · {จบ} = วันจบรอบ, {รอบใหม่} = วันเริ่มรอบถัดไป · เว้นว่าง = ไม่ส่ง */
+export const BOSS_DEFAULT_TEXT = {
+  start: 'บอสจุติรอบใหม่เริ่มแล้ววันนี้ 07:00 · จบ {จบ} เที่ยงคืน',
+  end: 'วันสุดท้ายบอสจุติ! ทุกคนมีไม้ครบ 10 ไม้แล้ว ตีให้หมดก่อนเที่ยงคืนนี้ ({จบ}) · รอบใหม่เริ่ม {รอบใหม่} 07:00',
+}
+export const MAX_BOSS_TEXT = 300
+const TH_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+const thDay = (key: string) => `${+key.slice(8, 10)} ${TH_MONTHS_SHORT[+key.slice(5, 7) - 1]}`
+export const fillBoss = (text: string, b: { end: string; next: string }) => text.split('{จบ}').join(thDay(b.end)).split('{รอบใหม่}').join(thDay(b.next))

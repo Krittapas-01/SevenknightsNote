@@ -110,7 +110,7 @@ export const api = {
   announce: (gid: string, body: { body: string; planId: string | null; opponent: string }) =>
     req<Announcement>(`/api/guild/${gid}/announcements`, { method: 'POST', body: JSON.stringify(body), gid }),
   deleteAnnouncement: (gid: string, aid: string) => req(`/api/guild/${gid}/announcements/${aid}`, { method: 'DELETE', gid }),
-  saveDiscord: (gid: string, body: { webhook?: string; mention: string; serverId?: string; editRoles?: string[]; roleNames?: { id: string; name: string }[]; bossWebhook?: string }) =>
+  saveDiscord: (gid: string, body: { webhook?: string; mention: string; serverId?: string; editRoles?: string[]; roleNames?: { id: string; name: string }[]; bossWebhook?: string; bossText?: { start: string | null; end: string | null } }) =>
     req<NonNullable<GuildData['discord']>>(`/api/guild/${gid}/discord`, { method: 'PUT', body: JSON.stringify(body), gid }),
   testDiscord: (gid: string, boss = false) => req<{ ok: true }>(`/api/guild/${gid}/discord/test`, { method: 'POST', gid, ...(boss ? { body: JSON.stringify({ boss: true }) } : {}) }),
   /** ตารางวอร์/Season เป็นของเกม (เหมือนทุกกิลด์) — กิลด์ตั้งได้แค่เปิด/ปิดประกาศอัตโนมัติ + ข้อความวันตี/วันจัดบ้าน */

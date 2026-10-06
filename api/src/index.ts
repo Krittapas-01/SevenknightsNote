@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { currentSeason } from '../../shared/season'
-import { BOSS_REVIVAL, bossRevivalDay, DAY_NAMES, DAY_PLACEHOLDER, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay } from '../../shared/game'
+import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT, bossRevivalDay, fillBoss, DAY_NAMES, DAY_PLACEHOLDER, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay } from '../../shared/game'
 
 type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string; /** Discord user ID ที่เข้าหน้า /admin ได้ (คั่นด้วย ,) */ ADMIN_DISCORD_IDS?: string }
 
@@ -322,7 +322,7 @@ app.get('/api/guild/:id', async (c) => {
     c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY created_at ASC').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
-    c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook FROM guild_settings WHERE guild_id = ?').bind(id),
+    c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(id),
     // ประกาศล่าสุดที่เลือกแผน (= แผนที่ใช้อยู่) — ต้องมีเสมอ แม้จะเก่ากว่า 30 อันล่าสุด (ประกาศอัตโนมัติรายวันดันตกไป)
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? AND plan_id IS NOT NULL ORDER BY created_at DESC LIMIT 1').bind(id),
   ])
@@ -339,7 +339,7 @@ app.get('/api/guild/:id', async (c) => {
     serverId: settings?.discord_guild_id ?? '', editRoles: JSON.parse(settings?.discord_edit_roles || '[]') as string[],
     roleNames: JSON.parse(settings?.discord_role_names || '[]') as { id: string; name: string }[],
     // ห้องที่ 2 (บอสจุติ) — มีเฉพาะกิลด์ที่เปิดไว้
-    ...(id === BOSS_GUILD ? { bossConnected: !!settings?.boss_webhook } : {}),
+    ...(id === BOSS_GUILD ? { bossConnected: !!settings?.boss_webhook, bossText: { start: settings?.boss_text_start ?? null, end: settings?.boss_text_end ?? null } } : {}),
   }
   const counters = (k.results as any[]).map(toCounter)
   const targets = (t.results as any[]).map((r) => ({
@@ -621,15 +621,24 @@ app.put('/api/guild/:id/discord', async (c) => {
   const bossWebhook = gid === BOSS_GUILD && typeof body.bossWebhook === 'string' ? body.bossWebhook.trim() : undefined
   if (bossWebhook && !WEBHOOK_RE.test(bossWebhook) && !c.env.DISCORD_ALLOW_ANY) return c.json({ error: 'ลิงก์ Webhook ห้องบอสจุติไม่ถูกต้อง (ต้องเป็น https://discord.com/api/webhooks/...)' }, 400)
   if (bossWebhook !== undefined) sets.push('boss_webhook = excluded.boss_webhook')
+  // ข้อความบอสจุติ: undefined = ไม่เปลี่ยน, null = กลับเป็นค่าเริ่มต้น, '' = ไม่ส่ง
+  const bossText = (k: 'start' | 'end') => {
+    const v = gid === BOSS_GUILD && body.bossText && typeof body.bossText === 'object' ? body.bossText[k] : undefined
+    return v === null ? null : typeof v === 'string' ? v.trim().slice(0, MAX_BOSS_TEXT) : undefined
+  }
+  const bossStart = bossText('start')
+  const bossEnd = bossText('end')
+  if (bossStart !== undefined) sets.push('boss_text_start = excluded.boss_text_start')
+  if (bossEnd !== undefined) sets.push('boss_text_end = excluded.boss_text_end')
   await c.env.DB.prepare(
-    `INSERT INTO guild_settings (guild_id, schedule, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO guild_settings (guild_id, schedule, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(guild_id) DO UPDATE SET ${sets.join(', ')}`,
-  ).bind(gid, JSON.stringify(GAME_SCHEDULE), webhook ?? '', mention, serverId ?? '', JSON.stringify(editRoles ?? []), JSON.stringify(roleNames ?? []), bossWebhook ?? '').run()
-  const row = await c.env.DB.prepare('SELECT discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
+  ).bind(gid, JSON.stringify(GAME_SCHEDULE), webhook ?? '', mention, serverId ?? '', JSON.stringify(editRoles ?? []), JSON.stringify(roleNames ?? []), bossWebhook ?? '', bossStart ?? null, bossEnd ?? null).run()
+  const row = await c.env.DB.prepare('SELECT discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
   return c.json({
     connected: !!row?.discord_webhook, mention: row?.discord_mention ?? '', serverId: row?.discord_guild_id ?? '',
     editRoles: JSON.parse(row?.discord_edit_roles || '[]'), roleNames: JSON.parse(row?.discord_role_names || '[]'),
-    ...(gid === BOSS_GUILD ? { bossConnected: !!row?.boss_webhook } : {}),
+    ...(gid === BOSS_GUILD ? { bossConnected: !!row?.boss_webhook, bossText: { start: row?.boss_text_start ?? null, end: row?.boss_text_end ?? null } } : {}),
   })
 })
 
@@ -683,10 +692,12 @@ async function postBoss(env: Env, gid: string, text: string, test = false) {
 export async function runBossReminder(env: Env, now = Date.now()) {
   const b = bossRevivalDay(gameDayKey(now))
   if (!b || (b.day !== 0 && b.day !== BOSS_REVIVAL.days - 1)) return 'skip'
-  const text = b.day === 0
-    ? `รอบใหม่เริ่มแล้ววันนี้ 07:00 · จบ ${thDate(b.end)} เที่ยงคืน`
-    : `วันสุดท้ายแล้ว! จบเที่ยงคืนนี้ (${thDate(b.end)}) · รอบใหม่เริ่ม ${thDate(b.next)} 07:00`
-  return postBoss(env, BOSS_GUILD, text)
+  const which = b.day === 0 ? 'start' : 'end'
+  const row = await env.DB.prepare('SELECT boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(BOSS_GUILD).first<any>()
+  const raw: string | null = row?.[`boss_text_${which}`] ?? null
+  const text = raw === null ? BOSS_DEFAULT_TEXT[which] : raw
+  if (!text) return 'off' // เว้นว่าง = ไม่ส่ง
+  return postBoss(env, BOSS_GUILD, fillBoss(text, b))
 }
 
 /** ส่งข้อความเข้า webhook (ข้อมูลกิลด์ดึงมาแล้ว — cron ใช้ส่งทีละหลายกิลด์โดยไม่ต้อง query ซ้ำ) */
