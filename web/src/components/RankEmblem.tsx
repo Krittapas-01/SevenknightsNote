@@ -1,41 +1,35 @@
-/** ตราแรงค์เบ็ดเสร็จแบบวาดเอง (SVG) — โล่ + ดาบ สีตามแรงค์ · ตำนานมีช่อใบ · เทพเจ้ามีปีก */
-const COLORS: [string, string, string][] = [
-  ['#e7b08f', '#9a5b3f', '#5c3424'], // ทั่วไป
-  ['#7ff0cf', '#2a9a82', '#14574b'], // ระดับสูง
-  ['#ff8a96', '#c23048', '#6d1426'], // หายาก
-  ['#ffe08a', '#d39b2a', '#7c5410'], // ตำนาน
-  ['#cdbbff', '#7a5ce0', '#3c2683'], // เทพเจ้า
-]
+import normal from '../assets/totalwar-ranks/normal.webp'
+import high from '../assets/totalwar-ranks/high.webp'
+import rare from '../assets/totalwar-ranks/rare.webp'
+import legend from '../assets/totalwar-ranks/legend.webp'
+import god from '../assets/totalwar-ranks/god.webp'
 
+const EMBLEMS = [normal, high, rare, legend, god]
+const NAMES = ['ทั่วไป', 'ระดับสูง', 'หายาก', 'ตำนาน', 'เทพเจ้า']
+const GLOWS = ['#e7b08f', '#48d3ad', '#ff5975', '#ffd05b', '#a98aff']
+
+/** ตราแรงค์จากภาพในเกม พร้อมเงาและแสงเรืองสีประจำแรงค์ */
 export default function RankEmblem({ rank, size = 64, glow = false }: { rank: number; size?: number; glow?: boolean }) {
-  const [hi, mid, lo] = COLORS[rank] ?? COLORS[0]
-  const id = `re${rank}`
+  const index = Math.max(0, Math.min(EMBLEMS.length - 1, rank))
+  const emblemSize = Math.max(size, 1)
   return (
-    <svg viewBox="0 0 100 110" width={size} height={size * 1.1} aria-hidden="true"
-      style={glow ? { filter: `drop-shadow(0 0 ${size / 6}px ${mid}aa)` } : undefined}>
-      <defs>
-        <linearGradient id={`${id}s`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={hi} /><stop offset=".55" stopColor={mid} /><stop offset="1" stopColor={lo} /></linearGradient>
-        <linearGradient id={`${id}b`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor="#c9d2e8" /></linearGradient>
-      </defs>
-      {rank >= 4 && (/* ปีก */
-        <g fill={hi} opacity=".85">
-          <path d="M18 62 C2 56 0 40 6 30 C12 44 20 46 26 46 Z" /><path d="M82 62 C98 56 100 40 94 30 C88 44 80 46 74 46 Z" />
-          <path d="M20 74 C6 72 2 62 4 54 C12 64 20 64 26 62 Z" /><path d="M80 74 C94 72 98 62 96 54 C88 64 80 64 74 62 Z" />
-        </g>
-      )}
-      {rank === 3 && (/* ช่อใบ */
-        <g fill={mid} opacity=".9">
-          {[0, 1, 2, 3].map((i) => <ellipse key={i} cx={20 - i * 1.5} cy={40 + i * 11} rx="5" ry="9" transform={`rotate(${-30 + i * 12} ${20 - i * 1.5} ${40 + i * 11})`} />)}
-          {[0, 1, 2, 3].map((i) => <ellipse key={`r${i}`} cx={80 + i * 1.5} cy={40 + i * 11} rx="5" ry="9" transform={`rotate(${30 - i * 12} ${80 + i * 1.5} ${40 + i * 11})`} />)}
-        </g>
-      )}
-      <path d="M50 14 L82 26 L80 62 C78 82 64 94 50 102 C36 94 22 82 20 62 L18 26 Z" fill={`url(#${id}s)`} stroke={lo} strokeWidth="3" />
-      <path d="M50 22 L74 31 L72 61 C70 77 60 87 50 93 C40 87 30 77 28 61 L26 31 Z" fill="none" stroke={hi} strokeOpacity=".55" strokeWidth="2" />
-      {/* ดาบ */}
-      <path d="M50 6 L55 18 L54 70 L50 78 L46 70 L45 18 Z" fill={`url(#${id}b)`} stroke="#5a6278" strokeWidth="1.5" />
-      <rect x="38" y="66" width="24" height="5" rx="2.5" fill={hi} stroke={lo} strokeWidth="1.5" />
-      <rect x="47.5" y="71" width="5" height="16" rx="2" fill={lo} />
-      <circle cx="50" cy="90" r="4" fill={hi} stroke={lo} strokeWidth="1.5" />
-    </svg>
+    <span
+      className="inline-grid shrink-0 place-items-center"
+      style={{
+        width: emblemSize,
+        height: emblemSize,
+        filter: glow
+          ? `drop-shadow(0 0 ${size / 5}px ${GLOWS[index]}cc) drop-shadow(0 2px 4px rgba(0,0,0,.65))`
+          : `drop-shadow(0 2px ${Math.max(2, size / 10)}px ${GLOWS[index]}75) drop-shadow(0 1px 2px rgba(0,0,0,.55))`,
+      }}
+      title={NAMES[index]}
+    >
+      <img
+        src={EMBLEMS[index]}
+        alt={`ตราแรงค์${NAMES[index]}`}
+        draggable={false}
+        className="h-full w-full object-contain"
+      />
+    </span>
   )
 }

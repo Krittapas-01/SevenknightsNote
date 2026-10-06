@@ -1,6 +1,7 @@
 import { Clock, Target } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import RankEmblem from '../components/RankEmblem'
+import profileFrame from '../assets/totalwar-ranks/profile-frame.webp'
 import {
   TOTAL_WAR_PHASES, TOTAL_WAR_RANKS, TOTAL_WAR_ROUNDS, totalWarFights, totalWarNow, totalWarPlan, totalWarRankIndex, totalWarResult,
 } from '../../../shared/game'
@@ -174,7 +175,14 @@ export default function TotalWarPage() {
                     <div className="font-semibold">{k.name}</div>
                     <div className="text-xs text-[#6b5a6a]">{fmt(k.min)} คะแนน · {k.teams} ทีม · 1% = +{8 * k.teams}</div>
                   </div>
-                  <span className="rounded-lg bg-[#3a3346] px-2 py-1 text-xs font-semibold text-white">{k.reward || '–'}</span>
+                  {k.key === 'god' ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#cbb8ff]/50 bg-gradient-to-r from-[#342858] to-[#514078] py-1 pl-1 pr-2 text-xs font-semibold text-white shadow-[0_0_12px_rgba(169,138,255,.2)]">
+                      <img src={profileFrame} alt="กรอบโปรไฟล์รางวัลแรงค์เทพเจ้า" draggable={false} className="h-9 w-9 object-contain drop-shadow-[0_0_5px_rgba(198,166,255,.65)]" />
+                      {k.reward}
+                    </span>
+                  ) : (
+                    <span className="rounded-lg bg-[#3a3346] px-2 py-1 text-xs font-semibold text-white">{k.reward || '–'}</span>
+                  )}
                 </li>
               )
             })}
