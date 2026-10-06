@@ -1,193 +1,185 @@
-import { ArrowRight, CalendarClock, RotateCcw, Shield, Target } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Clock, Target } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import RankEmblem from '../components/RankEmblem'
 import {
-  TOTAL_WAR_RANKS, TOTAL_WAR_ROUNDS, totalWarFights, totalWarNow, totalWarPlan, totalWarRankIndex, totalWarResult,
+  TOTAL_WAR_PHASES, TOTAL_WAR_RANKS, TOTAL_WAR_ROUNDS, totalWarFights, totalWarNow, totalWarPlan, totalWarRankIndex, totalWarResult,
 } from '../../../shared/game'
 
 const STORE_KEY = '7k-note:totalwar'
-const RANK_CLS = [
-  'text-orange-200 border-orange-300/40 bg-orange-400/10', // ทั่วไป
-  'text-emerald-200 border-emerald-300/40 bg-emerald-400/10', // ระดับสูง
-  'text-rose-200 border-rose-300/40 bg-rose-400/10', // หายาก
-  'text-amber-200 border-amber-300/40 bg-amber-400/10', // ตำนาน
-  'text-violet-200 border-violet-300/40 bg-violet-400/10', // เทพเจ้า
-]
 const fmt = (n: number) => n.toLocaleString('en-US')
 const signed = (n: number) => (n > 0 ? `+${fmt(n)}` : fmt(n))
 const pct = (n: number) => `${Number(n.toFixed(2))}%`
-const left = (ms: number) => {
+const short = (ms: number) => {
   const m = Math.max(0, Math.round(ms / 60000))
-  const d = Math.floor(m / 1440)
-  const h = Math.floor((m % 1440) / 60)
-  return d ? `${d} วัน ${h} ชม.` : h ? `${h} ชม. ${m % 60} นาที` : `${m} นาที`
+  if (m >= 1440) return `${Math.ceil(m / 1440)}D`
+  if (m >= 60) return `${Math.floor(m / 60)}H ${m % 60}M`
+  return `${m}M`
 }
-const when = (ts: number) => new Date(ts).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-const input = 'mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-lg tabular-nums'
+const STEPS = ['เตรียมซีซัน', ...TOTAL_WAR_PHASES.map((p) => p.name.replace(/ \(.*\)/, '')), 'สรุปซีซัน']
+const COUNTDOWN: Record<string, string> = { prep: 'เวลาเริ่มการต่อสู้', fight: 'เวลาสิ้นสุดการต่อสู้', result: 'เวลาประกาศผลรอบ' }
 
-/** สงครามเบ็ดเสร็จ: รอบ/เฟสตอนนี้ · คิดคะแนนรอบนี้ · ต้องชนะเท่าไหร่ถึงทันแรงค์เป้าหมาย */
+/** ป้ายแบบในเกม: ✦ หัวข้อ ........ ค่า */
+function Pill({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
+  return (
+    <div className={`flex items-center justify-between gap-3 rounded-full border border-white/10 bg-[#1a1530]/80 px-4 py-1.5 ${className}`}>
+      <span className="whitespace-nowrap text-sm text-white/70"><span className="text-white/50">✦</span> {label}</span>
+      <span className="flex items-center gap-1 font-semibold tabular-nums">{children}</span>
+    </div>
+  )
+}
+
+/** สงครามเบ็ดเสร็จ — หน้าตาแบบหน้าในเกม: แถบเฟส · เวทีตราแรงค์ · แถบล่าง (รอบ/แรงค์/คะแนน/อัตราชนะ) */
 export default function TotalWarPage() {
   const [score, setScore] = useState(() => { try { return localStorage.getItem(STORE_KEY) ?? '' } catch { return '' } })
   const [rate, setRate] = useState('')
-  const [target, setTarget] = useState(3) // ตำนาน (รูบี้)
-  const [roundsEdit, setRoundsEdit] = useState<string | null>(null)
+  const [target, setTarget] = useState(3)
   const [now, setNow] = useState(Date.now())
   useEffect(() => { try { localStorage.setItem(STORE_KEY, score) } catch { /* ไม่มี storage ก็ไม่เป็นไร */ } }, [score])
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t) }, [])
 
   const tw = totalWarNow(now)
-  const s = score === '' ? NaN : Math.max(0, Math.floor(Number(score)))
-  const validScore = Number.isFinite(s)
-  const rankIndex = validScore ? totalWarRankIndex(s) : 0
+  const s = score === '' ? 0 : Math.max(0, Math.floor(Number(score)) || 0)
+  const rankIndex = totalWarRankIndex(s)
   const rank = TOTAL_WAR_RANKS[rankIndex]
+  const nextRank = TOTAL_WAR_RANKS[rankIndex + 1]
   const fights = totalWarFights(rank.teams)
-  // ใส่เป็น % แบบที่เกมโชว์ → ปัดเป็นจำนวนชนะที่เกิดได้จริง (ทีมละ 20 ครั้ง เช่น 80 ครั้งขยับทีละ 1.25%)
   const r = rate === '' ? NaN : Number(rate)
   const validRate = Number.isFinite(r) && r >= 0 && r <= 100
   const w = validRate ? Math.round((r / 100) * fights) : NaN
-  const usedRate = (w / fights) * 100
-  const snapped = validRate && Math.abs(usedRate - r) > 0.001
-  const res = validScore && validRate ? totalWarResult(s, w) : null
-  const roundsLeft = roundsEdit !== null && roundsEdit !== '' ? Math.max(0, Math.min(TOTAL_WAR_ROUNDS, Math.floor(Number(roundsEdit)))) : tw.resultsLeft
+  const res = validRate ? totalWarResult(s, w) : null
+  const shown = res ? res.next : s
+  const shownRank = totalWarRankIndex(shown)
+  const progress = nextRank ? Math.min(1, (s - rank.min) / (nextRank.min - rank.min)) : 1
+  const progressAfter = res && nextRank && !res.promoted ? Math.min(1, Math.max(0, (res.next - rank.min) / (nextRank.min - rank.min))) : res?.promoted ? 1 : progress
+  const step = tw.state === 'before' ? 0 : tw.state === 'ended' ? 4 : 1 + TOTAL_WAR_PHASES.findIndex((p) => p.key === tw.phase.key)
   const goal = TOTAL_WAR_RANKS[target]
-  const plan = validScore ? totalWarPlan(s, goal.min, roundsLeft) : undefined
-  const half = fights / 2
+  const plan = totalWarPlan(s, goal.min, tw.resultsLeft)
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="text-3xl font-bold sm:text-4xl">คำนวณแต้ม<span className="text-gold">เบ็ดเสร็จ</span></h1>
+    <div className="mx-auto max-w-4xl">
+      <h1 className="text-2xl font-bold sm:text-3xl">สงคราม<span className="text-gold">เบ็ดเสร็จ</span></h1>
 
-
-      {/* รอบ/เฟสตอนนี้ (นับจากวันเริ่มซีซันใน shared/game.ts) */}
-      <section className="panel mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 p-4 text-sm">
-        <CalendarClock className="h-5 w-5 text-gold" />
-        {tw.state === 'running' && (<>
-          <span className="text-base font-semibold">รอบ {tw.round}/{TOTAL_WAR_ROUNDS}</span>
-          <span className="rounded-full bg-gold/15 px-2.5 py-0.5 text-gold">{tw.phase.name}</span>
-          <span className="text-white/60">อีก {left(tw.phaseLeft)}</span>
-          <span className="text-white/45 sm:ml-auto">จบซีซัน {when(tw.seasonEnd)}</span>
-        </>)}
-        {tw.state === 'before' && <span>ซีซันใหม่เริ่มในอีก {left(tw.startsIn)}</span>}
-        {tw.state === 'ended' && <span>จบ {TOTAL_WAR_ROUNDS} รอบแล้ว (สรุปซีซัน) · รอซีซันใหม่หลังแพทช์</span>}
-      </section>
-
-      <section className="panel mt-5 p-4 sm:p-5">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-sm font-medium text-gold">คะแนนปัจจุบัน</span>
-            <input type="number" inputMode="numeric" min={0} value={score} onChange={(e) => setScore(e.target.value)} placeholder="เช่น 3780" className={input} />
-            <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RANK_CLS[rankIndex]}`}>
-              <Shield className="h-3.5 w-3.5" /> {rank.name} · {rank.teams} ทีม · สู้ {fights} ครั้ง
-            </span>
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-gold">อัตราชนะรอบนี้</span>
-            <span className="mt-1 flex items-center gap-2">
-              <input type="number" inputMode="decimal" min={0} max={100} step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="เช่น 52.5" className={`${input} mt-0`} />
-              <span className="shrink-0 text-white/60">%</span>
-            </span>
-            <span className="mt-2 block text-sm text-white/55">
-              {validRate ? <>ชนะ {w}/{fights}{snapped && <span className="text-amber-200"> · ใช้ {pct(usedRate)} (ค่าที่ใกล้สุดในเกม)</span>}</> : rate !== '' ? <span className="text-red-300">ใส่ 0–100</span> : null}
-            </span>
-          </label>
+      {/* ===== หน้าหลักแบบในเกม ===== */}
+      <section className="relative mt-4 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#241c3d] to-[#151127] p-3 shadow-2xl sm:p-5">
+        {/* นับถอยหลังเฟส */}
+        <div className="flex justify-center">
+          <span className="rounded-full border border-white/10 bg-black/40 px-4 py-1 text-sm">
+            <span className="text-white/50">✦</span> {tw.state === 'running' ? COUNTDOWN[tw.phase.key] : tw.state === 'before' ? 'ซีซันเริ่มใน' : 'สรุปซีซัน'}{' '}
+            {tw.state !== 'ended' && <><Clock className="mb-0.5 ml-1 inline h-4 w-4" /> <b className="tabular-nums">{short(tw.state === 'running' ? tw.phaseLeft : tw.startsIn)}</b></>}
+          </span>
+        </div>
+        {/* แถบเฟส */}
+        <div className="scrollbar-thin mt-3 overflow-x-auto">
+          <div className="mx-auto flex w-max rounded-xl bg-black/40 p-1">
+            {STEPS.map((name, i) => (
+              <div key={name} style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)' }}
+                className={`-ml-1 px-5 py-2 text-xs font-semibold sm:px-7 sm:text-base ${i === step ? 'bg-gradient-to-b from-[#f3dcff] to-[#b68ef0] text-[#1b1433]' : 'bg-[#2a2442] text-white/45'}`}>
+                {name}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {res && (
-          <div className="mt-5 rounded-2xl bg-black/25 p-4">
-            <div className="flex flex-wrap items-center justify-center gap-3 text-2xl font-bold tabular-nums sm:text-3xl">
-              <span className="text-white/70">{fmt(s)}</span>
-              <span className={res.change > 0 ? 'text-emerald-300' : res.change < 0 ? 'text-red-300' : 'text-white/60'}>{signed(res.change)}</span>
-              <ArrowRight className="h-6 w-6 text-white/40" />
-              <span className="text-gold">{fmt(res.next)}</span>
+        {/* เวที: ตราแรงค์ + คะแนน บนพื้นแสง */}
+        <div className="relative mt-3 flex h-56 flex-col items-center justify-center overflow-hidden rounded-2xl sm:h-72"
+          style={{ background: 'repeating-conic-gradient(from -90deg at 50% -10%, rgba(255,214,120,.35) 0deg 2.5deg, transparent 2.5deg 9deg), radial-gradient(ellipse at 50% 30%, #6b4bd6 0%, #3b2a8a 45%, #1d1747 100%)' }}>
+          <RankEmblem rank={shownRank} size={110} glow />
+          <div className="mt-1 text-sm font-semibold tracking-widest text-white/85">{TOTAL_WAR_RANKS[shownRank].name}</div>
+          <div className="mt-1 flex items-baseline gap-2 tabular-nums drop-shadow">
+            {res ? (<>
+              <span className="text-lg text-white/60">{fmt(s)}</span>
+              <span className={`text-xl font-bold ${res.change > 0 ? 'text-emerald-300' : res.change < 0 ? 'text-red-300' : 'text-white/70'}`}>{signed(res.change)}</span>
+              <span className="text-3xl font-bold text-gold sm:text-4xl">{fmt(res.next)}</span>
+            </>) : <span className="text-3xl font-bold text-gold sm:text-4xl">{fmt(s)}</span>}
+          </div>
+          {res?.promoted && <div className="mt-2 rounded-full bg-black/40 px-3 py-0.5 text-sm text-emerald-200">🎉 ขึ้น{res.promoted.name}</div>}
+        </div>
+
+        {/* แถบล่างแบบในเกม */}
+        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_1.3fr_1fr] sm:items-center sm:gap-3">
+          <div className="grid gap-2">
+            <Pill label="รอบ">{tw.state === 'running' ? tw.round : tw.state === 'ended' ? TOTAL_WAR_ROUNDS : 0}/{TOTAL_WAR_ROUNDS}</Pill>
+            <Pill label="สิ้นสุดซีซัน"><Clock className="h-4 w-4" />{tw.state === 'running' ? short(tw.seasonEnd - now) : '–'}</Pill>
+          </div>
+          <div className="hidden flex-col items-center sm:flex">
+            <RankEmblem rank={rankIndex} size={52} />
+            <span className="mt-0.5 text-sm font-semibold text-white/80">{rank.name}</span>
+          </div>
+          <div className="grid gap-2">
+            {/* แถบความคืบหน้า แรงค์นี้ → แรงค์ถัดไป */}
+            <div className="flex items-center gap-1.5">
+              <RankEmblem rank={rankIndex} size={26} />
+              <div className="relative h-3 flex-1 overflow-hidden rounded-full border border-white/15 bg-black/50">
+                <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-300 to-amber-100" style={{ width: `${progress * 100}%` }} />
+                {res && <div className={`absolute inset-y-0 ${res.change >= 0 ? 'bg-emerald-300/70' : 'bg-red-400/70'}`}
+                  style={{ left: `${Math.min(progress, progressAfter) * 100}%`, width: `${Math.abs(progressAfter - progress) * 100}%` }} />}
+              </div>
+              <RankEmblem rank={Math.min(rankIndex + 1, 4)} size={26} />
             </div>
-            <p className="mt-2 text-center text-sm text-white/55">({pct(res.rate)} − 50) × {8 * res.rank.teams} = <b className="text-white/80">{signed(res.raw)}</b></p>
-            {res.promoted && (
-              <p className="mt-3 rounded-lg bg-emerald-400/10 px-3 py-2 text-center text-sm text-emerald-100">
-                🎉 ขึ้น <b>{res.promoted.name}</b> · หยุดที่ {fmt(res.promoted.min)} · รอบหน้า {res.promoted.teams} ทีม
-              </p>
-            )}
-            {!res.promoted && res.capped && (
-              <p className="mt-3 rounded-lg bg-amber-400/10 px-3 py-2 text-center text-sm text-amber-100">
-                ไม่ตกต่ำกว่า {fmt(res.rank.min)} ({res.rank.name})
-              </p>
-            )}
-            <button type="button" onClick={() => { setScore(String(res.next)); setRate('') }} className="pill mx-auto mt-4 flex items-center gap-1.5 px-4 py-1.5 text-sm">
-              <RotateCcw className="h-4 w-4" /> ใช้ {fmt(res.next)} คิดรอบต่อไป
+            <Pill label="คะแนนปัจจุบัน">
+              <input type="number" inputMode="numeric" min={0} value={score} onChange={(e) => setScore(e.target.value)} placeholder="0"
+                className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none w-20 bg-transparent text-right outline-none" />
+            </Pill>
+          </div>
+          <div className="rounded-2xl border-2 border-[#e9c97a] bg-gradient-to-b from-[#fbe7b0] to-[#d9b363] p-2 text-[#2b2010] shadow-[0_0_20px_rgba(233,201,122,.25)]">
+            <div className="text-center text-xs font-semibold">อัตราชนะรอบนี้</div>
+            <div className="flex items-baseline justify-center">
+              <input type="number" inputMode="decimal" min={0} max={100} step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="52.5"
+                className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none w-20 bg-transparent text-center text-2xl font-bold outline-none placeholder:text-[#2b2010]/35" />
+              <span className="font-bold">%</span>
+            </div>
+            <div className="text-center text-[11px] opacity-75">{validRate ? `ชนะ ${w}/${fights}` : `${rank.teams} ทีม · สู้ ${fights}`}</div>
+          </div>
+        </div>
+        {res && (
+          <div className="mt-2 flex justify-center">
+            <button type="button" onClick={() => { setScore(String(res.next)); setRate('') }} className="rounded-full border border-white/15 bg-black/40 px-4 py-1 text-sm text-white/80 hover:border-gold hover:text-gold">
+              ใช้ {fmt(res.next)} คิดรอบต่อไป
             </button>
           </div>
         )}
-
-        {validScore && (
-          <details className="mt-4 text-sm">
-            <summary className="cursor-pointer text-white/60">ชนะเท่าไหร่ ได้เท่าไหร่</summary>
-            <table className="mt-2 w-full text-center tabular-nums">
-              <thead className="text-white/45"><tr><th className="py-1">อัตราชนะ</th><th>ชนะ</th><th>คะแนน</th><th>เป็น</th></tr></thead>
-              <tbody>
-                {[-4, -2, 0, 1, 2, 3, 4, 5, 6, 8, 10].map((d) => half + d).filter((x) => x >= 0 && x <= fights).map((x) => {
-                  const t = totalWarResult(s, x)
-                  return (
-                    <tr key={x} className={`border-t border-white/5 ${x === w ? 'bg-gold/10' : ''}`}>
-                      <td className="py-1">{pct(t.rate)}</td><td className="text-white/50">{x}/{fights}</td>
-                      <td className={t.change > 0 ? 'text-emerald-300' : t.change < 0 ? 'text-red-300' : 'text-white/50'}>{signed(t.change)}</td>
-                      <td>{fmt(t.next)}{t.promoted ? ` · ${t.promoted.name}` : ''}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </details>
-        )}
       </section>
 
-      {/* วางแผน: ต้องชนะเฉลี่ยเท่าไหร่ถึงทันแรงค์เป้าหมาย */}
-      <section className="panel mt-5 p-4 sm:p-5">
-        <h2 className="flex items-center gap-2 font-semibold text-gold"><Target className="h-5 w-5" /> จะทันแรงค์ไหม</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <label className="block text-sm">
-            <span className="text-white/60">แรงค์เป้าหมาย</span>
-            <select value={target} onChange={(e) => setTarget(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-              {TOTAL_WAR_RANKS.map((k, i) => i > 0 && <option key={k.key} value={i}>{k.name} ({fmt(k.min)}){k.reward ? ` · ${k.reward}` : ''}</option>)}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="text-white/60">รอบที่เหลือ</span>
-            <input type="number" inputMode="numeric" min={0} max={TOTAL_WAR_ROUNDS} value={roundsEdit ?? String(tw.resultsLeft)}
-              onChange={(e) => setRoundsEdit(e.target.value)} className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 tabular-nums" />
-          </label>
-        </div>
-        <div className="mt-4 rounded-2xl bg-black/25 p-4 text-center">
-          {!validScore && <p className="text-white/50">ใส่คะแนนปัจจุบันด้านบนก่อน</p>}
-          {plan?.done && <p className="text-emerald-200">ถึง{goal.name}แล้ว 🎉 ตกกลับไม่ได้</p>}
-          {plan && !plan.done && (<>
-            <p className="text-white/70">ขาดอีก <b className="text-white">{fmt(goal.min - s)}</b> ใน {roundsLeft} รอบ</p>
-            <p className="mt-2 text-2xl font-bold text-gold">ชนะ ≥ {pct((plan.wins / plan.fights) * 100)} ทุกรอบ</p>
-            <p className="mt-1 text-sm text-white/55">= ชนะ {plan.wins}/{plan.fights} ขึ้นไป</p>
-          </>)}
-          {validScore && plan === null && <p className="text-red-200">{roundsLeft ? `ชนะ 100% ทุกรอบที่เหลือก็ไม่ทัน${goal.name}` : 'ไม่เหลือรอบให้เล่นแล้ว'}</p>}
-        </div>
-      </section>
-
-      <section className="panel mt-5 p-4 sm:p-5">
-        <h2 className="font-semibold text-gold">แรงค์</h2>
-        {/* คะแนนต่อ 1% ที่เกิน 50% = (1 ÷ 5) × ทีม × 40 = 8 × ทีม · ต่ำกว่า 50% เสียเท่ากัน */}
-        <table className="mt-3 w-full text-sm tabular-nums">
-          <thead className="text-xs text-white/45">
-            <tr><th className="py-1 text-left">แรงค์</th><th>เริ่มที่</th><th>ทีม</th><th>ทุก 1% เกิน 50</th><th className="text-right">รางวัล</th></tr>
-          </thead>
-          <tbody>
-            {TOTAL_WAR_RANKS.map((k, i) => (
-              <tr key={k.key} className={`border-t border-white/5 text-center ${validScore && i === rankIndex ? 'bg-gold/10' : ''}`}>
-                <td className="py-2 text-left">
-                  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold ${RANK_CLS[i]}`}><Shield className="h-3.5 w-3.5" /> {k.name}</span>
-                </td>
-                <td>{fmt(k.min)}</td>
-                <td>{k.teams}</td>
-                <td className="font-semibold text-emerald-200">+{8 * k.teams}</td>
-                <td className="text-right text-xs text-white/60">{k.reward}</td>
-              </tr>
+      {/* ===== เป้าหมาย + รางวัล แบบการ์ดในเกม ===== */}
+      <section className="mt-5 grid gap-4 md:grid-cols-[1fr_1.4fr]">
+        <div className="rounded-3xl border border-white/10 bg-[#1b1630] p-4">
+          <div className="flex items-center gap-2 font-semibold text-gold"><Target className="h-5 w-5" /> จะทันไหม</div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {TOTAL_WAR_RANKS.map((k, i) => i > 0 && (
+              <button key={k.key} type="button" onClick={() => setTarget(i)}
+                className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-sm ${i === target ? 'border-gold bg-gold/15 text-gold' : 'border-white/10 text-white/60'}`}>
+                <RankEmblem rank={i} size={16} /> {k.name}
+              </button>
             ))}
-          </tbody>
-        </table>
-        <p className="mt-3 text-xs text-white/45">เช่น หายาก ชนะ 52.5% → เกิน 50 อยู่ 2.5% × 32 = +80 · ต่ำกว่า 50 เสียเท่ากัน</p>
+          </div>
+          <div className="mt-4 text-center">
+            {plan?.done ? <div className="text-lg text-emerald-200">ถึง{goal.name}แล้ว 🎉</div>
+              : plan ? (<>
+                <div className="text-sm text-white/55">อีก {tw.resultsLeft} รอบ · ขาด {fmt(goal.min - s)}</div>
+                <div className="mt-1 text-4xl font-bold text-gold">{pct((plan.wins / plan.fights) * 100)}</div>
+                <div className="text-sm text-white/55">ชนะต่อรอบขั้นต่ำ</div>
+              </>) : <div className="text-red-200">ไม่ทัน{goal.name}แล้ว</div>}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-white/10 bg-[#efeee9] p-3 text-[#2a2533]">
+          <div className="text-center font-semibold">รางวัลระดับ</div>
+          <ul className="mt-2 grid gap-1.5">
+            {[...TOTAL_WAR_RANKS].reverse().map((k) => {
+              const i = TOTAL_WAR_RANKS.indexOf(k)
+              return (
+                <li key={k.key} className={`flex items-center gap-3 rounded-2xl border bg-white/70 px-3 py-1.5 ${i === rankIndex ? 'border-[#c9a35a] ring-2 ring-[#e9c97a]/60' : 'border-black/10'}`}>
+                  <RankEmblem rank={i} size={34} />
+                  <div className="flex-1 leading-tight">
+                    <div className="font-semibold">{k.name}</div>
+                    <div className="text-xs text-[#6b5a6a]">{fmt(k.min)} คะแนน · {k.teams} ทีม · 1% = +{8 * k.teams}</div>
+                  </div>
+                  <span className="rounded-lg bg-[#3a3346] px-2 py-1 text-xs font-semibold text-white">{k.reward || '–'}</span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       </section>
     </div>
   )
