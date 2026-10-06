@@ -1,4 +1,4 @@
-import { Camera, ClipboardPaste, Loader2, Plus, X } from 'lucide-react'
+import { Camera, CircleHelp, ClipboardPaste, Loader2, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { HEROES, baseName, englishOf, getUnit } from '../data/heroes'
 import { matchHeroName, type HeroCandidate } from '../lib/heroMatch'
@@ -8,6 +8,7 @@ import { MAX_HEROES, type HeroNote } from '../lib/types'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
 import UnitPicker from './UnitPicker'
+import StatsHelp, { helpSeen, markHelpSeen } from './StatsHelp'
 
 /** ไอคอนสเตตัสแบบในเกม (จาก 7K Atlas) */
 const ICON_FILES = import.meta.glob('../assets/stats/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
@@ -132,6 +133,14 @@ export function StatsImport({ team, onApply, onAddHero }: {
   // ภาพเป็นคนละตัว → กดใส่ครั้งแรก = ถามยืนยัน, ครั้งที่สอง = ใส่จริง
   const [confirming, setConfirming] = useState(false)
   const [picking, setPicking] = useState(false)
+  const [help, setHelp] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  // เปิดหน้าต่างครั้งแรก (เบราว์เซอร์นี้) → โชว์วิธีใช้ให้เอง
+  const openImport = () => {
+    setOpen(true)
+    setHero((h) => h || heroes[0])
+    if (!helpSeen()) { setHelp(true); markHelpSeen() }
+  }
   const nameOf = (id: string) => baseName(getUnit(id)?.name ?? id)
   const mismatch = mismatchId ? nameOf(mismatchId) : null
   const canAdd = !!onAddHero && heroes.length < MAX_HEROES
@@ -199,7 +208,7 @@ export function StatsImport({ team, onApply, onAddHero }: {
 
   return (
     <>
-      <button type="button" onClick={() => { setOpen(true); setHero((h) => h || heroes[0]) }}
+      <button type="button" onClick={openImport}
         className="mt-2 flex items-center gap-1.5 rounded-full border border-sky-300/50 px-3 py-1 text-sm text-sky-100 hover:bg-sky-400/10">
         <Camera className="h-4 w-4" /> อ่านสเตตัสจากรูป
       </button>
@@ -209,12 +218,24 @@ export function StatsImport({ team, onApply, onAddHero }: {
       <Modal open={open} title="อ่านสเตตัสจากรูป" onClose={() => setOpen(false)} wide>
         <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
           <div>
+            <button type="button" onClick={() => setHelp(true)}
+              className="mb-2 flex items-center gap-1.5 text-sm text-sky-200/80 hover:text-sky-100">
+              <CircleHelp className="h-4 w-4" /> วิธีใช้ / ต้องแคปหน้าไหน
+            </button>
             <button type="button" onClick={() => input.current?.click()}
-              className="flex min-h-48 w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed border-white/20 bg-black/20 text-white/60 hover:border-gold hover:text-gold">
+              onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setDragging(false)
+                const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/'))
+                if (f) run(f)
+              }}
+              className={`flex min-h-48 w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed bg-black/20 hover:border-gold hover:text-gold ${dragging ? 'border-gold text-gold' : 'border-white/20 text-white/60'}`}>
               {img ? <img src={img} alt="ภาพสเตตัส" className="max-h-80 w-full object-contain" /> : (
                 <>
                   <Camera className="h-8 w-8" />
-                  <span>เลือกรูปหน้าข้อมูลฮีโร่</span>
+                  <span>เลือกรูปหน้าข้อมูลฮีโร่ หรือลากไฟล์มาวาง</span>
                   <span className="flex items-center gap-1 text-xs text-white/40"><ClipboardPaste className="h-3.5 w-3.5" /> หรือกด Ctrl+V วางภาพหน้าจอ</span>
                 </>
               )}
@@ -303,6 +324,7 @@ export function StatsImport({ team, onApply, onAddHero }: {
           {confirming ? 'ภาพกับตัวที่เลือกไม่ตรงกัน — กดอีกครั้งเพื่อยืนยัน หรือเลือกตัวใหม่ด้านบน' : 'ตรวจตัวเลขก่อนกดใส่ · ยังไม่บันทึกจนกด "บันทึก" ของหน้านั้น'}
         </p>
       </Modal>
+      <StatsHelp open={help} onClose={() => setHelp(false)} />
       <UnitPicker open={picking} kind="hero" index={0} current={null} used={heroes} full={!canAdd} allowCustom={false}
         onPick={(id) => { if (id) addHero(id); setPicking(false) }} onClose={() => setPicking(false)} />
     </>
