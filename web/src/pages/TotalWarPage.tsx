@@ -68,19 +68,23 @@ export default function TotalWarPage() {
       {/* ===== หน้าหลักแบบในเกม ===== */}
       <section className="tw-arena panel panel-gold relative mt-5 overflow-hidden rounded-3xl p-3 sm:p-5">
         {/* นับถอยหลังเฟส */}
-        <div className="flex justify-center">
+        <div className="tw-countdown-row flex justify-center">
           <span className="tw-countdown rounded-full border px-4 py-1.5 text-sm">
-            <span className="text-white/50">✦</span> {tw.state === 'running' ? COUNTDOWN[tw.phase.key] : tw.state === 'before' ? 'ซีซันเริ่มใน' : 'สรุปซีซัน'}{' '}
-            {tw.state !== 'ended' && <><Clock className="mb-0.5 ml-1 inline h-4 w-4" /> <b className="tabular-nums">{short(tw.state === 'running' ? tw.phaseLeft : tw.startsIn)}</b></>}
+            <span className="tw-countdown-spark" aria-hidden="true">✦</span>
+            <span className="tw-countdown-label">{tw.state === 'running' ? COUNTDOWN[tw.phase.key] : tw.state === 'before' ? 'ซีซันเริ่มใน' : 'สรุปซีซัน'}</span>
+            {tw.state !== 'ended' && <span className="tw-countdown-time"><Clock aria-hidden="true" className="h-4 w-4" /><b className="tabular-nums">{short(tw.state === 'running' ? tw.phaseLeft : tw.startsIn)}</b></span>}
           </span>
         </div>
         {/* แถบเฟส */}
-        <div className="scrollbar-thin mt-3 overflow-x-auto">
-          <div className="mx-auto flex w-max rounded-xl bg-black/40 p-1">
+        <div className="tw-phase-scroll scrollbar-thin mt-4 overflow-x-auto">
+          <div className="tw-phase-track mx-auto flex w-max rounded-xl">
             {STEPS.map((name, i) => (
-              <div key={name} style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)' }}
-                className={`tw-phase -ml-1 px-5 py-2 text-xs font-semibold sm:px-7 sm:text-base ${i === step ? 'tw-phase-active' : ''}`}>
-                {name}
+              <div key={name} aria-current={i === step ? 'step' : undefined}
+                className={`tw-phase-wrap -ml-1 ${i === step ? 'tw-phase-wrap-active' : ''}`}>
+                <div style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)' }}
+                  className={`tw-phase px-5 py-2 text-xs font-semibold sm:px-7 sm:text-base ${i === step ? 'tw-phase-active' : ''}`}>
+                  {name}
+                </div>
               </div>
             ))}
           </div>

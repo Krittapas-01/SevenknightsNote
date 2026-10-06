@@ -6,12 +6,25 @@
 .tw-heading h1 { text-shadow: 0 2px 18px #f4d58d1c; }
 .tw-heading p { margin-top: .25rem; color: #aeb8cc; font-size: .9rem; }
 .tw-arena { background: linear-gradient(155deg, #202d43 0%, #172236 52%, #121b2c 100%); }
-.tw-countdown { border-color: #f4d58d55; background: linear-gradient(180deg, #111a2bcc, #0a1220dd); color: #e9edf5; box-shadow: inset 0 0 0 1px #ffffff08, 0 3px 12px #05091555; }
-.tw-countdown b { color: var(--tw-gold); font-size: 1rem; }
-.tw-countdown svg { color: var(--tw-gold); }
-.tw-phase { position: relative; isolation: isolate; color: #d7dced70; background: linear-gradient(180deg, #27334a, #1a2538); transition: color 160ms ease, filter 160ms ease; }
-.tw-phase:not(.tw-phase-active) { border: 1px solid #ffffff0c; }
-.tw-phase-active { color: #171d2a; background: linear-gradient(180deg, #fff0bd, #d9ae59); filter: drop-shadow(0 0 9px #f4d58d60); }
+.tw-countdown-row { padding-top: .1rem; }
+.tw-countdown { display: inline-flex; min-height: 2.75rem; align-items: center; gap: .55rem; white-space: nowrap; border-color: #f4d58d60; background: linear-gradient(180deg, #17243acc, #0a1220ed); color: #e9edf5; box-shadow: inset 0 1px 0 #fff2d51c, inset 0 0 0 1px #ffffff08, 0 4px 14px #05091566; }
+.tw-countdown-spark { color: var(--tw-gold); font-size: .95rem; text-shadow: 0 0 9px #f4d58d90; }
+.tw-countdown-label { color: #edf0f7; font-weight: 600; }
+.tw-countdown-time { display: inline-flex; align-items: center; gap: .32rem; margin-left: .12rem; color: var(--tw-gold); }
+.tw-countdown b { color: var(--tw-gold); font-size: 1rem; font-variant-numeric: tabular-nums; letter-spacing: .015em; }
+.tw-countdown svg { color: var(--tw-gold); filter: drop-shadow(0 0 3px #f4d58d45); }
+.tw-phase-scroll { scrollbar-color: #c9a35a66 transparent; scrollbar-width: thin; }
+.tw-phase-scroll::-webkit-scrollbar { height: 4px; }
+.tw-phase-scroll::-webkit-scrollbar-thumb { border-radius: 99px; background: #c9a35a66; }
+.tw-phase-track { clip-path: polygon(2.3% 0, 97.7% 0, 100% 50%, 97.7% 100%, 2.3% 100%, 0 50%); border: 1px solid #f4d58d38; background: linear-gradient(180deg, #0e1726, #151e2e); padding: 18px 5px 5px; box-shadow: inset 0 1px 3px #0009, 0 0 0 2px #0a0b13, 0 4px 14px #05091566; }
+.tw-phase-wrap { position: relative; flex: none; }
+.tw-phase-wrap-active { z-index: 2; }
+.tw-phase-wrap-active::before { position: absolute; z-index: 0; top: -16px; left: 15%; width: 70%; height: 2rem; background: radial-gradient(ellipse at 50% 100%, #fff0bde8 0%, #f4d58db8 34%, #d9ae596b 58%, transparent 78%); clip-path: polygon(0 100%, 9% 61%, 20% 78%, 33% 25%, 44% 66%, 53% 0, 63% 62%, 76% 27%, 88% 71%, 100% 100%); content: ""; filter: blur(3px); opacity: .78; pointer-events: none; transform-origin: 50% 100%; animation: tw-phase-flame 2.4s ease-in-out infinite; }
+.tw-phase { position: relative; z-index: 1; isolation: isolate; display: flex; min-height: 3.4rem; min-width: 7.5rem; align-items: center; justify-content: center; color: #aeb9ce; background: linear-gradient(180deg, #2b3850, #202c40); text-align: center; text-shadow: 0 1px 1px #080e1a80; transition: color 160ms ease, filter 160ms ease, background-color 160ms ease; }
+.tw-phase:not(.tw-phase-active) { border: 1px solid #ffffff12; }
+.tw-phase:not(.tw-phase-active):hover { color: #e6eaf2; }
+.tw-phase-active { color: #171d2a; background: linear-gradient(180deg, #fff0bd 0%, #efd083 48%, #d9ae59 100%); filter: drop-shadow(0 0 8px #f4d58d70); text-shadow: 0 1px 0 #fff7d2a6; }
+@keyframes tw-phase-flame { 0%, 100% { opacity: .68; transform: translateX(-1px) scaleY(.92); } 50% { opacity: .92; transform: translateX(1px) scaleY(1.06); } }
 .tw-stage { isolation: isolate; border: 1px solid #f4d58d42; background: repeating-conic-gradient(from -90deg at 50% 8%, #f4d58d12 0deg 1.5deg, transparent 1.5deg 10deg), radial-gradient(ellipse at 50% 36%, #344665 0%, #1d2b43 48%, #111a2a 100%); box-shadow: inset 0 0 38px #050a1677; }
 .tw-stage::before { content: ""; position: absolute; z-index: -1; width: min(60vw, 24rem); aspect-ratio: 1; border: 1px solid #f4d58d20; border-radius: 50%; box-shadow: 0 0 0 18px #f4d58d08, 0 0 0 38px #f4d58d06, inset 0 0 36px #96b6f20c; }
 .tw-dashboard { border-top: 1px solid #f4d58d26; padding-top: .85rem; }
@@ -36,9 +49,12 @@
 @media (max-width: 639px) {
   .tw-heading { padding-bottom: .85rem; }
   .tw-heading p { max-width: 28rem; font-size: .8rem; }
-  .tw-phase { padding-right: 1rem; padding-left: 1rem; }
+  .tw-countdown { min-height: 2.6rem; gap: .42rem; padding-right: .85rem; padding-left: .85rem; font-size: .8rem; }
+  .tw-phase { min-height: 2.75rem; min-width: 6.25rem; padding-right: .85rem; padding-left: .85rem; font-size: .7rem; }
+  .tw-phase-track { padding: 16px 4px 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tw-phase, .tw-goal button { transition: none; }
+  .tw-phase-wrap-active::before { animation: none; }
 }
