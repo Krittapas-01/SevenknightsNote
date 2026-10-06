@@ -1,4 +1,4 @@
-import { ChevronLeft, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, Trash2, Undo2, X } from 'lucide-react'
+import { ChevronLeft, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, ThumbsUp, Trash2, Undo2, X } from 'lucide-react'
 import { tagColor, tagStyle } from '../lib/tags'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
@@ -227,7 +227,13 @@ export default function TargetPage() {
                 }`}
               >
                 ทีมแก้ #{i + 1}
-                {!!c.likes && <span className="ml-1 text-xs opacity-70">👍{c.likes}</span>}
+                {!!c.likes && (
+                  <span className={`ml-1.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-px align-middle text-xs font-bold tabular-nums ${
+                    i === Math.min(sel, counters.length - 1) && !(editingC && !cDraft.id) ? 'bg-ink/85 text-sky-200' : 'bg-sky-400/20 text-sky-200'
+                  }`}>
+                    <ThumbsUp className="h-3 w-3" fill="currentColor" />{c.likes}
+                  </span>
+                )}
                 {/* แก้ภายใน 24 ชม. → จุดเล็ก ๆ ให้คนในกิลรู้ว่ามีการแก้ */}
                 {c.updatedAt > c.createdAt && Date.now() - c.updatedAt < RECENT_MS && (
                   <span title={`แก้ล่าสุด ${edited(c.updatedAt)}`} className="ml-1.5 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full bg-emerald-400 align-middle" />
