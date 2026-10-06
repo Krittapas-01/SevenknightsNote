@@ -326,7 +326,7 @@ app.get('/api/guild/:id', async (c) => {
     c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY created_at ASC').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
-    c.env.DB.prepare('SELECT schedule, auto_announce, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names FROM guild_settings WHERE guild_id = ?').bind(id),
+    c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names FROM guild_settings WHERE guild_id = ?').bind(id),
     // ประกาศล่าสุดที่เลือกแผน (= แผนที่ใช้อยู่) — ต้องมีเสมอ แม้จะเก่ากว่า 30 อันล่าสุด (ประกาศอัตโนมัติรายวันดันตกไป)
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? AND plan_id IS NOT NULL ORDER BY created_at DESC LIMIT 1').bind(id),
   ])
@@ -336,6 +336,7 @@ app.get('/api/guild/:id', async (c) => {
   const settings = (st.results as any[])[0]
   const schedule = GAME_SCHEDULE
   const autoAnnounce = settings ? !!settings.auto_announce : true
+  const autoText = { attack: settings?.auto_text_attack ?? '', defense: settings?.auto_text_defense ?? '' }
   const season = GAME_SEASON
   const discord = { // ไม่ส่ง webhook URL ออกไป
     connected: !!settings?.discord_webhook, mention: settings?.discord_mention ?? '',
@@ -347,7 +348,7 @@ app.get('/api/guild/:id', async (c) => {
     ...toTarget(r),
     counters: counters.filter((x) => x.targetId === r.id),
   }))
-  return c.json({ guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce, season, discord })
+  return c.json({ guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce, autoText, season, discord })
 })
 
 // ตรวจว่า key ใช้แก้ไขได้ไหม
@@ -696,15 +697,24 @@ app.put('/api/guild/:id/schedule', async (c) => {
   const auth = await checkKey(c, gid)
   if (auth !== 'ok') return deny(c, auth)
   const body = await c.req.json().catch(() => ({}))
-  // ตาราง/Season เป็นของเกม (เหมือนทุกกิลด์) — แต่ละกิลด์ตั้งได้แค่เปิด/ปิดประกาศอัตโนมัติ
+  // ตาราง/Season เป็นของเกม (เหมือนทุกกิลด์) — แต่ละกิลด์ตั้งได้แค่เปิด/ปิดประกาศอัตโนมัติ + ข้อความวันตี/วันจัดบ้าน
   const autoAnnounce = body.autoAnnounce !== false
-  await c.env.DB.prepare(
-    `INSERT INTO guild_settings (guild_id, schedule, auto_announce) VALUES (?, ?, ?)
-     ON CONFLICT(guild_id) DO UPDATE SET auto_announce = excluded.auto_announce`,
-  )
-    .bind(gid, JSON.stringify(GAME_SCHEDULE), autoAnnounce ? 1 : 0)
-    .run()
-  return c.json({ schedule: GAME_SCHEDULE, autoAnnounce, season: GAME_SEASON })
+  const text = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, MAX_AUTO_TEXT) : '')
+  const autoText = { attack: text(body.autoText?.attack), defense: text(body.autoText?.defense) }
+  if (body.autoText && typeof body.autoText === 'object') {
+    await c.env.DB.prepare(
+      `INSERT INTO guild_settings (guild_id, schedule, auto_announce, auto_text_attack, auto_text_defense) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(guild_id) DO UPDATE SET auto_announce = excluded.auto_announce,
+         auto_text_attack = excluded.auto_text_attack, auto_text_defense = excluded.auto_text_defense`,
+    ).bind(gid, JSON.stringify(GAME_SCHEDULE), autoAnnounce ? 1 : 0, autoText.attack, autoText.defense).run()
+  } else {
+    // เว็บรุ่นเก่า (ไม่ส่งข้อความมา) — เปลี่ยนแค่เปิด/ปิด ไม่ลบข้อความที่ตั้งไว้
+    await c.env.DB.prepare(
+      `INSERT INTO guild_settings (guild_id, schedule, auto_announce) VALUES (?, ?, ?)
+       ON CONFLICT(guild_id) DO UPDATE SET auto_announce = excluded.auto_announce`,
+    ).bind(gid, JSON.stringify(GAME_SCHEDULE), autoAnnounce ? 1 : 0).run()
+  }
+  return c.json({ schedule: GAME_SCHEDULE, autoAnnounce, autoText, season: GAME_SEASON })
 })
 
 app.notFound((c) => c.json({ error: 'not found' }, 404))
@@ -822,6 +832,8 @@ const DAY_NAMES = ['จันทร์', 'อังคาร', 'พุธ', 'พ
 const gameDayIndex = (ts: number) => (new Date(ts).getUTCDay() + 6) % 7 // 0 = จันทร์
 const gameDayKey = (ts: number) => new Date(ts).toISOString().slice(0, 10)
 const DAY_LABEL: Record<string, string> = { attack: 'วันตี', defense: 'วันจัดบ้านกัน', rest: 'วันพัก' }
+/** ข้อความประกาศอัตโนมัติที่กิลด์ตั้งเอง ยาวสุด (ตัวอักษร) */
+const MAX_AUTO_TEXT = 300
 
 const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 const thDate = (key: string) => `${+key.slice(8, 10)} ${TH_MONTHS[+key.slice(5, 7) - 1]}`
@@ -860,15 +872,21 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   const body = dailyAnnouncement(GAME_SCHEDULE[today] ?? 'rest', DAY_NAMES[today], todayKey, GAME_SEASON.start, GAME_SEASON.end)
   if (!body) return 0 // วันพัก / ช่วงพัก Season: ไม่ประกาศ (ข้อความเหมือนกันทุกกิลด์)
   const dayStart = Date.parse(`${todayKey}T00:00:00Z`)
+  // วันตี/วันจัดบ้านปกติ (ไม่ใช่วันเริ่ม/จบ Season) → กิลด์ที่ตั้งข้อความเองใช้ข้อความนั้น ({วัน} = ชื่อวัน)
+  const type = GAME_SCHEDULE[today] ?? 'rest'
+  const col = body === `วันนี้ (${DAY_NAMES[today]}) ${DAY_LABEL[type]}` && (type === 'attack' || type === 'defense')
+    ? (type === 'attack' ? 's.auto_text_attack' : 's.auto_text_defense') : null
+  const bodySql = col ? `CASE WHEN COALESCE(${col}, '') <> '' THEN replace(${col}, '{วัน}', ?) ELSE ? END` : '?'
+  const bodyArgs = col ? [DAY_NAMES[today], body] : [body]
   // 1) ใส่ประกาศให้ทุกกิลด์ที่เปิดไว้ + เคยใช้ประกาศ + วันนี้ยังไม่มีประกาศ (รันซ้ำก็ไม่ซ้ำ) — query เดียว
   const ins = await env.DB.prepare(
     `INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at, auto)
-     SELECT lower(hex(randomblob(5))), g.id, ?, NULL, '', ?, 1
+     SELECT lower(hex(randomblob(5))), g.id, ${bodySql}, NULL, '', ?, 1
      FROM guilds g LEFT JOIN guild_settings s ON s.guild_id = g.id
      WHERE COALESCE(s.auto_announce, 1) = 1
        AND EXISTS (SELECT 1 FROM announcements a WHERE a.guild_id = g.id)
        AND NOT EXISTS (SELECT 1 FROM announcements a WHERE a.guild_id = g.id AND a.created_at >= ?)`,
-  ).bind(body, now, dayStart).run()
+  ).bind(...bodyArgs, now, dayStart).run()
   const posted = ins.meta.changes ?? 0
   if (!posted) return 0
   // 2) เก็บแค่ล่าสุด MAX_ANNOUNCEMENTS อันต่อกิลด์ — query เดียวทุกกิลด์
@@ -878,14 +896,14 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   ).bind(MAX_ANNOUNCEMENTS).run()
   // 3) กิลด์ที่เพิ่งได้ประกาศ + ต่อ Discord ไว้ — query เดียว แล้วส่ง webhook
   const { results } = await env.DB.prepare(
-    `SELECT a.guild_id AS gid, g.name, s.discord_webhook AS url, s.discord_mention AS mention
+    `SELECT a.guild_id AS gid, a.body, g.name, s.discord_webhook AS url, s.discord_mention AS mention
      FROM announcements a JOIN guilds g ON g.id = a.guild_id JOIN guild_settings s ON s.guild_id = a.guild_id
      WHERE a.auto = 1 AND a.created_at = ? AND s.discord_webhook <> ''
      ORDER BY CASE WHEN a.guild_id IN (${DISCORD_PRIORITY.map(() => '?').join(',')}) THEN 0 ELSE 1 END`,
   ).bind(now, ...DISCORD_PRIORITY).all<any>()
   if (results.length > DISCORD_PER_RUN) console.warn(`discord: ${results.length} webhooks, sending first ${DISCORD_PER_RUN}`)
   await Promise.all(results.slice(0, DISCORD_PER_RUN).map((r) =>
-    postDiscord(env, r.gid, r, { body, planId: null, opponent: '', auto: true }).catch((e) => console.error('discord', r.gid, e))))
+    postDiscord(env, r.gid, r, { body: r.body, planId: null, opponent: '', auto: true }).catch((e) => console.error('discord', r.gid, e))))
   return posted
 }
 

@@ -103,6 +103,8 @@ export type GuildData = {
   schedule: DayType[]
   /** ประกาศวันใหม่อัตโนมัติ 07:00 */
   autoAnnounce?: boolean
+  /** ข้อความประกาศอัตโนมัติที่ตั้งเอง (ว่าง = ข้อความเริ่มต้น) · {วัน} = ชื่อวัน */
+  autoText?: { attack: string; defense: string }
   /** ช่วง Season (วันในเกม YYYY-MM-DD, ว่าง = ไม่ได้ตั้ง) */
   season?: { start: string; end: string }
   /** แจ้งเตือนเข้า Discord (ไม่มี URL — เป็นความลับ) */

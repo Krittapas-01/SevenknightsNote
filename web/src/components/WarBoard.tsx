@@ -111,7 +111,7 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
       )}
 
       <ComposeModal open={compose} onClose={() => setCompose(false)} gid={gid} data={data} activeId={activeId} reload={reload} />
-      <ScheduleModal open={editSchedule} onClose={() => setEditSchedule(false)} gid={gid} schedule={data.schedule} auto={data.autoAnnounce ?? true} season={data.season ?? { start: '', end: '' }} reload={reload} />
+      <ScheduleModal open={editSchedule} onClose={() => setEditSchedule(false)} gid={gid} schedule={data.schedule} auto={data.autoAnnounce ?? true} autoText={data.autoText ?? { attack: '', defense: '' }} season={data.season ?? { start: '', end: '' }} reload={reload} />
     </section>
   )
 }
@@ -245,8 +245,13 @@ function ComposeModal({ open, onClose, gid, data, activeId, reload }: { open: bo
 
 
 
-function ScheduleModal({ open, onClose, gid, schedule, auto, season, reload }: { open: boolean; onClose: () => void; gid: string; schedule: DayType[]; auto: boolean; season: { start: string; end: string }; reload: () => Promise<void> }) {
+/** ข้อความเริ่มต้นของประกาศอัตโนมัติ (ตรงกับฝั่ง API) */
+const AUTO_DEFAULT = { attack: 'วันนี้ ({วัน}) วันตี', defense: 'วันนี้ ({วัน}) วันจัดบ้านกัน' }
+const MAX_AUTO_TEXT = 300
+
+function ScheduleModal({ open, onClose, gid, schedule, auto, autoText, season, reload }: { open: boolean; onClose: () => void; gid: string; schedule: DayType[]; auto: boolean; autoText: { attack: string; defense: string }; season: { start: string; end: string }; reload: () => Promise<void> }) {
   const [autoDraft, setAutoDraft] = useState(auto)
+  const [textDraft, setTextDraft] = useState(autoText)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [prevOpen, setPrevOpen] = useState(open)
@@ -254,6 +259,7 @@ function ScheduleModal({ open, onClose, gid, schedule, auto, season, reload }: {
     setPrevOpen(open)
     if (open) {
       setAutoDraft(auto)
+      setTextDraft(autoText)
       setErr(null)
     }
   }
@@ -263,7 +269,7 @@ function ScheduleModal({ open, onClose, gid, schedule, auto, season, reload }: {
     setBusy(true)
     setErr(null)
     try {
-      await api.saveSchedule(gid, autoDraft)
+      await api.saveSchedule(gid, autoDraft, { attack: textDraft.attack.trim(), defense: textDraft.defense.trim() })
       await reload()
       onClose()
     } catch (e) {
@@ -297,6 +303,30 @@ function ScheduleModal({ open, onClose, gid, schedule, auto, season, reload }: {
           <span className="block text-sm text-white/55">บอกว่าวันนี้วันตีหรือจัดบ้านกันตามตารางนี้ (วันพักไม่แจ้ง) และแจ้งวันเริ่ม/วันสุดท้ายของ Season ส่วนแผนที่ใช้ไม่เปลี่ยน</span>
         </span>
       </label>
+      <div className={`mt-3 space-y-3 rounded-xl bg-black/25 px-4 py-3 ${autoDraft ? '' : 'opacity-50'}`}>
+        <p className="text-sm font-semibold">ข้อความที่ประกาศ</p>
+        {(['attack', 'defense'] as const).map((k) => {
+          const v = textDraft[k]
+          const preview = (v.trim() || AUTO_DEFAULT[k]).replaceAll('{วัน}', DAYS[dayIndex()])
+          return (
+            <label key={k} className="block">
+              <span className="text-sm text-white/70">{DAY_TYPE[k].label}</span>
+              <textarea rows={2} maxLength={MAX_AUTO_TEXT} value={v} disabled={!autoDraft}
+                onChange={(e) => setTextDraft((d) => ({ ...d, [k]: e.target.value }))}
+                placeholder={AUTO_DEFAULT[k]}
+                className="mt-1 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
+              <span className="mt-0.5 flex justify-between gap-2 text-xs text-white/45">
+                <span className="min-w-0 truncate">ตัวอย่าง: {preview}</span>
+                <span className="shrink-0">{v.length}/{MAX_AUTO_TEXT}</span>
+              </span>
+            </label>
+          )
+        })}
+        <p className="text-xs text-white/45">
+          พิมพ์ <code className="rounded bg-white/10 px-1">{'{วัน}'}</code> แทนชื่อวัน (เช่น อังคาร) · เว้นว่าง = ใช้ข้อความเริ่มต้น ·
+          วันเริ่ม/วันสุดท้ายของ Season ยังใช้ข้อความ Season เหมือนเดิม · ส่งเข้า Discord ด้วย (ถ้าเชื่อมไว้)
+        </p>
+      </div>
       {err && <p className="mt-3 text-sm text-red-300">{err}</p>}
       <div className="mt-5 flex gap-2">
         <button disabled={busy} onClick={save} className="btn-gold px-6 py-2">{busy ? 'กำลังบันทึก...' : 'บันทึก'}</button>
