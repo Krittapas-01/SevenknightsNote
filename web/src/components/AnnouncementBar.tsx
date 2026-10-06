@@ -2,7 +2,6 @@ import { ClipboardList, Megaphone, Swords } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { usePulse } from '../lib/usePulse'
-import { DAYS, DAY_TYPE, dayIndex, dayPhase, phaseHelp, resetLabel } from '../lib/war'
 import SeasonBanner from './SeasonBanner'
 
 const SEEN = (gid: string) => `7knote:seen:${gid}`
@@ -36,8 +35,6 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
   useEffect(() => setSeen(readSeen(gid)), [gid])
 
   if (!pulse) return null
-  const today = dayIndex(now)
-  const type = pulse.schedule[today] ?? 'rest'
   const a = pulse.latest
   const unseen = !!a && a.id !== seen
 
@@ -55,22 +52,7 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
     >
       <SeasonBanner season={pulse.season} schedule={pulse.schedule} now={now} />
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2 text-sm">
-        <span className="flex items-center gap-1.5" title={`วันใหม่เริ่ม 07:00 (อีก ${resetLabel(now)})`}>
-          <span className="font-semibold">{DAYS[today]}</span>
-          <span className={`rounded-full border px-2 py-0 text-xs ${DAY_TYPE[type].cls}`}>{DAY_TYPE[type].label}</span>
-          {(() => {
-            // วันตี/วันจัดบ้านมี 2 ช่วง (ดู dayPhase) — บอกว่าตอนนี้ช่วงไหน ถึงกี่โมง
-            const ph = dayPhase(type, now)
-            if (!ph) return null
-            return (
-              <span title={`${ph.label} ถึง ${ph.until} (อีก ${ph.left}) · ${phaseHelp(type)}`}
-                className={`rounded-full px-2 py-0 text-xs ${ph.step === 1 ? 'bg-emerald-400/15 text-emerald-100' : 'bg-amber-400/15 text-amber-100'}`}>
-                {ph.label} · ถึง {ph.until}
-              </span>
-            )
-          })()}
-        </span>
-
+        {/* วันในเกม + ช่วงของวัน ย้ายไปอยู่ข้างนาฬิกาบนหัวเว็บ (HeaderClock) */}
         {pulse.activePlan && (
           <Link to={`/g/${gid}/p/${pulse.activePlan.id}`} className="flex items-center gap-1 text-gold hover:underline">
             <ClipboardList className="h-4 w-4" /> {pulse.activePlan.title}

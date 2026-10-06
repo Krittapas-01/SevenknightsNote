@@ -15,8 +15,8 @@ export default function Layout() {
   return (
     <div className="min-h-dvh">
       <header className="site-header sticky top-0 z-40 border-b border-gold/15 bg-[#0c1425]/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
-          <button onClick={() => setMenuOpen(true)} aria-label="เปิดเมนู" className="-ml-1 mr-3 grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/20 text-white/80 hover:border-gold hover:text-gold">
+        <div className="mx-auto flex h-14 max-w-6xl items-center px-3 sm:px-4">
+          <button onClick={() => setMenuOpen(true)} aria-label="เปิดเมนู" className="-ml-1 mr-2 grid h-9 w-9 shrink-0 sm:mr-3 place-items-center rounded-lg border border-white/20 text-white/80 hover:border-gold hover:text-gold">
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex shrink-0 items-center gap-3 sm:gap-5">

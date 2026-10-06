@@ -16,8 +16,8 @@ export default function Account() {
           </button>
         </>
       ) : (
-        <button onClick={loginWithDiscord} className="flex items-center gap-1.5 rounded-full bg-[#5865f2] px-3 py-1 text-sm font-medium text-white hover:bg-[#4752c4]">
-          <LogIn className="h-4 w-4" /> <span className="hidden sm:inline">เข้าสู่ระบบด้วย</span> Discord
+        <button onClick={loginWithDiscord} className="flex items-center gap-1.5 rounded-full bg-[#5865f2] px-2.5 py-1 text-sm font-medium text-white hover:bg-[#4752c4] sm:px-3">
+          <LogIn className="hidden h-4 w-4 sm:block" /> <span className="hidden sm:inline">เข้าสู่ระบบด้วย</span> Discord
         </button>
       )}
       {error && (
