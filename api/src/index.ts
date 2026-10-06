@@ -157,11 +157,19 @@ type PlanData = {
   slots: (AltHouse & { name: string; kind: 'attack' | 'defense'; main: number; options: WarOption[]; alts?: AltHouse[] })[]
 }
 /** บ้านอื่นที่ทีมบุกชุดเดียวกันตีได้ */
-type AltHouse = { vs: Team | null; vsTag: string; vsId: string }
+type AltHouse = { vs: Team | null; vsTag: string; vsId: string; vsTags?: string[]; vsNote?: string }
 type WarOption = { team: Team; skills: SkillStep[]; condition: string; notes: string; heroNotes: HeroNote[]; custom?: true; logged?: true }
 /** ไม้บุกเข้าได้หลายบ้าน: บ้านหลัก + บ้านอื่นอีกไม่เกินนี้ (ต้องตรงกับ MAX_HOUSES - 1 ฝั่งเว็บ) */
 const MAX_ALT_HOUSES = 2
-const parseAltHouse = (s: any): AltHouse => ({ vs: s?.vs ? parseTeam(s.vs) : null, vsTag: str(s?.vsTag, 20), vsId: str(s?.vsId, 80) })
+/** บ้านที่จะตี: ทีม + ประเภท + (บ้านที่จัดเอง) แท็ก/โน้ต */
+function parseAltHouse(s: any): AltHouse {
+  const vsTags = parseTags(s?.vsTags)
+  const vsNote = str(s?.vsNote, 500)
+  return {
+    vs: s?.vs ? parseTeam(s.vs) : null, vsTag: str(s?.vsTag, 20), vsId: str(s?.vsId, 80),
+    ...(vsTags.length ? { vsTags } : {}), ...(vsNote ? { vsNote } : {}),
+  }
+}
 function parseHouse(s: any) {
   const options = (Array.isArray(s?.options) ? s.options : []).slice(0, MAX_OPTIONS).flatMap((o: any) => {
     const team = parseTeam(o?.team)
@@ -172,9 +180,7 @@ function parseHouse(s: any) {
     }]
   })
   return {
-    vs: s?.vs ? parseTeam(s.vs) : null, // บ้านที่จะตี (ไม้บุก)
-    vsTag: str(s?.vsTag, 20),
-    vsId: str(s?.vsId, 80),
+    ...parseAltHouse(s), // บ้านที่จะตี (ไม้บุก)
     main: Number.isInteger(s?.main) && s.main >= 0 && s.main < options.length ? s.main : 0,
     options,
   }

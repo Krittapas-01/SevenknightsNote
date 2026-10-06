@@ -1,6 +1,6 @@
 import { api } from './api'
 import { heroKey } from './allocation'
-import type { PlanData, Target, Team, WarOption } from './types'
+import { houseView, type PlanData, type Target, type Team, type WarOption } from './types'
 
 /**
  * ทีมที่ "จัดทีมเอง" ในแผน → ถามว่าจะจดลง "จดทีมศัตรู" (targets/counters) ด้วยไหม
@@ -8,20 +8,25 @@ import type { PlanData, Target, Team, WarOption } from './types'
  * - ไม่มีบ้านนี้ → สร้างบ้านใหม่ + ทีมแก้
  * - ทีมแก้นี้มีอยู่แล้ว / เคยถามแล้ว (logged) → ไม่ถามซ้ำ
  */
-export type LogItem = { s: number; o: number; opt: WarOption; vs: Team; vsTag: string; target: Target | null }
+export type LogItem = { s: number; o: number; opt: WarOption; vs: Team; vsTag: string; target: Target | null; /** บ้านใหม่: แท็ก/โน้ตที่จะสร้าง */ tags: string[]; note: string }
 
 const heroSet = (t: Team) => t.slots.filter(Boolean).map((id) => heroKey(id!)).sort().join('|')
 
 export function findLogItems(plan: PlanData, targets: Target[]): LogItem[] {
   const out: LogItem[] = []
-  plan.slots.forEach((slot, s) => {
-    if (slot.kind !== 'attack' || !slot.vs || !heroSet(slot.vs)) return
-    const target = targets.find((t) => heroSet(t.team) === heroSet(slot.vs!)) ?? null
-    slot.options.forEach((opt, o) => {
-      if (!opt.custom || opt.logged || !heroSet(opt.team)) return
-      if (target?.counters.some((c) => heroSet(c.team) === heroSet(opt.team))) return
-      out.push({ s, o, opt, vs: slot.vs!, vsTag: slot.vsTag ?? '', target })
-    })
+  plan.slots.forEach((raw, s) => {
+    // ทุกบ้านของไม้นี้ (บ้านหลัก + บ้านอื่นที่ทีมเดียวกันตีได้)
+    for (let h = 0; h <= (raw.alts?.length ?? 0); h++) {
+      const slot = houseView(raw, h)
+      if (slot.kind !== 'attack' || !slot.vs || !heroSet(slot.vs)) continue
+      const target = targets.find((t) => heroSet(t.team) === heroSet(slot.vs!)) ?? null
+      slot.options.forEach((opt, o) => {
+        if (!opt.custom || opt.logged || !heroSet(opt.team)) return
+        if (target?.counters.some((c) => heroSet(c.team) === heroSet(opt.team))) return
+        const tags = slot.vsTags?.length ? slot.vsTags : slot.vsTag ? [slot.vsTag] : []
+        out.push({ s, o, opt, vs: slot.vs!, vsTag: slot.vsTag ?? '', target, tags, note: slot.vsNote ?? '' })
+      })
+    }
   })
   return out
 }
@@ -35,7 +40,7 @@ export async function logToTargets(gid: string, items: LogItem[]) {
     try {
       let tid = it.target?.id ?? created.get(heroSet(it.vs))
       if (!tid) {
-        const t = await api.createTarget(gid, { team: it.vs, tags: it.vsTag ? [it.vsTag] : [], note: '' })
+        const t = await api.createTarget(gid, { team: it.vs, tags: it.tags.slice(0, 5), note: it.note.slice(0, 500) })
         tid = t.id
         created.set(heroSet(it.vs), tid)
       }

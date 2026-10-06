@@ -1,13 +1,14 @@
 import { AlertTriangle, Check, ChevronDown, ChevronLeft, ClipboardPaste, ImageDown, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
 import { houseLabel, tagStyle } from '../lib/tags'
 import type { WarSlot } from '../lib/types'
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import CompLibrary, { type Comp, type Defense } from '../components/CompLibrary'
 import TeamPanel from '../components/TeamPanel'
 import { DndHub, HideWhileDock, useListTarget } from '../components/DndHub'
 import { findLogItems, logToTargets, markLogged, type LogItem } from '../lib/logTargets'
 import Modal from '../components/Modal'
+import TagEditor from '../components/TagEditor'
 import PasteNotesModal from '../components/PasteNotesModal'
 import { applyNotes } from '../lib/pasteNotes'
 import { exportPng } from '../lib/exportImage'
@@ -63,6 +64,8 @@ export default function PlanPage() {
   const [vsLibrary, setVsLibrary] = useState<number | null>(null)
   /** ไม้บุกที่มีหลายบ้าน: บ้านที่กำลังดู/แก้ของแต่ละไม้ (0 = บ้านหลัก) */
   const [house, setHouse] = useState<Record<number, number>>({})
+  /** ลบบ้าน = กด 2 ครั้ง (กันกดพลาด) · key = "ไม้-บ้าน" */
+  const [delAsk, setDelAsk] = useState<string | null>(null)
   const houseOf = (slot: WarSlot | undefined, s: number) => Math.min(house[s] ?? 0, slot?.alts?.length ?? 0)
   /** ไม้ s ในมุมของบ้านที่เลือกอยู่ (ใช้ตอนแก้) */
   const curSlot = (s: number) => houseView(draft.slots[s], houseOf(draft.slots[s], s))
@@ -563,7 +566,12 @@ export default function PlanPage() {
                   {editing && houses > 1 && (
                     <span className="ml-auto flex gap-2 text-sm">
                       {h > 0 && <button type="button" onClick={() => makeMainHouse(s, h)} className="text-gold hover:underline">ตั้งเป็นบ้านหลัก</button>}
-                      <button type="button" onClick={() => removeHouse(s, h)} className="text-white/50 hover:text-red-300">ลบบ้านนี้</button>
+                      <button type="button"
+                        onClick={() => { if (delAsk !== `${s}-${h}`) return setDelAsk(`${s}-${h}`); setDelAsk(null); removeHouse(s, h) }}
+                        onBlur={() => setDelAsk((x) => (x === `${s}-${h}` ? null : x))}
+                        className={delAsk === `${s}-${h}` ? 'rounded-full bg-red-600 px-2.5 font-semibold text-white' : 'text-white/50 hover:text-red-300'}>
+                        {delAsk === `${s}-${h}` ? 'กดอีกครั้งเพื่อลบบ้าน' : 'ลบบ้านนี้'}
+                      </button>
                     </span>
                   )}
                 </div>
@@ -624,16 +632,39 @@ export default function PlanPage() {
                     <div className="w-full max-w-[400px] lg:w-[380px]">{main >= 0 && card(slot.options[main], main, 'details')}</div>
                     <div className="hidden lg:block lg:w-56 lg:shrink-0" />
                     <div className="w-full max-w-[400px] lg:w-[380px]">
+                    {/* บ้านที่จัดเอง (ไม่ได้มาจากคลัง): แท็ก + โน้ต → ใช้ตอนจดลงจดทีมศัตรูเป็นบ้านใหม่ */}
+                    {editing && slot.vs && !slot.vsId && (
+                      <div className="mb-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+                        <TagEditor
+                          tags={slot.vsTags ?? (slot.vsTag ? [slot.vsTag] : [])}
+                          onChange={(tags) => patchSlot(s, (x) => ({ ...x, vsTags: tags, vsTag: tags[0] ?? '' }))}
+                        />
+                        <textarea
+                          value={slot.vsNote ?? ''}
+                          onChange={(e) => patchSlot(s, (x) => ({ ...x, vsNote: e.target.value }))}
+                          maxLength={500}
+                          rows={2}
+                          placeholder="โน้ตบ้านนี้ เช่น เจอบ่อยในกิลด์ X, ตัวหลังสปีดสูง"
+                          className="mt-3 w-full rounded-xl border border-white/15 bg-black/20 p-3 text-sm outline-none focus:border-sky-300"
+                        />
+                      </div>
+                    )}
+                    {!editing && slot.vsNote && <p className="mb-3 whitespace-pre-wrap text-center text-sm text-white/70">{slot.vsNote}</p>}
                     {editing && slot.vs && (
                       <div className="flex justify-center gap-2 text-sm">
                         <button onClick={() => setVsLibrary(s)} className="pill flex items-center gap-1 px-3 py-1 hover:border-gold">
                           <Library className="h-4 w-4" /> เปลี่ยนบ้านจากคลัง
                         </button>
                         <button
-                          onClick={() => patchSlot(s, (x) => ({ ...x, vs: null, vsTag: '', vsId: '' }))}
-                          className="flex items-center gap-1 rounded-full px-3 py-1 text-red-300 hover:bg-red-500/15"
+                          onClick={() => {
+                            if (delAsk !== `${s}-${h}-out`) return setDelAsk(`${s}-${h}-out`)
+                            setDelAsk(null)
+                            patchSlot(s, (x) => ({ ...x, vs: null, vsTag: '', vsId: '', vsTags: [], vsNote: '' }))
+                          }}
+                          onBlur={() => setDelAsk((x) => (x === `${s}-${h}-out` ? null : x))}
+                          className={`flex items-center gap-1 rounded-full px-3 py-1 ${delAsk === `${s}-${h}-out` ? 'bg-red-600 font-semibold text-white' : 'text-red-300 hover:bg-red-500/15'}`}
                         >
-                          <Trash2 className="h-4 w-4" /> เอาบ้านออก
+                          <Trash2 className="h-4 w-4" /> {delAsk === `${s}-${h}-out` ? 'กดอีกครั้งเพื่อเอาบ้านออก' : 'เอาบ้านออก'}
                         </button>
                       </div>
                     )}
@@ -701,7 +732,8 @@ export default function PlanPage() {
         <p className="mb-3 text-sm text-white/70">ทีมที่จัดเองในแผนนี้ยังไม่มีในจดทีมศัตรู — เลือกทีมที่จะจดเป็น "ทีมแก้" ของบ้านนั้น</p>
         <div className="space-y-2">
           {logAsk?.items.map((it, i) => (
-            <label key={i} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${logAsk.picked[i] ? 'border-gold/60 bg-gold/10' : 'border-white/10 bg-black/20'}`}>
+            <Fragment key={i}>
+            <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${logAsk.picked[i] ? 'border-gold/60 bg-gold/10' : 'border-white/10 bg-black/20'}`}>
               <input type="checkbox" className="mt-1 h-4 w-4 accent-[#f4d58d]" checked={logAsk.picked[i]}
                 onChange={() => setLogAsk((x) => x && { ...x, picked: x.picked.map((v, j) => (j === i ? !v : v)) })} />
               <span className="min-w-0 text-sm">
@@ -714,6 +746,21 @@ export default function PlanPage() {
                 </span>
               </span>
             </label>
+            {/* บ้านใหม่ที่ติ๊กไว้: ตั้งแท็ก/โน้ตก่อนสร้าง (รายการแรกของบ้านเดียวกันเป็นตัวกำหนด) */}
+            {!it.target && logAsk.picked[i] && logAsk.items.findIndex((x) => !x.target && teamNames(x.vs) === teamNames(it.vs)) === i && (
+              <div className="ml-7 rounded-xl border border-white/10 bg-black/20 p-3">
+                <TagEditor tags={it.tags} onChange={(tags) => setLogAsk((x) => x && { ...x, items: x.items.map((v, j) => (j === i ? { ...v, tags } : v)) })} />
+                <textarea
+                  value={it.note}
+                  onChange={(e) => setLogAsk((x) => x && { ...x, items: x.items.map((v, j) => (j === i ? { ...v, note: e.target.value } : v)) })}
+                  maxLength={500}
+                  rows={2}
+                  placeholder="โน้ตบ้านนี้ (ไม่บังคับ)"
+                  className="mt-2 w-full rounded-xl border border-white/15 bg-black/20 p-2 text-sm outline-none focus:border-sky-300"
+                />
+              </div>
+            )}
+            </Fragment>
           ))}
         </div>
         <div className="mt-5 flex gap-2">

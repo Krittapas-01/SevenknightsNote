@@ -10,7 +10,7 @@ import CompLibrary, { type Comp } from '../components/CompLibrary'
 import VsArena from '../components/VsArena'
 import Modal from '../components/Modal'
 import { useDragScroll } from '../lib/useDragScroll'
-import { PRESET_TAGS, getUnit } from '../data/heroes'
+import { getUnit } from '../data/heroes'
 import { api } from '../lib/api'
 import { MAX_HEROES, addHeroToTeam, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
@@ -27,6 +27,7 @@ function edited(ts: number) {
 const RECENT_MS = 24 * 3600_000
 import { EquipmentNoteText } from '../components/EquipmentLoadout'
 import HeroNotesTable from '../components/HeroNotesTable'
+import TagEditor from '../components/TagEditor'
 import { autoSpeed } from '../lib/teamSpeed'
 
 const copyNotes = (n?: HeroNote[]) => (n ?? []).map((x) => ({ ...x, sets: [...x.sets], rings: [...x.rings] }))
@@ -55,7 +56,6 @@ export default function TargetPage() {
   const [picker, setPicker] = useState<Picker>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [tagInput, setTagInput] = useState('')
   const [library, setLibrary] = useState<'target' | 'counter' | null>(null)
 
   useEffect(() => {
@@ -188,12 +188,6 @@ export default function TargetPage() {
     setLibrary(null)
   }
 
-  function addTag(t: string) {
-    const v = t.trim().slice(0, 20)
-    if (!v || tDraft.tags.includes(v) || tDraft.tags.length >= 5) return
-    setTDraft((d) => ({ ...d, tags: [...d.tags, v] }))
-    setTagInput('')
-  }
 
   // ---------- panels ----------
   const editingT = mode === 'target'
@@ -404,29 +398,7 @@ export default function TargetPage() {
                 <Library className="h-4 w-4" /> เลือกจากคลังคอมพ์
               </button>
             </div>
-            <p className="text-sm text-white/60">แท็ก (สูงสุด 5)</p>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {tDraft.tags.map((t) => (
-                <span key={t} className="flex items-center gap-1 rounded-full py-0.5 pl-3 pr-1 text-sm font-semibold" style={tagStyle(t)}>
-                  {t}
-                  <button onClick={() => setTDraft((d) => ({ ...d, tags: d.tags.filter((x) => x !== t) }))} className="rounded-full p-0.5 hover:bg-white/10">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              ))}
-              {PRESET_TAGS.filter((t) => !tDraft.tags.includes(t)).map((t) => (
-                <button key={t} onClick={() => addTag(t)} className="rounded-full border border-dashed border-white/25 px-3 py-0.5 text-sm text-white/60 hover:border-sky-300 hover:text-sky-100">
-                  + {t}
-                </button>
-              ))}
-              <input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(tagInput) } }}
-                placeholder="แท็กอื่น + Enter"
-                className="w-32 rounded-full border border-white/15 bg-black/20 px-3 py-0.5 text-sm outline-none focus:border-sky-300"
-              />
-            </div>
+            <TagEditor tags={tDraft.tags} onChange={(tags) => setTDraft((d) => ({ ...d, tags }))} />
             <textarea
               value={tDraft.note}
               onChange={(e) => setTDraft((d) => ({ ...d, note: e.target.value }))}

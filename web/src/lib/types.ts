@@ -69,8 +69,11 @@ export type WarSlot = {
   kind: 'attack' | 'defense'
   /** ไม้บุก: บ้าน (ทีมกันศัตรู) ที่จะตี */
   vs?: Team | null
-  /** ประเภทบ้าน เช่น เวทย์/กายภาพ */
+  /** ประเภทบ้าน เช่น เวทย์/โจมตี (= แท็กแรกของ vsTags) */
   vsTag?: string
+  /** บ้านที่จัดเอง: แท็ก + โน้ต (ใช้ตอนจดลงจดทีมศัตรูเป็นบ้านใหม่) */
+  vsTags?: string[]
+  vsNote?: string
   /** id บ้านในคลังคอมพ์ (ใช้เปิดทีมแก้ของบ้านนั้น) */
   vsId?: string
   /** ไม้บุก: index ทีมหลักที่จะใช้จริง (ไม่ใส่ = ทีมแรก) */
@@ -80,19 +83,19 @@ export type WarSlot = {
   alts?: WarHouse[]
 }
 /** บ้านที่จะตีอีกบ้าน (ใช้ทีมบุกชุดเดียวกับไม้นี้) */
-export type WarHouse = Pick<WarSlot, 'vs' | 'vsTag' | 'vsId'>
+export type WarHouse = Pick<WarSlot, 'vs' | 'vsTag' | 'vsId' | 'vsTags' | 'vsNote'>
 export const MAX_HOUSES = 3
-export const emptyHouse = (): WarHouse => ({ vs: null, vsTag: '', vsId: '' })
+export const emptyHouse = (): WarHouse => ({ vs: null, vsTag: '', vsId: '', vsTags: [], vsNote: '' })
 /** ไม้นี้ในมุมของบ้านที่ h (0 = บ้านหลัก) — ทีมบุก (options) ใช้ร่วมกันทุกบ้าน */
 export function houseView(slot: WarSlot, h: number): WarSlot {
   const alt = h > 0 ? slot.alts?.[h - 1] : undefined
-  return alt ? { ...slot, vs: alt.vs ?? null, vsTag: alt.vsTag ?? '', vsId: alt.vsId ?? '' } : slot
+  return alt ? { ...slot, vs: alt.vs ?? null, vsTag: alt.vsTag ?? '', vsId: alt.vsId ?? '', vsTags: alt.vsTags ?? [], vsNote: alt.vsNote ?? '' } : slot
 }
 /** เขียนผลที่แก้ในมุมบ้าน h กลับเข้าไม้: บ้าน → alts[h-1], ที่เหลือ (ชื่อ/ทีมบุก) → ตัวไม้ */
 export function houseApply(orig: WarSlot, h: number, v: WarSlot): WarSlot {
   if (h <= 0 || !orig.alts?.[h - 1]) return { ...v, alts: orig.alts }
-  const house: WarHouse = { vs: v.vs ?? null, vsTag: v.vsTag ?? '', vsId: v.vsId ?? '' }
-  return { ...v, vs: orig.vs, vsTag: orig.vsTag, vsId: orig.vsId, alts: orig.alts.map((a, i) => (i === h - 1 ? house : a)) }
+  const house: WarHouse = { vs: v.vs ?? null, vsTag: v.vsTag ?? '', vsId: v.vsId ?? '', vsTags: v.vsTags ?? [], vsNote: v.vsNote ?? '' }
+  return { ...v, vs: orig.vs, vsTag: orig.vsTag, vsId: orig.vsId, vsTags: orig.vsTags, vsNote: orig.vsNote, alts: orig.alts.map((a, i) => (i === h - 1 ? house : a)) }
 }
 export const MAX_OPTIONS = 8
 export type PlanKind = 'attack' | 'defense'
