@@ -28,6 +28,7 @@ function edited(ts: number) {
 const RECENT_MS = 24 * 3600_000
 import { EquipmentNoteText } from '../components/EquipmentLoadout'
 import HeroNotesTable from '../components/HeroNotesTable'
+import { autoSpeed } from '../lib/teamSpeed'
 
 const copyNotes = (n?: HeroNote[]) => (n ?? []).map((x) => ({ ...x, sets: [...x.sets], rings: [...x.rings] }))
 
@@ -45,6 +46,7 @@ export default function TargetPage() {
 
   const [sel, setSel] = useState(0)
   const [showAll, setShowAll] = useState(false) // หน้าต่างดูทีมแก้ทั้งหมด
+  const [speedAsk, setSpeedAsk] = useState<{ total: number; need: number } | null>(null) // ถามใส่สปีดรวมตอนบันทึกทีมแก้
   const allStrip = useRef<HTMLDivElement>(null)
   const allDrag = useDragScroll(allStrip)
   const [delAsk, setDelAsk] = useState<string | null>(null) // ทีมแก้ที่กดลบครั้งแรกแล้ว (รอกดยืนยัน)
@@ -147,10 +149,17 @@ export default function TargetPage() {
       nav(`/g/${gid}?tab=targets`, { replace: true })
     })
   }
-  const saveCounter = () =>
-    run(async () => {
-      if (heroCount(cDraft.team) === 0) throw new Error('ใส่ฮีโร่อย่างน้อย 1 ตัว')
-      const body = { team: cDraft.team, skills: cDraft.skills, note: cDraft.note, heroNotes: cDraft.heroNotes }
+  // จัดทีมเสร็จ (กดบันทึก) แล้วทุกตัวมีความเร็วโจมตีในสเตตัส → ถามก่อนว่าจะใส่ผลรวมเป็นสปีดทีมไหม (state speedAsk อยู่ด้านบน)
+  const saveCounter = (speed?: number) => {
+    if (speed === undefined && heroCount(cDraft.team) > 0) {
+      const spd = autoSpeed(cDraft.team, cDraft.heroNotes)
+      if (spd.full && spd.total !== cDraft.team.speed) return setSpeedAsk({ total: spd.total, need: spd.need })
+    }
+    setSpeedAsk(null)
+    const team = speed === undefined ? cDraft.team : { ...cDraft.team, speed }
+    return run(async () => {
+      if (heroCount(team) === 0) throw new Error('ใส่ฮีโร่อย่างน้อย 1 ตัว')
+      const body = { team, skills: cDraft.skills, note: cDraft.note, heroNotes: cDraft.heroNotes }
       if (cDraft.id) {
         await api.updateCounter(gid, cDraft.id, body)
         await reload()
@@ -161,6 +170,7 @@ export default function TargetPage() {
       }
       setMode('view')
     })
+  }
   const deleteCounter = () => {
     if (!cDraft.id || !confirm('ลบทีมแก้นี้?')) return
     run(async () => {
@@ -253,6 +263,24 @@ export default function TargetPage() {
           {current.updatedAt > current.createdAt ? `แก้ล่าสุด ${edited(current.updatedAt)}` : `เพิ่มเมื่อ ${edited(current.createdAt)}`}
         </p>
       )}
+
+      <Modal open={!!speedAsk} title="ใส่สปีดทีมไหม?" onClose={() => setSpeedAsk(null)}>
+        {speedAsk && (
+          <div className="text-center">
+            <p className="text-white/80">ความเร็วโจมตีของ {speedAsk.need} ตัวรวมกัน</p>
+            <p className="mt-1 text-4xl font-bold tabular-nums text-gold">{speedAsk.total}</p>
+            {!!cDraft.team.speed && <p className="mt-1 text-sm text-white/50">ตอนนี้ใส่ไว้ {cDraft.team.speed}</p>}
+            <div className="mt-5 flex justify-center gap-2">
+              <button className="pill px-4 py-2 text-sm text-white/80 hover:bg-white/10" disabled={busy} onClick={() => saveCounter(cDraft.team.speed)}>
+                ไม่ใส่ บันทึกเลย
+              </button>
+              <button className="btn-gold px-5 py-2" disabled={busy} onClick={() => saveCounter(speedAsk.total)}>
+                ใส่ {speedAsk.total} แล้วบันทึก
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* ดูทีมแก้ทั้งหมดพร้อมกัน (แบบ 7k-combo) · กดการ์ดเพื่อเปิดทีมนั้น */}
       <Modal open={showAll} title={`ทีมแก้ทั้งหมด (${counters.length})`} onClose={() => setShowAll(false)} wide>
@@ -367,7 +395,7 @@ export default function TargetPage() {
               <HeroNotesTable notes={cDraft.heroNotes} editing team={cDraft.team.slots} onChange={(heroNotes) => setCDraft((d) => ({ ...d, heroNotes }))}
                 onAddHero={(hero) => setCDraft((d) => ({ ...d, team: addHeroToTeam(d.team, hero) }))} />
             </div>
-            <Actions busy={busy} onSave={saveCounter} onCancel={cancel} onDelete={cDraft.id ? deleteCounter : undefined} />
+            <Actions busy={busy} onSave={() => saveCounter()} onCancel={cancel} onDelete={cDraft.id ? deleteCounter : undefined} />
           </div>
         )}
 
