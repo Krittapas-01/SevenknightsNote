@@ -77,14 +77,11 @@ export default function TotalWarPage() {
         </div>
         {/* แถบเฟส */}
         <div className="tw-phase-scroll scrollbar-thin mt-4 overflow-x-auto">
-          <div className="tw-phase-track mx-auto flex w-max rounded-xl">
+          <div className="tw-phase-track mx-auto flex w-max rounded-xl sm:w-full">
             {STEPS.map((name, i) => (
               <div key={name} aria-current={i === step ? 'step' : undefined}
-                className={`tw-phase-wrap -ml-1 ${i === step ? 'tw-phase-wrap-active' : ''}`}>
-                <div style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)' }}
-                  className={`tw-phase px-5 py-2 text-xs font-semibold sm:px-7 sm:text-base ${i === step ? 'tw-phase-active' : ''}`}>
-                  {name}
-                </div>
+                className={`tw-phase -ml-2.5 flex-1 px-5 py-2 text-xs font-semibold first:ml-0 sm:px-3 sm:text-base ${i === step ? 'tw-phase-active' : ''} ${i === 0 ? 'tw-phase-first' : ''} ${i === STEPS.length - 1 ? 'tw-phase-last' : ''}`}>
+                {name}
               </div>
             ))}
           </div>
