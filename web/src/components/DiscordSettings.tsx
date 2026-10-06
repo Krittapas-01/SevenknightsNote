@@ -1,7 +1,8 @@
-import { Check, MessageCircle, Plus, Send, ShieldCheck, Trash2, Unlink } from 'lucide-react'
+import { BellRing, Check, MessageCircle, Plus, Send, ShieldCheck, Trash2, Unlink } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../lib/api'
 import type { GuildData } from '../lib/types'
+import { BOSS_REVIVAL } from '../../../shared/game'
 import Modal from './Modal'
 
 type Mode = '' | 'everyone' | 'here' | 'role'
@@ -14,6 +15,10 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
   const connected = !!discord?.connected
   const [open, setOpen] = useState(false)
   const [url, setUrl] = useState('')
+  const [bossUrl, setBossUrl] = useState('')
+  // ห้องที่ 2 บอสจุติ: API ส่ง bossConnected มาเฉพาะกิลด์ที่เปิดไว้
+  const hasBoss = discord?.bossConnected !== undefined
+  const bossConnected = !!discord?.bossConnected
   const [mode, setMode] = useState<Mode>('')
   const [role, setRole] = useState('')
   const [serverId, setServerId] = useState('')
@@ -25,6 +30,7 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
   function show() {
     const m = discord?.mention ?? ''
     setUrl('')
+    setBossUrl('')
     setMode(modeOf(m))
     setRole(modeOf(m) === 'role' ? m : '')
     setServerId(discord?.serverId ?? '')
@@ -64,11 +70,19 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
         editRoles: list.filter((r) => r.edit).map((r) => r.id),
         roleNames: list.filter((r) => r.name).map((r) => ({ id: r.id, name: r.name })),
         ...(url.trim() ? { webhook: url.trim() } : {}),
+        ...(hasBoss && bossUrl.trim() ? { bossWebhook: bossUrl.trim() } : {}),
       })
       setUrl('')
+      setBossUrl('')
       await reload()
     }, 'บันทึกแล้ว')
   const test = () => run(() => api.testDiscord(gid), 'ส่งข้อความทดสอบแล้ว ลองดูในห้อง Discord')
+  const testBoss = () => run(() => api.testDiscord(gid, true), 'ส่งข้อความทดสอบเข้าห้องบอสจุติแล้ว')
+  const unlinkBoss = () =>
+    run(async () => {
+      await api.saveDiscord(gid, { mention, bossWebhook: '' })
+      await reload()
+    }, 'ยกเลิกห้องบอสจุติแล้ว')
   const unlink = () =>
     run(async () => {
       await api.saveDiscord(gid, { mention: '', webhook: '' })
@@ -105,6 +119,25 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
             <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Role ID เช่น 123456789012345678" inputMode="numeric" className={field} />
             <p className="mt-1 text-xs text-white/40">เปิด Developer Mode (ตั้งค่าผู้ใช้ → Advanced) แล้วกดชื่อคนที่มียศนั้น → คลิกขวาที่ป้ายยศ → Copy Role ID (ไม่ต้องเป็นแอดมิน)</p>
           </>
+        )}
+
+        {hasBoss && (
+          <div className="mt-6 border-t border-white/10 pt-4">
+            <p className="flex items-center gap-1.5 font-semibold"><BellRing className="h-4 w-4 text-gold" /> ห้องที่ 2 · แจ้งเตือนบอสจุติ</p>
+            <p className="mt-1 text-xs text-white/45">
+              รอบละ {BOSS_REVIVAL.days} วัน (เริ่ม 07:00 → จบเที่ยงคืนวันสุดท้าย แล้ววนใหม่) · แจ้ง 07:00 ตอนเริ่มรอบ และเช้าวันสุดท้าย · แท็กยศเดียวกับด้านบน
+            </p>
+            <p className={`mt-2 flex items-center gap-1.5 text-sm ${bossConnected ? 'text-green-400' : 'text-white/55'}`}>
+              {bossConnected ? <><Check className="h-4 w-4" /> เชื่อมอยู่</> : 'ยังไม่ได้เชื่อม'}
+            </p>
+            <input value={bossUrl} onChange={(e) => setBossUrl(e.target.value)} placeholder={bossConnected ? 'เปลี่ยนห้อง (เว้นว่าง = ใช้ห้องเดิม)' : 'https://discord.com/api/webhooks/...'} className={field} autoComplete="off" />
+            {bossConnected && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button disabled={busy} onClick={testBoss} className="pill flex items-center gap-1.5 px-3 py-1.5 text-sm hover:border-gold"><Send className="h-4 w-4" /> ทดสอบห้องนี้</button>
+                <button disabled={busy} onClick={unlinkBoss} className="pill flex items-center gap-1.5 px-3 py-1.5 text-sm text-white/60 hover:border-red-400 hover:text-red-300"><Unlink className="h-4 w-4" /> ยกเลิกห้องนี้</button>
+              </div>
+            )}
+          </div>
         )}
 
         <div className="mt-6 border-t border-white/10 pt-4">

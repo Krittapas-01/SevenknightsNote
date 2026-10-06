@@ -163,3 +163,16 @@ export function totalWarPlan(score: number, targetMin: number, rounds: number) {
   }
   return null
 }
+
+// ---------- บอสจุติ: รอบละ 14 วัน เริ่ม 07:00 วันแรก → จบเที่ยงคืนของวันที่ 14 แล้วเริ่มรอบใหม่ ----------
+export const BOSS_REVIVAL = { start: '2026-10-04', days: 14 }
+const addDays = (key: string, n: number) => new Date(Date.parse(`${key}T00:00:00Z`) + n * 86400_000).toISOString().slice(0, 10)
+
+/** วันในเกม (YYYY-MM-DD, เปลี่ยนวัน 07:00) → วันที่เท่าไหร่ของรอบบอสจุติ (0 = วันเริ่ม) · ก่อนรอบแรก = null */
+export function bossRevivalDay(dayKey: string) {
+  const d = Math.round((Date.parse(`${dayKey}T00:00:00Z`) - Date.parse(`${BOSS_REVIVAL.start}T00:00:00Z`)) / 86400_000)
+  if (d < 0) return null
+  const day = d % BOSS_REVIVAL.days
+  const start = addDays(dayKey, -day)
+  return { day, start, end: addDays(start, BOSS_REVIVAL.days - 1), next: addDays(start, BOSS_REVIVAL.days) }
+}
