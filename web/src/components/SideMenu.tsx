@@ -1,4 +1,4 @@
-import { Cookie, ExternalLink, Home, MessagesSquare, Shield, Sparkles, X } from 'lucide-react'
+import { Calculator, Cookie, ExternalLink, Home, MessagesSquare, Shield, Sparkles, X } from 'lucide-react'
 import { useEffect, useState, type ComponentType } from 'react'
 import { NavLink } from 'react-router'
 import { getRecent, refreshRecent } from '../lib/api'
@@ -7,6 +7,7 @@ import { getRecent, refreshRecent } from '../lib/api'
 const NAV: { to: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
   { to: '/', label: 'หน้าแรก', icon: Home },
   { to: '/biscuit', label: 'เช็กบัฟบิสกิต', icon: Cookie },
+  { to: '/totalwar', label: 'คำนวณแต้มเบ็ดเสร็จ', icon: Calculator },
 ]
 
 // ลิงก์ออกไปหน้าทางการของ Netmarble (เปิดแท็บใหม่)

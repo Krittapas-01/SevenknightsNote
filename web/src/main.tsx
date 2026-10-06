@@ -9,6 +9,7 @@ const GuildPage = lazy(() => import('./pages/GuildPage'))
 const TargetPage = lazy(() => import('./pages/TargetPage'))
 const PlanPage = lazy(() => import('./pages/PlanPage'))
 const BiscuitPage = lazy(() => import('./pages/BiscuitPage'))
+const TotalWarPage = lazy(() => import('./pages/TotalWarPage'))
 const loading = <p className="py-24 text-center text-white/50">กำลังโหลด...</p>
 import NotFound from './pages/NotFound'
 
@@ -23,6 +24,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="g/:gid/t/:tid" element={<Suspense fallback={loading}><TargetPage /></Suspense>} />
           <Route path="g/:gid/p/:pid" element={<Suspense fallback={loading}><PlanPage /></Suspense>} />
           <Route path="biscuit" element={<Suspense fallback={loading}><BiscuitPage /></Suspense>} />
+          <Route path="totalwar" element={<Suspense fallback={loading}><TotalWarPage /></Suspense>} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

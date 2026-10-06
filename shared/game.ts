@@ -52,3 +52,47 @@ export function defaultAutoText(type: 'attack' | 'defense') {
   return `วันนี้ (${DAY_PLACEHOLDER}) ${DAY_LABEL[type]} · ${p.first} ${hhmm(RESET_HOUR)}–${hhmm(p.switchHour)}${note}`
 }
 export const fillDay = (text: string, day: string) => text.split(DAY_PLACEHOLDER).join(day)
+
+// ---------- สงครามเบ็ดเสร็จ (Total War) ----------
+/** จำนวนรอบต่อซีซัน */
+export const TOTAL_WAR_ROUNDS = 22
+
+/**
+ * แรงค์: ถึงคะแนน min แล้วเลื่อนขั้น และตกกลับแรงค์เก่าไม่ได้ · teams = จำนวนทีมที่ใช้ในแรงค์นั้น (ทีมละ 5 ตัว)
+ * เทพเจ้า: ยังไม่ได้ยืนยันจำนวนทีม — ใช้ 5 เท่าตำนานไปก่อน
+ */
+export const TOTAL_WAR_RANKS = [
+  { key: 'normal', name: 'ทั่วไป', min: 0, teams: 2 },
+  { key: 'high', name: 'ระดับสูง', min: 1500, teams: 3 },
+  { key: 'rare', name: 'หายาก', min: 3500, teams: 4 },
+  { key: 'legend', name: 'ตำนาน', min: 6000, teams: 5 },
+  { key: 'god', name: 'เทพเจ้า', min: 8000, teams: 5 },
+] as const
+export type TotalWarRank = (typeof TOTAL_WAR_RANKS)[number]
+
+/** แรงค์จากคะแนนปัจจุบัน (index ใน TOTAL_WAR_RANKS) */
+export function totalWarRankIndex(score: number) {
+  let i = 0
+  while (i + 1 < TOTAL_WAR_RANKS.length && score >= TOTAL_WAR_RANKS[i + 1].min) i++
+  return i
+}
+
+/**
+ * คะแนนหลังจบ 1 รอบ: ได้/เสีย = ((อัตราชนะ% − 50) / 5) × จำนวนทีม × 40
+ * - ได้จนถึงเกณฑ์แรงค์ถัดไป → หยุดที่เกณฑ์พอดี แล้วเลื่อนขั้น (3480 + 720 → 3500)
+ * - เสียแต่ไม่ต่ำกว่าเกณฑ์ของแรงค์ตัวเอง (6120 − 240 → 6000)
+ */
+export function totalWarResult(score: number, winRate: number) {
+  const rankIndex = totalWarRankIndex(score)
+  const rank = TOTAL_WAR_RANKS[rankIndex]
+  const raw = Math.round(((winRate - 50) / 5) * rank.teams * 40)
+  const nextRank = TOTAL_WAR_RANKS[rankIndex + 1]
+  let next = score + raw
+  let promoted: TotalWarRank | null = null
+  if (raw > 0 && nextRank && next >= nextRank.min) {
+    next = nextRank.min
+    promoted = nextRank
+  }
+  if (raw < 0) next = Math.max(rank.min, next)
+  return { rank, rankIndex, raw, change: next - score, next, promoted, capped: next - score !== raw }
+}
