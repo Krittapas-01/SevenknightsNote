@@ -187,7 +187,7 @@ export default function TotalWarPage() {
             ))}
           </tbody>
         </table>
-        <p className="mt-3 text-xs text-white/45">เช่น หายาก ชนะ 52.5% → เกิน 50 อยู่ 2.5% × 32 = +80 · ต่ำกว่า 50 เสียเท่ากัน · ขึ้นแรงค์แล้วไม่ตก</p>
+        <p className="mt-3 text-xs text-white/45">เช่น หายาก ชนะ 52.5% → เกิน 50 อยู่ 2.5% × 32 = +80 · ต่ำกว่า 50 เสียเท่ากัน</p>
       </section>
     </div>
   )
