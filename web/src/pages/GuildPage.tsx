@@ -140,6 +140,7 @@ export default function GuildPage() {
                 variant="enemy"
                 size="sm"
                 team={t.team}
+                skills={t.team.skills ?? []}
                 className={`flex-1 group-hover:border-gold ${t.tags[0] ? 'tag-accent' : ''}`}
                 title={
                   <span className="flex items-center justify-between gap-2">
