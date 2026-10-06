@@ -26,15 +26,31 @@ async function prepare(file: Blob): Promise<HTMLCanvasElement> {
   return c
 }
 
+type Box = { x0: number; y0: number; x1: number; y1: number }
+const flat = (t: string) => t.replace(/\s+/g, '')
+
 /**
- * อ่านแบบเป็นบล็อก (psm 6 — แถวสเตตัสไม่หลุด) แล้วถ้า needMore(ข้อความ) = true
- * อ่านซ้ำแบบกระจาย (psm 11) — ชื่อฮีโร่ตัวใหญ่ภาษาไทยอ่านออกแม่นกว่าแบบนี้
+ * กรอบชื่อฮีโร่ในหน้าข้อมูลฮีโร่ — คำนวณจากแถว "โจมตี" กับ "ป้องกัน" (ระยะห่างแถว = หน่วยวัด)
+ * ชื่ออยู่เหนือแถวโจมตี ~2-3 แถว เยื้องขวาจากรูปฮีโร่ · หาแถวไม่เจอ = null
  */
-export async function readImageText(
-  file: Blob,
-  onProgress?: (p: number) => void,
-  needMore?: (text: string) => boolean,
-): Promise<{ text: string; extra: string }> {
+function nameRect(lines: { text: string; bbox: Box }[], w: number, h: number) {
+  const atk = lines.find((l) => /[กภ]ายภ|เวท|[พผ]ลังโจ|attack/i.test(flat(l.text)))
+  const def = lines.find((l) => /ป้อง|อง[กภ]ัน|defen/i.test(flat(l.text)))
+  if (!atk || !def) return null
+  const p = def.bbox.y0 - atk.bbox.y0
+  if (p <= 0) return null
+  const left = Math.max(0, Math.round(atk.bbox.x0 + 2.8 * p))
+  const top = Math.max(0, Math.round(atk.bbox.y0 - 3 * p))
+  const width = Math.min(w - left, Math.round(9 * p))
+  const height = Math.min(h - top, Math.round(1.6 * p))
+  return width > 0 && height > 0 ? { left, top, width, height } : null
+}
+
+/**
+ * อ่านสเตตัสแบบเป็นบล็อก (psm 6 — แถวสเตตัสไม่หลุด) แล้วอ่านชื่อฮีโร่แยกอีกรอบ:
+ * ครอปเฉพาะบรรทัดชื่อ (psm 7) — ชื่อไทยตัวใหญ่อ่านจากทั้งภาพมักเพี้ยน (ซอรัน → เธร้น)
+ */
+export async function readImageText(file: Blob, onProgress?: (p: number) => void): Promise<{ text: string; name: string }> {
   const { createWorker } = await import('tesseract.js')
   const canvas = await prepare(file)
   const worker = await createWorker(['eng', 'tha'], 1, {
@@ -47,10 +63,12 @@ export async function readImageText(
   })
   try {
     await worker.setParameters({ tessedit_pageseg_mode: '6' as never, preserve_interword_spaces: '1' })
-    const text = (await worker.recognize(canvas)).data.text
-    if (!needMore?.(text)) return { text, extra: '' }
-    await worker.setParameters({ tessedit_pageseg_mode: '11' as never })
-    return { text, extra: (await worker.recognize(canvas)).data.text }
+    const { data } = await worker.recognize(canvas, {}, { text: true, blocks: true })
+    const rect = nameRect((data.lines ?? []) as { text: string; bbox: Box }[], canvas.width, canvas.height)
+    if (!rect) return { text: data.text, name: '' }
+    await worker.setParameters({ tessedit_pageseg_mode: '7' as never })
+    const name = (await worker.recognize(canvas, { rectangle: rect }, { text: true })).data.text.trim()
+    return { text: data.text, name }
   } finally {
     await worker.terminate()
   }

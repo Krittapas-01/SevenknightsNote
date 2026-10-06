@@ -146,17 +146,19 @@ export function StatsImport({ team, onApply, onAddHero }: {
     setImg((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(file) })
     setProgress(0)
     try {
-      // ไม่เจอชื่อฮีโร่ในทีม → อ่านซ้ำแบบกระจายเพื่อหาชื่อ (สเตตัสใช้ผลรอบแรก)
-      const { text, extra } = await readImageText(file, setProgress, (t) => !detectHero([t], heroes))
-      setRaw(extra ? `${text}\n---\n${extra}` : text)
+      // name = บรรทัดชื่อฮีโร่ที่ครอปมาอ่านแยก (แม่นกว่าอ่านจากทั้งภาพ)
+      const { text, name } = await readImageText(file, setProgress)
+      setRaw(name ? `ชื่อ: ${name}\n---\n${text}` : text)
       const s = parseStats(text)
       setStats(s)
-      const found = detectHero([text, extra], heroes)
+      const found = detectHero([name, text], heroes)
       if (found) setHero(found)
       else {
         if (!hero && heroes[0]) setHero(heroes[0])
         // ภาพเป็นฮีโร่ตัวอื่นที่ไม่ได้อยู่ในคอมพ์ → เตือน
-        const other = detectHero([text, extra], HEROES.map((h) => h.id), false)
+        // บรรทัดชื่อที่ครอปมามีแต่ชื่อ → เทียบแบบหลวมได้ · ข้อความทั้งภาพต้องตรงเป๊ะ (กันเตือนผิดตัว)
+        const all = HEROES.map((h) => h.id)
+        const other = detectHero([name], all) ?? detectHero([text], all, false)
         if (other) setMismatchId(other)
         else setNoHero(true)
       }
