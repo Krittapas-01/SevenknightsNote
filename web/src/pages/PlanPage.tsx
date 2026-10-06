@@ -9,6 +9,7 @@ import { DndHub, HideWhileDock, useListTarget } from '../components/DndHub'
 import { findLogItems, logToTargets, markLogged, type LogItem } from '../lib/logTargets'
 import Modal from '../components/Modal'
 import TagEditor from '../components/TagEditor'
+import { rememberNotes } from '../lib/myStats'
 import PasteNotesModal from '../components/PasteNotesModal'
 import { applyNotes } from '../lib/pasteNotes'
 import { exportPng } from '../lib/exportImage'
@@ -316,6 +317,7 @@ export default function PlanPage() {
         await reload()
       }
       setEditing(false)
+      rememberNotes(body.data.slots.flatMap((x) => x.options.flatMap((o) => o.heroNotes ?? []))) // จำสเตตัสล่าสุดของเครื่องนี้
       if (items.length) setLogAsk({ items, planId, body, picked: items.map(() => true) })
     } catch (e) {
       setErr((e as Error).message)

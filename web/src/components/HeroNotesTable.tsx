@@ -6,6 +6,7 @@ import type { HeroNote } from '../lib/types'
 import UnitCard from './UnitCard'
 import EquipmentEditor from './EquipmentEditor'
 import AddHeroNote from './AddHeroNote'
+import RecallStats from './RecallStats'
 
 /**
  * ของ/สเตตัสรายตัว แบบตารางใน 7k-combo:
@@ -46,6 +47,7 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
               <div className="min-w-0">
                 <EquipmentEditor sets={n.sets} rings={n.rings}
                   onChange={(sets, rings) => onChange?.(notes.map((x, j) => (j === i ? { ...x, sets, rings } : x)))} />
+                <RecallStats note={n} onApply={(v) => onChange?.(notes.map((x, j) => (j === i ? v : x)))} />
               </div>
             ) : (
               <div className="min-w-0 space-y-1.5">

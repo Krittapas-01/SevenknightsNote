@@ -28,6 +28,7 @@ const RECENT_MS = 24 * 3600_000
 import { EquipmentNoteText } from '../components/EquipmentLoadout'
 import HeroNotesTable from '../components/HeroNotesTable'
 import TagEditor from '../components/TagEditor'
+import { rememberNotes } from '../lib/myStats'
 import { autoSpeed } from '../lib/teamSpeed'
 
 const copyNotes = (n?: HeroNote[]) => (n ?? []).map((x) => ({ ...x, sets: [...x.sets], rings: [...x.rings] }))
@@ -159,6 +160,7 @@ export default function TargetPage() {
     return run(async () => {
       if (heroCount(team) === 0) throw new Error('ใส่ฮีโร่อย่างน้อย 1 ตัว')
       const body = { team, skills: cDraft.skills, note: cDraft.note, heroNotes: cDraft.heroNotes }
+      rememberNotes(cDraft.heroNotes) // จำสเตตัสล่าสุดของเครื่องนี้
       if (cDraft.id) {
         await api.updateCounter(gid, cDraft.id, body)
         await reload()

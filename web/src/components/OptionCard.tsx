@@ -13,6 +13,7 @@ import { hasStats } from '../lib/stats'
 import AddHeroNote from './AddHeroNote'
 import { baseName, getUnit } from '../data/heroes'
 import { addHeroToTeam, changeFormation, moveSlot, placeUnit, type HeroNote, type WarOption } from '../lib/types'
+import RecallStats from './RecallStats'
 import TeamPanel, { type SlotKind } from './TeamPanel'
 import { SkillQueueBoard } from './TeamModals'
 import AtlasTeam from './AtlasTeam'
@@ -300,7 +301,7 @@ function GearNote({ note, editing, onChange, onRemove }: { note: HeroNote; editi
         note.text && <p className="mt-3 whitespace-pre-wrap break-words text-white/80">{note.text}</p>
       )}
       {editing
-        ? <EquipmentEditor sets={note.sets} rings={note.rings} onChange={(sets, rings) => onChange({ ...note, sets, rings })} />
+        ? <><EquipmentEditor sets={note.sets} rings={note.rings} onChange={(sets, rings) => onChange({ ...note, sets, rings })} /><RecallStats note={note} onApply={onChange} /></>
         : <EquipmentLoadout sets={note.sets} rings={note.rings} />}
       <StatsGrid stats={note.stats} />
       {!editing && !hasStats(note.stats) && !note.text.trim() && <p className="mt-3 text-white/45">ยังไม่ได้ระบุสเตตัส</p>}
