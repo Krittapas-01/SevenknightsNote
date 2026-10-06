@@ -12,6 +12,7 @@ import HeroDetailModal from './HeroDetailModal'
 import type { HeroNote } from '../lib/types'
 import type { HeroStats } from '../lib/stats'
 import { getUnit } from '../data/heroes'
+import { autoSpeed } from '../lib/teamSpeed'
 
 const getName = (id: string) => getUnit(id)?.name ?? id
 
@@ -180,6 +181,9 @@ export default function TeamPanel({
   const lit = Math.min(skills.length, MAX_SKILL_QUEUE)
   const hasExtras = team.extras.some(Boolean)
   const isSm = size === 'sm'
+  // สปีดทีม: ถ้าทุกตัวมีสปีดในสเตตัส → ใช้ผลรวมอัตโนมัติ (ล็อกช่องพิมพ์)
+  const spd = autoSpeed(team, heroNotes)
+  const speed = spd.full ? spd.total : team.speed
 
   const slotProps = (r: SlotRef) => ({
     id: `${panelId}|${keyOf(r)}`,
@@ -212,10 +216,16 @@ export default function TeamPanel({
       </div>
 
       {/* speed */}
-      <div data-noexport={!team.speed && !editable ? '' : undefined} className={`flex justify-end ${isSm ? 'mt-1.5' : 'mt-2.5'}`}>
-        <label className={`pill flex items-center gap-1.5 border-gold-deep/60 ${isSm ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-base'}`}>
+      <div data-noexport={!speed && !editable ? '' : undefined} className={`flex items-center justify-end gap-2 ${isSm ? 'mt-1.5' : 'mt-2.5'}`}>
+        {editable && !spd.full && spd.have > 0 && (
+          <span className="text-[11px] text-white/45">สปีดครบ {spd.have}/{spd.need} ตัว</span>
+        )}
+        <label
+          title={spd.full ? `รวมความเร็วโจมตี ${spd.need} ตัวจากสเตตัส (อัตโนมัติ)` : undefined}
+          className={`pill flex items-center gap-1.5 border-gold-deep/60 ${isSm ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-base'}`}
+        >
           <Footprints className={isSm ? 'h-3.5 w-3.5 text-gold' : 'h-5 w-5 text-gold'} />
-          {editable && onSpeed ? (
+          {editable && onSpeed && !spd.full ? (
             <input
               type="number"
               inputMode="numeric"
@@ -226,8 +236,9 @@ export default function TeamPanel({
               className="w-16 bg-transparent text-right font-bold tabular-nums text-gold outline-none placeholder:text-gold/60"
             />
           ) : (
-            <span className="min-w-6 text-right font-bold tabular-nums text-gold">{team.speed || 0}</span>
+            <span className="min-w-6 text-right font-bold tabular-nums text-gold">{speed || 0}</span>
           )}
+          {editable && spd.full && <span className="text-[10px] font-normal text-white/45">อัตโนมัติ</span>}
         </label>
       </div>
 

@@ -16,6 +16,16 @@ import { api } from '../lib/api'
 import { MAX_HEROES, addHeroToTeam, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, SKILL_LABEL, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import NotFound from './NotFound'
+
+/** "เมื่อสักครู่" / "5 นาทีที่แล้ว" / "3 ชม. ที่แล้ว" / "2 วันที่แล้ว" */
+function edited(ts: number) {
+  const m = Math.floor((Date.now() - ts) / 60_000)
+  if (m < 1) return 'เมื่อสักครู่'
+  if (m < 60) return `${m} นาทีที่แล้ว`
+  if (m < 1440) return `${Math.floor(m / 60)} ชม. ที่แล้ว`
+  return `${Math.floor(m / 1440)} วันที่แล้ว`
+}
+const RECENT_MS = 24 * 3600_000
 import { EquipmentNoteText } from '../components/EquipmentLoadout'
 import HeroNotesTable from '../components/HeroNotesTable'
 
@@ -211,6 +221,10 @@ export default function TargetPage() {
                 }`}
               >
                 ทีมแก้ #{i + 1}
+                {/* แก้ภายใน 24 ชม. → จุดเล็ก ๆ ให้คนในกิลรู้ว่ามีการแก้ */}
+                {c.updatedAt > c.createdAt && Date.now() - c.updatedAt < RECENT_MS && (
+                  <span title={`แก้ล่าสุด ${edited(c.updatedAt)}`} className="ml-1.5 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full bg-emerald-400 align-middle" />
+                )}
               </button>
             ))}
             {canEdit && (
@@ -232,6 +246,12 @@ export default function TargetPage() {
             </button>
           )}
         </div>
+      )}
+
+      {!isNew && current && mode === 'view' && (
+        <p className="mt-2 text-center text-xs text-white/45">
+          {current.updatedAt > current.createdAt ? `แก้ล่าสุด ${edited(current.updatedAt)}` : `เพิ่มเมื่อ ${edited(current.createdAt)}`}
+        </p>
       )}
 
       {/* ดูทีมแก้ทั้งหมดพร้อมกัน (แบบ 7k-combo) · กดการ์ดเพื่อเปิดทีมนั้น */}
