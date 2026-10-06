@@ -28,6 +28,7 @@ const RECENT_MS = 24 * 3600_000
 import { EquipmentNoteText } from '../components/EquipmentLoadout'
 import HeroNotesTable from '../components/HeroNotesTable'
 import TagEditor from '../components/TagEditor'
+import LikeButton from '../components/LikeButton'
 import { rememberNotes } from '../lib/myStats'
 import { autoSpeed } from '../lib/teamSpeed'
 
@@ -226,6 +227,7 @@ export default function TargetPage() {
                 }`}
               >
                 ทีมแก้ #{i + 1}
+                {!!c.likes && <span className="ml-1 text-xs opacity-70">👍{c.likes}</span>}
                 {/* แก้ภายใน 24 ชม. → จุดเล็ก ๆ ให้คนในกิลรู้ว่ามีการแก้ */}
                 {c.updatedAt > c.createdAt && Date.now() - c.updatedAt < RECENT_MS && (
                   <span title={`แก้ล่าสุด ${edited(c.updatedAt)}`} className="ml-1.5 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full bg-emerald-400 align-middle" />
@@ -417,7 +419,10 @@ export default function TargetPage() {
           <div className="grid gap-5 md:grid-cols-2">
             <div className="panel panel-gold p-5">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gold">{current ? `ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}` : 'ทีมแก้'}</h3>
+                <h3 className="flex items-center gap-2 font-semibold text-gold">
+                  {current ? `ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}` : 'ทีมแก้'}
+                  {current && <LikeButton key={current.id} gid={gid} cid={current.id} count={current.likes ?? 0} onChanged={reload} />}
+                </h3>
                 {canEdit && (
                   // ยังไม่มีทีมแก้ = ปุ่มเพิ่ม (เหมือนกด "เพิ่มทีมแก้" ด้านบน)
                   <button onClick={() => editCounter(!current)} className="flex items-center gap-1 text-sm text-white/70 hover:text-gold">

@@ -326,7 +326,7 @@ app.delete('/api/guild/:id', async (c) => {
   const g = await c.env.DB.prepare('SELECT name FROM guilds WHERE id = ?').bind(gid).first<{ name: string }>()
   if (!g) return c.json({ error: 'not found' }, 404)
   if (String(body.confirmName ?? '').trim() !== g.name.trim()) return c.json({ error: 'ชื่อกิลด์ที่พิมพ์ยืนยันไม่ตรง' }, 400)
-  await c.env.DB.batch(['counters', 'targets', 'plans', 'announcements', 'guild_settings'].map((t) =>
+  await c.env.DB.batch(['likes', 'counters', 'targets', 'plans', 'announcements', 'guild_settings'].map((t) =>
     c.env.DB.prepare(`DELETE FROM ${t} WHERE guild_id = ?`).bind(gid)).concat(
     c.env.DB.prepare('DELETE FROM guilds WHERE id = ?').bind(gid),
     c.env.DB.prepare("DELETE FROM auth_fails WHERE k LIKE ? || ':%'").bind(gid), // ตัวนับใส่รหัสผิดของกิลด์นี้
@@ -339,7 +339,7 @@ app.get('/api/guild/:id', async (c) => {
   const id = c.req.param('id')
   const guild = await c.env.DB.prepare('SELECT id, name, created_at FROM guilds WHERE id = ?').bind(id).first<any>()
   if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
-  const [t, k, p, a, st, ap] = await c.env.DB.batch([
+  const [t, k, p, a, st, ap, lk] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT * FROM targets WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY created_at ASC').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
@@ -347,6 +347,7 @@ app.get('/api/guild/:id', async (c) => {
     c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(id),
     // ประกาศล่าสุดที่เลือกแผน (= แผนที่ใช้อยู่) — ต้องมีเสมอ แม้จะเก่ากว่า 30 อันล่าสุด (ประกาศอัตโนมัติรายวันดันตกไป)
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? AND plan_id IS NOT NULL ORDER BY created_at DESC LIMIT 1').bind(id),
+    c.env.DB.prepare('SELECT counter_id, COUNT(*) AS n FROM likes WHERE guild_id = ? GROUP BY counter_id').bind(id), // จำนวนไลค์ (ไม่บอกว่าใครกด)
   ])
   const announcements = (a.results as any[]).map(toAnnouncement)
   const planAnn = (ap.results as any[])[0]
@@ -363,7 +364,8 @@ app.get('/api/guild/:id', async (c) => {
     // ห้องที่ 2 (บอสจุติ) — มีเฉพาะกิลด์ที่เปิดไว้
     ...(id === BOSS_GUILD ? { bossConnected: !!settings?.boss_webhook, bossText: { start: settings?.boss_text_start ?? null, end: settings?.boss_text_end ?? null } } : {}),
   }
-  const counters = (k.results as any[]).map(toCounter)
+  const likeCount = new Map((lk.results as any[]).map((r) => [r.counter_id as string, r.n as number]))
+  const counters = (k.results as any[]).map((r) => ({ ...toCounter(r), likes: likeCount.get(r.id) ?? 0 }))
   const targets = (t.results as any[]).map((r) => ({
     ...toTarget(r),
     counters: counters.filter((x) => x.targetId === r.id),
@@ -428,6 +430,7 @@ app.delete('/api/guild/:id/targets/:tid', async (c) => {
   if (auth !== 'ok') return deny(c, auth)
   const tid = c.req.param('tid')
   await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM likes WHERE guild_id = ? AND counter_id IN (SELECT id FROM counters WHERE target_id = ?)').bind(gid, tid),
     c.env.DB.prepare('DELETE FROM counters WHERE target_id = ? AND guild_id = ?').bind(tid, gid),
     c.env.DB.prepare('DELETE FROM targets WHERE id = ? AND guild_id = ?').bind(tid, gid),
   ])
@@ -485,7 +488,10 @@ app.delete('/api/guild/:id/counters/:cid', async (c) => {
   const auth = await checkKey(c, gid)
   if (auth !== 'ok') return deny(c, auth)
   await touchTargetOf(c.env, c.req.param('cid'), gid) // ก่อนลบ (ยังหา target_id ได้)
-  await c.env.DB.prepare('DELETE FROM counters WHERE id = ? AND guild_id = ?').bind(c.req.param('cid'), gid).run()
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM likes WHERE counter_id = ? AND guild_id = ?').bind(c.req.param('cid'), gid),
+    c.env.DB.prepare('DELETE FROM counters WHERE id = ? AND guild_id = ?').bind(c.req.param('cid'), gid),
+  ])
   return c.json({ ok: true })
 })
 
@@ -899,6 +905,50 @@ app.post('/api/auth/logout', async (c) => {
   const token = (c.req.header('Authorization') || '').replace(/^Bearer\s+/i, '')
   if (token) await c.env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(await sha256(token)).run()
   return c.json({ ok: true })
+})
+
+// ---------- ไลค์ทีมแก้ (ทีมที่ชอบ) — ต้องล็อกอิน Discord · เก็บกับ Discord user ข้ามกิลด์/ข้ามเครื่อง ----------
+const MAX_LIKES_PER_USER = 500
+
+/** กด/ยกเลิกไลค์ทีมแก้ → { liked, count } */
+app.post('/api/guild/:id/counters/:cid/like', async (c) => {
+  const user = await currentUser(c)
+  if (!user) return c.json({ error: 'เข้าสู่ระบบด้วย Discord ก่อนกดถูกใจ' }, 401)
+  const gid = c.req.param('id')
+  const cid = c.req.param('cid')
+  const counter = await c.env.DB.prepare('SELECT id FROM counters WHERE id = ? AND guild_id = ?').bind(cid, gid).first()
+  if (!counter) return c.json({ error: 'ไม่พบทีมแก้' }, 404)
+  const had = await c.env.DB.prepare('SELECT 1 FROM likes WHERE user_id = ? AND counter_id = ?').bind(user.id, cid).first()
+  if (had) {
+    await c.env.DB.prepare('DELETE FROM likes WHERE user_id = ? AND counter_id = ?').bind(user.id, cid).run()
+  } else {
+    const n = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM likes WHERE user_id = ?').bind(user.id).first<any>()
+    if ((n?.n ?? 0) >= MAX_LIKES_PER_USER) return c.json({ error: `กดถูกใจได้ไม่เกิน ${MAX_LIKES_PER_USER} ทีม` }, 400)
+    await c.env.DB.prepare('INSERT OR IGNORE INTO likes (user_id, counter_id, guild_id, created_at) VALUES (?, ?, ?, ?)').bind(user.id, cid, gid, Date.now()).run()
+  }
+  const cnt = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM likes WHERE counter_id = ?').bind(cid).first<any>()
+  return c.json({ liked: !had, count: cnt?.n ?? 0 })
+})
+
+/** ทีมที่ฉันชอบ (ทุกกิลด์) — ใหม่สุดก่อน */
+app.get('/api/me/likes', async (c) => {
+  c.header('Cache-Control', 'no-store')
+  const user = await currentUser(c)
+  if (!user) return c.json({ error: 'เข้าสู่ระบบด้วย Discord ก่อน' }, 401)
+  const { results } = await c.env.DB.prepare(
+    `SELECT l.counter_id, l.guild_id, l.created_at AS liked_at, g.name AS guild_name,
+            k.team, k.skills, k.note, k.target_id, t.team AS target_team, t.tags AS target_tags,
+            (SELECT COUNT(*) FROM likes x WHERE x.counter_id = l.counter_id) AS likes
+     FROM likes l JOIN counters k ON k.id = l.counter_id JOIN targets t ON t.id = k.target_id JOIN guilds g ON g.id = l.guild_id
+     WHERE l.user_id = ? ORDER BY l.created_at DESC LIMIT ?`,
+  ).bind(user.id, MAX_LIKES_PER_USER).all<any>()
+  return c.json({
+    likes: results.map((r) => ({
+      counterId: r.counter_id, guildId: r.guild_id, guildName: r.guild_name, targetId: r.target_id, likedAt: r.liked_at, likes: r.likes,
+      team: JSON.parse(r.team), skills: JSON.parse(r.skills || '[]'), note: r.note,
+      targetTeam: JSON.parse(r.target_team), targetTags: JSON.parse(r.target_tags || '[]'),
+    })),
+  })
 })
 
 // ---------- หน้าแอดมิน: ภาพรวมการใช้งานทุกกิลด์ (ล็อกอิน Discord + อยู่ใน ADMIN_DISCORD_IDS) ----------

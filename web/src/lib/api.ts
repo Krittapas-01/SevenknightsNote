@@ -118,6 +118,10 @@ export const api = {
     req<{ schedule: DayType[]; autoAnnounce: boolean; autoText: { attack: string; defense: string } }>(`/api/guild/${gid}/schedule`, {
       method: 'PUT', body: JSON.stringify({ autoAnnounce, autoText }), gid,
     }),
+  /** กด/ยกเลิกถูกใจทีมแก้ (ต้องล็อกอิน Discord) */
+  likeCounter: (gid: string, cid: string) => req<{ liked: boolean; count: number }>(`/api/guild/${gid}/counters/${cid}/like`, { method: 'POST' }),
+  /** ทีมที่ฉันชอบ (ทุกกิลด์) */
+  myLikes: () => req<{ likes: LikedCounter[] }>('/api/me/likes'),
   /** หน้าแอดมิน (ต้องล็อกอิน Discord ด้วยไอดีที่อยู่ใน ADMIN_DISCORD_IDS) */
   adminStats: () => req<AdminStats>('/api/admin/stats'),
 }
@@ -126,5 +130,9 @@ export type AdminGuild = {
   id: string; name: string; createdAt: number; lastActive: number
   targets: number; counters: number; plans: number; announcements: number; autoAnnouncements: number
   webhook: number; discordLogin: number
+}
+export type LikedCounter = {
+  counterId: string; guildId: string; guildName: string; targetId: string; likedAt: number; likes: number
+  team: Team; skills: SkillStep[]; note: string; targetTeam: Team; targetTags: string[]
 }
 export type AdminStats = { now: number; guilds: AdminGuild[]; discordUsers: number }

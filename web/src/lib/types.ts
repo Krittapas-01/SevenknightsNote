@@ -32,6 +32,8 @@ export type Counter = {
   note: string
   /** ของ/สเตตัสรายตัว */
   heroNotes?: HeroNote[]
+  /** จำนวนคนที่กดถูกใจ (ล็อกอิน Discord) */
+  likes?: number
   createdAt: number
   updatedAt: number
 }
