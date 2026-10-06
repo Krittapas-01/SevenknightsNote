@@ -20,12 +20,12 @@ const short = (ms: number) => {
 const STEPS = ['เตรียมซีซัน', ...TOTAL_WAR_PHASES.map((p) => p.name.replace(/ \(.*\)/, '')), 'สรุปซีซัน']
 const COUNTDOWN: Record<string, string> = { prep: 'เวลาเริ่มการต่อสู้', fight: 'เวลาสิ้นสุดการต่อสู้', result: 'เวลาประกาศผลรอบ' }
 
-/** นาฬิกาจับเวลา เข็มเดิน (แบบในเกม) */
+/** นาฬิกาจับเวลา (แบบในเกม) */
 function Stopwatch() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <path d="M10 2h4M12 2v3" /><circle cx="12" cy="14" r="8" />
-      <line x1="12" y1="14" x2="12" y2="9" className="tw-stopwatch-hand" />
+      <line x1="12" y1="14" x2="12" y2="9" />
     </svg>
   )
 }
@@ -85,8 +85,8 @@ export default function TotalWarPage() {
             {tw.state !== 'ended' && <span className="tw-countdown-time"><Stopwatch /><b className="tabular-nums">{short(tw.state === 'running' ? tw.phaseLeft : tw.startsIn)}</b></span>}
           </span>
         </div>
-        {/* แถบเฟส (แบบในเกม: ปลายแหลม + เพชร · ช่องปัจจุบันมีเปลวไฟ) */}
-        <div className="tw-phase-scroll scrollbar-thin mt-4 overflow-x-auto pt-3">
+        {/* แถบเฟส (แบบในเกม: ปลายแหลม + เพชร) */}
+        <div className="tw-phase-scroll scrollbar-thin mt-4 overflow-x-auto">
           <div className="tw-phase-frame relative mx-auto w-max sm:w-full">
             <span className="tw-phase-gem tw-phase-gem-l" aria-hidden="true" />
             <span className="tw-phase-gem tw-phase-gem-r" aria-hidden="true" />
@@ -98,10 +98,6 @@ export default function TotalWarPage() {
                 </div>
               ))}
             </div>
-            {/* เปลวไฟบนช่องปัจจุบัน (วางนอก track เพราะ track ตัดขอบด้วย clip-path) */}
-            <span className="tw-phase-flame" aria-hidden="true" style={{ left: `calc(10px + var(--pad, var(--tip)) + (100% - 20px - 2 * var(--pad, var(--tip)) + ${(STEPS.length - 1) * 8}px) * ${(step + 0.5) / STEPS.length} - ${step * 8}px)` }}>
-              <i /><i />
-            </span>
           </div>
         </div>
 
