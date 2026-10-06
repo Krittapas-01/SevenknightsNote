@@ -14,3 +14,5 @@ api/add-defense-plan.sql
 api/thousandsunny-defense.sql
 api/.local-data-imported
 .dev.vars
+# สำเนาฐานข้อมูลจริงไว้ทดสอบในเครื่อง (มี webhook/ข้อมูลกิลด์ — ห้าม commit)
+api/prod-*.sql
