@@ -20,6 +20,16 @@ const short = (ms: number) => {
 const STEPS = ['เตรียมซีซัน', ...TOTAL_WAR_PHASES.map((p) => p.name.replace(/ \(.*\)/, '')), 'สรุปซีซัน']
 const COUNTDOWN: Record<string, string> = { prep: 'เวลาเริ่มการต่อสู้', fight: 'เวลาสิ้นสุดการต่อสู้', result: 'เวลาประกาศผลรอบ' }
 
+/** นาฬิกาจับเวลา เข็มเดิน (แบบในเกม) */
+function Stopwatch() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M10 2h4M12 2v3" /><circle cx="12" cy="14" r="8" />
+      <line x1="12" y1="14" x2="12" y2="9" className="tw-stopwatch-hand" />
+    </svg>
+  )
+}
+
 /** ป้ายแบบในเกม: ✦ หัวข้อ ........ ค่า */
 function Pill({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
   return (
@@ -72,18 +82,26 @@ export default function TotalWarPage() {
           <span className="tw-countdown rounded-full border px-4 py-1.5 text-sm">
             <span className="tw-countdown-spark" aria-hidden="true">✦</span>
             <span className="tw-countdown-label">{tw.state === 'running' ? COUNTDOWN[tw.phase.key] : tw.state === 'before' ? 'ซีซันเริ่มใน' : 'สรุปซีซัน'}</span>
-            {tw.state !== 'ended' && <span className="tw-countdown-time"><Clock aria-hidden="true" className="h-4 w-4" /><b className="tabular-nums">{short(tw.state === 'running' ? tw.phaseLeft : tw.startsIn)}</b></span>}
+            {tw.state !== 'ended' && <span className="tw-countdown-time"><Stopwatch /><b className="tabular-nums">{short(tw.state === 'running' ? tw.phaseLeft : tw.startsIn)}</b></span>}
           </span>
         </div>
-        {/* แถบเฟส */}
-        <div className="tw-phase-scroll scrollbar-thin mt-4 overflow-x-auto">
-          <div className="tw-phase-track mx-auto flex w-max sm:w-full">
-            {STEPS.map((name, i) => (
-              <div key={name} aria-current={i === step ? 'step' : undefined}
-                className={`tw-phase flex-1 px-5 py-2 text-xs font-semibold sm:px-3 sm:text-base ${i === step ? 'tw-phase-active' : ''} ${i === 0 ? 'tw-phase-first' : ''}`}>
-                {name}
-              </div>
-            ))}
+        {/* แถบเฟส (แบบในเกม: ปลายแหลม + เพชร · ช่องปัจจุบันมีเปลวไฟ) */}
+        <div className="tw-phase-scroll scrollbar-thin mt-4 overflow-x-auto pt-3">
+          <div className="tw-phase-frame relative mx-auto w-max sm:w-full">
+            <span className="tw-phase-gem tw-phase-gem-l" aria-hidden="true" />
+            <span className="tw-phase-gem tw-phase-gem-r" aria-hidden="true" />
+            <div className="tw-phase-track flex">
+              {STEPS.map((name, i) => (
+                <div key={name} aria-current={i === step ? 'step' : undefined}
+                  className={`tw-phase relative flex-1 px-5 py-2 text-xs font-semibold sm:px-3 sm:text-base ${i === step ? 'tw-phase-active' : ''} ${i === 0 ? 'tw-phase-first' : ''} ${i === STEPS.length - 1 ? 'tw-phase-last' : ''} ${i !== step && (i === 0 || i === STEPS.length - 1) ? 'tw-phase-dim' : ''}`}>
+                  {name}
+                </div>
+              ))}
+            </div>
+            {/* เปลวไฟบนช่องปัจจุบัน (วางนอก track เพราะ track ตัดขอบด้วย clip-path) */}
+            <span className="tw-phase-flame" aria-hidden="true" style={{ left: `calc(10px + var(--pad, var(--tip)) + (100% - 20px - 2 * var(--pad, var(--tip)) + ${(STEPS.length - 1) * 8}px) * ${(step + 0.5) / STEPS.length} - ${step * 8}px)` }}>
+              <i /><i />
+            </span>
           </div>
         </div>
 

@@ -42,7 +42,29 @@
 .tw-reward-current { border-color: #e2bf70; background: linear-gradient(100deg, #473c2b, #292d39); box-shadow: inset 0 0 0 1px #f4d58d35, 0 0 16px #f4d58d15; }
 .tw-reward-row .text-xs { color: #aeb8cc; }
 
+/* แถบเฟสแบบในเกม: กรอบปลายแหลม (ขอบทอง = ชั้นนอก, พื้น = ชั้นใน) + เพชรที่ปลาย + เปลวไฟ */
+.tw-phase-frame { --tip: 13.85px; --seg-tip: 12px; --pad: 5px; padding: 0 10px; } /* ทุกเส้นมุมเดียวกับลูกศร 12px/ครึ่งช่อง 26px: กรอบ = 12 × 60/52 · pad ≈ ร่องบน 4px ÷ cos มุม */
+.tw-phase-frame .tw-phase-track { position: relative; gap: 3px; border: 0; padding: 4px var(--pad, var(--tip)); clip-path: polygon(var(--tip) 0, calc(100% - var(--tip)) 0, 100% 50%, calc(100% - var(--tip)) 100%, var(--tip) 100%, 0 50%); background: linear-gradient(180deg, #f4d58d70, #c9a35a40); box-shadow: none; }
+.tw-phase-frame .tw-phase-track::before { content: ""; position: absolute; inset: 1px; z-index: 0; clip-path: polygon(var(--tip) 0, calc(100% - var(--tip)) 0, 100% 50%, calc(100% - var(--tip)) 100%, var(--tip) 100%, 0 50%); background: linear-gradient(180deg, #0e1726, #151e2e); }
+.tw-phase-frame .tw-phase-track { gap: 0; }
+.tw-phase-frame .tw-phase { z-index: 1; border: 0; }
+.tw-phase-frame .tw-phase + .tw-phase { margin-left: -8px; } /* ซ้อนลูกศรให้ชิดกัน เหลือร่องบาง ๆ แบบในเกม */
+.tw-phase-frame .tw-phase-first { clip-path: polygon(var(--seg-tip) 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, var(--seg-tip) 100%, 0 50%); }
+.tw-phase-frame .tw-phase-last { clip-path: polygon(0 0, calc(100% - var(--seg-tip)) 0, 100% 50%, calc(100% - var(--seg-tip)) 100%, 0 100%, 12px 50%); }
+.tw-phase-dim { color: #aeb9ce80; }
+.tw-phase-gem { position: absolute; top: 50%; z-index: 2; width: 11px; height: 11px; border: 1px solid #f4d58d; background: #0e1726; transform: translateY(-50%) rotate(45deg); box-shadow: 0 0 8px #f4d58d88; }
+.tw-phase-gem-l { left: 2px; }
+.tw-phase-gem-r { right: 2px; }
+.tw-phase-flame { position: absolute; top: -12px; z-index: 3; width: min(16%, 9rem); height: 26px; transform: translateX(-50%); pointer-events: none; mix-blend-mode: screen; }
+.tw-phase-flame i { position: absolute; inset: 0; transform-origin: 50% 100%; filter: blur(2.5px); background: radial-gradient(38% 70% at 28% 78%, #ffe296, transparent 72%), radial-gradient(34% 95% at 54% 72%, #f4d58d, transparent 70%), radial-gradient(30% 80% at 78% 82%, #fff0c8, transparent 70%); animation: tw-flame 1.4s ease-in-out infinite alternate; }
+.tw-phase-flame i + i { opacity: .7; filter: blur(5px); animation-duration: 1.05s; animation-delay: -.5s; }
+@keyframes tw-flame { 0% { transform: scale(1, .8) translateX(-3%); opacity: .75; } 50% { transform: scale(1.06, 1.12) translateX(2%); opacity: 1; } 100% { transform: scale(.96, .9) translateX(-1%); opacity: .8; } }
+.tw-stopwatch-hand { transform-origin: 12px 14px; animation: tw-tick 4s steps(8) infinite; }
+@keyframes tw-tick { to { transform: rotate(360deg); } }
+
 @media (max-width: 639px) {
+  .tw-phase-frame { --tip: 14.14px; --pad: 4.3px; } /* 12 × 52.8/44.8 */
+  .tw-phase-flame { width: 7rem; }
   .tw-heading { padding-bottom: .85rem; }
   .tw-heading p { max-width: 28rem; font-size: .8rem; }
   .tw-countdown { min-height: 2.6rem; gap: .42rem; padding-right: .85rem; padding-left: .85rem; font-size: .8rem; }
@@ -52,4 +74,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tw-phase, .tw-goal button { transition: none; }
+  .tw-phase-flame i, .tw-stopwatch-hand { animation: none; }
 }
