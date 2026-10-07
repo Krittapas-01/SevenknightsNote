@@ -19,6 +19,13 @@ export function houseLabel(tag: string) {
   return `บ้าน${t === 'กายภาพ' || t === 'กาย' ? 'โจมตี' : t === 'เวท' ? 'เวทย์' : t}` // แผนเก่าที่เก็บ "กายภาพ" ไว้ ขึ้นเป็นบ้านโจมตี
 }
 
+/** แท็กประเภทหลัก ขึ้นก่อนเสมอ (ตามลำดับนี้) ที่เหลือคงลำดับที่ใส่ */
+export const MAIN_TAGS = ['โจมตี', 'เวทย์', 'เวท', 'ถึก']
+export function sortTags(tags: string[]) {
+  const rank = (t: string) => { const i = MAIN_TAGS.indexOf(t.trim()); return i < 0 ? MAIN_TAGS.length : i }
+  return tags.map((t, i) => ({ t, i })).sort((a, b) => rank(a.t) - rank(b.t) || a.i - b.i).map((x) => x.t)
+}
+
 export function tagColor(tag: string) {
   const t = tag.trim()
   if (FIXED[t]) return FIXED[t]

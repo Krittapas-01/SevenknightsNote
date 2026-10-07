@@ -1,5 +1,5 @@
 import { Check, ChevronLeft, ChevronRight, ClipboardList, LayoutGrid, Link2, Plus, Search, Shield, Swords } from 'lucide-react'
-import { tagColor, tagStyle } from '../lib/tags'
+import { sortTags, tagColor, tagStyle } from '../lib/tags'
 import { useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import Modal from '../components/Modal'
@@ -26,7 +26,7 @@ export default function GuildPage() {
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') === 'targets' ? 'targets' : 'plans'
 
-  const allTags = useMemo(() => [...new Set(data?.targets.flatMap((t) => t.tags) ?? [])], [data])
+  const allTags = useMemo(() => sortTags([...new Set(data?.targets.flatMap((t) => t.tags) ?? [])]), [data])
   const list = useMemo(() => {
     const s = q.trim().toLowerCase()
     // แก้ล่าสุดอยู่บนสุด (ตัวทีมเป้าหมายหรือทีมแก้ข้างใน — เวลาเดียวกับจุดเขียว)

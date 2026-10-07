@@ -114,7 +114,11 @@ function parseSkills(raw: any, team: Team): SkillStep[] {
 function parseTags(raw: any): string[] {
   if (!Array.isArray(raw)) return []
   // "กายภาพ"/"กาย" = "โจมตี" (ชื่อประเภทฮีโร่ในเกม) — รวมเป็นแท็กเดียว (ข้อมูลเก่าแปลงแล้วใน migration 0015)
-  return [...new Set(raw.map((t) => str(t, 20)).map((t) => (t === 'กายภาพ' || t === 'กาย' ? 'โจมตี' : t)).filter(Boolean))].slice(0, 5)
+  const tags = [...new Set(raw.map((t) => str(t, 20)).map((t) => (t === 'กายภาพ' || t === 'กาย' ? 'โจมตี' : t)).filter(Boolean))].slice(0, 5)
+  // แท็กหลักขึ้นก่อน (ต้องตรงกับ MAIN_TAGS ฝั่งเว็บ) ที่เหลือคงลำดับที่ใส่
+  const MAIN = ['โจมตี', 'เวทย์', 'เวท', 'ถึก']
+  const rank = (t: string) => { const i = MAIN.indexOf(t); return i < 0 ? MAIN.length : i }
+  return tags.map((t, i) => ({ t, i })).sort((a, b) => rank(a.t) - rank(b.t) || a.i - b.i).map((x) => x.t)
 }
 
 function idList(raw: any, max = 20): string[] {

@@ -1,7 +1,7 @@
 import { X } from 'lucide-react'
 import { useState } from 'react'
 import { PRESET_TAGS } from '../data/heroes'
-import { tagStyle } from '../lib/tags'
+import { sortTags, tagStyle } from '../lib/tags'
 
 export const MAX_TAGS = 5
 
@@ -11,7 +11,7 @@ export default function TagEditor({ tags, onChange, className = '' }: { tags: st
   const add = (t: string) => {
     const v = t.trim().slice(0, 20)
     if (!v || tags.includes(v) || tags.length >= MAX_TAGS) return
-    onChange([...tags, v])
+    onChange(sortTags([...tags, v]))
     setInput('')
   }
   return (

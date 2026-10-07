@@ -1,5 +1,6 @@
 import { getSession } from './auth'
 import type { Announcement, Counter, DayType, GuildData, HeroNote, Plan, PlanData, SkillStep, Target, Team } from './types'
+import { sortTags } from './tags'
 
 export type Pulse = {
   guildName: string
@@ -81,7 +82,8 @@ async function req<T>(path: string, init: RequestInit & { gid?: string; key?: st
 export const api = {
   createGuild: (name: string, password: string) =>
     req<{ id: string; name: string; editKey: string }>('/api/guild', { method: 'POST', body: JSON.stringify({ name, password }) }),
-  getGuild: (gid: string) => req<GuildData>(`/api/guild/${gid}`),
+  // แท็กหลัก (โจมตี/เวทย์/ถึก) ขึ้นก่อนเสมอ — ข้อมูลเก่าที่ลำดับต่างกันก็เรียงให้ตอนโหลด
+  getGuild: (gid: string) => req<GuildData>(`/api/guild/${gid}`).then((d) => ({ ...d, targets: d.targets.map((t) => ({ ...t, tags: sortTags(t.tags) })) })),
   pulse: (gid: string) => req<Pulse>(`/api/guild/${gid}/pulse`),
   checkEdit: (gid: string, key?: string) => req<{ canEdit: boolean; locked?: boolean }>(`/api/guild/${gid}/check`, { gid, key }),
   setPassword: (gid: string, password: string) =>
