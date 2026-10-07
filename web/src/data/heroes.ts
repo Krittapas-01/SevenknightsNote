@@ -14,6 +14,8 @@ export type Unit = {
   name: string
   type?: HeroType
   img?: string
+  /** รูปย่อ 256px (assets/units/thumb — สร้างด้วย scripts/make-thumbs.py) ใช้บนการ์ดเล็ก */
+  thumb?: string
 }
 
 export const HERO_TYPES: Record<HeroType, { label: string; color: string }> = {
@@ -245,18 +247,19 @@ export const EN_NAME: Record<string, string> = {
  * รองรับ .png .jpg .jpeg .webp
  */
 const files = import.meta.glob('../assets/units/*.{png,jpg,jpeg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
+const thumbFiles = import.meta.glob('../assets/units/thumb/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
+const keyOf = (path: string) => decodeURIComponent(path.split('/').pop()!.replace(/\.[^.]+$/, '')).normalize('NFC').trim().toLowerCase()
 const IMAGES: Record<string, string> = {}
-for (const [path, url] of Object.entries(files)) {
-  const name = decodeURIComponent(path.split('/').pop()!.replace(/\.[^.]+$/, '')).normalize('NFC').trim().toLowerCase()
-  IMAGES[name] = url
-}
-const imageFor = (name: string) => {
+for (const [path, url] of Object.entries(files)) IMAGES[keyOf(path)] = url
+const THUMBS: Record<string, string> = {}
+for (const [path, url] of Object.entries(thumbFiles)) THUMBS[keyOf(path)] = url
+const imageFor = (name: string, map = IMAGES) => {
   const base = name.replace(/ awake.*$/, '')
   const en = EN_NAME[base] ?? GOLD_EN[base] ?? PURPLE_EN[base]
   const suffix = name.slice(base.length) // เช่น " awake"
   // Match the exact form: a base portrait must not stand in for an awakened one.
   const keys = [name, en && en + suffix]
-  for (const k of keys) if (k && IMAGES[k.toLowerCase()]) return IMAGES[k.toLowerCase()]
+  for (const k of keys) if (k && map[k.toLowerCase()]) return map[k.toLowerCase()]
   return undefined
 }
 
@@ -307,6 +310,7 @@ const allHeroes: Unit[] = uniq([...catalog.heroes, ...GOLD_HEROES, ...EXTRA_HERO
   name,
   type: GOLD_TYPE[baseName(name)] ?? PURPLE_TYPE[baseName(name)] ?? HERO_TYPE[baseName(name)],
   img: imageFor(name),
+  thumb: imageFor(name, THUMBS),
 }))
 
 /**
@@ -337,7 +341,7 @@ export const HEROES: Unit[] = sortUnits(allHeroes.filter((u) => isAwake(u.name) 
 /** รวมร่างปกติของตัวที่มีร่าง awake ด้วย (หน้าบิสกิต: คนที่ยังไม่ awake ค่า base ต่างกัน) */
 export const HEROES_WITH_BASE: Unit[] = sortUnits(allHeroes)
 
-export const PETS: Unit[] = uniq([...catalog.pets, ...EXTRA_PETS]).map((name) => ({ id: name, name, img: imageFor(name) }))
+export const PETS: Unit[] = uniq([...catalog.pets, ...EXTRA_PETS]).map((name) => ({ id: name, name, img: imageFor(name), thumb: imageFor(name, THUMBS) }))
 
 /** id แบบเก่า (เวอร์ชันแรก) → ชื่อใหม่ ข้อมูลที่เคยบันทึกไว้จะยังแสดงถูก */
 const LEGACY: Record<string, string> = {

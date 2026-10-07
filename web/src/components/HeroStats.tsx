@@ -266,14 +266,14 @@ export function StatsImport({ team, onApply, onAddHero }: {
               {heroes.map((h) => (
                 <button key={h} type="button" onClick={() => setHero(h)}
                   className={`flex items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3 text-sm ${hero === h ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70'}`}>
-                  <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={h} shape="round" /></span>
+                  <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={h} shape="round" small /></span>
                   {baseName(getUnit(h)?.name ?? h)}
                 </button>
               ))}
               {canAdd && mismatchId && (
                 <button type="button" onClick={() => addHero(mismatchId)}
                   className="flex items-center gap-2 rounded-full border border-dashed border-emerald-300/60 py-0.5 pl-0.5 pr-3 text-sm text-emerald-100 hover:bg-emerald-400/10">
-                  <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={mismatchId} shape="round" /></span>
+                  <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={mismatchId} shape="round" small /></span>
                   <Plus className="h-3.5 w-3.5" /> เพิ่ม {mismatch} เข้าทีม
                 </button>
               )}

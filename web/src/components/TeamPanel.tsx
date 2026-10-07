@@ -255,6 +255,7 @@ export default function TeamPanel({
                     onClick={() => active ? clickSlot(r) : setDetailHero(team.slots[i])}
                     queue={queueOf(i)}
                     side={variant === 'ally' ? 'left' : 'right'}
+                    small={isSm}
                   />
                 </DnDSlot>
               )
@@ -275,7 +276,7 @@ export default function TeamPanel({
               title="สัตว์เลี้ยง"
             >
               {team.pet ? (
-                <UnitCard id={team.pet} shape="pet" />
+                <UnitCard id={team.pet} shape="pet" small={isSm} />
               ) : (
                 <div className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
                   <PawPrint className="absolute h-[55%] w-[55%] text-white/15" />
@@ -328,7 +329,7 @@ export default function TeamPanel({
                   style={{ fontSize: isSm ? 8 : 9 }}
                 >
                   {x ? (
-                    <UnitCard id={x} shape="round" />
+                    <UnitCard id={x} shape="round" small />
                   ) : (
                     <div className="round-slot grid h-full w-full place-items-center">
                       {active && <Plus className="h-[50%] w-[50%] text-white/70" strokeWidth={3} />}
@@ -384,7 +385,7 @@ function DnDSlot({ id, enabled, filled, selected, round, children }: { id: strin
   )
 }
 
-function HeroSlot({ id, editable, inspectable, onClick, queue, side }: {
+function HeroSlot({ id, editable, inspectable, onClick, queue, side, small }: {
   id: string | null
   editable: boolean
   inspectable?: boolean
@@ -392,6 +393,8 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side }: {
   /** จองสกิลของช่องนี้: n = ลำดับ, skill = บน(1)/ล่าง(2) */
   queue: { n: number; skill: 1 | 2 | 3 }[]
   side: 'left' | 'right'
+  /** การ์ดเล็ก → รูปย่อ */
+  small?: boolean
 }) {
   // เลขอยู่ตามตำแหน่งสกิลแบบในเกม: สกิลบน = ป้ายบน, สกิลล่าง = ป้ายล่าง
   const top = queue.filter((q) => q.skill === 1).map((q) => q.n)
@@ -414,7 +417,7 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side }: {
         style={{ borderRadius: UNIT_SLOT_RADIUS }}
         className="block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
         {id ? (
-          <UnitCard id={id} />
+          <UnitCard id={id} small={small} />
         ) : (
           <div className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
             {editable && <Plus className="h-[45%] w-[45%] text-white drop-shadow" strokeWidth={3} />}

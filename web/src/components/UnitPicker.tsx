@@ -90,7 +90,7 @@ export default function UnitPicker({ open, kind, index, current, used, full, onP
               onClick={() => onPick(u.id)}
               className={`aspect-square text-[13px] transition ${dis ? 'opacity-30' : 'hover:-translate-y-0.5'} ${u.id === current ? 'rounded-[12px] ring-2 ring-gold ring-offset-2 ring-offset-[#1f2640]' : ''}`}
             >
-              <UnitCard id={u.id} shape={kind === 'pet' ? 'pet' : kind === 'extra' ? 'round' : 'hero'} />
+              <UnitCard id={u.id} shape={kind === 'pet' ? 'pet' : kind === 'extra' ? 'round' : 'hero'} small />
             </button>
           )
         })}

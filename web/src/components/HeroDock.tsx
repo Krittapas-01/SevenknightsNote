@@ -156,7 +156,7 @@ export default function HeroDock({ bottom = 0 }: { bottom?: number }) {
                       className={`relative aspect-[4/5] text-[13px] transition ${inTeam ? 'opacity-35' : usedIn(u) ? 'opacity-60 hover:opacity-90' : 'hover:-translate-y-0.5'}`}
                       title={inTeam ? 'อยู่ในทีมแล้ว' : `ใส่ ${u.name}`}
                     >
-                      <UnitCard id={u.id} shape={tab === 'hero' ? 'hero' : 'pet'} />
+                      <UnitCard id={u.id} shape={tab === 'hero' ? 'hero' : 'pet'} small />
                       {inTeam && <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-black/60 py-0.5 text-center text-xs">ในทีม</span>}
                       {!inTeam && usedIn(u) && <UsedBadge label={usedIn(u)!} />}
                     </button>

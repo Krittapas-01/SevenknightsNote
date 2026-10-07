@@ -40,7 +40,7 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
         <div key={i} className="grid grid-cols-1 border-t border-white/10 sm:grid-cols-[minmax(0,17rem)_1fr]">
           <div className="flex gap-3 border-white/10 p-3 sm:border-r">
             <div className="w-16 shrink-0 text-center">
-              <div className="aspect-[4/5] w-16 text-[12px]"><UnitCard id={n.hero} /></div>
+              <div className="aspect-[4/5] w-16 text-[12px]"><UnitCard id={n.hero} small /></div>
               <div className="mt-1 truncate text-xs text-white/60">{baseName(getUnit(n.hero)?.name ?? n.hero)}</div>
             </div>
             {editing ? (

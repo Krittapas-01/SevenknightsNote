@@ -30,9 +30,11 @@ type Props = {
   shape?: 'hero' | 'pet' | 'round'
   className?: string
   showName?: boolean
+  /** การ์ดเล็ก → ใช้รูปย่อ (เบาเครื่อง) */
+  small?: boolean
 }
 
-export default function UnitCard({ id, shape = 'hero', className = '', showName = true }: Props) {
+export default function UnitCard({ id, shape = 'hero', className = '', showName = true, small = false }: Props) {
   const [failedImage, setFailedImage] = useState<string | null>(null)
   const u = getUnit(id)
   if (!u) return null
@@ -41,6 +43,8 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
   const round = shape === 'round'
   const awake = isAwake(u.name)
   const label = baseName(u.name)
+  // รูปย่อสำหรับการ์ดเล็ก (ถ้ารูปย่อโหลดไม่ได้ ใช้รูปเต็มแทน)
+  const src = small && u.thumb && failedImage !== u.thumb ? u.thumb : u.img
 
   return (
     <div
@@ -48,8 +52,8 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
       style={{ '--unit-color': color, ...(!round ? { borderRadius: UNIT_SLOT_RADIUS } : {}) } as CSSProperties}
       title={u.name}
     >
-      {u.img && failedImage !== u.img ? (
-        <img src={u.img} alt={u.name} className={`absolute inset-0 h-full w-full object-cover ${shape === 'hero' ? 'origin-[50%_24%] scale-[1.6]' : ''}`} draggable={false} loading="lazy" decoding="async" onError={() => setFailedImage(u.img!)} />
+      {src && failedImage !== src ? (
+        <img src={src} alt={u.name} className={`absolute inset-0 h-full w-full object-cover ${shape === 'hero' ? 'origin-[50%_24%] scale-[1.6]' : ''}`} draggable={false} loading="lazy" decoding="async" onError={() => setFailedImage(src)} />
       ) : (
         <div className="unit-monogram absolute inset-0 grid place-items-center pb-[18%] font-bold text-white/90"
           style={{ fontSize: round ? '0.8em' : '1.15em', textShadow: '0 2px 4px rgba(0,0,0,.6)' }}>

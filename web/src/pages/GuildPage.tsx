@@ -135,7 +135,9 @@ export default function GuildPage() {
             const ago = Date.now() - last
             const recent = ago < 24 * 3600_000
             return (
-            <Link key={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex flex-col transition hover:-translate-y-1" style={t.tags[0] ? ({ '--tag': tagColor(t.tags[0]) } as React.CSSProperties) : undefined}>
+            <Link key={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex flex-col transition hover:-translate-y-1"
+              // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง) · 560px = ความสูงโดยประมาณของการ์ด
+              style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 560px', ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
               <TeamPanel
                 variant="enemy"
                 size="sm"

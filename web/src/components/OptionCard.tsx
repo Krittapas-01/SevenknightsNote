@@ -282,7 +282,7 @@ function GearNote({ note, editing, onChange, onRemove }: { note: HeroNote; editi
   return (
     <li className="min-w-0 rounded-xl bg-black/20 p-3 text-sm">
       <div className="flex items-center gap-2">
-        {!editing && <div className="h-16 w-16 shrink-0"><UnitCard id={note.hero} showName={false} /></div>}
+        {!editing && <div className="h-16 w-16 shrink-0"><UnitCard id={note.hero} showName={false} small /></div>}
         <span className="break-words font-semibold text-gold">{getUnit(note.hero)?.name ?? note.hero}</span>
         {editing && (
           <button type="button" onClick={onRemove} className="ml-auto rounded-full p-0.5 text-white/50 hover:bg-white/10" aria-label="ลบ">
