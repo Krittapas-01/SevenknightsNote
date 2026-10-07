@@ -439,7 +439,7 @@ const STAR = 'M0-12 C1 -3 3 -1 12 0 C3 1 1 3 0 12 C-1 3 -3 1 -12 0 C-3 -1 -1 -3 
  * ไอคอนค่ายกลแบบในเกม: ดาวแดง = แถวหลัง (ซ้าย), ดาวน้ำเงิน = แถวหน้า (ขวา)
  * เรียงเฉียงขึ้นขวานิด ๆ จำนวนเปลี่ยนตามค่ายกล
  */
-function FormationStars({ front }: { front: number }) {
+export function FormationStars({ front }: { front: number }) {
   const back = SLOT_COUNT - front
   const col = (n: number, cx: number, color: string, glow: string) => {
     const gap = n >= 4 ? 13 : n === 3 ? 16 : 18
@@ -471,7 +471,7 @@ function FormationStars({ front }: { front: number }) {
 }
 
 /** ดาว 3 ดวงแบบในเกม: สว่างตามจำนวนสกิลที่จอง */
-function QueueStars({ lit }: { lit: number }) {
+export function QueueStars({ lit }: { lit: number }) {
   // ตำแหน่งวัดจากภาพในเกม (วงกลม 100x100)
   const pos = [[30, 52], [57, 33], [61, 64]]
   const star = STAR

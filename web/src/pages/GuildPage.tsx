@@ -3,7 +3,7 @@ import { sortTags, tagColor, tagStyle } from '../lib/tags'
 import { useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import Modal from '../components/Modal'
-import TeamPanel from '../components/TeamPanel'
+import TeamCardLite from '../components/TeamCardLite'
 import UnitCard from '../components/UnitCard'
 import WarBoard from '../components/WarBoard'
 import { activePlanId } from '../lib/war'
@@ -135,12 +135,10 @@ export default function GuildPage() {
             const ago = Date.now() - last
             const recent = ago < 24 * 3600_000
             return (
-            <Link key={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex flex-col transition hover:-translate-y-1"
+            <Link key={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition hover:-translate-y-1"
               // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง) · 560px = ความสูงโดยประมาณของการ์ด
-              style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 560px', ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
-              <TeamPanel
-                variant="enemy"
-                size="sm"
+              style={{ contentVisibility: 'auto', containIntrinsicWidth: 'none', containIntrinsicHeight: 'auto 560px', ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
+              <TeamCardLite
                 team={t.team}
                 skills={t.team.skills ?? []}
                 className={`flex-1 group-hover:border-gold ${t.tags[0] ? 'tag-accent' : ''}`}
