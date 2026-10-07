@@ -1011,9 +1011,9 @@ app.delete('/api/me/presets/:pid', async (c) => {
 app.get('/api/admin/stats', async (c) => {
   c.header('Cache-Control', 'no-store')
   const user = await currentUser(c)
-  if (!user) return c.json({ error: 'กรุณาเข้าสู่ระบบด้วย Discord' }, 401)
   const admins = (c.env.ADMIN_DISCORD_IDS || '').split(',').map((x) => x.trim()).filter(Boolean)
-  if (!admins.includes(user.id)) return c.json({ error: 'ไม่มีสิทธิ์เข้าหน้านี้' }, 403)
+  // ไม่ใช่แอดมิน (หรือยังไม่ล็อกอิน) → ตอบเหมือนไม่มี endpoint นี้ ไม่บอกว่ามีหน้าแอดมิน
+  if (!user || !admins.includes(user.id)) return c.json({ error: 'not found' }, 404)
   const now = Date.now()
   const [guilds, users] = await c.env.DB.batch([
     c.env.DB.prepare(`

@@ -2,7 +2,8 @@ import { Link } from 'react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { api, type AdminGuild, type AdminStats } from '../lib/api'
-import { loginWithDiscord, useAuth } from '../lib/auth'
+import { useAuth } from '../lib/auth'
+import NotFound from './NotFound'
 
 const DAY = 86_400_000
 type SortKey = 'lastActive' | 'createdAt' | 'targets' | 'counters' | 'name'
@@ -58,17 +59,12 @@ export default function AdminPage() {
   }, [data, sort])
 
   if (!auth.ready) return <p className="py-24 text-center text-white/50">กำลังโหลด...</p>
-  if (!auth.user)
-    return (
-      <div className="py-24 text-center">
-        <p className="text-lg">หน้าแอดมิน — เข้าสู่ระบบด้วย Discord ก่อน</p>
-        <button className="btn-gold mt-6 px-5 py-2" onClick={loginWithDiscord}>เข้าสู่ระบบด้วย Discord</button>
-      </div>
-    )
+  // ไม่ได้ล็อกอิน / ไม่ใช่แอดมิน → หน้า 404 ปกติ (ไม่ให้รู้ว่ามีหน้านี้)
+  if (!auth.user || error?.status === 404) return <NotFound />
   if (error)
     return (
       <div className="py-24 text-center">
-        <p className="text-lg">{error.status === 403 ? 'ไม่มีสิทธิ์เข้าหน้านี้' : error.message}</p>
+        <p className="text-lg">{error.message}</p>
         <Link to="/" className="btn-gold mt-6 inline-block px-5 py-2">กลับหน้าแรก</Link>
       </div>
     )
