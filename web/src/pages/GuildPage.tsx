@@ -22,7 +22,7 @@ import NotFound from './NotFound'
 
 const names = (t: Team) => t.slots.map((id) => getUnit(id)?.name ?? '').join(' ')
 const matches = (t: Target, q: string) =>
-  [names(t.team), ...t.counters.map((c) => names(c.team)), t.note, ...t.tags].join(' ').toLowerCase().includes(q)
+  [names(t.team), t.note, ...t.tags].join(' ').toLowerCase().includes(q)
 
 export default function GuildPage() {
   const { gid = '' } = useParams()
