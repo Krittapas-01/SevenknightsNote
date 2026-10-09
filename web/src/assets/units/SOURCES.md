@@ -217,3 +217,14 @@ Transparent compressed WebP originals are loaded locally with the existing lazy 
 - `แทอู๊ด.webp`: [Deo](https://7katlas.com/codex.html?hero=deo), matched to source Thai name แทอู๊ด.
 - Base six-star transparent portrait: [original WebP](https://7katlas.com/images/heroes/thumb/L/6/Tex_HeroIcon_101866Big.webp).
 - Distinct from แทโอ (Teo) and แรคคูน (Rahkun).
+
+## Demon Slayer update (2026-10-03)
+
+Matched to `portraits.s6` and `portraits.awk` in [Legendary+ metadata](https://7katlas.com/COMBINE/heroes-Lplus.js), using the compressed transparent thumbnail variants.
+
+| Local file | Hero / form | Source |
+| --- | --- | --- |
+| Tanjiro.webp | ทันจิโร่ / base | [WebP](https://7katlas.com/images/heroes/thumb/L+/6/Tex_HeroIcon_101986Big.webp) |
+| Tanjiro awake.webp | ทันจิโร่ / awakened | [WebP](https://7katlas.com/images/heroes/thumb/L+/AWK/Tex_HeroIcon_401987Big.webp) |
+| Zenitsu.webp | เซนอิทสึ / base | [WebP](https://7katlas.com/images/heroes/thumb/L+/6/Tex_HeroIcon_101996Big.webp) |
+| Zenitsu awake.webp | เซนอิทสึ / awakened | [WebP](https://7katlas.com/images/heroes/thumb/L+/AWK/Tex_HeroIcon_401997Big.webp) |

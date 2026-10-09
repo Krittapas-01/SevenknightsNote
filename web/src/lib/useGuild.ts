@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, forgetEditKey, getEditKey, pushRecent, saveEditKey } from './api'
+import { DEMO_ID } from './demo'
 import { getSession, onAuthChange } from './auth'
 import type { GuildData } from './types'
 
@@ -20,6 +21,7 @@ function peek(gid: string): GuildData | null {
   return mem.get(gid) ?? readStored().find((x) => x.gid === gid)?.data ?? null
 }
 function store(gid: string, data: GuildData) {
+  if (gid === DEMO_ID) return // กิลด์ทดลองไม่ต้องจำ (ข้อมูลอยู่ใน demo store แล้ว)
   mem.set(gid, data)
   try {
     const json = JSON.stringify(data)
@@ -56,6 +58,7 @@ export function useGuild(gid: string) {
 
   // เช็คสิทธิ์แก้ไขใหม่ (รหัสในเครื่อง หรือ ยศ Discord)
   const recheck = useCallback(async () => {
+    if (gid === DEMO_ID) return setCanEdit(true) // กิลด์ทดลอง: แก้ได้เสมอ
     if (!getEditKey(gid) && !getSession()) return setCanEdit(false)
     try {
       const r = await api.checkEdit(gid)

@@ -247,7 +247,8 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
             </ul>
           )}
           {editing && <StatsImport team={option.team.slots} onApply={(hero, stats) => set({ heroNotes: upsertStats(heroNotes, hero, stats) })}
-            onAddHero={(hero) => set({ team: addHeroToTeam(option.team, hero) })} />}
+            onAddHero={(hero) => set({ team: addHeroToTeam(option.team, hero) })}
+            onAddWithStats={(hero, stats) => set({ team: addHeroToTeam(option.team, hero), heroNotes: upsertStats(heroNotes, hero, stats) })} />}
           {editing && <AddHeroNote team={option.team.slots} have={heroNotes.map((n) => n.hero)}
             onAdd={(hero) => set({ heroNotes: [...heroNotes, { hero, text: '', sets: [], rings: [] }].slice(0, 5) })} />}
         </div>

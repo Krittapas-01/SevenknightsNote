@@ -32,6 +32,8 @@ import LikeButton from '../components/LikeButton'
 import { PresetPickerButton, SavePresetButton } from '../components/Presets'
 import { rememberNotes } from '../lib/myStats'
 import { autoSpeed } from '../lib/teamSpeed'
+import HelpLink from '../components/HelpLink'
+import GuildOnboarding from '../components/GuildOnboarding'
 
 const copyNotes = (n?: HeroNote[]) => (n ?? []).map((x) => ({ ...x, sets: [...x.sets], rings: [...x.rings] }))
 
@@ -211,6 +213,8 @@ export default function TargetPage() {
       <Link to={`/g/${gid}?tab=targets`} className="inline-flex items-center gap-1 text-white/70 hover:text-white">
         <ChevronLeft className="h-5 w-5" /> {data.guild.name}
       </Link>
+      <HelpLink section={['targets', 'team', 'stats']} className="float-right" />
+      <GuildOnboarding gid={gid} data={data} canEdit={canEdit} />
 
       {/* แถบเลือกทีมแก้ แบบปุ่มแคปซูลในเกม */}
       {!isNew && (
@@ -244,6 +248,7 @@ export default function TargetPage() {
             {canEdit && (
               <button
                 disabled={mode !== 'view'}
+                data-onboard="add-counter"
                 onClick={() => editCounter(true)}
                 className={`flex shrink-0 items-center gap-1 rounded-full px-4 py-1.5 text-sm sm:text-base ${
                   editingC && !cDraft.id ? 'bg-gradient-to-b from-[#fff1c9] to-[#e2bf72] font-semibold text-ink' : 'text-gold hover:bg-white/10'

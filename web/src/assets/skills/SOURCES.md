@@ -1,5 +1,18 @@
 # Skill icon sources
 
+## Demon Slayer update (2026-10-03)
+
+Added the icons referenced by the existing Tanjiro and Zenitsu entries in `data/skills.json`. [Atlas Legendary+ metadata](https://7katlas.com/COMBINE/heroes-Lplus.js) uses the same two active skill images for each hero's base and awakened forms.
+
+| Local file | Source |
+| --- | --- |
+| Tex_Skill_1019802.webp | [WebP](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1019802.webp) |
+| Tex_Skill_1019803.webp | [WebP](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1019803.webp) |
+| Tex_Skill_1019902.webp | [WebP](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1019902.webp) |
+| Tex_Skill_1019903.webp | [WebP](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1019903.webp) |
+
+## Original import
+
 Retrieved 2026-09-27 from [7K Atlas Hero Codex](https://7katlas.com/codex.html), a fan reference site.
 Game artwork © Netmarble Corp. & Netmarble Nexus Inc.
 
@@ -254,3 +267,28 @@ Custom names without verified artwork retain text buttons. Queue data and behavi
 | Tex_Skill_4005803.webp | [WebP](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4005803.webp) |
 | Tex_Skill_4005902.webp | [WebP](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4005902.webp) |
 | Tex_Skill_4005903.webp | [WebP](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4005903.webp) |
+
+## Awakening skill update (2026-10-03)
+
+Added all 17 awakening icons referenced by the third skill entries in `data/skills.json`.
+Images are stored locally and loaded by the existing skill resolver.
+
+| Hero | Local file / source |
+| --- | --- |
+| เคลมิส awake | [Tex_Skill_4017906.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4017906.webp) |
+| ซิลเวสตา awake | [Tex_Skill_4005506.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4005506.webp) |
+| สกัลด์ awake | [Tex_Skill_4016806.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4016806.webp) |
+| เดลโลนส์ awake | [Tex_Skill_4005806.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4005806.webp) |
+| ซอรัน awake | [Tex_Skill_4018706.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4018706.webp) |
+| เฮเลเนีย awake epic | [Tex_Skill_4006606.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4006606.webp) |
+| ยุนกอน awake | [Tex_Skill_4019006.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4019006.webp) |
+| ลูดี้ awake | [Tex_Skill_4005606.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4005606.webp) |
+| โดยอง awake | [Tex_Skill_4018906.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4018906.webp) |
+| ฮายอน | [Tex_Skill_4018806.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4018806.webp) |
+| ออร์ก้า awake | [Tex_Skill_4018006.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4018006.webp) |
+| ไอลีน | [Tex_Skill_4005906.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4005906.webp) |
+| น็อกซ์ awake | [Tex_Skill_4004906.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4004906.webp) |
+| เบลลีก้า awake | [Tex_Skill_4008106.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4008106.webp) |
+| เฮฟเว่นเนีย awake | [Tex_Skill_4006706.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4006706.webp) |
+| ทันจิโร่ awake | [Tex_Skill_4019806.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4019806.webp) |
+| เซนอิทสึ awake | [Tex_Skill_4019906.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4019906.webp) |

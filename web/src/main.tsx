@@ -12,6 +12,9 @@ const BiscuitPage = lazy(() => import('./pages/BiscuitPage'))
 const TotalWarPage = lazy(() => import('./pages/TotalWarPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage'))
+const GuidePage = lazy(() => import('./pages/GuidePage'))
+const UpdatesPage = lazy(() => import('./pages/UpdatesPage'))
+const PracticePage = lazy(() => import('./pages/PracticePage'))
 const loading = <p className="py-24 text-center text-white/50">กำลังโหลด...</p>
 import NotFound from './pages/NotFound'
 
@@ -29,6 +32,9 @@ createRoot(document.getElementById('root')!).render(
           <Route path="totalwar" element={<Suspense fallback={loading}><TotalWarPage /></Suspense>} />
           <Route path="admin" element={<Suspense fallback={loading}><AdminPage /></Suspense>} />
           <Route path="favorites" element={<Suspense fallback={loading}><FavoritesPage /></Suspense>} />
+          <Route path="guide" element={<Suspense fallback={loading}><GuidePage /></Suspense>} />
+          <Route path="guide/practice" element={<Suspense fallback={loading}><PracticePage /></Suspense>} />
+          <Route path="updates" element={<Suspense fallback={loading}><UpdatesPage /></Suspense>} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

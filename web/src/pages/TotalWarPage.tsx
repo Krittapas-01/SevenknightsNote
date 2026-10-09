@@ -17,6 +17,8 @@ const short = (ms: number) => {
   if (m >= 60) return `${Math.floor(m / 60)}H ${m % 60}M`
   return `${m}M`
 }
+/** วันเวลาจบแบบเวลาไทย เช่น "อ. 13 ต.ค. 07:00" */
+const endText = (ts: number) => new Date(ts).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 const STEPS = ['เตรียมซีซัน', ...TOTAL_WAR_PHASES.map((p) => p.name.replace(/ \(.*\)/, '')), 'สรุปซีซัน']
 const COUNTDOWN: Record<string, string> = { prep: 'เวลาเริ่มการต่อสู้', fight: 'เวลาสิ้นสุดการต่อสู้', result: 'เวลาประกาศผลรอบ' }
 
@@ -120,6 +122,7 @@ export default function TotalWarPage() {
           <div className="grid gap-2">
             <Pill className="tw-stat-pill" label="รอบ">{tw.state === 'running' ? tw.round : tw.state === 'ended' ? TOTAL_WAR_ROUNDS : 0}/{TOTAL_WAR_ROUNDS}</Pill>
             <Pill className="tw-stat-pill" label="สิ้นสุดซีซัน"><Clock className="h-4 w-4" />{tw.state === 'running' ? short(tw.seasonEnd - now) : '–'}</Pill>
+            {tw.state !== 'before' && <p className="px-4 text-right text-xs text-white/55">{tw.state === 'running' ? 'จบ' : 'จบแล้ว'} {endText(tw.state === 'running' ? tw.seasonEnd : tw.endedAt)} น.</p>}
           </div>
           <div className="hidden flex-col items-center sm:flex">
             <RankEmblem rank={rankIndex} size={52} />

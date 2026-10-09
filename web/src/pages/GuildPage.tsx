@@ -11,6 +11,13 @@ import { getUnit } from '../data/heroes'
 import { EditLogin, EditSettings } from '../components/EditAccess'
 import { PLAN_KIND_LABEL, planKind, type Plan, type PlanKind, type Target, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
+import { renderAhead } from '../lib/renderAhead'
+import HelpLink from '../components/HelpLink'
+import GuildTour from '../components/GuildTour'
+import { isDemo } from '../lib/demo'
+import GuildOnboarding from '../components/GuildOnboarding'
+import { markShared, onboardFlags } from '../lib/onboarding'
+import { useSmoothWheel } from '../lib/smoothWheel'
 import NotFound from './NotFound'
 
 const names = (t: Team) => t.slots.map((id) => getUnit(id)?.name ?? '').join(' ')
@@ -25,6 +32,7 @@ export default function GuildPage() {
   const [copied, setCopied] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') === 'targets' ? 'targets' : 'plans'
+  useSmoothWheel(tab === 'targets')
 
   const allTags = useMemo(() => sortTags([...new Set(data?.targets.flatMap((t) => t.tags) ?? [])]), [data])
   const list = useMemo(() => {
@@ -40,12 +48,15 @@ export default function GuildPage() {
   async function copy(kind: 'view') {
     const url = `${location.origin}/g/${gid}`
     await navigator.clipboard.writeText(url).catch(() => prompt('คัดลอกลิงก์นี้', url))
+    markShared(gid)
     setCopied(kind)
     setTimeout(() => setCopied(null), 1500)
   }
 
   return (
     <div>
+      {!isDemo(gid) && !onboardFlags(gid)?.on && <GuildTour />}
+      <GuildOnboarding gid={gid} data={data} canEdit={canEdit} />
       <div className="guild-banner flex flex-wrap items-end justify-between gap-5">
         <div className="relative min-w-0">
           <p className="eyebrow mb-3">GUILD HEADQUARTERS</p>
@@ -55,7 +66,7 @@ export default function GuildPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => copy('view')} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
+          <button data-onboard="share" onClick={() => copy('view')} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
             {copied === 'view' ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />} ลิงก์ดูอย่างเดียว
           </button>
           {canEdit
@@ -82,8 +93,9 @@ export default function GuildPage() {
             </button>
           ))}
         </div>
+        <HelpLink section={tab === 'plans' ? ['plans', 'announce', 'discord', 'edit'] : ['targets', 'team', 'stats', 'edit']} />
         {canEdit && tab !== 'plans' && (
-          <Link to={`/g/${gid}/t/new`} className="btn-gold flex items-center gap-1.5 px-4 py-2 text-sm">
+          <Link data-onboard="add-target" to={`/g/${gid}/t/new`} className="btn-gold flex items-center gap-1.5 px-4 py-2 text-sm">
             <Plus className="h-4 w-4" /> เพิ่มทีมเป้าหมาย
           </Link>
         )}
@@ -97,7 +109,7 @@ export default function GuildPage() {
                 {k === 'attack' ? <Swords className="h-5 w-5" /> : <Shield className="h-5 w-5" />} {PLAN_KIND_LABEL[k]}
                 <span className="text-sm font-normal text-white/45">{data.plans.filter((p) => planKind(p.data) === k).length} แผน</span>
                 {canEdit && (
-                  <Link to={`/g/${gid}/p/new?kind=${k}`} className="btn-gold ml-auto flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold">
+                  <Link data-onboard={`new-${k}`} to={`/g/${gid}/p/new?kind=${k}`} className="btn-gold ml-auto flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold">
                     <Plus className="h-4 w-4" /> สร้าง{PLAN_KIND_LABEL[k]}
                   </Link>
                 )}
@@ -124,9 +136,18 @@ export default function GuildPage() {
       </div>
 
       {list.length === 0 ? (
-        <div className="panel mt-8 p-10 text-center text-white/60">
-          {data.targets.length === 0 ? (canEdit ? 'ยังไม่มีทีม กด “เพิ่มทีมเป้าหมาย” เพื่อเริ่มจด' : 'ยังไม่มีทีมที่จดไว้') : 'ไม่พบทีมที่ค้นหา'}
-        </div>
+        data.targets.length === 0 && canEdit ? (
+          // กิลด์ยังว่าง: การ์ดใหญ่ "เริ่มจากตรงนี้"
+          <div className="panel panel-gold mx-auto mt-8 max-w-lg p-8 text-center">
+            <Swords className="mx-auto h-10 w-10 text-gold" />
+            <p className="mt-3 text-lg font-bold">เริ่มจากจดบ้านศัตรูที่เจอ</p>
+            <p className="mt-1 text-sm text-white/60">กด “เพิ่มทีมเป้าหมาย” ด้านบน จดทีมศัตรู แล้วเพิ่มทีมที่ใช้ตีผ่าน — ทั้งกิลด์จะได้ดูคลังเดียวกัน และดึงไปใช้ในแผนวอร์ได้</p>
+          </div>
+        ) : (
+          <div className="panel mt-8 p-10 text-center text-white/60">
+            {data.targets.length === 0 ? 'ยังไม่มีทีมที่จดไว้' : 'ไม่พบทีมที่ค้นหา'}
+          </div>
+        )
       ) : (
         <div className="mt-8 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((t) => {
@@ -135,7 +156,7 @@ export default function GuildPage() {
             const ago = Date.now() - last
             const recent = ago < 24 * 3600_000
             return (
-            <Link key={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition hover:-translate-y-1"
+            <Link key={t.id} ref={renderAhead} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition hover:-translate-y-1"
               // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง) · 560px = ความสูงโดยประมาณของการ์ด
               style={{ contentVisibility: 'auto', containIntrinsicWidth: 'none', containIntrinsicHeight: 'auto 560px', ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
               <TeamCardLite
@@ -197,9 +218,17 @@ function PlanList({ gid, kind, plans, canEdit, activeId, usedAt }: { gid: string
   const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null)
   if (plans.length === 0)
     return (
-      <div className="panel mt-4 p-8 text-center text-white/60">
-        {canEdit ? `ยังไม่มี${PLAN_KIND_LABEL[kind]} กด “สร้าง${PLAN_KIND_LABEL[kind]}” เพื่อจัดทีม 5 ไม้` : `ยังไม่มี${PLAN_KIND_LABEL[kind]}`}
-      </div>
+      canEdit ? (
+        <div className="panel mt-4 flex flex-col items-center gap-3 p-8 text-center sm:flex-row sm:text-left">
+          {kind === 'attack' ? <Swords className="h-9 w-9 shrink-0 text-red-200" /> : <Shield className="h-9 w-9 shrink-0 text-sky-100" />}
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">ยังไม่มี{PLAN_KIND_LABEL[kind]}</p>
+            <p className="mt-0.5 text-sm text-white/55">{kind === 'attack' ? `กด “สร้าง${PLAN_KIND_LABEL[kind]}” ด้านบน — วางว่าแต่ละไม้ใช้ทีมไหนตีบ้านไหน เลือกบ้านจากคลังที่จดไว้ ทีมแก้จะมาให้เลย` : `กด “สร้าง${PLAN_KIND_LABEL[kind]}” ด้านบน — วางบ้านกันของกิลด์ แต่ละไม้ใส่ทีมสำรองได้ตามลำดับ`}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="panel mt-4 p-8 text-center text-white/60">ยังไม่มี{PLAN_KIND_LABEL[kind]}</div>
+      )
     )
   // เรียง: แผนที่ใช้อยู่ → ใช้ล่าสุด (ตามประกาศ) → แก้ล่าสุด · การ์ดถัดไปโผล่ขอบขวาให้รู้ว่าเลื่อนได้
   const sorted = [...plans].sort((a, b) =>

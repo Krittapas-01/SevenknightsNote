@@ -375,3 +375,16 @@ a.pill:active { transform: scale(.98); }
   box-shadow: inset 0 3px 0 color-mix(in srgb, var(--tag) 80%, transparent), 0 0 18px color-mix(in srgb, var(--tag) 22%, transparent), 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 .group:hover .tag-accent { border-color: #f4d58d; }
+
+/* ปุ่มติดต่อลอยมุมขวาล่าง: ซ่อนตอนมีแถบล่าง (แถบฮีโร่ / แถบบันทึกแผน) จะได้ไม่บังปุ่ม */
+body:has(.hero-dock, [data-bottom-bar]) .contact-fab { display: none; }
+.contact-card { animation: contact-pop 160ms var(--motion-out, ease-out); transform-origin: bottom right; }
+@keyframes contact-pop { from { opacity: 0; transform: translateY(6px) scale(.97); } to { opacity: 1; transform: none; } }
+@media print { .contact-fab { display: none; } }
+.help-drawer { animation: drawer-in 180ms var(--motion-out, ease-out); }
+@keyframes drawer-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* สอนทีละขั้น: ปุ่มที่ต้องกดตอนนี้กะพริบวงทอง */
+.onboard-pulse { outline: 2px solid #f4d58d; outline-offset: 3px; animation: onboard-ring 1.4s ease-in-out infinite; }
+@keyframes onboard-ring { 0%, 100% { outline-color: #f4d58dff; outline-offset: 3px; } 50% { outline-color: #f4d58d33; outline-offset: 7px; } }
+@media (prefers-reduced-motion: reduce) { .onboard-pulse { animation: none; } }

@@ -98,7 +98,7 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
   const field = 'mt-1 w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 outline-none focus:border-gold'
   return (
     <>
-      <button onClick={show} title="เชื่อม Discord"
+      <button data-onboard="discord" onClick={show} title="เชื่อม Discord"
         className={`rounded-full p-1.5 hover:bg-white/10 ${connected ? 'text-[#8b93ff]' : 'text-white/60 hover:text-white'}`}>
         <MessageCircle className="h-4 w-4" />
       </button>

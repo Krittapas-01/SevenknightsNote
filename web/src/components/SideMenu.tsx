@@ -1,7 +1,8 @@
-import { Calculator, Cookie, ExternalLink, Home, MessagesSquare, Shield, Sparkles, ThumbsUp, X } from 'lucide-react'
+import { Calculator, Cookie, ExternalLink, Home, Megaphone, MessagesSquare, Shield, Sparkles, ThumbsUp, X } from 'lucide-react'
 import { useEffect, useState, type ComponentType } from 'react'
 import { NavLink } from 'react-router'
 import { getRecent, refreshRecent } from '../lib/api'
+import { useHasUpdate } from './WhatsNew'
 
 // เมนูหลักของเว็บ เพิ่มหน้า/เครื่องมือใหม่ที่นี่ที่เดียว
 const NAV: { to: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
@@ -9,6 +10,7 @@ const NAV: { to: string; label: string; icon: ComponentType<{ className?: string
   { to: '/biscuit', label: 'เช็กบัฟบิสกิต', icon: Cookie },
   { to: '/totalwar', label: 'คำนวณแต้มเบ็ดเสร็จ', icon: Calculator },
   { to: '/favorites', label: 'พรีเซ็ต & ทีมที่ชอบ', icon: ThumbsUp },
+  { to: '/updates', label: 'อัปเดตล่าสุด', icon: Megaphone },
 ]
 
 // ลิงก์ออกไปหน้าทางการของ Netmarble (เปิดแท็บใหม่)
@@ -27,6 +29,7 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
   }, [open, onClose])
 
   const [recent, setRecent] = useState(getRecent)
+  const hasUpdate = useHasUpdate()
   useEffect(() => {
     if (!open) return
     setRecent(getRecent())
@@ -53,6 +56,7 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
         {NAV.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end onClick={onClose} className={item}>
             <Icon className="h-5 w-5 shrink-0" /> {label}
+            {to === '/updates' && hasUpdate && <span className="ml-auto rounded-full bg-red-500 px-1.5 text-[10px] font-bold leading-4 text-white">ใหม่</span>}
           </NavLink>
         ))}
         {EXTERNAL.map(({ href, label, sub, icon: Icon }) => (

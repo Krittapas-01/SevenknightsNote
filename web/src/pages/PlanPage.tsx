@@ -11,6 +11,9 @@ import Modal from '../components/Modal'
 import TagEditor from '../components/TagEditor'
 import { PresetPickerButton } from '../components/Presets'
 import { rememberNotes } from '../lib/myStats'
+import { autoSpeed } from '../lib/teamSpeed'
+import HelpLink from '../components/HelpLink'
+import GuildOnboarding from '../components/GuildOnboarding'
 import PasteNotesModal from '../components/PasteNotesModal'
 import { applyNotes } from '../lib/pasteNotes'
 import { exportPng } from '../lib/exportImage'
@@ -73,6 +76,8 @@ export default function PlanPage() {
   const curSlot = (s: number) => houseView(draft.slots[s], houseOf(draft.slots[s], s))
   const [toast, setToast] = useState<string | null>(null)
   // ถามหลังบันทึกแผน: จดทีมที่จัดเองลงจดทีมศัตรูด้วยไหม
+  /** บันทึกแผน: ทีมบุกที่สเตตัสความเร็วครบทุกตัว → ถามก่อนว่าจะใส่ผลรวมเป็นสปีดทีมไหม */
+  const [speedAsk, setSpeedAsk] = useState<{ items: { s: number; o: number; total: number; cur: number }[]; picked: boolean[] } | null>(null)
   const [logAsk, setLogAsk] = useState<{ items: LogItem[]; planId: string; body: { title: string; data: PlanData }; picked: boolean[] } | null>(null)
   const [logBusy, setLogBusy] = useState(false)
   const [pasteOpen, setPasteOpen] = useState(false)
@@ -300,11 +305,19 @@ export default function PlanPage() {
     if (msg) flash(msg)
   }
 
-  async function save() {
+  async function save(plan: PlanData = draft, askSpeed = true) {
+    if (askSpeed) {
+      const items = plan.slots.flatMap((slot, si) => slot.options.map((opt, oi) => {
+        const spd = autoSpeed(opt.team, opt.heroNotes)
+        return spd.full && spd.total !== (opt.team.speed || 0) ? { s: si, o: oi, total: spd.total, cur: opt.team.speed || 0 } : null
+      })).filter((x): x is { s: number; o: number; total: number; cur: number } => !!x)
+      if (items.length) return setSpeedAsk({ items, picked: items.map(() => true) })
+    }
+    setSpeedAsk(null)
     setBusy(true)
     setErr(null)
     try {
-      const body = { title: title.trim() || 'แผนวอร์', data: { ...draft, banned: draft.banned.filter((g) => g.length) } }
+      const body = { title: title.trim() || 'แผนวอร์', data: { ...plan, banned: plan.banned.filter((g) => g.length) } }
       // ทีมที่จัดเองในแผน → เดี๋ยวถามว่าจะจดลงจดทีมศัตรูด้วยไหม
       const items = findLogItems(body.data, data?.targets ?? [])
       let planId = pid
@@ -326,6 +339,23 @@ export default function PlanPage() {
       setBusy(false)
     }
   }
+  /** ตอบหน้าต่างถามสปีด: ใส่ผลรวมให้ทีมที่ติ๊กไว้ (หรือไม่ใส่เลย) แล้วบันทึก */
+  function answerSpeed(apply: boolean) {
+    if (!speedAsk) return
+    let plan = draft
+    if (apply) {
+      const pick = new Map(speedAsk.items.filter((_, i) => speedAsk.picked[i]).map((it) => [`${it.s}:${it.o}`, it.total]))
+      plan = { ...draft, slots: draft.slots.map((slot, si) => ({
+        ...slot,
+        options: slot.options.map((opt, oi) => {
+          const sp = pick.get(`${si}:${oi}`)
+          return sp === undefined ? opt : { ...opt, team: { ...opt.team, speed: sp } }
+        }),
+      })) }
+      setDraft(plan)
+    }
+    void save(plan, false)
+  }
   async function remove() {
     if (!confirm('ลบแผนนี้?')) return
     setBusy(true)
@@ -345,6 +375,8 @@ export default function PlanPage() {
       <Link data-noexport to={`/g/${gid}`} className="inline-flex items-center gap-1 text-white/70 hover:text-white">
         <ChevronLeft className="h-5 w-5" /> {data.guild.name}
       </Link>
+      <HelpLink section={['plans', 'team', 'stats']} className="float-right" />
+      <GuildOnboarding gid={gid} data={data} canEdit={canEdit} />
 
       {/* ---------- หัวแผน ---------- */}
       <header className="plan-heading mt-6 text-center">
@@ -710,9 +742,9 @@ export default function PlanPage() {
       {/* ---------- แถบบันทึก ---------- */}
       {editing && (
         <HideWhileDock>
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#161c2e]/90 backdrop-blur">
+        <div data-bottom-bar className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#161c2e]/90 backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3">
-            <button disabled={busy} onClick={save} className="btn-gold px-6 py-2">{busy ? 'กำลังบันทึก...' : 'บันทึกแผน'}</button>
+            <button disabled={busy} onClick={() => void save()} className="btn-gold px-6 py-2">{busy ? 'กำลังบันทึก...' : 'บันทึกแผน'}</button>
             <button disabled={busy} onClick={cancel} className="pill px-5 py-2">ยกเลิก</button>
             {err && <span className="text-sm text-red-300">{err}</span>}
             {!isNew && (
@@ -734,6 +766,31 @@ export default function PlanPage() {
         onPickDefense={pickDefense}
         onClose={() => setVsLibrary(null)}
       />
+
+      <Modal open={!!speedAsk} title="ใส่สปีดทีมไหม?" onClose={() => !busy && setSpeedAsk(null)}>
+        <p className="mb-3 text-sm text-white/70">ทีมเหล่านี้มีความเร็วโจมตีครบทุกตัว — เลือกทีมที่จะใส่ผลรวมเป็นสปีดทีม</p>
+        <div className="space-y-2">
+          {speedAsk?.items.map((it, i) => (
+            <label key={i} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 ${speedAsk.picked[i] ? 'border-gold/60 bg-gold/10' : 'border-white/10 bg-black/20'}`}>
+              <input type="checkbox" className="h-4 w-4 accent-[#f4d58d]" checked={speedAsk.picked[i]}
+                onChange={() => setSpeedAsk((x) => x && { ...x, picked: x.picked.map((v, j) => (j === i ? !v : v)) })} />
+              <span className="min-w-0 flex-1 text-sm">
+                <span className="font-semibold text-gold">{draft.slots[it.s]?.name || `ไม้ ${it.s + 1}`}</span>
+                <span className="text-white/50"> · ทีม {it.o + 1}</span>
+                <span className="block truncate text-xs text-white/60">{teamNames(draft.slots[it.s].options[it.o].team)}</span>
+              </span>
+              <span className="text-right tabular-nums">
+                <span className="block text-lg font-bold text-gold">{it.total}</span>
+                {!!it.cur && <span className="block text-xs text-white/45">เดิม {it.cur}</span>}
+              </span>
+            </label>
+          ))}
+        </div>
+        <div className="mt-5 flex gap-2">
+          <button disabled={busy || !speedAsk?.picked.some(Boolean)} onClick={() => answerSpeed(true)} className="btn-gold flex-1 py-2">ใส่แล้วบันทึก</button>
+          <button disabled={busy} onClick={() => answerSpeed(false)} className="pill px-5 py-2">ไม่ใส่ บันทึกเลย</button>
+        </div>
+      </Modal>
 
       <Modal open={!!logAsk} title="จดลงจดทีมศัตรูด้วยไหม?" onClose={() => !logBusy && answerLog(false)}>
         <p className="mb-3 text-sm text-white/70">ทีมที่จัดเองในแผนนี้ยังไม่มีในจดทีมศัตรู — เลือกทีมที่จะจดเป็น "ทีมแก้" ของบ้านนั้น</p>

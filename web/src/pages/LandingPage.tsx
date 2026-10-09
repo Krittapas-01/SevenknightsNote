@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
 import VsArena from '../components/VsArena'
 import { api, pushRecent, saveEditKey } from '../lib/api'
+import { startOnboarding } from '../lib/onboarding'
 import type { Team } from '../lib/types'
 
 const DEMO_ALLY: Team = { front: 2, slots: ['ลูดี้ awake', null, 'ยอนฮี', 'เรเชล', null], pet: 'อีรีน', extras: ['เจโอ', null, null, null], speed: 210 }
@@ -30,6 +31,7 @@ export default function LandingPage() {
       const g = await api.createGuild(name.trim(), pw.trim())
       saveEditKey(g.id, g.editKey)
       pushRecent({ id: g.id, name: g.name })
+      startOnboarding(g.id) // กิลด์ใหม่ → สอนทีละขั้น
       nav(`/g/${g.id}`)
     } catch (e) {
       setErr((e as Error).message)

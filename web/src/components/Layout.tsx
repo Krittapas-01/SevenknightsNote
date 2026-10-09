@@ -1,4 +1,4 @@
-import { Bug, Check, Menu } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Link, Outlet, useMatch } from 'react-router'
 import Account from './Account'
@@ -6,6 +6,10 @@ import AnnouncementBar from './AnnouncementBar'
 import TopStrip from './TopStrip'
 import HeaderClock from './HeaderClock'
 import SideMenu from './SideMenu'
+import ContactFab from './ContactFab'
+import WhatsNew, { useHasUpdate } from './WhatsNew'
+import CoachPanel from './CoachPanel'
+import { isDemo } from '../lib/demo'
 
 export default function Layout() {
   // อยู่ในหน้าของกิลด์ไหน → โชว์แถบประกาศของกิลด์นั้นทุกหน้า
@@ -13,12 +17,14 @@ export default function Layout() {
   const gid = m?.params.gid
   const [menuOpen, setMenuOpen] = useState(false)
   const closeMenu = useCallback(() => setMenuOpen(false), [])
+  const hasUpdate = useHasUpdate()
   return (
     <div className="min-h-dvh">
       <header className="site-header sticky top-0 z-40 border-b border-gold/15 bg-[#0c1425]/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-3 sm:px-4">
-          <button onClick={() => setMenuOpen(true)} aria-label="เปิดเมนู" className="-ml-1 mr-2 grid h-9 w-9 shrink-0 sm:mr-3 place-items-center rounded-lg border border-white/20 text-white/80 hover:border-gold hover:text-gold">
+          <button onClick={() => setMenuOpen(true)} aria-label="เปิดเมนู" className="relative -ml-1 mr-2 grid h-9 w-9 shrink-0 sm:mr-3 place-items-center rounded-lg border border-white/20 text-white/80 hover:border-gold hover:text-gold">
             <Menu className="h-5 w-5" />
+            {hasUpdate && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#0c1425]" aria-label="มีอัปเดตใหม่" />}
           </button>
           <div className="flex shrink-0 items-center gap-3 sm:gap-5">
             <Link to="/" className="flex items-center gap-1.5 text-lg font-bold tracking-wide sm:gap-3">
@@ -47,29 +53,11 @@ export default function Layout() {
         </div>
         <div className="mt-2 flex flex-col items-center gap-1.5 text-center sm:flex-row sm:justify-between sm:text-left">
           <p>ภาพตัวละคร © Netmarble Corp. & Netmarble Nexus Inc. · <a className="underline underline-offset-4 hover:text-gold" href="https://sena.netmarble.com/en/pcplay" target="_blank" rel="noreferrer">เว็บไซต์เกมทางการ</a></p>
-          <BugReport />
         </div>
         <p className="mt-2 text-center sm:text-left">ข้อมูลและไอคอนบางส่วนจาก <a className="underline underline-offset-4 hover:text-gold" href="https://7katlas.com" target="_blank" rel="noreferrer">7K Atlas</a> · ขอบคุณมากครับ</p>
       </footer>
+      <ContactFab />
+      {isDemo(gid) ? <CoachPanel /> : <WhatsNew />}
     </div>
-  )
-}
-
-// แจ้งบั๊กทาง Discord — ชื่อผู้ใช้ Discord ลิงก์ตรงไม่ได้ เลยกดแล้วคัดลอกชื่อให้
-const BUG_DISCORD = 'bruhh_exe'
-function BugReport() {
-  const [copied, setCopied] = useState(false)
-  const copy = () => {
-    navigator.clipboard?.writeText(BUG_DISCORD).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }).catch(() => {})
-  }
-  return (
-    <button onClick={copy} title="กดเพื่อคัดลอกชื่อ Discord" className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-white/5 hover:text-gold">
-      {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Bug className="h-3.5 w-3.5" />}
-      แจ้งบั๊ก Discord: <span className="font-semibold text-white/70">{BUG_DISCORD}</span>
-      {copied && <span className="text-emerald-400">คัดลอกแล้ว</span>}
-    </button>
   )
 }

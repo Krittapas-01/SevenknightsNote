@@ -159,9 +159,17 @@ export function EditSettings({ gid, guildName, onLogout }: { gid: string; guildN
  * ลบกิลด์ถาวร — ยืนยัน 3 ชั้นกันกดผิด:
  * 1) กดปุ่มลบ → อ่านคำเตือน  2) พิมพ์ชื่อกิลด์ให้ตรง  3) รอนับถอยหลัง 5 วิ แล้วกดลบถาวร
  */
-function DeleteGuild({ gid, guildName }: { gid: string; guildName: string }) {
+export function DeleteGuild({ gid, guildName, onDelete, startAt = 0, onCancel }: {
+  gid: string
+  guildName: string
+  /** แทนการลบปกติ (เช่น แอดมินลบ) — ไม่ส่ง = ลบด้วยรหัสแก้ไขแล้วกลับหน้าแรก */
+  onDelete?: (typed: string) => Promise<void>
+  /** เริ่มที่ขั้นไหน (แอดมินเปิดมาที่ขั้นอ่านคำเตือนเลย) */
+  startAt?: 0 | 1
+  onCancel?: () => void
+}) {
   const navigate = useNavigate()
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState<number>(startAt)
   const [typed, setTyped] = useState('')
   const [wait, setWait] = useState(5)
   const [err, setErr] = useState('')
@@ -171,12 +179,17 @@ function DeleteGuild({ gid, guildName }: { gid: string; guildName: string }) {
     const t = setTimeout(() => setWait((w) => w - 1), 1000)
     return () => clearTimeout(t)
   }, [step, wait])
-  const reset = () => { setStep(0); setTyped(''); setWait(5); setErr('') }
+  const reset = () => { setStep(startAt); setTyped(''); setWait(5); setErr(''); onCancel?.() }
 
   async function del() {
     setBusy(true)
     setErr('')
     try {
+      if (onDelete) {
+        await onDelete(typed)
+        forgetRecent(gid)
+        return
+      }
       await api.deleteGuild(gid, typed)
       forgetEditKey(gid)
       forgetRecent(gid)

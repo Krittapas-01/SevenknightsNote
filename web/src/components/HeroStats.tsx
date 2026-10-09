@@ -112,11 +112,13 @@ function detectHero(texts: string[], team: string[], loose = true) {
 /**
  * ปุ่ม "อ่านสเตตัสจากรูป": เลือกรูป / วางรูป (Ctrl+V) → อ่านตัวเลข → ตรวจทาน → ใส่ให้ฮีโร่ในทีม
  */
-export function StatsImport({ team, onApply, onAddHero }: {
+export function StatsImport({ team, onApply, onAddHero, onAddWithStats }: {
   team: (string | null)[]
   onApply: (hero: string, stats: HeroStats) => void
   /** เพิ่มฮีโร่เข้าทีม (ทีมยังไม่ครบ 3 ตัว) — ไม่ส่งมา = ไม่มีปุ่มเพิ่ม */
   onAddHero?: (hero: string) => void
+  /** เพิ่มเข้าทีม + ใส่สเตตัสในครั้งเดียว (ที่ที่อัปเดตทีมกับโน้ตด้วย state ก้อนเดียว — เรียกแยกสองครั้งแล้วอันหลังทับอันแรก) */
+  onAddWithStats?: (hero: string, stats: HeroStats) => void
 }) {
   const heroes = team.filter((h): h is string => !!h)
   const input = useRef<HTMLInputElement>(null)
@@ -144,6 +146,10 @@ export function StatsImport({ team, onApply, onAddHero }: {
   const nameOf = (id: string) => baseName(getUnit(id)?.name ?? id)
   const mismatch = mismatchId ? nameOf(mismatchId) : null
   const canAdd = !!onAddHero && heroes.length < MAX_HEROES
+  /** ตัวที่เลือกอยู่ในทีมจริงไหม (กันค่าเก่าค้างจากทีมก่อนหน้า) */
+  const validHero = !!hero && heroes.includes(hero)
+  /** ภาพเป็นตัวที่ไม่อยู่ในทีม แต่ทีมยังเพิ่มได้ → ปุ่มเพิ่มเข้าทีม + ใส่สเตตัส */
+  const quickAdd = canAdd && !!mismatchId
   const addHero = (id: string) => {
     onAddHero?.(id)
     setHero(id)
@@ -170,8 +176,12 @@ export function StatsImport({ team, onApply, onAddHero }: {
       const s = parseStats(text)
       setStats(s)
       // 1) บรรทัดชื่อ → เทียบกับชื่อฮีโร่ทุกตัวแบบยอมเพี้ยน (ในทีมได้ก่อนถ้าใกล้เท่ากัน)
-      const inTeam = name ? matchHeroName(name, heroes.map(candidate)) : null
-      const anyHero = name ? matchHeroName(name, ALL_CANDIDATES) : null
+      // บรรทัดชื่ออ่านพลาด (ครอปไม่โดนชื่อ เช่นภาพแคปจากหน้าจัดทีม) → ลองหาชื่อในบรรทัดก่อนแถวสเตตัสของภาพทั้งภาพ
+      // รับเฉพาะที่ตรงเป๊ะเมื่อตัดสระ/วรรณยุกต์ (อารส = อาริส) กันจับคำอื่นผิดเป็นชื่อฮีโร่
+      const head = header(text)
+      const exact = (m: ReturnType<typeof matchHeroName>) => (m && m.dist === 0 ? m : null)
+      const inTeam = (name ? matchHeroName(name, heroes.map(candidate)) : null) ?? exact(matchHeroName(head, heroes.map(candidate)))
+      const anyHero = (name ? matchHeroName(name, ALL_CANDIDATES) : null) ?? exact(matchHeroName(head, ALL_CANDIDATES))
       const byName = inTeam && (!anyHero || inTeam.dist <= anyHero.dist) ? inTeam.id : null
       // 2) สำรอง: หาจากข้อความทั้งภาพแบบเดิม
       const found = byName ?? detectHero([name, text], heroes)
@@ -249,8 +259,10 @@ export function StatsImport({ team, onApply, onAddHero }: {
             )}
             {err && <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-100">{err}</p>}
             {mismatch && (
-              <p role="alert" className="mt-3 rounded-lg border border-red-400/50 bg-red-500/15 px-3 py-2 text-sm text-red-100">
-                ⚠️ ภาพนี้เป็นสเตตัสของ <b>{mismatch}</b> ซึ่งไม่ได้อยู่ในคอมพ์นี้ — เช็กว่าใช้รูปถูกตัว ก่อนกดใส่ให้ {hero ? baseName(getUnit(hero)?.name ?? hero) : 'ฮีโร่ในทีม'}
+              <p role="alert" className={`mt-3 rounded-lg border px-3 py-2 text-sm ${quickAdd ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100' : 'border-red-400/50 bg-red-500/15 text-red-100'}`}>
+                {quickAdd
+                  ? <>ภาพนี้เป็นสเตตัสของ <b>{mismatch}</b> ซึ่งยังไม่อยู่ในทีม — กดปุ่มสีทองด้านล่างเพื่อเพิ่มเข้าทีมแล้วใส่สเตตัสได้เลย</>
+                  : <>⚠️ ภาพนี้เป็นสเตตัสของ <b>{mismatch}</b> ซึ่งไม่ได้อยู่ในคอมพ์นี้ — เช็กว่าใช้รูปถูกตัว ก่อนกดใส่ให้ {validHero ? nameOf(hero) : 'ฮีโร่ในทีม'}</>}
               </p>
             )}
             {noHero && !err && (
@@ -305,19 +317,33 @@ export function StatsImport({ team, onApply, onAddHero }: {
             )}
           </div>
         </div>
-        <div className="mt-5 flex gap-2">
-          <button disabled={!hero || !hasStats(stats) || progress !== null}
+        <div className="mt-5 flex flex-wrap gap-2">
+          {/* ภาพเป็นตัวที่ยังไม่อยู่ในทีม และทีมยังไม่ครบ → ปุ่มหลัก = เพิ่มเข้าทีมแล้วใส่สเตตัสในคลิกเดียว */}
+          {quickAdd && (
+            <button disabled={!hasStats(stats) || progress !== null}
+              onClick={() => {
+                if (onAddWithStats) onAddWithStats(mismatchId!, stats)
+                else { addHero(mismatchId!); onApply(mismatchId!, stats) }
+                setOpen(false)
+              }}
+              className="btn-gold flex flex-1 items-center justify-center gap-1.5 py-2 font-semibold">
+              <Plus className="h-4 w-4" /> เพิ่ม {mismatch} เข้าทีม แล้วใส่สเตตัส
+            </button>
+          )}
+          {!(quickAdd && !validHero) && (
+          <button disabled={!validHero || !hasStats(stats) || progress !== null}
             onClick={() => {
               if (mismatch && !confirming) { setConfirming(true); return }
               onApply(hero, stats)
               setOpen(false)
             }} className={confirming
               ? 'flex-1 rounded-full border border-red-400/70 bg-red-500/25 py-2 font-semibold text-red-50 hover:bg-red-500/35'
-              : 'btn-gold flex-1 py-2'}>
+              : quickAdd ? 'pill px-4 py-2 text-sm text-white/75 hover:border-gold/60' : 'btn-gold flex-1 py-2'}>
             {confirming
-              ? `ยืนยัน: ใส่สเตตัสของ ${mismatch} ให้ ${hero ? nameOf(hero) : ''}`
-              : `ใส่สเตตัสให้ ${hero ? nameOf(hero) : ''}`}
+              ? `ยืนยัน: ใส่สเตตัสของ ${mismatch} ให้ ${nameOf(hero)}`
+              : validHero ? `${quickAdd ? 'ใส่ให้' : 'ใส่สเตตัสให้'} ${nameOf(hero)}${quickAdd ? 'แทน' : ''}` : 'เลือกตัวละครก่อน'}
           </button>
+          )}
           <button onClick={() => setOpen(false)} className="pill flex items-center gap-1 px-5 py-2"><X className="h-4 w-4" /> ยกเลิก</button>
         </div>
         <p className="mt-2 text-xs text-white/40">

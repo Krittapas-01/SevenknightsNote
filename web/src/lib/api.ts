@@ -1,6 +1,7 @@
 import { getSession } from './auth'
 import type { Announcement, Counter, DayType, GuildData, HeroNote, Plan, PlanData, SkillStep, Target, Team } from './types'
 import { sortTags } from './tags'
+import { DEMO_ID, demoRequest } from './demo'
 
 export type Pulse = {
   guildName: string
@@ -59,11 +60,14 @@ export function forgetRecent(gid: string) {
 }
 export const getRecent = () => readJson<Recent[]>(RECENT, [])
 export function pushRecent(r: Recent) {
+  if (r.id === DEMO_ID) return // กิลด์ทดลองไม่ขึ้นในรายการกิลด์ที่เคยเปิด
   writeJson(RECENT, [r, ...getRecent().filter((x) => x.id !== r.id)].slice(0, 8))
 }
 
 // ---------- fetch ----------
 async function req<T>(path: string, init: RequestInit & { gid?: string; key?: string } = {}): Promise<T> {
+  // กิลด์ทดลอง: ข้อมูลอยู่ในเครื่อง ไม่ยิง API
+  if (path === `/api/guild/${DEMO_ID}` || path.startsWith(`/api/guild/${DEMO_ID}/`)) return demoRequest(path, init) as Promise<T>
   // ส่ง Content-Type เฉพาะตอนมีข้อมูล — GET ธรรมดาจะได้ไม่ต้องมี preflight (OPTIONS) ทุกครั้ง (API อยู่คนละโดเมน)
   const headers: Record<string, string> = init.body ? { 'Content-Type': 'application/json' } : {}
   if (init.gid) {
@@ -131,6 +135,9 @@ export const api = {
   deletePreset: (id: string) => req<{ ok: true }>(`/api/me/presets/${id}`, { method: 'DELETE' }),
   /** หน้าแอดมิน (ต้องล็อกอิน Discord ด้วยไอดีที่อยู่ใน ADMIN_DISCORD_IDS) */
   adminStats: () => req<AdminStats>('/api/admin/stats'),
+  /** แอดมินลบกิลด์ (ต้องพิมพ์ชื่อกิลด์ยืนยัน) */
+  adminDeleteGuild: (gid: string, confirmName: string) =>
+    req<{ ok: true }>(`/api/admin/guilds/${gid}`, { method: 'DELETE', body: JSON.stringify({ confirmName }) }),
 }
 
 export type AdminGuild = {

@@ -22,7 +22,8 @@ const writeHistory = (h: string[]) => {
  * - กดการ์ด = ใส่ทีมที่เลือกอยู่ / ลากการ์ดขึ้นไปวางช่องไหนก็ได้
  * - ปุ่ม: ตารางใหญ่ · ค้นหาชื่อ · กรองประเภท
  */
-export default function HeroDock({ bottom = 0 }: { bottom?: number }) {
+/** z = ลำดับชั้นทับ (ใช้ตอนอยู่บนหน้าต่างซ้อน เช่น สนามฝึก) */
+export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: number }) {
   const hub = useDndHub()
   const tab = hub?.dockTab ?? 'hero'
   const setTab = (t: 'hero' | 'pet') => hub?.setDockTab(t)
@@ -76,7 +77,7 @@ export default function HeroDock({ bottom = 0 }: { bottom?: number }) {
 
   return (
     <>
-      <div className="hero-dock fixed inset-x-0 z-30 border-t border-gold/30 bg-gradient-to-b from-[#1d2438]/95 to-[#121726]/95 backdrop-blur" style={{ bottom }}>
+      <div className="hero-dock fixed inset-x-0 z-30 border-t border-gold/30 bg-gradient-to-b from-[#1d2438]/95 to-[#121726]/95 backdrop-blur" style={{ bottom, ...(z ? { zIndex: z } : {}) }}>
         {/* ปุ่มเก็บแถบตรงกลางแบบในเกม */}
         <button
           onClick={() => hub.setDockOpen(false)}

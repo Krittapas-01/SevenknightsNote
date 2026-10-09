@@ -1,6 +1,8 @@
 import { Link } from 'react-router'
 import { useEffect, useMemo, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Trash2 } from 'lucide-react'
+import Modal from '../components/Modal'
+import { DeleteGuild } from '../components/EditAccess'
 import { api, type AdminGuild, type AdminStats } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import NotFound from './NotFound'
@@ -41,6 +43,7 @@ export default function AdminPage() {
   const [error, setError] = useState<{ status?: number; message: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [sort, setSort] = useState<SortKey>('lastActive')
+  const [del, setDel] = useState<AdminGuild | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -116,6 +119,7 @@ export default function AdminPage() {
               <th className="px-3 py-2 text-right font-medium">แผน</th>
               <th className="px-3 py-2 text-right font-medium">ประกาศ</th>
               <th className="px-3 py-2 font-medium">Discord</th>
+              <th className="px-3 py-2" />
             </tr>
           </thead>
           <tbody>
@@ -132,12 +136,28 @@ export default function AdminPage() {
                   <td className="px-3 py-2 text-right tabular-nums">{x.plans}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{x.announcements}{x.autoAnnouncements ? <span className="text-white/40"> +{x.autoAnnouncements} auto</span> : null}</td>
                   <td className="px-3 py-2 text-xs text-white/60">{[x.webhook ? 'webhook' : '', x.discordLogin ? 'ล็อกอิน' : ''].filter(Boolean).join(' · ') || '–'}</td>
+                  <td className="px-2 py-2 text-right">
+                    <button type="button" onClick={() => setDel(x)} title={`ลบ ${x.name}`} className="rounded-full p-1.5 text-white/35 hover:bg-red-500/15 hover:text-red-300">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
       </div>
+
+      {/* ลบกิลด์ (ยืนยันเหมือนลบปกติ: อ่านคำเตือน → พิมพ์ชื่อ → รอ 5 วิ) */}
+      <Modal open={!!del} title={`ลบกิลด์: ${del?.name ?? ''}`} onClose={() => setDel(null)}>
+        {del && (
+          <>
+            <p className="text-sm text-white/60">{del.targets} ทีมเป้าหมาย · {del.counters} ทีมแก้ · {del.plans} แผน · {del.announcements} ประกาศ</p>
+            <DeleteGuild key={del.id} gid={del.id} guildName={del.name} startAt={1} onCancel={() => setDel(null)}
+              onDelete={async (typed) => { await api.adminDeleteGuild(del.id, typed); setDel(null); load() }} />
+          </>
+        )}
+      </Modal>
       <p className="mt-2 text-xs text-white/35">เห็นแค่ตัวเลข — ไม่แสดง webhook URL, รหัส หรือเนื้อหาในกิลด์</p>
     </div>
   )

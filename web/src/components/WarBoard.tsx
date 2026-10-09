@@ -87,7 +87,7 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
           </span>
         )}
         {canEdit && (
-          <button onClick={() => setCompose(true)} className="btn-gold ml-auto flex items-center gap-1.5 px-4 py-1.5 text-sm">
+          <button data-onboard="announce" onClick={() => setCompose(true)} className="btn-gold ml-auto flex items-center gap-1.5 px-4 py-1.5 text-sm">
             <Megaphone className="h-4 w-4" /> ประกาศ
           </button>
         )}

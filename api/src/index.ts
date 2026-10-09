@@ -330,13 +330,18 @@ app.delete('/api/guild/:id', async (c) => {
   const g = await c.env.DB.prepare('SELECT name FROM guilds WHERE id = ?').bind(gid).first<{ name: string }>()
   if (!g) return c.json({ error: 'not found' }, 404)
   if (String(body.confirmName ?? '').trim() !== g.name.trim()) return c.json({ error: 'ชื่อกิลด์ที่พิมพ์ยืนยันไม่ตรง' }, 400)
-  await c.env.DB.batch(['likes', 'counters', 'targets', 'plans', 'announcements', 'guild_settings'].map((t) =>
-    c.env.DB.prepare(`DELETE FROM ${t} WHERE guild_id = ?`).bind(gid)).concat(
-    c.env.DB.prepare('DELETE FROM guilds WHERE id = ?').bind(gid),
-    c.env.DB.prepare("DELETE FROM auth_fails WHERE k LIKE ? || ':%'").bind(gid), // ตัวนับใส่รหัสผิดของกิลด์นี้
-  ))
+  await deleteGuildData(c.env, gid)
   return c.json({ ok: true })
 })
+
+/** ลบกิลด์และข้อมูลทั้งหมดของกิลด์ (ใช้ทั้งลบปกติและแอดมิน) */
+async function deleteGuildData(env: Env, gid: string) {
+  await env.DB.batch(['likes', 'counters', 'targets', 'plans', 'announcements', 'guild_settings'].map((t) =>
+    env.DB.prepare(`DELETE FROM ${t} WHERE guild_id = ?`).bind(gid)).concat(
+    env.DB.prepare('DELETE FROM guilds WHERE id = ?').bind(gid),
+    env.DB.prepare("DELETE FROM auth_fails WHERE k LIKE ? || ':%'").bind(gid), // ตัวนับใส่รหัสผิดของกิลด์นี้
+  ))
+}
 
 // ข้อมูลทั้งกิลด์ (ทีมเป้าหมาย + ทีมแก้) ในครั้งเดียว
 app.get('/api/guild/:id', async (c) => {
@@ -1012,6 +1017,20 @@ app.delete('/api/me/presets/:pid', async (c) => {
 
 // ---------- หน้าแอดมิน: ภาพรวมการใช้งานทุกกิลด์ (ล็อกอิน Discord + อยู่ใน ADMIN_DISCORD_IDS) ----------
 // ส่งแค่ตัวเลข/วันที่ — ไม่ส่ง webhook URL, edit key หรือเนื้อหาในกิลด์
+/** แอดมินลบกิลด์ (ไม่ต้องใช้รหัสของกิลด์ แต่ต้องพิมพ์ชื่อกิลด์ยืนยันเหมือนลบปกติ) */
+app.delete('/api/admin/guilds/:id', async (c) => {
+  const user = await currentUser(c)
+  const admins = (c.env.ADMIN_DISCORD_IDS || '').split(',').map((x) => x.trim()).filter(Boolean)
+  if (!user || !admins.includes(user.id)) return c.json({ error: 'not found' }, 404)
+  const gid = c.req.param('id')
+  const body = await c.req.json().catch(() => ({}))
+  const g = await c.env.DB.prepare('SELECT name FROM guilds WHERE id = ?').bind(gid).first<{ name: string }>()
+  if (!g) return c.json({ error: 'ไม่พบกิลด์' }, 404)
+  if (String(body.confirmName ?? '').trim() !== g.name.trim()) return c.json({ error: 'ชื่อกิลด์ที่พิมพ์ยืนยันไม่ตรง' }, 400)
+  await deleteGuildData(c.env, gid)
+  return c.json({ ok: true })
+})
+
 app.get('/api/admin/stats', async (c) => {
   c.header('Cache-Control', 'no-store')
   const user = await currentUser(c)
