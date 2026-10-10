@@ -51,7 +51,9 @@ export function defaultAutoText(type: 'attack' | 'defense') {
   const note = p.secondNote ? ` (${hhmm(p.switchHour)} ${p.secondNote})` : ''
   return `วันนี้ (${DAY_PLACEHOLDER}) ${DAY_LABEL[type]} · ${p.first} ${hhmm(RESET_HOUR)}–${hhmm(p.switchHour)}${note}`
 }
-export const fillDay = (text: string, day: string) => text.split(DAY_PLACEHOLDER).join(day)
+/** ใส่ได้ทั้ง {วัน} และ {day} (หน้าเว็บภาษาอังกฤษ) */
+export const DAY_PLACEHOLDER_EN = '{day}'
+export const fillDay = (text: string, day: string) => text.split(DAY_PLACEHOLDER).join(day).split(DAY_PLACEHOLDER_EN).join(day)
 
 // ---------- สงครามเบ็ดเสร็จ (Total War) ----------
 /** จำนวนรอบต่อซีซัน */

@@ -17,3 +17,5 @@ badges, at the lower left above the name as in the supplied game reference.
 Their transparent padding is compensated for with CSS scaling for small cards.
 The awakening medal replaces the AW text at the top right, keeping the top left
 available for the class icon and skill reservation marker.
+
+- `ruby.webp` — Ruby currency icon from an in-game screenshot supplied by the project owner (2026-10-10); background removed, AI 4x upscale, 128px.

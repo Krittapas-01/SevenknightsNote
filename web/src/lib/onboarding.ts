@@ -14,7 +14,9 @@ function write(gid: string, patch: Partial<Flags>) {
   window.dispatchEvent(new Event('7k-note:onboard'))
 }
 export const onboardFlags = (gid: string): Flags | null => read()[gid] ?? null
-export const startOnboarding = (gid: string) => write(gid, { on: true })
+/** ปิดระบบสอน/ทัวร์ไว้ก่อน (ยังทำไม่เสร็จ) — เปิดกลับโดยเปลี่ยนเป็น true */
+export const TUTORIAL_ON = false
+export const startOnboarding = (gid: string) => { if (TUTORIAL_ON) write(gid, { on: true }) }
 export const setOnboard = write
 /** กดคัดลอกลิงก์ดูอย่างเดียวแล้ว (นับเป็นแชร์) */
 export const markShared = (gid: string) => { if (read()[gid]?.on) write(gid, { shared: true }) }
@@ -33,18 +35,18 @@ export type OnboardStep = {
 
 export const ONBOARD_STEPS: OnboardStep[] = [
   {
-    key: 'target', title: 'จดทีมศัตรูบ้านแรก', target: 'add-target',
-    how: 'แท็บ "จดทีมศัตรู" → กดปุ่มที่กะพริบ → จัดทีมศัตรูที่เจอ ใส่แท็ก แล้วกด "บันทึก"',
+    key: 'target', title: 'จดบ้านศัตรูบ้านแรก', target: 'add-target',
+    how: 'แท็บ "บ้านศัตรู" → กดปุ่มที่กะพริบ → จัดทีมของบ้านศัตรูที่เจอ ใส่แท็ก แล้วกด "บันทึก"',
     go: (g) => `/g/${g}?tab=targets`, done: (d) => d.targets.length > 0,
   },
   {
     key: 'counter', title: 'จดทีมที่ใช้ตีบ้านนั้น', target: 'add-counter',
-    how: 'เปิดบ้านที่จดไว้ → "เพิ่มทีมแก้" → จัดทีมที่ตีผ่าน จองสกิล แล้วกด "บันทึก"',
+    how: 'เปิดบ้านที่จดไว้ → "เพิ่มทีมแก้" → จัดทีมที่ตีผ่าน ตั้งลำดับการใช้สกิล แล้วกด "บันทึก"',
     go: (g, d) => (d.targets[0] ? `/g/${g}/t/${d.targets[0].id}` : `/g/${g}?tab=targets`), done: (d) => d.targets.some((t) => t.counters.length > 0),
   },
   {
     key: 'plan', title: 'สร้างแผนบุกแผนแรก', target: 'new-attack',
-    how: 'แท็บ "แผนวอร์" → "สร้างแผนบุก" → แต่ละไม้เลือกบ้านจากคลังคอมพ์ (ทีมแก้จะมาด้วย) แล้ว "บันทึกแผน"',
+    how: 'แท็บ "แผนสงคราม" → "สร้างแผนบุก" → แต่ละไม้เลือกจากบ้านศัตรูที่จดไว้ (ทีมแก้จะมาด้วย) แล้ว "บันทึกแผน"',
     go: (g) => `/g/${g}`, done: (d) => d.plans.some((p) => planKind(p.data) === 'attack'),
   },
   {
@@ -59,7 +61,7 @@ export const ONBOARD_STEPS: OnboardStep[] = [
   },
   {
     key: 'discord', title: 'เชื่อม Discord ของกิลด์', target: 'discord', optional: true,
-    how: 'ไอคอนแชตในแถวตารางวอร์ → วางลิงก์ Webhook ของห้อง → ประกาศจะเข้าห้อง Discord อัตโนมัติ',
+    how: 'ไอคอนแชตในแถวตารางสงคราม → วางลิงก์ Webhook ของห้อง → ประกาศจะเข้าห้อง Discord อัตโนมัติ',
     go: (g) => `/g/${g}`, done: (d, f) => !!d.discord?.connected || !!f.skipDiscord,
   },
 ]

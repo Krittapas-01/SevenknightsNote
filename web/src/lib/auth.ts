@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { tx } from './i18n'
 
 /** ล็อกอินด้วย Discord: เก็บ session token ในเครื่อง ส่งไปกับทุก request (header Authorization) */
 const KEY = '7knote:session'
@@ -32,7 +33,7 @@ let loginError: string | null = null
   const err = h.get('discord_error')
   if (token || err) {
     if (token) setSession(token)
-    if (err) loginError = err === 'access_denied' || err === 'cancelled' ? 'ยกเลิกการเข้าสู่ระบบ' : 'เข้าสู่ระบบด้วย Discord ไม่สำเร็จ ลองใหม่อีกครั้ง'
+    if (err) loginError = err === 'access_denied' || err === 'cancelled' ? tx('ยกเลิกการเข้าสู่ระบบ') : tx('เข้าสู่ระบบด้วย Discord ไม่สำเร็จ ลองใหม่อีกครั้ง')
     history.replaceState(null, '', location.pathname + location.search)
   }
 }

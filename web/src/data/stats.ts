@@ -1,9 +1,9 @@
 import { englishOf, isAwake } from './heroes'
 
 /**
- * โจมตีพื้นฐาน (base, 6 ดาว Lv.30 ไม่ใส่ของ) ของฮีโร่ — จาก 7K Atlas (https://7katlas.com, ดึง 2026-10-03)
+ * โจมตีพื้นฐาน (base, 6 ดาว Lv.30 ไม่ใส่ของ) ของอัศวิน — จาก 7K Atlas (https://7katlas.com, ดึง 2026-10-03)
  * key = ชื่ออังกฤษใน Atlas · [ร่างปกติ, ร่าง awake]
- * ใช้ในหน้าเช็กบัฟบิสกิต: เลือกตัวละครแล้วเติม base ให้เอง · ฮีโร่ใหม่: เพิ่มบรรทัดที่นี่
+ * ใช้ในหน้าเช็กบัฟบิสกิต: เลือกอัศวินแล้วเติม base ให้เอง · อัศวินใหม่: เพิ่มบรรทัดที่นี่
  */
 const BASE_ATK: Record<string, [number, number?]> = {
   "Ariel": [1389],
@@ -131,7 +131,7 @@ const BASE_ATK: Record<string, [number, number?]> = {
   "Rosie": [1095],
 }
 
-/** base โจมตีของฮีโร่ (ใช้ร่าง awake ถ้าเลือกตัว awake) · ไม่รู้ = null */
+/** base โจมตีของอัศวิน (ใช้ร่าง awake ถ้าเลือกตัว awake) · ไม่รู้ = null */
 export function baseAtkOf(id: string): number | null {
   const en = englishOf(id)
   if (!en) return null

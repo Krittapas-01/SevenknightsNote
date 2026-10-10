@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#161c2e" />
+    <!-- ใส่ธีมก่อนหน้าเว็บโหลด (กันจอกะพริบสีมืด→สว่าง) — ตรรกะเดียวกับ applyTheme() ใน lib/prefs.ts -->
+    <script>try{var t=(JSON.parse(localStorage.getItem('7k-note:prefs')||'{}').theme)||'dark';var l=t==='light'||(t==='system'&&!matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=l?'light':'dark'}catch(e){}</script>
     <title>7K Note — จดทีม Guild War</title>
     <link rel="icon" href="/favicon.svg" />
     <!-- ฟอนต์ Kanit โหลดจากเว็บเราเอง (web/public/fonts + index.css) ให้รูปที่บันทึกได้ฟอนต์เดียวกับเว็บ -->

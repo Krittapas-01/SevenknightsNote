@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import VersusMark from './VersusMark'
 
-/** ซ้าย = ทีมเรา, ขวา = ทีมศัตรู, กลาง = VS แบบในเกม (มือถือจะเรียงบน-ล่าง) */
+/** ซ้าย = ทีมเรา, ขวา = บ้านศัตรู, กลาง = VS แบบในเกม (มือถือจะเรียงบน-ล่าง) */
 export default function VsArena({ left, right }: { left: ReactNode; right: ReactNode }) {
   return (
     <div className="vs-arena relative flex flex-col items-center gap-4 lg:flex-row lg:items-stretch lg:justify-center lg:gap-0">

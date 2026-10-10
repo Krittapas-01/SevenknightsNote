@@ -1,6 +1,9 @@
 import { ChevronLeft, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, ThumbsUp, Trash2, Undo2, X } from 'lucide-react'
-import { tagColor, tagStyle } from '../lib/tags'
+import { isMainTag, tagColor, tagStyle, tagText } from '../lib/tags'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import SkillSkipAsk, { skillShort } from '../components/SkillSkipAsk'
+import ConfirmDelete from '../components/ConfirmDelete'
 import { Link, useNavigate, useParams } from 'react-router'
 import TeamPanel, { type SlotKind } from '../components/TeamPanel'
 import UnitPicker from '../components/UnitPicker'
@@ -12,28 +15,33 @@ import Modal from '../components/Modal'
 import { useDragScroll } from '../lib/useDragScroll'
 import { getUnit } from '../data/heroes'
 import { api } from '../lib/api'
-import { MAX_HEROES, addHeroToTeam, changeFormation, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type HeroNote, type SkillStep, type Team } from '../lib/types'
+import { MAX_HEROES, addHeroToTeam, changeFormation, compKey, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import NotFound from './NotFound'
 
 /** "เมื่อสักครู่" / "5 นาทีที่แล้ว" / "3 ชม. ที่แล้ว" / "2 วันที่แล้ว" */
 function edited(ts: number) {
   const m = Math.floor((Date.now() - ts) / 60_000)
-  if (m < 1) return 'เมื่อสักครู่'
-  if (m < 60) return `${m} นาทีที่แล้ว`
-  if (m < 1440) return `${Math.floor(m / 60)} ชม. ที่แล้ว`
-  return `${Math.floor(m / 1440)} วันที่แล้ว`
+  if (m < 1) return tx('เมื่อสักครู่')
+  if (m < 60) return L(`${m} นาทีที่แล้ว`, `${m} min ago`)
+  if (m < 1440) return L(`${Math.floor(m / 60)} ชม. ที่แล้ว`, `${Math.floor(m / 60)}h ago`)
+  return L(`${Math.floor(m / 1440)} วันที่แล้ว`, `${Math.floor(m / 1440)}d ago`)
 }
 const RECENT_MS = 24 * 3600_000
 import { EquipmentNoteText } from '../components/EquipmentLoadout'
 import HeroNotesTable from '../components/HeroNotesTable'
+import { TeamGearButton } from '../components/OptionCard'
 import TagEditor from '../components/TagEditor'
 import LikeButton from '../components/LikeButton'
 import { PresetPickerButton, SavePresetButton } from '../components/Presets'
 import { rememberNotes } from '../lib/myStats'
 import { autoSpeed } from '../lib/teamSpeed'
 import HelpLink from '../components/HelpLink'
+import { shakeScreen } from '../lib/shake'
+import { useMediaQuery } from '../lib/useMediaQuery'
+import { useSlideDir, useSlidePill } from '../lib/slide'
 import GuildOnboarding from '../components/GuildOnboarding'
+import { tx, L } from '../lib/i18n'
 
 const copyNotes = (n?: HeroNote[]) => (n ?? []).map((x) => ({ ...x, sets: [...x.sets], rings: [...x.rings] }))
 
@@ -47,17 +55,29 @@ export default function TargetPage() {
   const nav = useNavigate()
   const isNew = tid === 'new'
   const { data, error, canEdit, reload } = useGuild(gid)
+  const [dropOver, setDropOver] = useState(false)
+  const [editMenu, setEditMenu] = useState(false) // ลากคอมพ์เป้าหมายมาวางบนทีมแก้
+  const wide = useMediaQuery('(min-width: 1024px)') // จอคอม: ฟอร์มบ้านศัตรูอยู่ข้างคอมพ์
   const target = data?.targets.find((t) => t.id === tid)
 
   const [sel, setSel] = useState(0)
   const [showAll, setShowAll] = useState(false) // หน้าต่างดูทีมแก้ทั้งหมด
-  const [speedAsk, setSpeedAsk] = useState<{ total: number; need: number } | null>(null) // ถามใส่สปีดรวมตอนบันทึกทีมแก้
+  // ทีมแก้ตั้งลำดับการใช้สกิลไม่ครบ → ถามก่อนบันทึก · skillOk = ตอบ "ไม่จอง" แล้วในรอบแก้นี้ · skillsReq = สั่งเปิดหน้าต่างลำดับการใช้สกิล
+  const [skillAsk, setSkillAsk] = useState<{ which: 'counter' | 'target'; have: number } | null>(null)
+  const skillOk = useRef(false)
+  const tSkillOk = useRef(false)
+  const [skillsReq, setSkillsReq] = useState(0)
+  const [tSkillsReq, setTSkillsReq] = useState(0)
+  const [speedAsk, setSpeedAsk] = useState<{ total: number; need: number } | null>(null) // ถามใส่ความเร็วรวมตอนบันทึกทีมแก้
   const allStrip = useRef<HTMLDivElement>(null)
   const allDrag = useDragScroll(allStrip)
   const [delAsk, setDelAsk] = useState<string | null>(null) // ทีมแก้ที่กดลบครั้งแรกแล้ว (รอกดยืนยัน)
   const [mode, setMode] = useState<Mode>('view')
   const [tDraft, setTDraft] = useState({ team: emptyTeam(), tags: [] as string[], note: '' })
   const [cDraft, setCDraft] = useState({ id: null as string | null, team: emptyTeam(), skills: [] as SkillStep[], note: '', heroNotes: [] as HeroNote[] })
+  const counterPill = useSlidePill(mode === 'counter' && !cDraft.id ? 'add' : sel)
+  // ดูทีมแก้: สลับทีมแก้ = การ์ดเลื่อนเข้าตามทิศ
+  const counterSlide = useSlideDir(sel)
   const [picker, setPicker] = useState<Picker>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -68,8 +88,8 @@ export default function TargetPage() {
   }, [isNew, canEdit])
 
   if (error) return <NotFound message={error} />
-  if (!data) return <p className="py-24 text-center text-white/50">กำลังโหลด...</p>
-  if (!isNew && !target) return <NotFound message="ไม่พบทีมเป้าหมายนี้" />
+  if (!data) return <p className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
+  if (!isNew && !target) return <NotFound message="ไม่พบบ้านศัตรูนี้" />
   if (isNew && !canEdit) return <NotFound message="ลิงก์นี้ไม่มีสิทธิ์แก้ไข" />
 
   const counters = target?.counters ?? []
@@ -77,12 +97,14 @@ export default function TargetPage() {
 
   // ---------- เริ่มแก้ไข ----------
   function editTarget() {
+    tSkillOk.current = false
     if (!target) return
     setTDraft({ team: clone(target.team), tags: [...target.tags], note: target.note })
     setErr(null)
     setMode('target')
   }
   function editCounter(isAdd: boolean) {
+    skillOk.current = false
     if (isAdd || !current) setCDraft({ id: null, team: emptyTeam(), skills: [], note: '', heroNotes: [] })
     else setCDraft({ id: current.id, team: clone(current.team), skills: [...current.skills], note: current.note, heroNotes: copyNotes(current.heroNotes) })
     setErr(null)
@@ -128,13 +150,24 @@ export default function TargetPage() {
       await fn()
     } catch (e) {
       setErr((e as Error).message)
+      shakeScreen()
     } finally {
       setBusy(false)
     }
   }
-  const saveTarget = () =>
-    run(async () => {
-      if (heroCount(tDraft.team) === 0) throw new Error('ใส่ฮีโร่อย่างน้อย 1 ตัว')
+  const saveTarget = () => {
+    // บ้านศัตรูตั้งลำดับการใช้สกิลไม่ครบ → ถามก่อน (เช็คหลังมีตัว+สัตว์เลี้ยงแล้ว)
+    const tSkills = tDraft.team.skills ?? []
+    if (!tSkillOk.current && tDraft.team.pet && skillShort(tDraft.team, tSkills)) { setSkillAsk({ which: 'target', have: tSkills.length }); return }
+    return run(async () => {
+      if (heroCount(tDraft.team) === 0) throw new Error(tx('ใส่อัศวินอย่างน้อย 1 ตัว'))
+      if (!tDraft.team.pet) throw new Error(tx('เลือกสัตว์เลี้ยงก่อน (ช่องขวาบนของการ์ดทีม)'))
+      // ทุกบ้านต้องมีประเภทหลัก (ใช้กรอง/สีการ์ด)
+      if (!tDraft.tags.some(isMainTag)) throw new Error(tx('เลือกประเภทคอมพ์ก่อน: กายภาพ / เวท / แทงก์'))
+      // คอมพ์ซ้ำ (อัศวินชุดเดียวกัน) ห้ามจดซ้ำ — ไปเพิ่มทีมแก้ที่บ้านเดิมแทน
+      const key = compKey(tDraft.team)
+      const dup = data?.targets.find((t) => t.id !== tid && compKey(t.team) === key)
+      if (dup) throw new Error(`คอมพ์นี้จดไว้แล้ว${dup.tags.length ? ` (${dup.tags.join(', ')})` : ''} — เปิดบ้านเดิมแล้วเพิ่มทีมแก้ที่นั่นแทน`)
       if (isNew) {
         const t = await api.createTarget(gid, tDraft)
         await reload()
@@ -145,16 +178,19 @@ export default function TargetPage() {
       }
       setMode('view')
     })
+  }
   const deleteTarget = () => {
-    if (!confirm('ลบทีมเป้าหมายนี้และทีมแก้ทั้งหมด?')) return
     run(async () => {
       await api.deleteTarget(gid, tid)
       await reload()
       nav(`/g/${gid}?tab=targets`, { replace: true })
     })
   }
-  // จัดทีมเสร็จ (กดบันทึก) แล้วทุกตัวมีความเร็วโจมตีในสเตตัส → ถามก่อนว่าจะใส่ผลรวมเป็นสปีดทีมไหม (state speedAsk อยู่ด้านบน)
+  // จัดทีมเสร็จ (กดบันทึก) แล้วทุกตัวมีความเร็วโจมตีในค่าความสามารถ → ถามก่อนว่าจะใส่ผลรวมเป็นความเร็วทีมไหม (state speedAsk อยู่ด้านบน)
   const saveCounter = (speed?: number) => {
+    // ทุกทีมต้องมีสัตว์เลี้ยง (เช็คก่อนถามความเร็ว)
+    if (heroCount(cDraft.team) > 0 && !cDraft.team.pet) { setErr(tx('เลือกสัตว์เลี้ยงก่อน (ช่องขวาบนของการ์ดทีม)')); shakeScreen(); return }
+    if (!skillOk.current && skillShort(cDraft.team, cDraft.skills)) { setSkillAsk({ which: 'counter', have: cDraft.skills.length }); return }
     if (speed === undefined && heroCount(cDraft.team) > 0) {
       const spd = autoSpeed(cDraft.team, cDraft.heroNotes)
       if (spd.full && spd.total !== cDraft.team.speed) return setSpeedAsk({ total: spd.total, need: spd.need })
@@ -162,9 +198,12 @@ export default function TargetPage() {
     setSpeedAsk(null)
     const team = speed === undefined ? cDraft.team : { ...cDraft.team, speed }
     return run(async () => {
-      if (heroCount(team) === 0) throw new Error('ใส่ฮีโร่อย่างน้อย 1 ตัว')
+      if (heroCount(team) === 0) throw new Error(tx('ใส่อัศวินอย่างน้อย 1 ตัว'))
+      // ทีมแก้ซ้ำในบ้านเดียวกัน (อัศวินชุดเดียวกัน) ห้ามจดซ้ำ
+      const dupC = counters.findIndex((c) => c.id !== cDraft.id && compKey(c.team) === compKey(team))
+      if (dupC >= 0) throw new Error(L(`ทีมแก้นี้มีอยู่แล้ว (ทีมแก้ #${dupC + 1}) — แก้ที่ทีมเดิมแทน`, `This counter already exists (Counter #${dupC + 1}) — edit that one instead`))
       const body = { team, skills: cDraft.skills, note: cDraft.note, heroNotes: cDraft.heroNotes }
-      rememberNotes(cDraft.heroNotes) // จำสเตตัสล่าสุดของเครื่องนี้
+      rememberNotes(cDraft.heroNotes) // จำค่าความสามารถล่าสุดของเครื่องนี้
       if (cDraft.id) {
         await api.updateCounter(gid, cDraft.id, body)
         await reload()
@@ -177,7 +216,7 @@ export default function TargetPage() {
     })
   }
   const deleteCounter = () => {
-    if (!cDraft.id || !confirm('ลบทีมแก้นี้?')) return
+    if (!cDraft.id) return
     run(async () => {
       await api.deleteCounter(gid, cDraft.id!)
       await reload()
@@ -202,10 +241,175 @@ export default function TargetPage() {
   const leftTeam = editingC ? cDraft.team : current?.team ?? emptyTeam()
   const leftSkills = editingC ? cDraft.skills : current?.skills ?? []
   const leftTitle = editingC
-    ? cDraft.id ? `แก้ไขทีมแก้ #${sel + 1}` : 'ทีมแก้ใหม่'
-    : current ? `ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}` : isNew ? 'ทีมแก้' : 'ยังไม่มีทีมแก้'
+    ? cDraft.id ? L(`แก้ไขทีมแก้ #${sel + 1}`, `Edit counter #${sel + 1}`) : tx('ทีมแก้ใหม่')
+    : current ? L(`ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}`, `Counter #${Math.min(sel, counters.length - 1) + 1}`) : isNew ? tx('ทีมแก้') : tx('ยังไม่มีทีมแก้')
 
   const rightTeam = editingT ? tDraft.team : target?.team ?? emptyTeam()
+
+  // ทีมแก้ (ฝั่งซ้ายของ VS)
+  const allyPanel = (
+    <TeamPanel
+        variant="ally"
+        team={leftTeam}
+        heroNotes={editingC ? cDraft.heroNotes : current?.heroNotes ?? []}
+        title={undefined}
+        skills={leftSkills}
+        editable={editingC}
+        label={tx('ทีมแก้')}
+        onSlotClick={(kind, index) => setPicker({ side: 'counter', kind, index })}
+        onPlace={(ref, unit) => setCDraft((d) => {
+          const r = placeUnit(d.team, d.skills, ref, unit)
+          return r ? { ...d, ...r } : d
+        })}
+        onReset={() => setCDraft((d) => ({ ...d, team: emptyTeam(), skills: [] }))}
+        onFormation={(f) => setCDraft((d) => ({ ...d, ...changeFormation(d.team, d.skills, f) }))}
+        onMove={(from, to) => setCDraft((d) => ({ ...d, ...moveSlot(d.team, d.skills, from, to) }))}
+        onSpeed={(s) => setTeam('counter', (t) => ({ ...t, speed: s }))}
+        onSkills={(skills) => setCDraft((d) => ({ ...d, skills }))}
+        skillsReq={skillsReq}
+        className={isNew ? 'opacity-40' : ''}
+      />
+  )
+
+  // บ้านศัตรู (ฝั่งขวาของ VS)
+  const enemyPanel = (
+    <TeamPanel
+        variant="enemy"
+        team={rightTeam}
+        title={undefined}
+        editable={editingT}
+        label={tx('บ้านศัตรู')}
+        skillsReq={tSkillsReq}
+        onSlotClick={(kind, index) => setPicker({ side: 'target', kind, index })}
+        skills={rightTeam.skills ?? []}
+        onSkills={(sk) => setTDraft((d) => ({ ...d, team: { ...d.team, skills: sk } }))}
+        onPlace={(ref, unit) => setTDraft((d) => ({ ...d, team: teamOps.place(d.team, ref, unit) }))}
+        onReset={() => setTDraft((d) => ({ ...d, team: emptyTeam() }))}
+        onFormation={(f) => setTDraft((d) => ({ ...d, team: teamOps.formation(d.team, f) }))}
+        onMove={(from, to) => setTDraft((d) => ({ ...d, team: teamOps.move(d.team, from, to) }))}
+        onSpeed={(s) => setTeam('target', (t) => ({ ...t, speed: s }))}
+      />
+  )
+
+  // ลากทั้งคอมพ์บ้านศัตรูมาเป็นจุดเริ่มทีมแก้ (คัดลอก บ้านศัตรูไม่เปลี่ยน · ไม่เอาลำดับสกิล/ความเร็วของศัตรู)
+  const TEAM_MIME = 'application/x-7knote-team'
+  // ลากได้ทั้งตอนแก้ทีมแก้ และตอนดูเฉย ๆ (ยังไม่ได้กด "เพิ่มทีมแก้" = เปิดทีมแก้ใหม่ให้เลย)
+  const canCopy = canEdit && !isNew && !editingT && heroCount(rightTeam) > 0
+  const copyTarget = () => {
+    if (!editingC) editCounter(true)
+    setCDraft((d) => ({ ...d, team: { ...clone(rightTeam), skills: undefined, speed: 0 }, skills: [] }))
+  }
+  const allyBlock = (
+    <div key={mode === 'view' ? `v${sel}` : 'edit'} className={`flex h-full flex-col ${mode === 'view' ? counterSlide : ''}`}>
+      <p className="mb-2 text-center text-lg font-semibold text-gold">{leftTitle}</p>
+      <div
+        onDragOver={(e) => { if (canCopy && e.dataTransfer.types.includes(TEAM_MIME)) { e.preventDefault(); setDropOver(true) } }}
+        onDragLeave={() => setDropOver(false)}
+        onDrop={(e) => { e.preventDefault(); setDropOver(false); if (canCopy && e.dataTransfer.types.includes(TEAM_MIME)) copyTarget() }}
+        className={`flex-1 rounded-[20px] transition [&>*]:h-full ${dropOver ? 'ring-2 ring-gold ring-offset-4 ring-offset-[var(--surface-deep)]' : ''}`}
+      >
+        <div className="relative [&>*]:h-full">
+          {allyPanel}
+          {/* ยังไม่มีทีมแก้ → กดตรงกลางการ์ดเพื่อเริ่มจดทีมแก้ */}
+          {canEdit && !isNew && mode === 'view' && !current && (
+            <button
+              data-onboard="add-counter"
+              onClick={() => editCounter(true)}
+              className="group absolute inset-0 flex items-center justify-center rounded-[20px] transition hover:bg-gold/5"
+            >
+              <span className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-ink/80 px-5 py-2.5 font-semibold text-gold shadow-lg backdrop-blur transition group-hover:scale-105 group-hover:border-gold">
+                <Plus className="h-5 w-5" />{' '}{tx('เพิ่มทีมแก้')}
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+  const enemyBlock = (
+    <div className="flex h-full flex-col">
+      <div className="mb-2 flex items-center justify-center gap-2">
+        <span className="text-lg font-semibold text-red-200">{isNew ? tx('บ้านศัตรูใหม่') : tx('บ้านศัตรู')}</span>
+      </div>
+      {/* ทั้งการ์ดลากได้ (คัดลอกทั้งคอมพ์) */}
+      <div
+        draggable={canCopy}
+        onDragStart={(e) => { if (!canCopy) return; e.dataTransfer.setData(TEAM_MIME, '1'); e.dataTransfer.effectAllowed = 'copy' }}
+        className={`flex-1 [&>*]:h-full ${canCopy ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      >
+        {enemyPanel}
+      </div>
+    </div>
+  )
+
+  // ฟอร์มทีมแก้ — จอคอมวางข้างการ์ดทีมแก้ เหมือนฟอร์มบ้านศัตรู
+  const counterForm = (
+    <div className="panel panel-gold flex h-full flex-col p-5">
+      {!wide && <p className="mb-3 text-sm font-semibold text-gold">{tx('รายละเอียดทีมแก้')}</p>}
+      {/* บ้านศัตรูย่อ ไว้ดูเทียบ + ใช้ทั้งคอมพ์ (แทนการลากตอนกำลังแก้) */}
+      {heroCount(rightTeam) > 0 && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2">
+          <span className="shrink-0 text-xs font-semibold text-red-200">{tx('ศัตรู')}</span>
+          <div className="flex min-w-0 flex-1 gap-1.5">
+            {rightTeam.slots.filter(Boolean).map((id, i) => {
+              const u = getUnit(id)
+              return u?.thumb || u?.img
+                ? <img key={i} src={u.thumb ?? u.img} alt={u.name} title={u.name} className="h-9 w-9 rounded-lg object-cover ring-1 ring-white/15" />
+                : <span key={i} title={u?.name} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-[10px]">{u?.name.slice(0, 3)}</span>
+            })}
+          </div>
+          {canCopy && (
+            <button type="button" onClick={copyTarget} className="shrink-0 rounded-full border border-gold/50 bg-gold/10 px-2.5 py-1 text-xs font-semibold text-gold hover:bg-gold/20">
+              {tx('ใช้ทั้งคอมพ์')}
+            </button>
+          )}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <button onClick={() => setLibrary('counter')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
+          <Library className="h-4 w-4" />{' '}{tx('เลือกจากที่จดไว้')}
+        </button>
+        <PresetPickerButton onPick={(p) => setCDraft((d) => ({ ...d, team: clone(p.team), skills: [...p.skills], note: d.note || p.note.slice(0, 500), heroNotes: copyNotes(p.heroNotes) }))} />
+        <span className="text-xs text-white/50">{tx('กดวงกลมดาวล่างสุดเพื่อตั้งลำดับการใช้สกิล · กดอัศวิน 2 ครั้งเพื่อเอาออก')}</span>
+      </div>
+      <textarea
+        value={cDraft.note}
+        onChange={(e) => setCDraft((d) => ({ ...d, note: e.target.value }))}
+        maxLength={500}
+        rows={3}
+        placeholder={tx('โน้ต เช่น ทำช้า, ต้องมีของดี, แนะนำตัวนี้มากกว่าไคล์')}
+        className="mt-4 w-full rounded-xl border border-white/15 bg-black/20 p-3 outline-none focus:border-gold"
+      />
+      <div className="mt-4">
+        <p className="mb-2 text-sm text-white/60">{tx('อุปกรณ์/ค่าความสามารถรายตัว')}</p>
+        <HeroNotesTable notes={cDraft.heroNotes} editing team={cDraft.team.slots} onChange={(heroNotes) => setCDraft((d) => ({ ...d, heroNotes }))}
+          onAddHero={(hero) => setCDraft((d) => ({ ...d, team: addHeroToTeam(d.team, hero) }))} />
+      </div>
+      <Actions busy={busy} onSave={() => saveCounter()} onCancel={cancel} onDelete={cDraft.id ? deleteCounter : undefined} />
+    </div>
+  )
+
+  // ฟอร์มบ้านศัตรู (คลัง · แท็ก · โน้ต · บันทึก) — จอคอมวางข้างคอมพ์ ไม่ต้องเลื่อนลงไปหา
+  const targetForm = (
+    <div className="panel panel-enemy flex h-full flex-col p-5">
+      {!wide && <p className="mb-3 text-sm font-semibold text-red-200">{tx('รายละเอียดบ้านศัตรู')}</p>}
+      <div className="mb-4">
+        <button onClick={() => setLibrary('target')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
+          <Library className="h-4 w-4" />{' '}{tx('เลือกจากที่จดไว้')}
+        </button>
+      </div>
+      <TagEditor tags={tDraft.tags} onChange={(tags) => setTDraft((d) => ({ ...d, tags }))} />
+      <textarea
+        value={tDraft.note}
+        onChange={(e) => setTDraft((d) => ({ ...d, note: e.target.value }))}
+        maxLength={500}
+        rows={4}
+        placeholder={tx('โน้ตบ้านศัตรู เช่น เจอบ่อยในกิลด์ X, ตัวหลังความเร็วสูง')}
+        className="mt-4 min-h-24 w-full flex-1 rounded-xl border border-white/15 bg-black/20 p-3 outline-none focus:border-sky-300"
+      />
+      <Actions busy={busy} onSave={saveTarget} onCancel={cancel} onDelete={isNew ? undefined : deleteTarget} />
+    </div>
+  )
 
   return (
     <DndHub>
@@ -217,21 +421,23 @@ export default function TargetPage() {
       <GuildOnboarding gid={gid} data={data} canEdit={canEdit} />
 
       {/* แถบเลือกทีมแก้ แบบปุ่มแคปซูลในเกม */}
-      {!isNew && (
+      {!isNew && (counters.length > 0 || editingC) && (
         <div className="mt-5 flex justify-center">
-          <div className="scrollbar-thin pill flex max-w-full gap-1 overflow-x-auto p-1">
+          <div ref={counterPill.box} className="scrollbar-thin pill relative flex max-w-full gap-1 overflow-x-auto p-1">
+            <span aria-hidden className="slide-pill" style={counterPill.pill} />
             {counters.map((c, i) => (
               <button
                 key={c.id}
+                ref={counterPill.item(i)}
                 disabled={mode !== 'view'}
                 onClick={() => setSel(i)}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-sm sm:text-base ${
+                className={`relative z-10 shrink-0 rounded-full px-4 py-1.5 text-sm transition-colors sm:text-base ${
                   i === Math.min(sel, counters.length - 1) && !(editingC && !cDraft.id)
-                    ? 'bg-gradient-to-b from-[#fff1c9] to-[#e2bf72] font-semibold text-ink'
+                    ? 'font-semibold text-ink'
                     : 'text-white/70 hover:bg-white/10 disabled:hover:bg-transparent'
                 }`}
               >
-                ทีมแก้ #{i + 1}
+                {tx('ทีมแก้ #')}{i + 1}
                 {!!c.likes && (
                   <span className={`ml-1.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-px align-middle text-xs font-bold tabular-nums ${
                     i === Math.min(sel, counters.length - 1) && !(editingC && !cDraft.id) ? 'bg-ink/85 text-sky-200' : 'bg-sky-400/20 text-sky-200'
@@ -241,27 +447,31 @@ export default function TargetPage() {
                 )}
                 {/* แก้ภายใน 24 ชม. → จุดเล็ก ๆ ให้คนในกิลรู้ว่ามีการแก้ */}
                 {c.updatedAt > c.createdAt && Date.now() - c.updatedAt < RECENT_MS && (
-                  <span title={`แก้ล่าสุด ${edited(c.updatedAt)}`} className="ml-1.5 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full bg-emerald-400 align-middle" />
+                  <span title={L(`แก้ล่าสุด ${edited(c.updatedAt)}`, `Edited ${edited(c.updatedAt)}`)} className="ml-1.5 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full bg-emerald-400 align-middle" />
                 )}
               </button>
             ))}
-            {canEdit && (
+            {/* มีทีมแก้แล้ว = ปุ่ม + เล็ก ๆ ท้ายแถบ (ยังไม่มี = กดที่การ์ดตรงกลางแทน) */}
+            {canEdit && counters.length > 0 && (
               <button
+                ref={counterPill.item('add')}
                 disabled={mode !== 'view'}
                 data-onboard="add-counter"
                 onClick={() => editCounter(true)}
-                className={`flex shrink-0 items-center gap-1 rounded-full px-4 py-1.5 text-sm sm:text-base ${
-                  editingC && !cDraft.id ? 'bg-gradient-to-b from-[#fff1c9] to-[#e2bf72] font-semibold text-ink' : 'text-gold hover:bg-white/10'
+                title={tx('เพิ่มทีมแก้')}
+                aria-label={tx('เพิ่มทีมแก้')}
+                className={`relative z-10 flex shrink-0 items-center rounded-full px-3 py-1.5 transition-colors ${
+                  editingC && !cDraft.id ? 'font-semibold text-ink' : 'text-gold hover:bg-white/10'
                 }`}
               >
-                <Plus className="h-4 w-4" /> เพิ่มทีมแก้
+                <Plus className="h-4 w-4" />
               </button>
             )}
           </div>
           {counters.length > 1 && (
             <button disabled={mode !== 'view'} onClick={() => setShowAll(true)}
               className="pill ml-2 flex shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm text-gold hover:bg-white/10 disabled:opacity-40">
-              <LayoutGrid className="h-4 w-4" /> ดูทั้งหมด
+              <LayoutGrid className="h-4 w-4" />{' '}{tx('ดูทั้งหมด')}
             </button>
           )}
         </div>
@@ -269,22 +479,22 @@ export default function TargetPage() {
 
       {!isNew && current && mode === 'view' && (
         <p className="mt-2 text-center text-xs text-white/45">
-          {current.updatedAt > current.createdAt ? `แก้ล่าสุด ${edited(current.updatedAt)}` : `เพิ่มเมื่อ ${edited(current.createdAt)}`}
+          {current.updatedAt > current.createdAt ? L(`แก้ล่าสุด ${edited(current.updatedAt)}`, `Edited ${edited(current.updatedAt)}`) : L(`เพิ่มเมื่อ ${edited(current.createdAt)}`, `Added ${edited(current.createdAt)}`)}
         </p>
       )}
 
-      <Modal open={!!speedAsk} title="ใส่สปีดทีมไหม?" onClose={() => setSpeedAsk(null)}>
+      <Modal open={!!speedAsk} title={tx('ใส่ความเร็วทีมไหม?')} onClose={() => setSpeedAsk(null)}>
         {speedAsk && (
           <div className="text-center">
-            <p className="text-white/80">ความเร็วโจมตีของ {speedAsk.need} ตัวรวมกัน</p>
+            <p className="text-white/80">{tx('ความเร็วโจมตีของ')}{' '}{speedAsk.need}{' '}{tx('ตัวรวมกัน')}</p>
             <p className="mt-1 text-4xl font-bold tabular-nums text-gold">{speedAsk.total}</p>
-            {!!cDraft.team.speed && <p className="mt-1 text-sm text-white/50">ตอนนี้ใส่ไว้ {cDraft.team.speed}</p>}
+            {!!cDraft.team.speed && <p className="mt-1 text-sm text-white/50">{tx('ตอนนี้ใส่ไว้')}{' '}{cDraft.team.speed}</p>}
             <div className="mt-5 flex justify-center gap-2">
               <button className="pill px-4 py-2 text-sm text-white/80 hover:bg-white/10" disabled={busy} onClick={() => saveCounter(cDraft.team.speed)}>
-                ไม่ใส่ บันทึกเลย
+                {tx('ไม่ใส่ บันทึกเลย')}
               </button>
               <button className="btn-gold px-5 py-2" disabled={busy} onClick={() => saveCounter(speedAsk.total)}>
-                ใส่ {speedAsk.total} แล้วบันทึก
+                {tx('ใส่')}{' '}{speedAsk.total}{' '}{tx('แล้วบันทึก')}
               </button>
             </div>
           </div>
@@ -292,10 +502,10 @@ export default function TargetPage() {
       </Modal>
 
       {/* ดูทีมแก้ทั้งหมดพร้อมกัน (แบบ 7k-combo) · กดการ์ดเพื่อเปิดทีมนั้น */}
-      <Modal open={showAll} title={`ทีมแก้ทั้งหมด (${counters.length})`} onClose={() => setShowAll(false)} wide>
+      <Modal open={showAll} title={L(`ทีมแก้ทั้งหมด (${counters.length})`, `All counters (${counters.length})`)} onClose={() => setShowAll(false)} wide>
         <div className="mb-5 flex justify-center">
           <div className="w-full max-w-md">
-            <p className="mb-2 text-sm font-semibold text-red-300">ทีมเป้าหมาย</p>
+            <p className="mb-2 text-sm font-semibold text-red-300">{tx('บ้านศัตรู')}</p>
             <TeamPanel variant="enemy" size="sm" team={target?.team ?? emptyTeam()} skills={target?.team.skills ?? []} />
           </div>
         </div>
@@ -306,7 +516,7 @@ export default function TargetPage() {
               onKeyDown={(e) => e.key === 'Enter' && (setSel(i), setShowAll(false))}
               className={`flex w-[min(340px,85vw)] shrink-0 cursor-pointer flex-col rounded-2xl border border-white/10 p-3 text-left transition hover:bg-white/5 ${i === Math.min(sel, counters.length - 1) ? 'ring-1 ring-gold/60' : ''}`}>
               <span className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-gold">ทีมแก้ #{i + 1}</span>
+                <span className="text-sm font-semibold text-gold">{tx('ทีมแก้ #')}{i + 1}</span>
                 {canEdit && (
                   // กด 2 ครั้งถึงลบ กันกดพลาด
                   <button type="button" disabled={busy}
@@ -322,158 +532,87 @@ export default function TargetPage() {
                     }}
                     onBlur={() => setDelAsk((x) => (x === c.id ? null : x))}
                     className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${delAsk === c.id ? 'bg-red-600 font-semibold text-white' : 'text-white/45 hover:bg-red-500/15 hover:text-red-300'}`}>
-                    <Trash2 className="h-3.5 w-3.5" /> {delAsk === c.id ? 'กดอีกครั้งเพื่อลบ' : 'ลบ'}
+                    <Trash2 className="h-3.5 w-3.5" /> {delAsk === c.id ? tx('กดอีกครั้งเพื่อลบ') : tx('ลบ')}
                   </button>
                 )}
               </span>
               <span className="pointer-events-none block"><TeamPanel variant="ally" size="sm" team={c.team} skills={c.skills} heroNotes={c.heroNotes} /></span>
               {c.note && <span className="mt-2 line-clamp-2 text-sm text-white/80">{c.note}</span>}
-              <span className="mt-2 self-end text-xs text-white/50">เปิดทีมนี้ ›</span>
+              <span className="mt-2 self-end text-xs text-white/50">{tx('เปิดทีมนี้ ›')}</span>
             </div>
           ))}
         </div>
       </Modal>
 
       <div className="mt-8">
-        <VsArena
-          left={
-            <TeamPanel
-              variant="ally"
-              team={leftTeam}
-              heroNotes={editingC ? cDraft.heroNotes : current?.heroNotes ?? []}
-              title={leftTitle}
-              skills={leftSkills}
-              editable={editingC}
-              label="ทีมแก้"
-              onSlotClick={(kind, index) => setPicker({ side: 'counter', kind, index })}
-              onPlace={(ref, unit) => setCDraft((d) => {
-                const r = placeUnit(d.team, d.skills, ref, unit)
-                return r ? { ...d, ...r } : d
-              })}
-              onReset={() => setCDraft((d) => ({ ...d, team: emptyTeam(), skills: [] }))}
-              onFormation={(f) => setCDraft((d) => ({ ...d, ...changeFormation(d.team, d.skills, f) }))}
-              onMove={(from, to) => setCDraft((d) => ({ ...d, ...moveSlot(d.team, d.skills, from, to) }))}
-              onSpeed={(s) => setTeam('counter', (t) => ({ ...t, speed: s }))}
-              onSkills={(skills) => setCDraft((d) => ({ ...d, skills }))}
-              className={isNew ? 'opacity-40' : ''}
-            />
-          }
-          right={
-            <TeamPanel
-              variant="enemy"
-              team={rightTeam}
-              title={isNew ? 'ทีมเป้าหมายใหม่' : 'ทีมเป้าหมาย'}
-              editable={editingT}
-              label="ทีมเป้าหมาย"
-              onSlotClick={(kind, index) => setPicker({ side: 'target', kind, index })}
-              skills={rightTeam.skills ?? []}
-              onSkills={(sk) => setTDraft((d) => ({ ...d, team: { ...d.team, skills: sk } }))}
-              onPlace={(ref, unit) => setTDraft((d) => ({ ...d, team: teamOps.place(d.team, ref, unit) }))}
-              onReset={() => setTDraft((d) => ({ ...d, team: emptyTeam() }))}
-              onFormation={(f) => setTDraft((d) => ({ ...d, team: teamOps.formation(d.team, f) }))}
-              onMove={(from, to) => setTDraft((d) => ({ ...d, team: teamOps.move(d.team, from, to) }))}
-              onSpeed={(s) => setTeam('target', (t) => ({ ...t, speed: s }))}
-            />
-          }
-        />
+        {editingT && wide ? (
+          // จอคอม แก้บ้านศัตรู: คอมพ์ศัตรู + ฟอร์มรายละเอียดอยู่ข้างกัน (ไม่มีทีมแก้/VS มาเกะกะ)
+          <div className="flex items-stretch justify-center gap-6">
+            <div className="w-[380px] [&>*]:h-full">{enemyBlock}</div>
+            <div className="flex w-[380px] flex-col">
+              <p className="mb-2 text-center text-lg font-semibold text-red-200">{tx('รายละเอียดบ้านศัตรู')}</p>
+              <div className="flex-1 [&>*]:h-full">{targetForm}</div>
+            </div>
+          </div>
+        ) : editingC && wide ? (
+          // จอคอม แก้ทีมแก้: การ์ดทีมแก้ + ฟอร์มรายละเอียดอยู่ข้างกัน
+          <div className="flex items-stretch justify-center gap-6">
+            <div className="w-[380px]">{allyBlock}</div>
+            <div className="flex w-[460px] flex-col">
+              <p className="mb-2 text-center text-lg font-semibold text-gold">{tx('รายละเอียดทีมแก้')}</p>
+              <div className="flex-1 [&>*]:h-full">{counterForm}</div>
+            </div>
+          </div>
+        ) : (
+          <VsArena left={allyBlock} right={enemyBlock} />
+        )}
       </div>
 
       {/* ---------- แผงล่าง ---------- */}
       <div className="mx-auto mt-10 max-w-3xl">
-        {err && <p className="mb-4 rounded-lg bg-red-500/15 px-4 py-2 text-red-200">{err}</p>}
+        {err && <p data-error className="mb-4 rounded-lg border border-red-400/40 bg-red-500/15 px-4 py-2 font-semibold text-red-200">{err}</p>}
 
-        {editingC && (
-          <div className="panel panel-gold p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <button onClick={() => setLibrary('counter')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
-                <Library className="h-4 w-4" /> เลือกจากคลังคอมพ์
-              </button>
-              <PresetPickerButton onPick={(p) => setCDraft((d) => ({ ...d, team: clone(p.team), skills: [...p.skills], note: d.note || p.note.slice(0, 500), heroNotes: copyNotes(p.heroNotes) }))} />
-              <span className="text-xs text-white/50">กดวงกลมดาวล่างสุดเพื่อจองสกิล · กดตัวละคร 2 ครั้งเพื่อเอาออก</span>
-            </div>
-            <textarea
-              value={cDraft.note}
-              onChange={(e) => setCDraft((d) => ({ ...d, note: e.target.value }))}
-              maxLength={500}
-              rows={3}
-              placeholder="โน้ต เช่น ทำช้า, ต้องมีของดี, แนะนำตัวนี้มากกว่าไคล์"
-              className="mt-4 w-full rounded-xl border border-white/15 bg-black/20 p-3 outline-none focus:border-gold"
-            />
-            <div className="mt-4">
-              <p className="mb-2 text-sm text-white/60">ของ/สเตตัสรายตัว</p>
-              <HeroNotesTable notes={cDraft.heroNotes} editing team={cDraft.team.slots} onChange={(heroNotes) => setCDraft((d) => ({ ...d, heroNotes }))}
-                onAddHero={(hero) => setCDraft((d) => ({ ...d, team: addHeroToTeam(d.team, hero) }))} />
-            </div>
-            <Actions busy={busy} onSave={() => saveCounter()} onCancel={cancel} onDelete={cDraft.id ? deleteCounter : undefined} />
-          </div>
-        )}
+        {/* มือถือ: ฟอร์มทีมแก้อยู่ใต้ทีม · จอคอมย้ายไปข้างการ์ด */}
+        {editingC && !wide && counterForm}
 
-        {editingT && (
-          <div className="panel panel-enemy p-5">
-            <div className="mb-4">
-              <button onClick={() => setLibrary('target')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
-                <Library className="h-4 w-4" /> เลือกจากคลังคอมพ์
-              </button>
-            </div>
-            <TagEditor tags={tDraft.tags} onChange={(tags) => setTDraft((d) => ({ ...d, tags }))} />
-            <textarea
-              value={tDraft.note}
-              onChange={(e) => setTDraft((d) => ({ ...d, note: e.target.value }))}
-              maxLength={500}
-              rows={3}
-              placeholder="โน้ตทีมเป้าหมาย เช่น เจอบ่อยในกิลด์ X, ตัวหลังสปีดสูง"
-              className="mt-4 w-full rounded-xl border border-white/15 bg-black/20 p-3 outline-none focus:border-sky-300"
-            />
-            <Actions busy={busy} onSave={saveTarget} onCancel={cancel} onDelete={isNew ? undefined : deleteTarget} />
-          </div>
-        )}
+        {/* มือถือ: ฟอร์มบ้านศัตรูอยู่ใต้ทีม · จอคอมย้ายไปข้างคอมพ์ (ช่องซ้ายของ VS) */}
+        {editingT && !wide && targetForm}
 
         {mode === 'view' && target && (
           <div className="grid gap-5 md:grid-cols-2">
-            <div className="panel panel-gold p-5">
+            <div key={sel} className={`panel panel-gold p-5 ${counterSlide}`}>
               <div className="flex items-center justify-between">
                 <h3 className="flex items-center gap-2 font-semibold text-gold">
-                  {current ? `ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}` : 'ทีมแก้'}
+                  {current ? L(`ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}`, `Counter #${Math.min(sel, counters.length - 1) + 1}`) : tx('ทีมแก้')}
                   {current && <LikeButton key={current.id} gid={gid} cid={current.id} count={current.likes ?? 0} onChanged={reload} />}
                   {current && <SavePresetButton team={current.team} skills={current.skills} note={current.note} heroNotes={current.heroNotes} className="font-normal" />}
                 </h3>
-                {canEdit && (
-                  // ยังไม่มีทีมแก้ = ปุ่มเพิ่ม (เหมือนกด "เพิ่มทีมแก้" ด้านบน)
-                  <button onClick={() => editCounter(!current)} className="flex items-center gap-1 text-sm text-white/70 hover:text-gold">
-                    {current ? <><Pencil className="h-4 w-4" /> แก้ไข</> : <><Plus className="h-4 w-4" /> เพิ่มทีมแก้</>}
-                  </button>
-                )}
               </div>
               {current ? (
                 <>
-                  {current.note ? <EquipmentNoteText text={current.note} /> : <p className="mt-3 text-white/40">ไม่มีโน้ต</p>}
+                  {current.note ? <EquipmentNoteText text={current.note} /> : <p className="mt-3 text-white/40">{tx('ไม่มีโน้ต')}</p>}
+                  {/* อยู่ในการ์ดทีมแก้ → รู้ว่าดูรายละเอียดของทีมไหน */}
+                  {(current.heroNotes?.length ?? 0) > 0 && (
+                    <TeamGearButton className="mt-4" team={current.team} skills={current.skills} heroNotes={current.heroNotes!}
+                      label={L(`ดูรายละเอียดทีมแก้ #${Math.min(sel, counters.length - 1) + 1}`, `View counter #${Math.min(sel, counters.length - 1) + 1} details`)}
+                      title={L(`ทีมแก้ #${Math.min(sel, counters.length - 1) + 1} · รายละเอียดทั้งทีม`, `Counter #${Math.min(sel, counters.length - 1) + 1} · full team details`)} />
+                  )}
                 </>
               ) : (
-                <p className="mt-2 text-white/50">{canEdit ? 'กด “เพิ่มทีมแก้” เพื่อจดทีมที่ใช้ตีทีมนี้' : 'ยังไม่มีใครจดทีมแก้'}</p>
+                <p className="mt-2 text-white/50">{canEdit ? tx('กดที่การ์ดทีมแก้ด้านบน หรือลากบ้านศัตรูมาวาง เพื่อจดทีมที่ใช้ตีทีมนี้') : tx('ยังไม่มีใครจดทีมแก้')}</p>
               )}
             </div>
             <div className="panel panel-enemy p-5">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">ทีมเป้าหมาย</h3>
-                {canEdit && (
-                  <button onClick={editTarget} className="flex items-center gap-1 text-sm text-white/70 hover:text-gold">
-                    <Pencil className="h-4 w-4" /> แก้ไข
-                  </button>
-                )}
+                <h3 className="font-semibold">{tx('บ้านศัตรู')}</h3>
               </div>
               {target.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {target.tags.map((t) => <span key={t} className="rounded-full px-3 py-0.5 text-sm font-semibold" style={tagStyle(t)}>{t}</span>)}
+                  {target.tags.map((t) => <span key={t} className="rounded-full px-3 py-0.5 text-sm font-semibold" style={tagStyle(t)}>{tagText(t)}</span>)}
                 </div>
               )}
-              <p className="mt-3 whitespace-pre-wrap text-white/80">{target.note || <span className="text-white/40">ไม่มีโน้ต</span>}</p>
+              <p className="mt-3 whitespace-pre-wrap text-white/80">{target.note || <span className="text-white/40">{tx('ไม่มีโน้ต')}</span>}</p>
             </div>
-            {current && (current.heroNotes?.length ?? 0) > 0 && (
-              <div className="panel p-4 md:col-span-2 sm:p-5">
-                <h3 className="mb-3 font-semibold text-gold">ของ/สเตตัสรายตัว · ทีมแก้ #{Math.min(sel, counters.length - 1) + 1}</h3>
-                <HeroNotesTable notes={current.heroNotes!} />
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -491,6 +630,42 @@ export default function TargetPage() {
         onClose={() => setPicker(null)}
       />
       {mode !== 'view' && <HeroDock />}
+      <SkillSkipAsk items={skillAsk === null ? null : [[skillAsk.which === 'target' ? tx('บ้านศัตรู') : cDraft.id ? L(`ทีมแก้ #${sel + 1}`, `Counter #${sel + 1}`) : tx('ทีมแก้ใหม่'), skillAsk.have]]}
+        onCancel={() => setSkillAsk(null)}
+        onBack={() => {
+          const set = skillAsk?.which === 'target' ? setTSkillsReq : setSkillsReq
+          setSkillAsk(null); set((n) => n + 1); setTimeout(() => set(0), 800)
+        }}
+        onSkip={() => {
+          const w = skillAsk?.which
+          setSkillAsk(null)
+          if (w === 'target') { tSkillOk.current = true; saveTarget() } else { skillOk.current = true; saveCounter() }
+        }} />
+      {/* ปุ่มแก้ไขลอยมุมล่างขวา (ข้างปุ่มติดต่อ) — กดแล้วเลือกว่าจะแก้อะไร ไม่ต้องเลื่อนลงไปหาในการ์ด */}
+      {canEdit && !isNew && mode === 'view' && createPortal(
+        <div data-noexport className="fixed right-20 z-40 flex flex-col items-end gap-2 sm:right-24" style={{ bottom: 'calc(20px + env(safe-area-inset-bottom))' }}>
+          {editMenu && (
+            <div className="panel panel-gold flex w-56 flex-col p-1.5 text-sm shadow-[0_6px_24px_rgba(0,0,0,.5)]">
+              {current && (
+                <button type="button" onClick={() => { setEditMenu(false); editCounter(false) }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-white/10">
+                  <Pencil className="h-4 w-4 text-gold" />{' '}{tx('แก้ไขทีมแก้ #')}{Math.min(sel, counters.length - 1) + 1}
+                </button>
+              )}
+              <button type="button" onClick={() => { setEditMenu(false); editCounter(true) }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-white/10">
+                <Plus className="h-4 w-4 text-gold" />{' '}{tx('เพิ่มทีมแก้')}
+              </button>
+              <button type="button" onClick={() => { setEditMenu(false); editTarget() }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-white/10">
+                <Pencil className="h-4 w-4 text-red-300" />{' '}{tx('แก้ไขบ้านศัตรู')}
+              </button>
+            </div>
+          )}
+          <button type="button" onClick={() => setEditMenu((v) => !v)} aria-expanded={editMenu}
+            className="btn-gold flex items-center gap-1.5 px-5 py-3 text-sm font-semibold shadow-[0_6px_24px_rgba(0,0,0,.5)]">
+            {editMenu ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}{' '}{tx('แก้ไข')}
+          </button>
+        </div>,
+        document.body,
+      )}
     </div>
     </DndHub>
   )
@@ -499,12 +674,10 @@ export default function TargetPage() {
 function Actions({ busy, onSave, onCancel, onDelete }: { busy: boolean; onSave: () => void; onCancel: () => void; onDelete?: () => void }) {
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
-      <button disabled={busy} onClick={onSave} className="btn-gold px-6 py-2">{busy ? 'กำลังบันทึก...' : 'บันทึก'}</button>
-      <button disabled={busy} onClick={onCancel} className="pill px-5 py-2">ยกเลิก</button>
+      <button disabled={busy} onClick={onSave} className="btn-gold px-6 py-2">{busy ? tx('กำลังบันทึก...') : tx('บันทึก')}</button>
+      <button disabled={busy} onClick={onCancel} className="pill px-5 py-2">{tx('ยกเลิก')}</button>
       {onDelete && (
-        <button disabled={busy} onClick={onDelete} className="ml-auto flex items-center gap-1 rounded-full px-3 py-2 text-sm text-red-300 hover:bg-red-500/15">
-          <Trash2 className="h-4 w-4" /> ลบ
-        </button>
+        <ConfirmDelete disabled={busy} onConfirm={onDelete} className="ml-auto" />
       )}
     </div>
   )

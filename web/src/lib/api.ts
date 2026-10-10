@@ -7,6 +7,8 @@ export type Pulse = {
   guildName: string
   latest: Announcement | null
   activePlan: { id: string; title: string } | null
+  /** แผนที่ใช้อยู่แยกชนิด (API เก่าไม่มี) */
+  activePlans?: Partial<Record<'attack' | 'defense', { id: string; title: string }>>
   schedule: DayType[]
   season?: { start: string; end: string }
 }
@@ -37,6 +39,8 @@ export const getEditKey = (gid: string) => readJson<Record<string, string>>(KEYS
 export function saveEditKey(gid: string, key: string) {
   writeJson(KEYS, { ...readJson<Record<string, string>>(KEYS, {}), [gid]: key })
 }
+/** กิลด์ที่เครื่องนี้จำรหัสแก้ไขไว้ (หน้าตั้งค่า) */
+export const editKeyGuilds = () => Object.keys(readJson<Record<string, string>>(KEYS, {}))
 /** ออกจากโหมดแก้ไข (ลืมรหัสของกิลด์นี้ในเครื่องนี้) */
 export function forgetEditKey(gid: string) {
   const all = readJson<Record<string, string>>(KEYS, {})
@@ -86,7 +90,7 @@ async function req<T>(path: string, init: RequestInit & { gid?: string; key?: st
 export const api = {
   createGuild: (name: string, password: string) =>
     req<{ id: string; name: string; editKey: string }>('/api/guild', { method: 'POST', body: JSON.stringify({ name, password }) }),
-  // แท็กหลัก (โจมตี/เวทย์/ถึก) ขึ้นก่อนเสมอ — ข้อมูลเก่าที่ลำดับต่างกันก็เรียงให้ตอนโหลด
+  // แท็กหลัก (กายภาพ/เวท/แทงก์) ขึ้นก่อนเสมอ — ข้อมูลเก่าที่ลำดับต่างกันก็เรียงให้ตอนโหลด
   getGuild: (gid: string) => req<GuildData>(`/api/guild/${gid}`).then((d) => ({ ...d, targets: d.targets.map((t) => ({ ...t, tags: sortTags(t.tags) })) })),
   pulse: (gid: string) => req<Pulse>(`/api/guild/${gid}/pulse`),
   checkEdit: (gid: string, key?: string) => req<{ canEdit: boolean; locked?: boolean }>(`/api/guild/${gid}/check`, { gid, key }),
@@ -119,7 +123,7 @@ export const api = {
   saveDiscord: (gid: string, body: { webhook?: string; mention: string; serverId?: string; editRoles?: string[]; roleNames?: { id: string; name: string }[]; bossWebhook?: string; bossText?: { start: string | null; end: string | null } }) =>
     req<NonNullable<GuildData['discord']>>(`/api/guild/${gid}/discord`, { method: 'PUT', body: JSON.stringify(body), gid }),
   testDiscord: (gid: string, boss = false) => req<{ ok: true }>(`/api/guild/${gid}/discord/test`, { method: 'POST', gid, ...(boss ? { body: JSON.stringify({ boss: true }) } : {}) }),
-  /** ตารางวอร์/Season เป็นของเกม (เหมือนทุกกิลด์) — กิลด์ตั้งได้แค่เปิด/ปิดประกาศอัตโนมัติ + ข้อความวันตี/วันจัดบ้าน */
+  /** ตารางสงคราม/Season เป็นของเกม (เหมือนทุกกิลด์) — กิลด์ตั้งได้แค่เปิด/ปิดประกาศอัตโนมัติ + ข้อความวันตี/วันจัดบ้าน */
   saveSchedule: (gid: string, autoAnnounce: boolean, autoText: { attack: string; defense: string }) =>
     req<{ schedule: DayType[]; autoAnnounce: boolean; autoText: { attack: string; defense: string } }>(`/api/guild/${gid}/schedule`, {
       method: 'PUT', body: JSON.stringify({ autoAnnounce, autoText }), gid,
@@ -128,7 +132,7 @@ export const api = {
   likeCounter: (gid: string, cid: string) => req<{ liked: boolean; count: number }>(`/api/guild/${gid}/counters/${cid}/like`, { method: 'POST' }),
   /** ทีมที่ฉันชอบ (ทุกกิลด์) */
   myLikes: () => req<{ likes: LikedCounter[] }>('/api/me/likes'),
-  /** พรีเซ็ตทีมบุกส่วนตัว (ต้องล็อกอิน Discord) */
+  /** พรีเซตทีมแก้ส่วนตัว (ต้องล็อกอิน Discord) */
   myPresets: () => req<{ presets: Preset[] }>('/api/me/presets'),
   createPreset: (p: PresetInput) => req<Preset>('/api/me/presets', { method: 'POST', body: JSON.stringify(p) }),
   updatePreset: (id: string, p: Partial<PresetInput>) => req<{ ok: true }>(`/api/me/presets/${id}`, { method: 'PUT', body: JSON.stringify(p) }),

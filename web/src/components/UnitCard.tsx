@@ -6,7 +6,8 @@ import attackRole from '../assets/ui/attack-role.webp'
 import defenseRole from '../assets/ui/defense-role.webp'
 import supportRole from '../assets/ui/support-role.webp'
 import universalRole from '../assets/ui/universal-role.webp'
-import { HERO_TYPES, baseName, getUnit, isAwake, type HeroType, RARE } from '../data/heroes'
+import { HERO_TYPES, baseName, getUnit, isAwake, type HeroType, RARE, unitBase } from '../data/heroes'
+import { tx } from '../lib/i18n'
 
 const ROLE_BADGE: Record<HeroType, { image: string; tone: string }> = {
   attack: { image: attackRole, tone: '#a82d30' },
@@ -42,7 +43,7 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
   const roleBadge = u.type ? ROLE_BADGE[u.type] : null
   const round = shape === 'round'
   const awake = isAwake(u.name)
-  const label = baseName(u.name)
+  const label = unitBase(u.id)
   // รูปย่อสำหรับการ์ดเล็ก (ถ้ารูปย่อโหลดไม่ได้ ใช้รูปเต็มแทน)
   const src = small && u.thumb && failedImage !== u.thumb ? u.thumb : u.img
 
@@ -69,13 +70,13 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
       )}
 
       {awake && !round && (
-        <img src={awakeningMedal} alt="อเวค" title="อเวค"
+        <img src={awakeningMedal} alt={tx('อเวค')} title={tx('อเวค')}
           className="pointer-events-none absolute right-0.5 top-0.5 h-auto w-[28%] min-w-4 drop-shadow-sm"
           draggable={false} />
       )}
 
       {showName && !round && (
-        <div className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-[#080d19] via-[#080d19]/85 to-transparent px-1 pb-1 pt-3 text-center text-[0.68em] font-medium leading-tight text-white">
+        <div className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-[var(--unit-name)] via-[var(--unit-name)]/85 to-transparent px-1 pb-1 pt-3 text-center text-[0.68em] font-medium leading-tight text-white">
           {label}
         </div>
       )}

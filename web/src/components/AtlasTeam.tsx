@@ -5,12 +5,13 @@ import { queueStyle } from '../lib/queue'
 import { SLOT_COUNT, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { noteFor } from './HeroDetailModal'
 import UnitCard from './UnitCard'
+import { tx } from '../lib/i18n'
 
 /**
  * ทีมแบบ 7K Atlas (ใช้ในรูปที่บันทึก): สัตว์เลี้ยงบนกลาง · 5 ช่องแนวนอน แถวหลังยกสูง แถวหน้าต่ำลง
- * ช่องว่าง = ⊘ · ใต้ฮีโร่มีไอคอนเซ็ต + แหวน · มุมรูปมีเลขลำดับสกิล
+ * ช่องว่าง = ⊘ · ใต้อัศวินมีไอคอนเซต + เครื่องประดับ · มุมรูปมีเลขลำดับสกิล
  */
-// ตำแหน่งคอลัมน์ (0-4 ซ้ายไปขวา) ของแถวหลัง/หน้า ตามจำนวนช่องแถวหน้า (ค่ายกลในเกม)
+// ตำแหน่งคอลัมน์ (0-4 ซ้ายไปขวา) ของแถวหลัง/หน้า ตามจำนวนช่องแถวหน้า (รูปแบบในเกม)
 const COLUMNS: Record<number, { back: number[]; front: number[] }> = {
   1: { back: [0, 1, 3, 4], front: [2] },
   2: { back: [0, 2, 4], front: [1, 3] },
@@ -31,7 +32,7 @@ export default function AtlasTeam({ team, skills, heroNotes = [], title }: { tea
     <div className="panel p-5">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold tracking-[.2em] text-[#8f9cff]">{title ?? 'TEAM'}</span>
-        <span className="rounded-lg border border-white/10 bg-black/30 px-3 py-1 text-sm">หลัง {SLOT_COUNT - team.front} / หน้า {team.front}</span>
+        <span className="rounded-lg border border-white/10 bg-black/30 px-3 py-1 text-sm">{tx('หลัง')}{' '}{SLOT_COUNT - team.front}{' '}{tx('/ หน้า')}{' '}{team.front}</span>
       </div>
 
       {/* สัตว์เลี้ยง */}
@@ -75,7 +76,7 @@ export default function AtlasTeam({ team, skills, heroNotes = [], title }: { tea
   )
 }
 
-/** ไอคอนเซ็ต (ชิ้นแรกของเซ็ต) + แหวน ใต้ฮีโร่ */
+/** ไอคอนเซต (ชิ้นแรกของเซต) + เครื่องประดับ ใต้อัศวิน */
 function Gear({ note }: { note?: HeroNote }) {
   const icons = [
     ...(note?.sets ?? []).map((s) => ({ src: setIcon(s), label: `ชุด${s}` })),

@@ -3,6 +3,7 @@ import { api, forgetEditKey, getEditKey, pushRecent, saveEditKey } from './api'
 import { DEMO_ID } from './demo'
 import { getSession, onAuthChange } from './auth'
 import type { GuildData } from './types'
+import { useViewer } from './prefs'
 
 // ---------- แคชข้อมูลกิลด์ (stale-while-revalidate) ----------
 // เปิดหน้าเดิม/กดย้อนกลับ → ขึ้นข้อมูลล่าสุดที่เคยโหลดทันที แล้วค่อยดึงของใหม่มาแทนเบื้องหลัง
@@ -13,6 +14,11 @@ const LS = '7k-note:guild-cache'
 const LS_MAX_GUILDS = 3
 const LS_MAX_CHARS = 1_500_000 // กิลด์ใหญ่มาก ๆ ไม่เก็บลงเครื่อง (กันเต็มโควตา localStorage)
 type Stored = { gid: string; at: number; data: GuildData }[]
+/** ล้างข้อมูลกิลด์ที่เก็บไว้ในเครื่อง (หน้าตั้งค่า) */
+export function clearGuildCache() {
+  mem.clear()
+  try { localStorage.removeItem(LS) } catch { /* ignore */ }
+}
 
 function readStored(): Stored {
   try { return JSON.parse(localStorage.getItem(LS) || '[]') } catch { return [] }
@@ -89,5 +95,7 @@ export function useGuild(gid: string) {
     return () => window.removeEventListener('7knote:changed', onChanged)
   }, [gid, reload, recheck])
 
-  return { data, error, canEdit, setCanEdit, recheck, reload }
+  // ตั้งค่า → มุมมองคนดู: ซ่อนปุ่มแก้ทุกหน้า (สิทธิ์จริงยังอยู่ = realCanEdit)
+  const viewer = useViewer(gid)
+  return { data, error, canEdit: canEdit && !viewer, realCanEdit: canEdit, setCanEdit, recheck, reload }
 }

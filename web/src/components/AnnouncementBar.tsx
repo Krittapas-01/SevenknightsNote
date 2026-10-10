@@ -1,8 +1,10 @@
-import { ClipboardList, Megaphone, Swords } from 'lucide-react'
+import { ClipboardList, Megaphone, Shield, Swords } from 'lucide-react'
+import { dayIndex } from '../lib/war'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { usePulse } from '../lib/usePulse'
 import DayPhaseChips from './DayPhaseChips'
+import { tx, L } from '../lib/i18n'
 
 const SEEN = (gid: string) => `7knote:seen:${gid}`
 const readSeen = (gid: string) => {
@@ -14,11 +16,11 @@ const writeSeen = (gid: string, id: string) => {
 
 function ago(ts: number, now: number) {
   const m = Math.floor((now - ts) / 60000)
-  if (m < 1) return 'เมื่อสักครู่'
-  if (m < 60) return `${m} นาทีที่แล้ว`
+  if (m < 1) return tx('เมื่อสักครู่')
+  if (m < 60) return L(`${m} นาทีที่แล้ว`, `${m} min ago`)
   const h = Math.floor(m / 60)
-  if (h < 24) return `${h} ชม.ที่แล้ว`
-  return `${Math.floor(h / 24)} วันที่แล้ว`
+  if (h < 24) return L(`${h} ชม.ที่แล้ว`, `${h}h ago`)
+  return L(`${Math.floor(h / 24)} วันที่แล้ว`, `${Math.floor(h / 24)}d ago`)
 }
 
 /** แถบประกาศติดใต้หัวเว็บ ทุกหน้าของกิลด์ อัปเดตเองทุก 60 วิ */
@@ -36,6 +38,11 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
 
   if (!pulse) return null
   const a = pulse.latest
+  // แผนบุก/แผนกันแยกกัน → โชว์แผนของชนิดวันนี้ (วันจัดบ้าน = แผนกัน · วันอื่น = แผนบุก) ไม่มีค่อยใช้อีกชนิด
+  const dayKind = pulse.schedule[dayIndex(now)] === 'defense' ? 'defense' : 'attack'
+  const plans = pulse.activePlans
+  const shownKind = plans ? (plans[dayKind] ? dayKind : plans.attack ? 'attack' : plans.defense ? 'defense' : null) : null
+  const activePlan = plans ? (shownKind ? plans[shownKind]! : null) : pulse.activePlan
   const unseen = !!a && a.id !== seen
 
   function markSeen() {
@@ -47,15 +54,15 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
   return (
     <div
       className={`border-b backdrop-blur transition-colors ${
-        unseen ? 'border-gold/60 bg-[#3a3120]/90' : 'border-white/10 bg-[#1b2236]/90'
+        unseen ? 'border-gold/60 bg-[var(--announce)]' : 'border-white/10 bg-[var(--surface-2)]/90'
       }`}
     >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2 text-sm">
         {/* มือถือ: วันในเกม + ช่วงของวันอยู่ตรงนี้ (จอใหญ่อยู่ข้างนาฬิกาบนหัวเว็บ — HeaderClock) */}
         <DayPhaseChips now={now} className="sm:hidden" />
-        {pulse.activePlan && (
-          <Link to={`/g/${gid}/p/${pulse.activePlan.id}`} className="flex items-center gap-1 text-gold hover:underline">
-            <ClipboardList className="h-4 w-4" /> {pulse.activePlan.title}
+        {activePlan && (
+          <Link to={`/g/${gid}/p/${activePlan.id}`} className="flex items-center gap-1 text-gold hover:underline">
+            {shownKind === 'attack' ? <Swords className="h-4 w-4" /> : shownKind === 'defense' ? <Shield className="h-4 w-4" /> : <ClipboardList className="h-4 w-4" />} {activePlan.title}
           </Link>
         )}
         {a?.opponent && (
@@ -68,23 +75,23 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
           <button
             onClick={() => { setOpen((v) => !v); markSeen() }}
             className="flex min-w-0 flex-1 basis-60 items-center gap-2 text-left"
-            title="กดเพื่อดูทั้งหมด"
+            title={tx('กดเพื่อดูทั้งหมด')}
           >
             <Megaphone className={`h-4 w-4 shrink-0 ${unseen ? 'animate-bounce text-gold' : 'text-white/50'}`} />
-            {unseen && <span className="shrink-0 rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink">ใหม่</span>}
+            {unseen && <span className="shrink-0 rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink">{tx('ใหม่')}</span>}
             <span className={`min-w-0 ${open ? 'whitespace-pre-wrap' : 'truncate'} ${unseen ? 'font-semibold text-white' : 'text-white/80'}`}>
-              {a.body || (pulse.activePlan ? `ใช้แผน ${pulse.activePlan.title}` : '')}
+              {a.body || (activePlan ? L(`ใช้แผน ${activePlan.title}`, `Plan: ${activePlan.title}`) : '')}
             </span>
             <span className="ml-auto shrink-0 text-xs text-white/45">
               {ago(a.createdAt, now)}
             </span>
           </button>
         ) : (
-          <span className="flex-1 text-white/40">ยังไม่มีประกาศ</span>
+          <span className="flex-1 text-white/40">{tx('ยังไม่มีประกาศ')}</span>
         )}
 
         <Link to={`/g/${gid}`} onClick={markSeen} className="hidden shrink-0 text-xs text-white/50 hover:text-white sm:inline">
-          ดูทั้งหมด
+          {tx('ดูทั้งหมด')}
         </Link>
       </div>
     </div>

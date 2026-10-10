@@ -40,7 +40,7 @@
 .tw-rewards-heading { padding-bottom: .65rem; border-bottom: 1px solid #f4d58d24; color: #f4d58d; }
 .tw-reward-row { border-color: #ffffff12; background: linear-gradient(100deg, #26334a, #1a2639); color: #eef1f8; box-shadow: inset 0 1px #ffffff08; }
 .tw-reward-current { border-color: #e2bf70; background: linear-gradient(100deg, #473c2b, #292d39); box-shadow: inset 0 0 0 1px #f4d58d35, 0 0 16px #f4d58d15; }
-.tw-reward-row .text-xs { color: #aeb8cc; }
+.tw-reward-row .text-xs:not(.rounded-lg, .rounded-xl) { color: #aeb8cc; } /* ไม่รวมป้ายรางวัล (ตัวหนังสือขาว) */
 
 /* แถบเฟสแบบในเกม: กรอบปลายแหลม (ขอบทอง = ชั้นนอก, พื้น = ชั้นใน) + เพชรที่ปลาย */
 .tw-phase-frame { --tip: 13.85px; --seg-tip: 12px; --pad: 5px; padding: 0 10px; } /* ทุกเส้นมุมเดียวกับลูกศร 12px/ครึ่งช่อง 26px: กรอบ = 12 × 60/52 · pad ≈ ร่องบน 4px ÷ cos มุม */
@@ -68,3 +68,46 @@
 @media (prefers-reduced-motion: reduce) {
   .tw-phase, .tw-goal button { transition: none; }
 }
+
+/* ================= โหมดสว่าง (ตั้งค่า → ธีม) ================= */
+html[data-theme="light"] .total-war-page { --tw-gold: #855604; --tw-gold-deep: #6e4703; }
+html[data-theme="light"] .tw-heading { border-bottom-color: #a0781f33; }
+html[data-theme="light"] .tw-heading h1 { text-shadow: none; }
+html[data-theme="light"] .tw-heading p { color: #4a5570; }
+html[data-theme="light"] .tw-eyebrow { color: #8c7a55; }
+html[data-theme="light"] .tw-arena,
+html[data-theme="light"] .tw-goal,
+html[data-theme="light"] .tw-rewards { background: linear-gradient(155deg, #d6dbe4 0%, #cfd5df 52%, #c8cfda 100%); }
+html[data-theme="light"] .tw-countdown { border-color: #a0781f66; background: linear-gradient(180deg, #e2e6ed, #d3d9e2); color: #1a2238; box-shadow: inset 0 1px 0 #ffffff99, 0 4px 12px #1a22401f; }
+html[data-theme="light"] .tw-countdown-spark { text-shadow: none; }
+html[data-theme="light"] .tw-countdown-label { color: #1a2238; }
+/* แถบเฟส */
+html[data-theme="light"] .tw-phase-track,
+html[data-theme="light"] .tw-phase-frame .tw-phase-track::before { background: linear-gradient(180deg, #b9c1ce, #aeb6c4); }
+html[data-theme="light"] .tw-phase-frame .tw-phase-track { background: linear-gradient(180deg, #a0781f88, #a0781f55); }
+html[data-theme="light"] .tw-phase { color: #4a5570; background: linear-gradient(180deg, #e2e6ed, #d3d9e2); }
+html[data-theme="light"] .tw-phase-dim { color: #4a557099; }
+html[data-theme="light"] .tw-phase-gem { border-color: #a0781f; background: #e2e6ed; box-shadow: 0 0 6px #c9a35a88; }
+/* แบนเนอร์แรงค์ */
+html[data-theme="light"] .tw-stage {
+  border-color: #a0781f55;
+  background: repeating-conic-gradient(from -90deg at 50% 8%, #a0781f1a 0deg 1.5deg, transparent 1.5deg 10deg), radial-gradient(ellipse at 50% 36%, #eef1f6 0%, #d6dbe4 50%, #c3cad7 100%);
+  box-shadow: inset 0 0 30px #1a22401a;
+}
+html[data-theme="light"] .tw-stage::before { border-color: #a0781f33; box-shadow: 0 0 0 18px #a0781f0d, 0 0 0 38px #a0781f08; }
+html[data-theme="light"] .tw-dashboard { border-top-color: #a0781f33; }
+/* กล่องตัวเลข / อัตราชนะ */
+html[data-theme="light"] .tw-stat-pill { border-color: #a0781f40; background: linear-gradient(145deg, #e2e6ed, #d3d9e2); box-shadow: inset 0 1px #ffffff99; }
+html[data-theme="light"] .tw-stat-pill > span:last-child { color: #855604; }
+html[data-theme="light"] .tw-stat-pill input,
+html[data-theme="light"] .tw-number-input:focus { color: #1a2238; }
+html[data-theme="light"] .tw-win-card { border-color: #a0781f; background: linear-gradient(155deg, #ece3cc, #d9cfb6); color: #855604; box-shadow: inset 0 0 0 2px #ffffff66, 0 6px 18px #1a22401f; }
+html[data-theme="light"] .tw-win-card input { color: #4a3205; }
+html[data-theme="light"] .tw-goal > div:first-child { border-bottom-color: #a0781f33; }
+html[data-theme="light"] .tw-goal button:hover { border-color: #a0781f99; color: #855604; }
+html[data-theme="light"] .tw-goal .text-4xl { text-shadow: none; }
+/* รางวัลอันดับ */
+html[data-theme="light"] .tw-rewards-heading { color: #855604; border-bottom-color: #a0781f33; }
+html[data-theme="light"] .tw-reward-row { border-color: #1a22401f; background: linear-gradient(100deg, #e2e6ed, #d3d9e2); color: #1a2238; box-shadow: inset 0 1px #ffffff99; }
+html[data-theme="light"] .tw-reward-current { border-color: #a0781f; background: linear-gradient(100deg, #ecdcb0, #d9d0bb); box-shadow: inset 0 0 0 1px #a0781f40, 0 0 14px #c9a35a33; }
+html[data-theme="light"] .tw-reward-row .text-xs:not(.rounded-lg, .rounded-xl) { color: #4a5570; }

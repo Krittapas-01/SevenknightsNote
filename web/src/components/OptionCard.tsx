@@ -1,22 +1,22 @@
-import { AlertTriangle, ChevronLeft, ChevronRight, ImageDown, Library, Loader2, Star, Trash2, Users, X } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, ImageDown, Library, Loader2, Star, Trash2, Users } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { exportPng, waitImages } from '../lib/exportImage'
+import { EXPORT_ON, exportPng, waitImages } from '../lib/exportImage'
 import type { HeroStats } from '../lib/stats'
-import { StatsGrid, StatsImport, upsertStats } from './HeroStats'
+import { StatsGrid, upsertStats } from './HeroStats'
+import HeroNotesTable from './HeroNotesTable'
 import { useEffect, useRef, useState } from 'react'
 import EquipmentLoadout from './EquipmentLoadout'
-import EquipmentEditor from './EquipmentEditor'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
 import { noteFor } from './HeroDetailModal'
 import { hasStats } from '../lib/stats'
-import AddHeroNote from './AddHeroNote'
-import { baseName, getUnit } from '../data/heroes'
-import { addHeroToTeam, changeFormation, moveSlot, placeUnit, type HeroNote, type WarOption } from '../lib/types'
-import RecallStats from './RecallStats'
+import { baseName, getUnit, unitBase, unitLabel } from '../data/heroes'
+import { addHeroToTeam, changeFormation, moveSlot, placeUnit, type HeroNote, type SkillStep, type Team, type WarOption } from '../lib/types'
 import TeamPanel, { type SlotKind } from './TeamPanel'
 import { SkillQueueBoard } from './TeamModals'
 import AtlasTeam from './AtlasTeam'
+import TeamCardLite from './TeamCardLite'
+import { tx, L } from '../lib/i18n'
 
 type Props = {
   option: WarOption
@@ -30,27 +30,28 @@ type Props = {
   onMove?: (dir: -1 | 1) => void
   onPick?: (kind: SlotKind, index: number) => void
   onLibrary?: () => void
-  /** ไม้บุก: ทุกทีมเท่ากัน เลือกใช้ทีมไหนก็ได้ */
+  /** ไม้: ทุกทีมเท่ากัน เลือกใช้ทีมไหนก็ได้ */
   attack?: boolean
-  /** แยกส่วน: panel = หัว+ทีม (ใช้ในแถว VS), details = โน้ต/ของ/คำเตือน (วางใต้แถว VS) */
+  /** แยกส่วน: panel = หัว+ทีม (ใช้ในแถว VS), details = โน้ต/อุปกรณ์/คำเตือน (วางใต้แถว VS) */
   part?: 'all' | 'panel' | 'details'
   onSaveHeroStats?: (hero: string, stats: HeroStats) => Promise<void>
-  /** ไม้บุก: ทีมนี้คือทีมหลักที่จะใช้จริง */
+  /** ไม้: ทีมนี้คือทีมหลักที่จะใช้จริง */
   main?: boolean
   onMakeMain?: () => void
   /** ตัวในทีมนี้ที่ชนกับทีมหลักของไม้อื่น */
   conflicts?: { id: string; name: string; slots: number[] }[]
-  /** ตัวที่ใช้ในไม้อื่นแล้ว (ส่งต่อให้แถบตัวละคร) */
+  /** ตัวที่ใช้ในไม้อื่นแล้ว (ส่งต่อให้แถบอัศวิน) */
   blocked?: Record<string, string>
   /** ส่งมา = มีปุ่มบันทึกคอมพ์นี้เป็นรูป (ทีม + โน้ต + รายละเอียดรายตัว) */
   shot?: { guild: string; plan: string; heading: string }
+  /** เปิดหน้าต่างลำดับการใช้สกิลของทีมนี้ (ส่งต่อให้ TeamPanel) */
+  skillsReq?: number
 }
 
 const baseId = (id: string) => baseName(getUnit(id)?.name ?? id)
 
 /** ทางเลือก 1 ทีมในไม้นั้น ๆ */
-export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack, main, onMakeMain, conflicts = [], blocked, part = 'all', onSaveHeroStats, shot }: Props) {
-  const [showGear, setShowGear] = useState(false)
+export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack, main, onMakeMain, conflicts = [], blocked, part = 'all', onSaveHeroStats, shot, skillsReq }: Props) {
   // บันทึกคอมพ์นี้เป็นรูป: render การ์ดแบบเว็บนอกจอ → รอรูปโหลด → ถ่าย
   const shotRef = useRef<HTMLDivElement>(null)
   const [shooting, setShooting] = useState(false)
@@ -65,7 +66,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
           await exportPng(shotRef.current, `${shot.guild} - ${shot.heading} - ${teamTitle(option)}`)
         }
       } catch (e) {
-        alert('สร้างรูปไม่สำเร็จ: ' + (e as Error).message)
+        alert(tx('สร้างรูปไม่สำเร็จ: ') + (e as Error).message)
       } finally {
         if (alive) setShooting(false)
       }
@@ -88,19 +89,19 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
         {attack ? (
           main ? (
             <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold px-3 py-0.5 text-sm font-semibold text-ink shadow-[0_0_12px_rgba(244,213,141,.5)]">
-              <Star className="h-3.5 w-3.5 fill-current" /> ทีมหลัก
+              <Star className="h-3.5 w-3.5 fill-current" />{' '}{tx('ทีมหลัก')}
             </span>
           ) : editing && onMakeMain ? (
-            <button type="button" onClick={onMakeMain} title="ใช้ทีมนี้เป็นทีมหลักของไม้นี้"
+            <button type="button" onClick={onMakeMain} title={tx('ใช้ทีมนี้เป็นทีมหลักของไม้นี้')}
               className="flex shrink-0 items-center gap-1 rounded-full border border-gold/60 px-3 py-0.5 text-sm text-gold hover:bg-gold/15">
-              <Star className="h-3.5 w-3.5" /> ใช้ทีมนี้
+              <Star className="h-3.5 w-3.5" />{' '}{tx('ใช้ทีมนี้')}
             </button>
           ) : (
-            <span className="shrink-0 rounded-full bg-white/10 px-3 py-0.5 text-sm font-semibold text-white/80">สำรอง {index + 1}</span>
+            <span className="shrink-0 rounded-full bg-white/10 px-3 py-0.5 text-sm font-semibold text-white/80">{tx('สำรอง')}{' '}{index + 1}</span>
           )
         ) : (
           <span className={`shrink-0 rounded-full px-3 py-0.5 text-sm font-semibold ${index === 0 ? 'bg-gold text-ink' : 'bg-white/10 text-white/80'}`}>
-            {index === 0 ? 'ทางเลือกหลัก' : `ทางเลือก ${index + 1}`}
+            {index === 0 ? (attack ? tx('ทีมแก้หลัก') : tx('บ้านกันหลัก')) : L(`ทีมสำรอง ${index}`, `Backup team ${index}`)}
           </span>
         )}
         {editing ? (
@@ -108,16 +109,16 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
             value={option.condition}
             onChange={(e) => set({ condition: e.target.value })}
             maxLength={60}
-            placeholder={attack ? 'เงื่อนไข เช่น ต้องสปีด 210+' : index === 0 ? 'เงื่อนไข เช่น มีซอรัน C6' : 'เงื่อนไข เช่น ถ้าไม่มีซอรัน C6'}
+            placeholder={attack ? tx('เงื่อนไข เช่น ต้องความเร็ว 210+') : index === 0 ? tx('เงื่อนไข เช่น มีซอรัน C6') : tx('เงื่อนไข เช่น ถ้าไม่มีซอรัน C6')}
             className="min-w-0 flex-1 rounded-full border border-white/15 bg-black/20 px-3 py-1 text-sm outline-none focus:border-gold"
           />
         ) : (
           option.condition && <span className="min-w-0 truncate text-sm text-gold">{option.condition}</span>
         )}
-        {!editing && shot && teamHeroes.length > 0 && (
-          <button type="button" data-shot data-noexport onClick={() => setShooting(true)} disabled={shooting} title="บันทึกคอมพ์นี้เป็นรูป (ทีม + รายละเอียด 3 ตัว)"
+        {EXPORT_ON && !editing && shot && teamHeroes.length > 0 && (
+          <button type="button" data-shot data-noexport onClick={() => setShooting(true)} disabled={shooting} title={tx('บันทึกคอมพ์นี้เป็นรูป (ทีม + รายละเอียด 3 ตัว)')}
             className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1 text-sm text-gold hover:bg-gold/20 disabled:opacity-50">
-            {shooting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageDown className="h-4 w-4" />} บันทึกรูป
+            {shooting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageDown className="h-4 w-4" />}{' '}{tx('บันทึกรูป')}
           </button>
         )}
         {shooting && shot && createPortal(
@@ -134,7 +135,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
               <AtlasTeam team={option.team} skills={option.skills} heroNotes={heroNotes} title={teamTitle(option)} />
               {option.skills.length > 0 && (
                 <section className="panel mt-5 p-5">
-                  <p className="eyebrow mb-3">ลำดับการออกสกิล · AUTO SKILL PRIORITY</p>
+                  <p className="eyebrow mb-3">{tx('ลำดับการออกสกิล · AUTO SKILL PRIORITY')}</p>
                   <SkillQueueBoard team={option.team} skills={option.skills} />
                 </section>
               )}
@@ -147,8 +148,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
               )}
               <ul className="mt-6 grid grid-cols-3 items-start gap-4">
                 {teamHeroes.map((hero, i) => (
-                  <GearNote key={`${hero}-${i}`} note={{ ...(noteFor(hero, heroNotes) ?? { text: '', sets: [], rings: [] }), hero }} editing={false}
-                    onChange={() => {}} onRemove={() => {}} />
+                  <GearNote key={`${hero}-${i}`} note={{ ...(noteFor(hero, heroNotes) ?? { text: '', sets: [], rings: [] }), hero }} />
                 ))}
               </ul>
             </div>
@@ -157,14 +157,18 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
         )}
         {editing && (
           <div className="ml-auto flex shrink-0 items-center">
-            <IconBtn title="เลื่อนขึ้นก่อน" disabled={index === 0} onClick={() => onMove?.(-1)}><ChevronLeft className="h-4 w-4" /></IconBtn>
-            <IconBtn title="เลื่อนไปหลัง" disabled={index === total - 1} onClick={() => onMove?.(1)}><ChevronRight className="h-4 w-4" /></IconBtn>
-            <IconBtn title="ลบทางเลือกนี้" onClick={onRemove} danger><Trash2 className="h-4 w-4" /></IconBtn>
+            {/* เลื่อนลำดับคอมพ์ — มีคอมพ์เดียวไม่ต้องโชว์ */}
+            {total > 1 && <>
+              <IconBtn title={tx('เลื่อนขึ้นก่อน')} disabled={index === 0} onClick={() => onMove?.(-1)}><ChevronLeft className="h-4 w-4" /></IconBtn>
+              <IconBtn title={tx('เลื่อนไปหลัง')} disabled={index === total - 1} onClick={() => onMove?.(1)}><ChevronRight className="h-4 w-4" /></IconBtn>
+            </>}
+            {onRemove && <IconBtn title={tx('ลบทีมนี้')} onClick={onRemove} danger><Trash2 className="h-4 w-4" /></IconBtn>}
           </div>
         )}
       </div>
 
       <TeamPanel
+        skillsReq={skillsReq}
         variant="ally"
         className={part === 'panel' ? 'flex-1' : ''}
         team={option.team}
@@ -173,7 +177,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
         skills={option.skills}
         editable={editing}
         title={teamTitle(option)}
-        label={`${attack ? 'ทีมบุก' : 'ทางเลือก'} ${index + 1}`}
+        label={index === 0 ? (attack ? tx('ทีมแก้หลัก') : tx('บ้านกันหลัก')) : L(`ทีมสำรอง ${index}`, `Backup team ${index}`)}
         onSlotClick={onPick}
         blocked={blocked}
         onReset={() => set({ team: { ...option.team, slots: [null, null, null, null, null], pet: null, extras: [null, null, null, null] }, skills: [] })}
@@ -189,68 +193,39 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
       </>)}
 
       {part !== 'panel' && (<>
-      {editing && onLibrary && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {(
-            <button type="button" onClick={onLibrary} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1 text-sm text-sky-100 hover:bg-sky-400/10">
-              <Library className="h-4 w-4" /> เลือกจากคลังคอมพ์
-            </button>
-          )}
-        </div>
-      )}
 
       {conflicts.length > 0 && (
         <p className={`mt-3 flex items-start gap-1.5 rounded-lg px-3 py-1.5 text-sm ${main ? 'border border-red-400/60 bg-red-500/20 font-semibold text-red-200' : 'border border-red-400/40 bg-red-500/10 font-semibold text-red-300'}`}>
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            {main ? 'ใช้ตัวซ้ำกับไม้อื่น: ' : 'ถ้าใช้ทีมนี้จะชน: '}
-            {conflicts.map((c) => `${c.name} (${c.slots.map((s) => `ไม้ ${s + 1}`).join(', ')})`).join(' · ')}
+            {main || !attack ? tx('ใช้ตัวซ้ำกับไม้อื่น: ') : tx('ถ้าใช้ทีมนี้จะชน: ')}
+            {conflicts.map((c) => `${c.name} (${c.slots.map((s) => L(`ไม้ ${s + 1}`, `Slot ${s + 1}`)).join(', ')})`).join(' · ')}
           </span>
         </p>
       )}
 
       {badCombos.map((g, i) => (
         <p key={i} className="mt-3 flex items-center gap-1.5 rounded-lg bg-red-500/15 px-3 py-1.5 text-sm text-red-200">
-          <AlertTriangle className="h-4 w-4 shrink-0" /> ตรงกับชุดที่ยกเลิก: {g.map((id) => getUnit(id)?.name).join(' + ')}
+          <AlertTriangle className="h-4 w-4 shrink-0" />{' '}{tx('ตรงกับชุดที่ยกเลิก:')}{' '}{g.map((id) => unitLabel(id)).join(' + ')}
         </p>
       ))}
 
       {(teamHeroes.length > 0 || editing) && (
         <div className="mt-3">
-          {!editing && (
-            <button type="button" onClick={() => setShowGear(true)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-gold/35 bg-gold/5 px-4 py-3 text-sm font-medium text-gold transition-colors hover:bg-gold/15 focus-visible:outline-2 focus-visible:outline-gold">
-              <Users className="h-4 w-4" /> ดูรายละเอียดทั้งทีม ({teamHeroes.length})
-            </button>
-          )}
-          {!editing && showGear && (
-            <Modal open wide title={`รายละเอียดทั้งทีม (${teamHeroes.length})`} onClose={() => setShowGear(false)}>
-              <ul className="grid items-start gap-4 lg:grid-cols-3">
-                {teamHeroes.map((hero, i) => (
-                  <GearNote key={`${hero}-${i}`} note={{ ...(noteFor(hero, heroNotes) ?? { text: '', sets: [], rings: [] }), hero }} editing={false}
-                    onChange={() => {}} onRemove={() => {}} />
-                ))}
-              </ul>
-              <button type="button" onClick={() => setShowGear(false)} className="btn-gold mt-5 w-full">ปิดรายละเอียด</button>
-            </Modal>
-          )}
+          {!editing && <TeamGearButton team={option.team} skills={option.skills} heroNotes={heroNotes} />}
+          {/* แก้ไข: ตารางอุปกรณ์/ค่าความสามารถรายตัวตัวเดียวกับหน้าบ้านศัตรู */}
           {editing && (
-            <ul className="mt-2 space-y-2">
-              {heroNotes.map((n, i) => (
-                <GearNote
-                  key={i}
-                  note={n}
-                  editing={editing}
-                  onChange={(v) => set({ heroNotes: heroNotes.map((x, j) => (j === i ? v : x)) })}
-                  onRemove={() => set({ heroNotes: heroNotes.filter((_, j) => j !== i) })}
-                />
-              ))}
-            </ul>
+            <HeroNotesTable notes={heroNotes} editing team={option.team.slots}
+              // ปุ่มที่จดไว้อยู่แถวเดียวกับ "อ่านค่าความสามารถจากรูป"
+              leading={onLibrary && (
+                <button type="button" onClick={onLibrary} className="mt-2 flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1 text-sm text-sky-100 hover:bg-sky-400/10">
+                  <Library className="h-4 w-4" />{' '}{tx('เลือกจากที่จดไว้')}
+                </button>
+              )}
+              onChange={(n) => set({ heroNotes: n })}
+              onAddHero={(hero) => set({ team: addHeroToTeam(option.team, hero) })}
+              onAddWithStats={(hero, stats, extra) => set({ team: addHeroToTeam(option.team, hero), heroNotes: upsertStats(heroNotes, hero, stats, extra) })} />
           )}
-          {editing && <StatsImport team={option.team.slots} onApply={(hero, stats) => set({ heroNotes: upsertStats(heroNotes, hero, stats) })}
-            onAddHero={(hero) => set({ team: addHeroToTeam(option.team, hero) })}
-            onAddWithStats={(hero, stats) => set({ team: addHeroToTeam(option.team, hero), heroNotes: upsertStats(heroNotes, hero, stats) })} />}
-          {editing && <AddHeroNote team={option.team.slots} have={heroNotes.map((n) => n.hero)}
-            onAdd={(hero) => set({ heroNotes: [...heroNotes, { hero, text: '', sets: [], rings: [] }].slice(0, 5) })} />}
         </div>
       )}
 
@@ -260,7 +235,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
           onChange={(e) => set({ notes: e.target.value })}
           maxLength={500}
           rows={3}
-          placeholder={'โน้ต บรรทัดละ 1 ข้อ เช่น\nสปีด 180+ เฟรย่าแบกสปีด\nอาริส จุด 100 บล็อค 78'}
+          placeholder={L('โน้ต บรรทัดละ 1 ข้อ เช่น\nความเร็ว 180+ เฟรย่าแบกความเร็ว\nอาริส จุด 100 บล็อค 78', 'Notes, one per line, e.g.\nSpeed 180+, Freyja carries speed\nAris weakness 100, block 78')}
           className="mt-3 w-full rounded-xl border border-white/15 bg-black/20 p-3 text-sm outline-none focus:border-gold"
         />
       ) : (
@@ -279,41 +254,75 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
   )
 }
 
-function GearNote({ note, editing, onChange, onRemove }: { note: HeroNote; editing: boolean; onChange: (n: HeroNote) => void; onRemove: () => void }) {
+/** ปุ่ม "ดูรายละเอียดทั้งทีม" + หน้าต่างการ์ดอุปกรณ์/ค่าความสามารถรายตัว — ใช้ทุกที่ที่ดูทีม (แผน · หน้าบ้านศัตรู) */
+export function TeamGearButton({ team, skills = [], heroNotes, title, label, className = '' }: { team: Team; skills?: SkillStep[]; heroNotes: HeroNote[]; title?: string; label?: string; className?: string }) {
+  const [open, setOpen] = useState(false)
+  const heroes = team.slots.filter((id): id is string => !!id)
+  if (!heroes.length) return null
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} className={`flex w-full items-center justify-center gap-2 rounded-xl border border-gold/35 bg-gold/5 px-4 py-3 text-sm font-medium text-gold transition-colors hover:bg-gold/15 focus-visible:outline-2 focus-visible:outline-gold ${className}`}>
+        <Users className="h-4 w-4" /> {label ?? tx('ดูรายละเอียดทั้งทีม')} ({heroes.length})
+      </button>
+      {open && (
+        <Modal open wide title={title ?? L(`รายละเอียดทั้งทีม (${heroes.length})`, `Full team details (${heroes.length})`)} onClose={() => setOpen(false)}>
+          {/* คอมพ์ (รูปแบบ/สัตว์เลี้ยง/ตั้งลำดับการใช้สกิล) ซ้าย · อุปกรณ์/ค่าความสามารถรายตัวขวา */}
+          <div className="grid items-start gap-5 lg:grid-cols-[300px_1fr]">
+            {/* คอมพ์อยู่กึ่งกลางแนวตั้งของรายการอัศวิน (จอใหญ่) และค้างไว้ตอนเลื่อน */}
+            <div className="@container mx-auto w-full max-w-[300px] lg:sticky lg:top-0 lg:self-center">
+              <TeamCardLite variant="ally" team={team} skills={skills}
+                title={<span className="text-gold">{heroes.map((id) => unitBase(id)).join(' · ')}</span>} />
+            </div>
+            {/* 1 ตัว/แถว แบบกว้าง: อัศวิน+ของ ซ้าย · ค่าความสามารถขวา (ชื่อค่าความสามารถไม่โดนตัด) */}
+            <ul className="space-y-3">
+              {heroes.map((hero, i) => (
+                <GearNote wide key={`${hero}-${i}`} note={{ ...(noteFor(hero, heroNotes) ?? { text: '', sets: [], rings: [] }), hero }} />
+              ))}
+            </ul>
+          </div>
+          <button type="button" onClick={() => setOpen(false)} className="btn-gold mt-5 w-full">{tx('ปิดรายละเอียด')}</button>
+        </Modal>
+      )}
+    </>
+  )
+}
+
+/** อุปกรณ์/ค่าความสามารถของอัศวิน 1 ตัว (ดูอย่างเดียว — ตอนแก้ใช้ HeroNotesTable) */
+function GearNote({ note, wide }: { note: HeroNote; wide?: boolean }) {
+  if (wide) return (
+    <li className="grid min-w-0 gap-4 rounded-xl bg-black/20 p-4 text-sm md:grid-cols-[minmax(0,13rem)_1fr]">
+      <div className="min-w-0">
+        <div className="flex items-center gap-3">
+          <div className="h-16 w-16 shrink-0"><UnitCard id={note.hero} showName={false} small /></div>
+          <span className="break-words text-base font-semibold text-gold">{unitLabel(note.hero)}</span>
+        </div>
+        <EquipmentLoadout sets={note.sets} rings={note.rings} />
+        {!note.sets.length && !note.rings.length && <p className="mt-2 text-white/45">{tx('ยังไม่ได้ระบุอุปกรณ์')}</p>}
+        {note.text && <p className="mt-3 whitespace-pre-wrap break-words text-white/80">{note.text}</p>}
+      </div>
+      <div className="min-w-0">
+        {hasStats(note.stats) ? <StatsGrid stats={note.stats} size="lg" className="!mt-0" /> : <p className="text-white/45">{tx('ยังไม่ได้ระบุค่าความสามารถ')}</p>}
+      </div>
+    </li>
+  )
   return (
     <li className="min-w-0 rounded-xl bg-black/20 p-3 text-sm">
       <div className="flex items-center gap-2">
-        {!editing && <div className="h-16 w-16 shrink-0"><UnitCard id={note.hero} showName={false} small /></div>}
-        <span className="break-words font-semibold text-gold">{getUnit(note.hero)?.name ?? note.hero}</span>
-        {editing && (
-          <button type="button" onClick={onRemove} className="ml-auto rounded-full p-0.5 text-white/50 hover:bg-white/10" aria-label="ลบ">
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
+        <div className="h-16 w-16 shrink-0"><UnitCard id={note.hero} showName={false} small /></div>
+        <span className="break-words font-semibold text-gold">{unitLabel(note.hero)}</span>
       </div>
-      {editing ? (
-        <input
-          value={note.text}
-          onChange={(e) => onChange({ ...note, text: e.target.value })}
-          maxLength={300}
-          className="mt-1 w-full rounded-lg border border-white/15 bg-black/20 px-2 py-1 outline-none focus:border-gold"
-        />
-      ) : (
-        note.text && <p className="mt-3 whitespace-pre-wrap break-words text-white/80">{note.text}</p>
-      )}
-      {editing
-        ? <><EquipmentEditor sets={note.sets} rings={note.rings} onChange={(sets, rings) => onChange({ ...note, sets, rings })} /><RecallStats note={note} onApply={onChange} /></>
-        : <EquipmentLoadout sets={note.sets} rings={note.rings} />}
+      {note.text && <p className="mt-3 whitespace-pre-wrap break-words text-white/80">{note.text}</p>}
+      <EquipmentLoadout sets={note.sets} rings={note.rings} />
       <StatsGrid stats={note.stats} />
-      {!editing && !hasStats(note.stats) && !note.text.trim() && <p className="mt-3 text-white/45">ยังไม่ได้ระบุสเตตัส</p>}
-      {!editing && !note.sets.length && !note.rings.length && <p className="mt-2 text-white/45">ยังไม่ได้ระบุอุปกรณ์</p>}
+      {!hasStats(note.stats) && !note.text.trim() && <p className="mt-3 text-white/45">{tx('ยังไม่ได้ระบุค่าความสามารถ')}</p>}
+      {!note.sets.length && !note.rings.length && <p className="mt-2 text-white/45">{tx('ยังไม่ได้ระบุอุปกรณ์')}</p>}
     </li>
   )
 }
 
 function teamTitle(o: WarOption) {
-  const names = o.team.slots.filter(Boolean).map((id) => baseName(getUnit(id)!.name))
-  return names.length ? names.join(' · ') : 'ยังไม่ได้เลือกฮีโร่'
+  const names = o.team.slots.filter(Boolean).map((id) => unitBase(id))
+  return names.length ? names.join(' · ') : tx('ยังไม่ได้เลือกอัศวิน')
 }
 
 function IconBtn({ children, onClick, disabled, title, danger }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; title: string; danger?: boolean }) {

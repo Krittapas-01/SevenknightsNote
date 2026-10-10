@@ -1,14 +1,16 @@
 import { ArrowRight, Check, ChevronDown, ChevronUp, PartyPopper, Rocket, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { ONBOARD_STEPS, onboardFlags, setOnboard } from '../lib/onboarding'
+import { ONBOARD_STEPS, onboardFlags, setOnboard, TUTORIAL_ON } from '../lib/onboarding'
 import type { GuildData } from '../lib/types'
 
 /**
  * แผง "เริ่มต้นกิลด์ของคุณ" — ติ๊กจากข้อมูลจริงของกิลด์ · ปุ่มของขั้นปัจจุบันบนหน้าจะกะพริบ
  * ขึ้นเฉพาะคนที่แก้ได้ บนเครื่องที่สร้างกิลด์
  */
-export default function GuildOnboarding({ gid, data, canEdit }: { gid: string; data: GuildData; canEdit: boolean }) {
+type Props = { gid: string; data: GuildData; canEdit: boolean }
+export default function GuildOnboarding(p: Props) { return TUTORIAL_ON ? <OnboardingInner {...p} /> : null }
+function OnboardingInner({ gid, data, canEdit }: Props) {
   const nav = useNavigate()
   const { pathname, search } = useLocation()
   const [flags, setFlags] = useState(() => onboardFlags(gid))

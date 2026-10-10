@@ -2,11 +2,13 @@ import { useDragScroll } from '../lib/useDragScroll'
 import { useDraggable } from '@dnd-kit/core'
 import { Filter, LayoutGrid, Search, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useSlidePill } from '../lib/slide'
 import { MAX_HEROES } from '../lib/types'
-import { HEROES, HERO_TYPES, PETS, TIERS, baseName, matchUnit, tierOf, type HeroType, type Tier, type Unit } from '../data/heroes'
+import { HEROES, HERO_TYPES, PETS, TIERS, baseName, matchUnit, tierOf, type HeroType, type Tier, type Unit, unitLabel } from '../data/heroes'
 import { useDndHub } from './DndHub'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
+import { tx, L } from '../lib/i18n'
 
 const HISTORY = '7knote:search-history'
 const readHistory = (): string[] => {
@@ -17,7 +19,7 @@ const writeHistory = (h: string[]) => {
 }
 
 /**
- * แถบฮีโร่ด้านล่างแบบในเกม
+ * แถบอัศวินด้านล่างแบบในเกม
  * - เลื่อนซ้ายขวา (ล้อเมาส์ / ปัดนิ้ว)
  * - กดการ์ด = ใส่ทีมที่เลือกอยู่ / ลากการ์ดขึ้นไปวางช่องไหนก็ได้
  * - ปุ่ม: ตารางใหญ่ · ค้นหาชื่อ · กรองประเภท
@@ -28,9 +30,13 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
   const tab = hub?.dockTab ?? 'hero'
   const setTab = (t: 'hero' | 'pet') => hub?.setDockTab(t)
   const [query, setQuery] = useState('')
+  const tabPill = useSlidePill(tab)
   const [types, setTypes] = useState<HeroType[]>([])
   const [tiers, setTiers] = useState<Tier[]>([])
   const [modal, setModal] = useState<'grid' | 'search' | 'filter' | null>(null)
+  // ดับเบิลคลิกช่องว่างในทีม → เปิดหน้าใหญ่
+  const gridReq = hub?.gridReq ?? 0
+  useEffect(() => { if (gridReq) setModal('grid') }, [gridReq])
   const strip = useRef<HTMLDivElement>(null)
   const dragScroll = useDragScroll(strip)
   const gridRef = useRef<HTMLDivElement>(null)
@@ -53,7 +59,7 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
       .filter((g) => g.units.length)
   }, [tab, list])
 
-  // ใส่ครบแล้วเก็บแถบเอง: ฮีโร่ครบ → ไปแท็บสัตว์เลี้ยง (ถ้ายังไม่มี) → ครบหมด → เก็บ
+  // ใส่ครบแล้วเก็บแถบเอง: อัศวินครบ → ไปแท็บสัตว์เลี้ยง (ถ้ายังไม่มี) → ครบหมด → เก็บ
   const st = hub?.statusOfFocused() ?? null
   const prev = useRef<{ heroes: number; pet: boolean } | null>(null)
   useEffect(() => {
@@ -77,11 +83,11 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
 
   return (
     <>
-      <div className="hero-dock fixed inset-x-0 z-30 border-t border-gold/30 bg-gradient-to-b from-[#1d2438]/95 to-[#121726]/95 backdrop-blur" style={{ bottom, ...(z ? { zIndex: z } : {}) }}>
+      <div className="hero-dock fixed inset-x-0 z-30 border-t border-gold/30 bg-[var(--dock)] backdrop-blur" style={{ bottom, ...(z ? { zIndex: z } : {}) }}>
         {/* ปุ่มเก็บแถบตรงกลางแบบในเกม */}
         <button
           onClick={() => hub.setDockOpen(false)}
-          title="เก็บแถบ"
+          title={tx('เก็บแถบ')}
           className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-[55%] transition hover:brightness-125"
         >
           <svg viewBox="0 0 120 34" className="h-7 w-28 drop-shadow-[0_2px_4px_rgba(0,0,0,.6)]">
@@ -91,19 +97,21 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
           </svg>
         </button>
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-3 pt-2">
-          <RoundBtn title="ดูทั้งหมด" onClick={() => setModal('grid')}><LayoutGrid className="h-5 w-5" /></RoundBtn>
-          <RoundBtn title="ค้นหาชื่อ" onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
+          <RoundBtn title={tx('ดูทั้งหมด')} onClick={() => setModal('grid')}><LayoutGrid className="h-5 w-5" /></RoundBtn>
+          <RoundBtn title={tx('ค้นหาชื่อ')} onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
           {tab === 'hero' && (
-            <RoundBtn title="กรองประเภท" onClick={() => setModal('filter')} active={types.length + tiers.length > 0}><Filter className="h-5 w-5" /></RoundBtn>
+            <RoundBtn title={tx('กรองประเภท')} onClick={() => setModal('filter')} active={types.length + tiers.length > 0}><Filter className="h-5 w-5" /></RoundBtn>
           )}
-          <div className="pill ml-1 flex p-0.5 text-sm">
+          <div ref={tabPill.box} className="pill relative ml-1 flex p-0.5 text-sm">
+            <span aria-hidden className="slide-pill" style={tabPill.pill} />
             {(['hero', 'pet'] as const).map((k) => (
               <button
                 key={k}
+                ref={tabPill.item(k)}
                 onClick={() => setTab(k)}
-                className={`rounded-full px-3 py-1 ${tab === k ? 'bg-gold font-semibold text-ink' : 'text-white/70'}`}
+                className={`relative z-10 rounded-full px-3 py-1 transition-colors ${tab === k ? 'font-semibold text-ink' : 'text-white/70'}`}
               >
-                {k === 'hero' ? 'ฮีโร่' : 'สัตว์เลี้ยง'}
+                {k === 'hero' ? tx('อัศวิน') : tx('สัตว์เลี้ยง')}
               </button>
             ))}
           </div>
@@ -125,16 +133,16 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
           {visible.map((u) => (
             <RosterCard key={u.id} unit={u} kind={tab} onClick={() => add(u)} usedIn={usedIn(u)} />
           ))}
-          {visible.length === 0 && <p className="py-6 text-sm text-white/45">ไม่พบตัวละคร</p>}
+          {visible.length === 0 && <p className="py-6 text-sm text-white/45">{tx('ไม่พบอัศวิน')}</p>}
         </div>
       </div>
 
       {/* ตารางใหญ่ตรงกลาง */}
-      <Modal open={modal === 'grid'} title={`${tab === 'hero' ? 'ฮีโร่' : 'สัตว์เลี้ยง'}ทั้งหมด · ใส่ใน ${hub.focusedLabel ?? '—'}`} onClose={() => setModal(null)} wide>
+      <Modal open={modal === 'grid'} title={L(`${tab === 'hero' ? 'อัศวิน' : 'สัตว์เลี้ยง'}ทั้งหมด · ใส่ใน ${hub.focusedLabel ?? '—'}`, `All ${tab === 'hero' ? 'heroes' : 'pets'} · adding to ${hub.focusedLabel ?? '—'}`)} onClose={() => setModal(null)} wide>
         <div className="mb-3 flex gap-2">
-          <RoundBtn title="กรองประเภท" onClick={() => setModal('filter')} active={types.length + tiers.length > 0} hidden={tab !== 'hero'}><Filter className="h-5 w-5" /></RoundBtn>
-          <RoundBtn title="ค้นหาชื่อ" onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
-          {query && <span className="self-center text-sm text-white/60">ค้นหา: “{query}”</span>}
+          <RoundBtn title={tx('กรองประเภท')} onClick={() => setModal('filter')} active={types.length + tiers.length > 0} hidden={tab !== 'hero'}><Filter className="h-5 w-5" /></RoundBtn>
+          <RoundBtn title={tx('ค้นหาชื่อ')} onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
+          {query && <span className="self-center text-sm text-white/60">{tx('ค้นหา: “')}{query}”</span>}
         </div>
         <div ref={gridRef} {...gridScroll} className="cursor-grab select-none space-y-5 active:cursor-grabbing">
           {groups.map((g) => (
@@ -143,7 +151,7 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
                 <div className="mb-2 flex items-center gap-2">
                   <span className="h-4 w-1.5 rounded-full" style={{ background: TIERS[g.tier].color }} />
                   <span className="font-semibold" style={{ color: TIERS[g.tier].color }}>{TIER_TITLE[g.tier]}</span>
-                  <span className="text-xs text-white/45">{g.units.length} ตัว</span>
+                  <span className="text-xs text-white/45">{g.units.length}{' '}{tx('ตัว')}</span>
                   <span className="h-px flex-1 bg-white/10" />
                 </div>
               )}
@@ -155,10 +163,10 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
                       key={u.id}
                       onClick={() => !inTeam && add(u)}
                       className={`relative aspect-[4/5] text-[13px] transition ${inTeam ? 'opacity-35' : usedIn(u) ? 'opacity-60 hover:opacity-90' : 'hover:-translate-y-0.5'}`}
-                      title={inTeam ? 'อยู่ในทีมแล้ว' : `ใส่ ${u.name}`}
+                      title={inTeam ? tx('อยู่ในทีมแล้ว') : L(`ใส่ ${u.name}`, `Add ${unitLabel(u.id)}`)}
                     >
                       <UnitCard id={u.id} shape={tab === 'hero' ? 'hero' : 'pet'} small />
-                      {inTeam && <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-black/60 py-0.5 text-center text-xs">ในทีม</span>}
+                      {inTeam && <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-[#000]/60 py-0.5 text-center text-xs text-[#fff]">{tx('ในทีม')}</span>}
                       {!inTeam && usedIn(u) && <UsedBadge label={usedIn(u)!} />}
                     </button>
                   )
@@ -166,17 +174,17 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
               </div>
             </section>
           ))}
-          {!groups.length && <p className="py-8 text-center text-white/50">ไม่พบตัวละคร</p>}
+          {!groups.length && <p className="py-8 text-center text-white/50">{tx('ไม่พบอัศวิน')}</p>}
         </div>
       </Modal>
 
       <SearchModal open={modal === 'search'} onClose={() => setModal(null)} onSearch={(q) => { setQuery(q); setModal(null) }} />
 
       {/* กรอง: ระดับ (tier) + ธาตุ */}
-      <Modal open={modal === 'filter'} title="กรองตัวละคร" onClose={() => setModal(null)}>
-        <div className="mb-1.5 text-xs text-white/55">ระดับ</div>
+      <Modal open={modal === 'filter'} title={tx('กรองอัศวิน')} onClose={() => setModal(null)}>
+        <div className="mb-1.5 text-xs text-white/55">{tx('ระดับ')}</div>
         <div className="mb-4 grid grid-cols-3 gap-2">
-          <FilterBtn active={!tiers.length} onClick={() => setTiers([])}>ทั้งหมด</FilterBtn>
+          <FilterBtn active={!tiers.length} onClick={() => setTiers([])}>{tx('ทั้งหมด')}</FilterBtn>
           {(Object.keys(TIERS) as Tier[]).map((t) => (
             <FilterBtn
               key={t}
@@ -188,9 +196,9 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
             </FilterBtn>
           ))}
         </div>
-        <div className="mb-1.5 text-xs text-white/55">ธาตุ</div>
+        <div className="mb-1.5 text-xs text-white/55">{tx('ธาตุ')}</div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <FilterBtn active={!types.length} onClick={() => setTypes([])}>ทั้งหมด</FilterBtn>
+          <FilterBtn active={!types.length} onClick={() => setTypes([])}>{tx('ทั้งหมด')}</FilterBtn>
           {(Object.keys(HERO_TYPES) as HeroType[]).map((t) => (
             <FilterBtn
               key={t}
@@ -202,8 +210,8 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
             </FilterBtn>
           ))}
         </div>
-        <p className="mt-3 text-xs text-white/45">ฮีโร่ที่ยังไม่ได้ระบุประเภทจะไม่ขึ้นตอนกรอง (ใส่เพิ่มได้ใน web/src/data/heroes.ts)</p>
-        <button onClick={() => setModal(null)} className="btn-gold mt-4 w-full py-2">ตกลง</button>
+        <p className="mt-3 text-xs text-white/45">{tx('อัศวินที่ยังไม่ได้ระบุประเภทจะไม่ขึ้นตอนกรอง (ใส่เพิ่มได้ใน web/src/data/heroes.ts)')}</p>
+        <button onClick={() => setModal(null)} className="btn-gold mt-4 w-full py-2">{tx('ตกลง')}</button>
       </Modal>
     </>
   )
@@ -213,7 +221,7 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
 function UsedBadge({ label }: { label: string }) {
   return (
     <span className="pointer-events-none absolute inset-x-0 top-[38%] bg-red-600/85 py-0.5 text-center text-[11px] font-semibold text-white shadow">
-      ใช้แล้ว · {label}
+      {tx('ใช้แล้ว ·')}{' '}{label}
     </span>
   )
 }
@@ -252,24 +260,24 @@ function SearchModal({ open, onClose, onSearch }: { open: boolean; onClose: () =
     setQ('')
   }
   return (
-    <Modal open={open} title="ค้นหาชื่อ" onClose={onClose}>
+    <Modal open={open} title={tx('ค้นหาชื่อ')} onClose={onClose}>
       <form onSubmit={(e) => { e.preventDefault(); submit() }} className="flex gap-2">
         <input
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="ชื่อฮีโร่ (ไทยหรืออังกฤษ)"
+          placeholder={tx('ชื่ออัศวิน (ไทยหรืออังกฤษ)')}
           className="min-w-0 flex-1 rounded-full border border-white/15 bg-white/90 px-4 py-2 text-ink outline-none placeholder:text-ink/40"
         />
-        <button className="btn-gold px-5">ค้นหา</button>
+        <button className="btn-gold px-5">{tx('ค้นหา')}</button>
       </form>
       <div className="mt-4 flex items-center justify-between rounded-lg bg-black/25 px-3 py-2">
-        <span className="font-semibold">✦ ค้นหาล่าสุด</span>
+        <span className="font-semibold">{tx('✦ ค้นหาล่าสุด')}</span>
         <button
           onClick={() => { setHistory([]); writeHistory([]) }}
           className="flex items-center gap-1 rounded-full border border-white/20 px-3 py-0.5 text-sm hover:bg-white/10"
         >
-          <Trash2 className="h-3.5 w-3.5" /> ลบทั้งหมด
+          <Trash2 className="h-3.5 w-3.5" />{' '}{tx('ลบทั้งหมด')}
         </button>
       </div>
       {history.length ? (
@@ -279,7 +287,7 @@ function SearchModal({ open, onClose, onSearch }: { open: boolean; onClose: () =
           ))}
         </div>
       ) : (
-        <p className="py-8 text-center text-white/40">ยังไม่มีประวัติการค้นหา</p>
+        <p className="py-8 text-center text-white/40">{tx('ยังไม่มีประวัติการค้นหา')}</p>
       )}
     </Modal>
   )
@@ -303,9 +311,9 @@ function RoundBtn({ children, onClick, title, active, hidden }: { children: Reac
 
 const TIER_TITLE: Record<Tier, string> = {
   o7k: 'O7K · Seven Knights of Old',
-  lp: 'ทองบน (L+)',
-  l: 'ทองล่าง (L)',
-  r: 'ม่วง (Rare)',
+  lp: tx('ทองบน (L+)'),
+  l: tx('ทองล่าง (L)'),
+  r: tx('ม่วง (Rare)'),
 }
 
 function FilterBtn({ children, active, onClick, color }: { children: ReactNode; active: boolean; onClick: () => void; color?: string }) {

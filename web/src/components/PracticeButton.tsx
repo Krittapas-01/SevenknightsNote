@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 import TeamPractice from './TeamPractice'
 
 /** ปุ่ม "ลองฝึก" — เปิดสนามฝึกซ้อนบนหน้าเดิม (ข้อมูลทดลอง ไม่ยุ่งกับทีมจริง) */
-export default function PracticeButton({ className = '' }: { className?: string }) {
+import { TUTORIAL_ON } from '../lib/onboarding'
+export default function PracticeButton(p: { className?: string }) { return TUTORIAL_ON ? <PracticeInner {...p} /> : null }
+function PracticeInner({ className = '' }: { className?: string }) {
   const [open, setOpen] = useState(false)
   useEffect(() => {
     if (!open) return
@@ -21,7 +23,7 @@ export default function PracticeButton({ className = '' }: { className?: string 
       </button>
       {open && (
         <div data-noexport role="dialog" aria-label="สนามฝึกจัดทีม" className="fixed inset-0 overflow-y-auto bg-[#0b1120]/95 backdrop-blur-sm" style={{ zIndex: 45 }}>
-          <div className="sticky top-0 z-10 border-b border-gold/20 bg-[#0c1425]/95">
+          <div className="sticky top-0 z-10 border-b border-gold/20 bg-[var(--surface-deep)]/95">
             <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
               <Gamepad2 className="h-5 w-5 text-gold" />
               <span className="font-bold">สนามฝึก<span className="text-gold">จัดทีม</span></span>

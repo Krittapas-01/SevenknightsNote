@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { tx } from '../lib/i18n'
 
 let scrollLocks = 0
 
@@ -47,7 +48,7 @@ export default function Modal({ open, title, onClose, children, wide }: { open: 
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
           <h2 id={titleId} className="text-lg font-semibold text-gold">{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-full p-1.5 hover:bg-white/10" aria-label="ปิด">
+          <button type="button" onClick={onClose} className="rounded-full p-1.5 hover:bg-white/10" aria-label={tx('ปิด')}>
             <X className="h-5 w-5" />
           </button>
         </div>

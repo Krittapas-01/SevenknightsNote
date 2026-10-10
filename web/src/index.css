@@ -138,7 +138,8 @@ h1, h2, h3 { text-wrap: balance; }
 .pill:focus-within { border-color: #f4d58d; }
 
 .scrollbar-thin::-webkit-scrollbar { height: 6px; width: 6px; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 9999px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: linear-gradient(#d9b56d88, #a8854899); border-radius: 9999px; }
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: #c9a35a66 transparent; }
 
 /* ช่องที่เลือก (กดครั้งแรก) = กรอบเรืองแสงแบบในเกม */
 .slot-selected > * {
@@ -298,13 +299,14 @@ a.pill:active { transform: scale(.98); }
 }
 .guild-banner {
   position: relative;
-  padding: 28px 24px;
+  padding: 18px 24px;
   border: 1px solid #c9a35a33;
   border-radius: 16px;
   background: radial-gradient(ellipse at 95% 0, #d9b56d15, transparent 60%), linear-gradient(120deg, #22334d, #151e30 70%);
   box-shadow: inset 0 0 0 4px #0a11252e;
 }
-.guild-banner::after { content: "✦"; position: absolute; right: 22px; top: 12px; font-size: 36px; color: #f4d58d18; pointer-events: none; }
+/* ประกายทองเล็ก ๆ บนขอบมุมขวาบน (แบบเดียวกับดาวขอบ Modal) — อยู่บนเส้นขอบ ไม่ทับเนื้อหา */
+.guild-banner::after { content: "✦"; position: absolute; right: 28px; top: -8px; font-size: 15px; line-height: 1; color: #fff1c9; text-shadow: 0 0 8px rgba(244, 213, 141, 0.9); pointer-events: none; }
 .plan-card::before, .plan-card::after {
   content: "";
   left: auto;
@@ -388,3 +390,193 @@ body:has(.hero-dock, [data-bottom-bar]) .contact-fab { display: none; }
 .onboard-pulse { outline: 2px solid #f4d58d; outline-offset: 3px; animation: onboard-ring 1.4s ease-in-out infinite; }
 @keyframes onboard-ring { 0%, 100% { outline-color: #f4d58dff; outline-offset: 3px; } 50% { outline-color: #f4d58d33; outline-offset: 7px; } }
 @media (prefers-reduced-motion: reduce) { .onboard-pulse { animation: none; } }
+
+
+/* เตือนผิดพลาด: ข้อความสั่นแวบเดียว + เรืองแดง (lib/shake.ts) */
+.error-shake { animation: error-shake 480ms cubic-bezier(.36,.07,.19,.97) both, error-glow 1.2s ease-out; }
+@keyframes error-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-8px); }
+  40%, 60% { transform: translateX(8px); }
+}
+@keyframes error-glow { from { box-shadow: 0 0 0 2px #f87171aa, 0 0 22px #ef444466; } to { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .error-shake { animation: error-glow 1.2s ease-out; } }
+
+/* ตั้งค่า → ลดแอนิเมชัน */
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ซ่อนเคอร์เซอร์กะพริบบนข้อความ/ปุ่ม (Chrome โหมด Caret Browsing = กด F7) — ช่องพิมพ์ยังเห็นตามปกติ */
+body { caret-color: transparent; }
+input, textarea, select, [contenteditable='true'] { caret-color: auto; }
+
+/* เปลี่ยนแท็บ: เนื้อหาเลื่อนเข้าตามทิศ */
+@keyframes slide-in-r { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes slide-in-l { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+.slide-in-r { animation: slide-in-r 280ms cubic-bezier(.2,.8,.2,1); }
+.slide-in-l { animation: slide-in-l 280ms cubic-bezier(.2,.8,.2,1); }
+/* พื้นทองของแท็บที่เลือก (วิ่งตามด้วย useSlidePill) */
+.slide-pill { border-radius: 9999px; background: linear-gradient(to bottom, #fff1c9, #e2bf72); box-shadow: 0 2px 10px #e2bf7240; pointer-events: none; }
+
+/* แถบเลื่อน (scrollbar) ทั้งเว็บ: บาง สีทองจาง ๆ */
+html { scrollbar-width: thin; scrollbar-color: #c9a35a66 transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: linear-gradient(#d9b56d88, #a8854899); border-radius: 9999px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(#f4d58dcc, #c9a35acc); border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ================= ธีม (ตั้งค่า → ธีม) =================
+ * สีพื้นที่ใช้ในคลาส (bg-[var(--surface)] ฯลฯ) — ค่ามืดเป็นค่าเริ่มต้น
+ * โหมดสว่าง: สลับ --color-white/--color-black ของ Tailwind (text-white/60, bg-white/10, bg-black/20 … กลับด้านทั้งเว็บ)
+ * แล้วเก็บงานคลาสที่เขียนสีตายตัวไว้ใน index.css ทีละตัว */
+:root {
+  --surface: #161c2e;
+  --surface-2: #1b2236e6;
+  --surface-3: #11162a;
+  --surface-deep: #0c1425;
+  --surface-wiz: #141b30f2;
+  --dock: #181f31f2;
+  --backdrop: #00000080;
+  --announce: #3a3120e6; /* แถบประกาศใหม่ที่ยังไม่ได้อ่าน */
+  --tw-bar: #1a1530cc;
+  --queue-off: #2a2e40; /* ดาวลำดับสกิลที่ยังไม่ตั้ง */
+  --queue-off-line: #555a70;
+  --unit-name: #080d19; /* แถบชื่อใต้รูปอัศวิน */
+  --alert-bg: #2a1520;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --surface: #c5ccd9;
+  --surface-2: #ced4dfe6;
+  --surface-3: #cbd2dd;
+  --surface-deep: #c8cfdb;
+  --surface-wiz: #cbd2ddf2;
+  --dock: #cbd2ddf2;
+  --backdrop: #141c3266;
+  --announce: #d9c99ee6;
+  --tw-bar: #cdc6dccc;
+  --queue-off: #a9b1c1;
+  --queue-off-line: #7d879b;
+  --unit-name: #222c44;
+  --alert-bg: #e3c9c9;
+  --color-white: #1a2238;
+  --color-black: #d8dde6;
+  --color-gold: #855604;
+  --color-gold-deep: #6e4703;
+  /* ตัวอักษรสีอ่อน (ไว้บนพื้นมืด) → เข้มขึ้นให้อ่านบนพื้นสว่าง */
+  --color-red-50: #991b1b; --color-red-100: #991b1b; --color-red-200: #b91c1c; --color-red-300: #b91c1c; --color-red-400: #dc2626;
+  --color-sky-100: #075985; --color-sky-200: #075985; --color-sky-300: #0369a1; --color-sky-400: #0284c7;
+  --color-emerald-100: #065f46; --color-emerald-200: #065f46; --color-emerald-300: #047857; --color-emerald-400: #059669;
+  --color-green-100: #166534; --color-green-300: #15803d; --color-green-400: #16a34a;
+  --color-amber-100: #92400e; --color-amber-200: #92400e; --color-amber-300: #b45309; --color-amber-400: #d97706;
+}
+/* ของที่วางบนรูป/พื้นมืดเสมอ (การ์ดฮีโร่ ปุ่มทอง) — คงตัวอักษรขาวแบบเดิม */
+:root[data-theme="light"] :is(.unit-card, .skill-queue-face) { --color-white: #ffffff; --color-black: #000000; }
+
+html[data-theme="light"], html[data-theme="light"] body { background-color: #bfc7d4; color: #1a2238; }
+html[data-theme="light"] body {
+  background:
+    radial-gradient(ellipse 85% 650px at 50% 0%, #d6cdb8, transparent),
+    repeating-linear-gradient(120deg, #2a3a6608 0 1px, transparent 1px 48px),
+    linear-gradient(180deg, #c6cdd9 0%, #bfc7d4 60%, #b7bfcd 100%);
+}
+html[data-theme="light"] ::selection { background: #f4d58d80; color: #1a2238; }
+html[data-theme="light"] :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus { border-color: #c9a35a; }
+html[data-theme="light"] :where(button, a, input[type="checkbox"], input[type="radio"]):focus-visible { outline-color: #c9a35a; }
+
+html[data-theme="light"] .panel {
+  border-color: #8292bc55;
+  background: linear-gradient(150deg, #d6dbe4 0%, #cfd5df 50%, #c8cfda 100%);
+  box-shadow: inset 0 0 0 4px #cdd3dd, inset 0 1px 0 #dde1e8, 0 10px 28px #1a22401f;
+}
+html[data-theme="light"] .panel-gold {
+  border-color: #c9a35acc;
+  box-shadow: inset 0 0 0 3px #d8d2c2, inset 0 0 0 4px #c9a35a33, 0 10px 28px #1a224014, 0 0 24px #f4d58d22;
+}
+html[data-theme="light"] .panel-enemy {
+  border-color: #9b8cc8aa;
+  background: linear-gradient(150deg, #d4d0df 0%, #cdc8db 50%, #c6c0d6 100%);
+  box-shadow: inset 0 0 0 3px #cfcadb, inset 0 0 0 4px #9b8cc833, 0 10px 28px #1a224014;
+}
+html[data-theme="light"] .panel::before, html[data-theme="light"] .panel::after { color: #8a96b5; }
+html[data-theme="light"] .panel-gold::before, html[data-theme="light"] .panel-gold::after,
+html[data-theme="light"] .guild-banner::after { color: #d9a93f; text-shadow: 0 0 6px #ffffff, 0 0 10px #f4d58d; }
+html[data-theme="light"] .modal-surface { background: linear-gradient(145deg, #d3d8e1, #cdd3dd); }
+html[data-theme="light"] .modal-backdrop { background-color: #141c3266; }
+html[data-theme="light"] .slot-empty {
+  border-color: #8292bc4d;
+  background:
+    radial-gradient(circle at center, transparent 29%, #8292bc1a 30% 31%, transparent 32% 40%, #8292bc12 41% 42%, transparent 43%),
+    linear-gradient(135deg, #d8dde680, transparent 50%), #bcc4d1;
+  box-shadow: inset 0 1px 2px #1a22401a;
+}
+html[data-theme="light"] .round-slot { border-color: #8292bc80; background: radial-gradient(circle at 40% 35%, #d6dbe4, #b3bbca); }
+html[data-theme="light"] .pill {
+  border-color: #c9a35a66;
+  background: linear-gradient(180deg, #d5dae3, #cdd3dd);
+  box-shadow: inset 0 0 0 2px #f1f4f866, 0 1px 2px #1a22401a;
+}
+html[data-theme="light"] .orb {
+  border-color: #8292bc66;
+  background: radial-gradient(circle at 40% 35%, #d5dae3, #b1b9c8);
+  box-shadow: inset 0 0 10px #1a22401f;
+}
+html[data-theme="light"] .hero-dock { box-shadow: 0 -10px 30px #1a22401f, inset 0 2px 0 #c9a35a1a; }
+html[data-theme="light"] .guild-banner {
+  border-color: #c9a35a66;
+  background: radial-gradient(ellipse at 95% 0, #f4d58d33, transparent 60%), linear-gradient(120deg, #d5dae3, #cdd3dd 70%);
+  box-shadow: inset 0 0 0 4px #ccd2dc, 0 8px 24px #1a224012;
+}
+html[data-theme="light"] .eyebrow { color: #8c7a55; }
+html[data-theme="light"] .gold-title { color: #a06c0e; background: linear-gradient(180deg, #c99a3c 10%, #7c560c 85%); background-clip: text; -webkit-background-clip: text; }
+html[data-theme="light"] .brand-mark, html[data-theme="light"] .hero-crest { color: #a06c0e; }
+html[data-theme="light"] .hero-crest { background: linear-gradient(140deg, #f4d58d40, #cfd5df); box-shadow: inset 0 0 0 4px #cfd5df, inset 0 0 0 5px #c9a35a40; }
+html[data-theme="light"] .section-divider { color: #8c7a55; }
+html[data-theme="light"] .plan-card li { background: #1a22400a; }
+html[data-theme="light"] .plan-heading { border-bottom-color: #c9a35a40; }
+html[data-theme="light"] .tag-accent { box-shadow: inset 0 3px 0 color-mix(in srgb, var(--tag) 80%, transparent), 0 0 14px color-mix(in srgb, var(--tag) 18%, transparent), 0 8px 22px #1a224014; }
+html[data-theme="light"] .vs-arena::before { background: radial-gradient(ellipse at 15% 40%, #3672db14, transparent 50%), radial-gradient(ellipse at 85% 60%, #db456812, transparent 50%); }
+/* วงเวทหน้าแรก: แฉกทอง (conic) บนพื้นสว่างต้องเข้มกว่าโหมดมืด ไม่งั้นมองไม่เห็น */
+html[data-theme="light"] .arcane-ring {
+  border-color: #a0781f33;
+  background:
+    repeating-conic-gradient(from 15deg, #a0781f2e 0deg 1deg, transparent 1deg 30deg),
+    radial-gradient(circle, #c9a35a1f, transparent 65%);
+  box-shadow: inset 0 0 0 22px #ffffff14, inset 0 0 0 23px #a0781f26;
+}
+
+/* โหมดสว่าง: ชิ้นที่อยากคงพื้นมืดไว้ทั้งก้อน ใส่คลาส keep-dark
+ * คืนค่าสีของ Tailwind กลับเป็นชุดโหมดมืด ตัวอักษรข้างในจะได้ขาว/ทองเหมือนเดิม */
+html[data-theme="light"] .keep-dark {
+  --color-white: #ffffff; --color-black: #000000; --color-gold: #f4d58d; --color-gold-deep: #c9a35a;
+  --surface: #161c2e; --surface-2: #1b2236e6; --surface-3: #11162a; --surface-deep: #0c1425;
+  --color-red-50: #fef2f2; --color-red-100: #fee2e2; --color-red-200: #fecaca; --color-red-300: #fca5a5; --color-red-400: #f87171;
+  --color-sky-100: #e0f2fe; --color-sky-200: #bae6fd; --color-sky-300: #7dd3fc; --color-sky-400: #38bdf8;
+  --color-emerald-100: #d1fae5; --color-emerald-200: #a7f3d0; --color-emerald-300: #6ee7b7; --color-emerald-400: #34d399;
+  --color-green-100: #dcfce7; --color-green-300: #86efac; --color-green-400: #4ade80;
+  --color-amber-100: #fef3c7; --color-amber-200: #fde68a; --color-amber-300: #fcd34d; --color-amber-400: #fbbf24;
+  color: #eef1f8;
+}
+
+/* ปุ่ม Discord ลอยมุมขวาล่าง */
+html[data-theme="light"] .contact-fab-btn {
+  background: radial-gradient(circle at 35% 30%, #eef1f6, #c3cad7 75%) !important;
+  color: #855604;
+  border-color: #a0781f99;
+  box-shadow: 0 8px 22px #1a224033, inset 0 0 0 3px #ffffff80;
+}
+html[data-theme="light"] .contact-fab-btn:hover { color: #5e3d02; }
+
+/* การ์ดอัศวิน: พื้นหลังรูปเทาอมฟ้าแทนดำ (รูปยังเด่น ตัวหนังสือชื่อยังขาว) */
+html[data-theme="light"] .unit-card {
+  background: radial-gradient(ellipse at 50% 10%, color-mix(in srgb, var(--unit-color) 40%, transparent), transparent 80%), #4a5672;
+  box-shadow: 0 3px 8px #1a22402e, inset 0 0 0 2px #ffffff26;
+}
+html[data-theme="light"] .unit-card.skill-queue-portrait { background: radial-gradient(circle at 40% 30%, #b9bfc7, #7d848f 60%, #5c636e); }
+html[data-theme="light"] .skill-queue-face { box-shadow: 0 0 0 1px #69717c66, 0 2px 5px #1a224033; }

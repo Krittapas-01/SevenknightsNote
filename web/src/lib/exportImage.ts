@@ -5,7 +5,10 @@ import { domToPng } from 'modern-screenshot'
  * - ใส่ data-noexport ที่ปุ่ม/ส่วนที่ไม่อยากให้ติดในรูป
  * - มือถือ: เปิดหน้าแชร์ (ส่งเข้าไลน์/ดิสคอร์ดได้เลย) · คอม: ดาวน์โหลดไฟล์
  */
-/** รอรูปใน element โหลดเสร็จ (กันรูปฮีโร่หายในภาพ) */
+/** รอรูปใน element โหลดเสร็จ (กันรูปอัศวินหายในภาพ) */
+/** ปิดปุ่มบันทึกรูปไว้ก่อน (ยังไม่มีคนใช้) — เปิดกลับโดยเปลี่ยนเป็น true */
+export const EXPORT_ON = false
+
 export async function waitImages(el: HTMLElement, timeoutMs = 8000) {
   // รูป loading="lazy" ที่อยู่นอกจอจะไม่โหลดเลย (ค้างจนหมดเวลา) → สั่งโหลดทันที
   el.querySelectorAll('img[loading="lazy"]').forEach((i) => { (i as HTMLImageElement).loading = 'eager' })

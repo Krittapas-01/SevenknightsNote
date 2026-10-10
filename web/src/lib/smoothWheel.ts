@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { usePrefs } from './prefs'
 
 /**
  * เลื่อนด้วยลูกกลิ้งเมาส์ให้นุ่มแบบ touchpad (ใช้ในหน้าที่การ์ดเยอะ)
@@ -6,6 +7,8 @@ import { useEffect } from 'react'
  * ดักเฉพาะลูกกลิ้ง (ก้อนใหญ่) แล้วไหลไปทีละนิดหลายเฟรม · touchpad/มือถือ/คนตั้ง reduced motion = ปกติ
  */
 export function useSmoothWheel(enabled = true) {
+  // ตั้งค่า → ปิดเลื่อนนุ่มได้
+  enabled = usePrefs().smoothScroll && enabled
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return

@@ -14,7 +14,7 @@ export default function TopStrip({ inGuild }: { inGuild: boolean }) {
     return () => clearInterval(t)
   }, [])
   return (
-    <div className="bg-[#1b2236]/90 backdrop-blur">
+    <div className="bg-[var(--surface-2)]/90 backdrop-blur">
       <SeasonBanner season={GAME_SEASON} schedule={GAME_SCHEDULE} now={now} />
       {!inGuild && (
         <div className="border-b border-white/10 sm:hidden">

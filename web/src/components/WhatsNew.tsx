@@ -1,9 +1,11 @@
-import { BookOpen, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { getRecent } from '../lib/api'
 import { LATEST_UPDATE, markUpdateSeen, seenUpdate, unseenUpdates } from '../lib/changelog'
 import Modal from './Modal'
+import PatchNotes, { PatchHeader } from './PatchNotes'
+import { tx } from '../lib/i18n'
 
 /** มีอัปเดตที่เครื่องนี้ยังไม่เห็น? (ใช้ทำจุดแดงที่เมนู) */
 export function useHasUpdate() {
@@ -34,25 +36,21 @@ export default function WhatsNew() {
   }, [pathname])
 
   const close = () => { setOpen(false); markUpdateSeen() }
-  const all = items.flatMap((c) => c.items).slice(0, 6)
 
   return (
-    <Modal open={open} title={<span className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-gold" /> มีอะไรใหม่</span>} onClose={close}>
-      <p className="text-xs text-white/50">{items[0]?.date} · {items[0]?.title}</p>
-      <ul className="mt-3 space-y-2.5">
-        {all.map((it, i) => (
-          <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-white/85">
-            <span className="mt-0.5 text-gold">✦</span>
-            <span>
-              {it.text}
-              {it.guide && <Link to={`/guide#${it.guide}`} onClick={close} className="ml-1.5 inline-flex items-center gap-1 whitespace-nowrap text-xs text-gold/80 hover:text-gold"><BookOpen className="h-3 w-3" />วิธีใช้</Link>}
-            </span>
-          </li>
+    <Modal open={open} title={<span className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-gold" />{' '}{tx('มีอะไรใหม่')}</span>} onClose={close}>
+      {/* แพทช์ที่ยังไม่เห็น (ใหม่สุดก่อน) — ปกติมีอันเดียว */}
+      <div className="space-y-6">
+        {items.map((c) => (
+          <div key={c.id}>
+            <PatchHeader entry={c} />
+            <div className="mt-3"><PatchNotes entry={c} onNavigate={close} /></div>
+          </div>
         ))}
-      </ul>
+      </div>
       <div className="mt-5 flex gap-2">
-        <button onClick={close} className="btn-gold flex-1 py-2 font-semibold">เข้าใจแล้ว</button>
-        <Link to="/updates" onClick={close} className="pill px-4 py-2 text-sm text-white/80 hover:bg-white/10">ดูทั้งหมด</Link>
+        <button onClick={close} className="btn-gold flex-1 py-2 font-semibold">{tx('เข้าใจแล้ว')}</button>
+        <Link to="/updates" onClick={close} className="pill px-4 py-2 text-sm text-white/80 hover:bg-white/10">{tx('ดูทั้งหมด')}</Link>
       </div>
     </Modal>
   )

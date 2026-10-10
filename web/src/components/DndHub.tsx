@@ -2,6 +2,7 @@ import {
   DndContext, DragOverlay, MouseSensor, PointerSensor, TouchSensor, pointerWithin, rectIntersection, useSensor, useSensors,
   type CollisionDetection, type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core'
+import { zoomOverlay } from '../lib/zoom'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { SlotRef } from '../lib/types'
@@ -10,7 +11,7 @@ import UnitCard from './UnitCard'
 /**
  * ศูนย์กลางลากวางของทั้งหน้า
  * - ลากสลับช่องในทีมเดียวกัน
- * - ลากการ์ดจากแถบฮีโร่ด้านล่าง (roster) ขึ้นไปวางในทีมไหนก็ได้
+ * - ลากการ์ดจากแถบอัศวินด้านล่าง (roster) ขึ้นไปวางในทีมไหนก็ได้
  * - กดการ์ดในแถบ = ใส่ช่องว่างของ "ทีมที่เลือกอยู่" (ทีมล่าสุดที่แตะ)
  *
  * id ของช่อง:  <panelId>|h:0..4  /  <panelId>|p  /  <panelId>|e:0..3
@@ -19,15 +20,19 @@ import UnitCard from './UnitCard'
 
 export type PanelHandlers = {
   label: () => string
-  /** ตัวที่อยู่ในทีมนี้แล้ว (ซ่อนจากแถบฮีโร่) */
+  /** ตัวที่อยู่ในทีมนี้แล้ว (ซ่อนจากแถบอัศวิน) */
   used: () => string[]
   valueOf: (ref: SlotRef) => string | null
   onMove?: (from: SlotRef, to: SlotRef) => void
-  /** วางการ์ดจากแถบลงช่อง (unit = ฮีโร่/สัตว์เลี้ยง) */
-  onDropUnit?: (ref: SlotRef, unitId: string) => void
+  /** วางการ์ดจากแถบลงช่อง (unit = อัศวิน/สัตว์เลี้ยง) */
+  onDropUnit?: (ref: SlotRef, unitId: string | null) => void
+  /** ยกเลิกช่องที่เลือกค้างไว้ (คืน true = มีให้ยกเลิก) */
+  clearSelection?: () => boolean
+  /** กลุ่มการ์ด (ally/enemy) — ลากข้ามการ์ดได้เฉพาะกลุ่มเดียวกัน (เช่น คอมพ์หลัก ↔ ทีมสำรอง) */
+  group?: string
   /** กดการ์ดในแถบ → ใส่ช่องว่างถัดไป */
   onQuickAdd?: (kind: 'hero' | 'pet', unitId: string) => void
-  /** จำนวนฮีโร่ในทีม + มีสัตว์เลี้ยงหลักหรือยัง (ใช้เก็บแถบอัตโนมัติ) */
+  /** จำนวนอัศวินในทีม + มีสัตว์เลี้ยงหลักหรือยัง (ใช้เก็บแถบอัตโนมัติ) */
   status: () => { heroes: number; pet: boolean }
   /** ตัวที่ใช้ในไม้อื่นแล้ว (ชื่อฐาน → ป้าย) ใช้หรี่ในแถบ */
   blocked?: () => Record<string, string>
@@ -45,15 +50,27 @@ type Hub = {
   hasPanels: boolean
   statusOfFocused: () => { heroes: number; pet: boolean } | null
   blockedInFocused: () => Record<string, string>
-  /** แถบตัวละครด้านล่าง: เปิด/เก็บ + แท็บ */
+  /** แถบอัศวินด้านล่าง: เปิด/เก็บ + แท็บ */
   dockOpen: boolean
   setDockOpen: (v: boolean) => void
   dockTab: 'hero' | 'pet'
   setDockTab: (t: 'hero' | 'pet') => void
+  /** ขอเปิดตารางอัศวินหน้าใหญ่ (นับครั้ง — HeroDock ฟังค่านี้) */
+  gridReq: number
+  openGrid: () => void
 }
 
 const Ctx = createContext<Hub | null>(null)
 export const useDndHub = () => useContext(Ctx)
+/** อ่านว่าแถบอัศวินเปิดอยู่ไหม (ใช้ในฟังก์ชัน render ที่เรียก hook ตรง ๆ ไม่ได้) */
+export function DockAware({ children }: { children: (dockOpen: boolean) => ReactNode }) {
+  return <>{children(!!useContext(Ctx)?.dockOpen)}</>
+}
+/** ที่ว่างท้ายเนื้อหาเท่าความสูงแถบอัศวิน (เฉพาะตอนแถบเปิด) — เลื่อนดูของล่างสุดได้ ไม่โดนแถบบัง */
+export function DockSpacer() {
+  const hub = useContext(Ctx)
+  return hub?.dockOpen ? <div aria-hidden className="h-56 shrink-0" /> : null
+}
 
 export const keyOf = (r: SlotRef) => (r.kind === 'hero' ? `h:${r.index}` : r.kind === 'pet' ? 'p' : `e:${r.index}`)
 export const refOf = (k: string): SlotRef =>
@@ -89,7 +106,22 @@ export function DndHub({ children }: { children: ReactNode }) {
   const panels = useRef(new Map<string, PanelHandlers>())
   const [focused, setFocused] = useState<string | null>(null)
   const [dockOpen, setDockOpen] = useState(false)
+  // แถบอัศวินเปิดอยู่ แล้วกดที่อื่น (ไม่ใช่แถบ/ช่องทีม/หน้าต่าง): ครั้งแรก = ยกเลิกช่องที่เลือก · ครั้งถัดไป = ปิดแถบ
+  useEffect(() => {
+    if (!dockOpen) return
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Element | null
+      if (!t || t.closest('.hero-dock, [data-slot], [data-app-modal], .modal-backdrop')) return
+      let cleared = false
+      for (const h of panels.current.values()) if (h.clearSelection?.()) cleared = true
+      if (!cleared) setDockOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [dockOpen])
   const [dockTab, setDockTab] = useState<'hero' | 'pet'>('hero')
+  const [gridReq, setGridReq] = useState(0)
+  const openGrid = useCallback(() => setGridReq((n) => n + 1), [])
   const [, force] = useState(0)
   const [drag, setDrag] = useState<{ unit: string; shape: 'hero' | 'pet' | 'round'; size: number } | null>(null)
 
@@ -149,6 +181,16 @@ export function DndHub({ children }: { children: ReactNode }) {
       setFocused(to.panel)
     } else if (from.panel === to.panel && from.key !== to.key && groupOfKey(from.key) === groupOfKey(to.key)) {
       target.onMove?.(refOf(from.key), refOf(to.key))
+    } else if (from.panel !== to.panel && groupOfKey(from.key) === groupOfKey(to.key)) {
+      // ลากข้ามการ์ดทีม (ฝั่งเดียวกัน) = สลับตัวระหว่างสองช่อง
+      const source = panels.current.get(from.panel)
+      if (!source || !source.group || source.group !== target.group) return
+      const a = source.valueOf(refOf(from.key))
+      const b = target.valueOf(refOf(to.key))
+      if (!a) return
+      target.onDropUnit?.(refOf(to.key), a)
+      source.onDropUnit?.(refOf(from.key), b)
+      setFocused(to.panel)
     }
   }
 
@@ -167,9 +209,11 @@ export function DndHub({ children }: { children: ReactNode }) {
       setDockOpen,
       dockTab,
       setDockTab,
+      gridReq,
+      openGrid,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [register, focused, quickAdd, panels.current.size, dockOpen, dockTab],
+    [register, focused, quickAdd, panels.current.size, dockOpen, dockTab, gridReq, openGrid],
   )
 
   return (
@@ -177,7 +221,7 @@ export function DndHub({ children }: { children: ReactNode }) {
       <DndContext sensors={sensors} collisionDetection={collision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDrag(null)}>
         {children}
         {createPortal(
-          <DragOverlay dropAnimation={null}>
+          <DragOverlay dropAnimation={null} modifiers={[zoomOverlay]}>
             {drag ? (
               <div
                 className="rotate-3 scale-105 cursor-grabbing drop-shadow-2xl"
@@ -194,14 +238,14 @@ export function DndHub({ children }: { children: ReactNode }) {
   )
 }
 
-/** ซ่อนลูก ๆ ระหว่างที่แถบเลือกตัวละครเปิดอยู่ (เช่น แถบบันทึก) */
+/** ซ่อนลูก ๆ ระหว่างที่แถบเลือกอัศวินเปิดอยู่ (เช่น แถบบันทึก) */
 export function HideWhileDock({ children }: { children: ReactNode }) {
   const hub = useDndHub()
   return hub?.dockOpen ? null : <>{children}</>
 }
 
 /**
- * เป้าหมายแบบรายชื่อ (เช่น ตัว OP / ชุดที่ยกเลิก) — ใช้แถบตัวละครด้านล่างแทนหน้าต่างเลือก
+ * เป้าหมายแบบรายชื่อ (เช่น ตัว OP / ชุดที่ยกเลิก) — ใช้แถบอัศวินด้านล่างแทนหน้าต่างเลือก
  * h = null → ไม่ลงทะเบียน (เช่น ไม่ได้อยู่ในโหมดแก้ไข)
  */
 export function useListTarget(

@@ -14,13 +14,13 @@ type Done = { moved: boolean; removed: boolean; formation: boolean }
 type Mission = { key: string; title: string; how: string; done: (t: Team, s: SkillStep[], d: Done) => boolean }
 
 const MISSIONS: Mission[] = [
-  { key: 'fill', title: `ใส่ฮีโร่ให้ครบ ${MAX_HEROES} ตัว`, how: `แตะช่องว่าง → แตะตัวละครในแถบด้านล่าง (ค้นหาชื่อได้) · ทีมกิลด์วอร์ใช้ ${MAX_HEROES} ตัว วางได้ 5 ช่องตามค่ายกล`, done: (t) => heroCount(t) >= MAX_HEROES },
+  { key: 'fill', title: `ใส่อัศวินให้ครบ ${MAX_HEROES} ตัว`, how: `แตะช่องว่าง → แตะอัศวินในแถบด้านล่าง (ค้นหาชื่อได้) · ทีมสงครามกิลด์ใช้ ${MAX_HEROES} ตัว วางได้ 5 ช่องตามรูปแบบ`, done: (t) => heroCount(t) >= MAX_HEROES },
   { key: 'pet', title: 'ใส่สัตว์เลี้ยง', how: 'แตะช่องรูปเท้าขวาบน → แถบด้านล่างจะเปลี่ยนเป็นสัตว์เลี้ยง', done: (t) => !!t.pet },
   { key: 'move', title: 'สลับตำแหน่ง 2 ตัว', how: 'แตะตัวที่จะย้าย 1 ครั้ง (เรืองแสง) แล้วแตะอีกช่อง · บนคอมลากวางได้', done: (_t, _s, d) => d.moved },
   { key: 'remove', title: 'เอาตัวออก 1 ตัว', how: 'แตะตัวเดิมซ้ำ 2 ครั้ง (ครั้งแรกเรืองแสง ครั้งที่สองเอาออก)', done: (_t, _s, d) => d.removed },
-  { key: 'formation', title: 'เปลี่ยนค่ายกล', how: 'แตะวงกลมดาวแดง/น้ำเงินใต้สัตว์เลี้ยง แล้วเลือกค่ายกลอื่น', done: (_t, _s, d) => d.formation },
-  { key: 'skills', title: 'จองสกิล 3 ครั้ง', how: 'แตะวงกลมดาวล่างสุด แล้วแตะสกิลตามลำดับที่จะกด — เลขสีจะขึ้นบนการ์ด', done: (_t, s) => s.length >= 3 },
-  { key: 'speed', title: 'ใส่สปีดทีม', how: 'พิมพ์ตัวเลขในช่องรูปรอยเท้า มุมขวาบนของการ์ด', done: (t) => (t.speed || 0) > 0 },
+  { key: 'formation', title: 'เปลี่ยนรูปแบบ', how: 'แตะวงกลมดาวแดง/น้ำเงินใต้สัตว์เลี้ยง แล้วเลือกรูปแบบอื่น', done: (_t, _s, d) => d.formation },
+  { key: 'skills', title: 'ตั้งลำดับการใช้สกิล 3 ครั้ง', how: 'แตะวงกลมดาวล่างสุด แล้วแตะสกิลตามลำดับที่จะกด — เลขสีจะขึ้นบนการ์ด', done: (_t, s) => s.length >= 3 },
+  { key: 'speed', title: 'ใส่ความเร็วทีม', how: 'พิมพ์ตัวเลขในช่องรูปรอยเท้า มุมขวาบนของการ์ด', done: (t) => (t.speed || 0) > 0 },
   { key: 'extra', title: 'ใส่สัตว์เลี้ยงสำรอง', how: `แตะวงกลมเล็กแถว "สัตว์เลี้ยงสำรอง" ใต้ทีม (ใส่ได้ ${EXTRA_COUNT} ตัว)`, done: (t) => t.extras.some(Boolean) },
 ]
 
@@ -77,10 +77,10 @@ export default function TeamPractice({ overlay = false, onClose }: { overlay?: b
               <div className="panel panel-gold mb-5 p-5 text-center">
                 <PartyPopper className="mx-auto h-9 w-9 text-gold" />
                 <p className="mt-2 text-lg font-bold">ผ่านบทจัดทีมแล้ว!</p>
-                <p className="mt-1 text-sm text-white/65">การ์ดทีมแบบนี้ใช้เหมือนกันทุกที่ ทั้งจดทีมศัตรู ทีมแก้ และแผนวอร์</p>
+                <p className="mt-1 text-sm text-white/65">การ์ดทีมแบบนี้ใช้เหมือนกันทุกที่ ทั้งบ้านศัตรู ทีมแก้ และแผนสงคราม</p>
                 {overlay
                   ? <button onClick={onClose} className="btn-gold mt-4 inline-flex items-center gap-1.5 px-5 py-2 text-sm font-semibold">กลับไปใช้งานจริง</button>
-                  : <Link to="/guide#targets" className="btn-gold mt-4 inline-flex items-center gap-1.5 px-5 py-2 text-sm font-semibold"><BookOpen className="h-4 w-4" /> อ่านต่อ: จดทีมศัตรู</Link>}
+                  : <Link to="/guide#targets" className="btn-gold mt-4 inline-flex items-center gap-1.5 px-5 py-2 text-sm font-semibold"><BookOpen className="h-4 w-4" /> อ่านต่อ: บ้านศัตรู</Link>}
               </div>
             )}
             <div className="mx-auto max-w-md">

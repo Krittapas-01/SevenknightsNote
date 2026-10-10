@@ -1,29 +1,31 @@
 import { Plus } from 'lucide-react'
+import { zoomInPlace } from '../lib/zoom'
 import { DndContext, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { useEffect, useState, type ReactNode } from 'react'
 import UnitCard from '../components/UnitCard'
 import UnitPicker from '../components/UnitPicker'
 import { FormationDiagram } from '../components/TeamModals'
-import { HEROES, getUnit } from '../data/heroes'
+import { HEROES, getUnit, unitLabel } from '../data/heroes'
 import { baseAtkOf } from '../data/stats'
 import { SLOT_COUNT } from '../lib/types'
 import './BiscuitPage.css'
+import { tx, L, LOCALE } from '../lib/i18n'
 
 // บิสกิตบัฟให้ตัวที่ "โจมตีในเกม" สูงสุด 2 อันดับ
-// โจมตีในเกม = โจมตีหน้าตัวละคร + base × บัฟ% (บัฟ % คิดจาก base ไม่ใช่ค่ารวม)
+// โจมตีในเกม = โจมตีหน้าอัศวิน + base × บัฟ% (บัฟ % คิดจาก base ไม่ใช่ค่ารวม)
 const BISCUIT_TARGETS = 2
 const STORE_KEY = '7k-note:biscuit'
 
 type Slot = { id: string | null; base: string; screen: string; extra: string }
 
-// ค่ายกล Lv.40 (จากในเกม): แถวหลังได้ All Attack % · แถวหน้าได้แค่ Defense % (ไม่มีผลกับบัฟบิสกิต)
+// รูปแบบ Lv.40 (จากในเกม): แถวหลังได้ All Attack % · แถวหน้าได้แค่ Defense % (ไม่มีผลกับบัฟบิสกิต)
 const FORMATION_ATK: { front: number; name: string; atk: number }[] = [
-  { front: 2, name: 'พื้นฐาน', atk: 14 },
-  { front: 3, name: 'สมดุล', atk: 21 },
-  { front: 1, name: 'บุก', atk: 10.5 },
-  { front: 4, name: 'ป้องกัน', atk: 42 },
+  { front: 2, name: tx('พื้นฐาน'), atk: 14 },
+  { front: 3, name: tx('สมดุล'), atk: 21 },
+  { front: 1, name: tx('บุก'), atk: 10.5 },
+  { front: 4, name: tx('ป้องกัน'), atk: 42 },
 ]
-// คอลัมน์ (ซ้าย→ขวา) ที่เป็นแถวหน้า ตามค่ายกล (เหมือนในเกม/AtlasTeam)
+// คอลัมน์ (ซ้าย→ขวา) ที่เป็นแถวหน้า ตามรูปแบบ (เหมือนในเกม/AtlasTeam)
 const FRONT_COLS: Record<number, number[]> = { 1: [2], 2: [1, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4] }
 
 const EMPTY_SLOT: Slot = { id: null, base: '', screen: '', extra: '' }
@@ -66,7 +68,7 @@ const num = (v: string) => {
   const n = Number(v.replace(/,/g, ''))
   return Number.isFinite(n) ? n : 0
 }
-const fmt = (n: number) => Math.round(n).toLocaleString('th-TH')
+const fmt = (n: number) => Math.round(n).toLocaleString(LOCALE)
 
 export default function BiscuitPage() {
   const [state, setState] = useState(load)
@@ -123,12 +125,12 @@ export default function BiscuitPage() {
 
   let filled = slots
     .map((r, i) => {
-      // base ตายตัวตามตัวละคร (7K Atlas) แก้ไม่ได้ · ไม่รู้ base = null (ไม่นับเป็น 0)
+      // base ตายตัวตามอัศวิน (7K Atlas) แก้ไม่ได้ · ไม่รู้ base = null (ไม่นับเป็น 0)
       const base = r.id ? baseAtkOf(r.id) : null
       const screen = num(r.screen)
       const back = isBack(i)
       const pct = petBuff + (back ? formation.atk : 0) + num(r.extra)
-      const name = r.id ? getUnit(r.id)?.name ?? r.id : `ช่องที่ ${i + 1}`
+      const name = r.id ? unitLabel(r.id) : L(`ช่องที่ ${i + 1}`, `Slot ${i + 1}`)
       return { i, name, back, base: base ?? 0, known: base !== null, screen, pct, game: screen + ((base ?? 0) * pct) / 100 }
     })
     .filter((r) => r.screen > 0)
@@ -151,17 +153,16 @@ export default function BiscuitPage() {
       <header className="biscuit-heading">
         <span className="biscuit-eyebrow">SEVEN KNIGHTS · BATTLE PREP</span>
         <h1 className="text-3xl font-extrabold sm:text-4xl">
-          เช็กบัฟ<span className="text-gold">บิสกิต</span>
+          {L('เช็กบัฟ', 'Biscuit ')}<span className="text-gold">{L('บิสกิต', 'Buff Check')}</span>
         </h1>
       <p className="mt-2 text-white/65">
-        บิสกิตบัฟให้ตัวที่โจมตีสูงสุด {BISCUIT_TARGETS} ตัวในทีม แต่เกมนับจาก<b className="text-white">โจมตีในเกม</b> ซึ่งรวมบัฟ %
-        ที่คิดจาก base ของแต่ละตัวแล้ว ตัวที่หน้าตัวละครสูงกว่าจึงอาจไม่ได้บัฟ
+        {tx('บิสกิตบัฟให้ตัวที่โจมตีสูงสุด')}{' '}{BISCUIT_TARGETS}{' '}{tx('ตัวในทีม แต่เกมนับจาก')}<b className="text-white">{tx('โจมตีในเกม')}</b>{' '}{tx('ซึ่งรวมบัฟ % ที่คิดจาก base ของแต่ละตัวแล้ว ตัวที่หน้าอัศวินสูงกว่าจึงอาจไม่ได้บัฟ')}
       </p>
       </header>
 
       <section className="biscuit-setup panel panel-gold mt-5 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="biscuit-section-label w-full text-sm font-medium text-gold sm:w-auto">ศักยภาพสัตว์เลี้ยง · All Attack (%)</span>
+          <span className="biscuit-section-label w-full text-sm font-medium text-gold sm:w-auto">{tx('ศักยภาพสัตว์เลี้ยง · All Attack (%)')}</span>
           {Array.from({ length: PET_LINES }, (_, i) => (
             <input
               key={i}
@@ -170,7 +171,7 @@ export default function BiscuitPage() {
                 setState((s) => ({ ...s, pet: Array.from({ length: PET_LINES }, (_, j) => (j === i ? e.target.value : s.pet[j] ?? '')) }))
               }
               inputMode="decimal"
-              aria-label={`ศักยภาพบรรทัดที่ ${i + 1}`}
+              aria-label={L(`ศักยภาพบรรทัดที่ ${i + 1}`, `Potential line ${i + 1}`)}
               className="pill w-16 px-2 py-1.5 text-center tabular-nums outline-none focus:border-gold"
             />
           ))}
@@ -179,8 +180,8 @@ export default function BiscuitPage() {
           </span>
         </div>
 
-        <p className="biscuit-section-label mt-5 text-sm font-medium text-gold">ค่ายกล <span className="text-white/45">· Lv.40</span></p>
-        {/* รูปค่ายกลแบบเดียวกับตอนเลือกในคอมพ์ */}
+        <p className="biscuit-section-label mt-5 text-sm font-medium text-gold">{tx('รูปแบบ')}{' '}<span className="text-white/45">· Lv.40</span></p>
+        {/* รูปรูปแบบแบบเดียวกับตอนเลือกในคอมพ์ */}
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {FORMATION_ATK.map((f) => (
             <button
@@ -191,28 +192,28 @@ export default function BiscuitPage() {
               }`}
             >
               <FormationDiagram front={f.front} />
-              <div className="text-sm font-semibold">{f.front === front && '✓ '}ค่าย{f.name}</div>
-              <div className="text-xs text-[#ff8f9a]">หลัง +{f.atk}% โจมตี</div>
+              <div className="text-sm font-semibold">{f.front === front && '✓ '}{L(`รูปแบบ${f.name}`, `${f.name} formation`)}</div>
+              <div className="text-xs text-[#ff8f9a]">{tx('หลัง +')}{f.atk}{tx('% โจมตี')}</div>
             </button>
           ))}
         </div>
 
         {/* ทีมแนวนอนแบบในเกม: แถวหลัง (B) ยกสูง · แถวหน้า (F) ต่ำลง */}
-        <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+        <DndContext sensors={sensors} onDragEnd={onDragEnd} modifiers={[zoomInPlace]}>
         <div className="biscuit-team mt-5 grid grid-cols-5 items-start gap-1.5 sm:gap-3">
           {slots.map((r, i) => {
             const back = isBack(i)
             return (
               <div key={i} className={`flex min-w-0 flex-col gap-1.5 ${back ? '' : 'mt-8 sm:mt-12'}`}>
                 <span className={`biscuit-row-label text-center text-[11px] font-semibold ${back ? 'text-[#ff8f9a]' : 'text-[#8fa8ff]'}`}>
-                  {back ? `หลัง +${formation.atk}%` : 'หน้า'}
+                  {back ? L(`หลัง +${formation.atk}%`, `Back +${formation.atk}%`) : tx('หน้า')}
                 </span>
                 <DragSlot index={i} draggable={!!r.id}>
                 <button
                   onClick={() => tapSlot(i)}
                   aria-pressed={selected === i}
-                  aria-label={r.id ? `${getUnit(r.id)?.name}${selected === i ? ' (เลือกอยู่ · กดอีกครั้งเพื่อเปลี่ยนตัว)' : ''}` : `เลือกตัวละครช่องที่ ${i + 1}`}
-                  className={`aspect-square w-full text-[12px] transition hover:-translate-y-0.5 ${selected === i ? 'rounded-[24%_4%_24%_4%] ring-2 ring-gold ring-offset-2 ring-offset-[#151c2e]' : ''}`}
+                  aria-label={r.id ? L(`${unitLabel(r.id)}${selected === i ? ' (เลือกอยู่ · กดอีกครั้งเพื่อเปลี่ยนตัว)' : ''}`, `${unitLabel(r.id)}${selected === i ? ' (selected · tap again to change)' : ''}`) : L(`เลือกอัศวินช่องที่ ${i + 1}`, `Pick hero for slot ${i + 1}`)}
+                  className={`aspect-square w-full text-[12px] transition hover:-translate-y-0.5 ${selected === i ? 'rounded-[24%_4%_24%_4%] ring-2 ring-gold ring-offset-2 ring-offset-[var(--surface)]' : ''}`}
                 >
                   {r.id ? (
                     <UnitCard id={r.id} />
@@ -226,11 +227,11 @@ export default function BiscuitPage() {
                 {(r.id || r.screen) && (
                   <>
                     <input value={r.screen} onChange={(e) => setSlot(i, { screen: e.target.value })} inputMode="decimal"
-                      placeholder="โจมตี" aria-label="โจมตีหน้าตัวละคร" className={input} />
+                      placeholder={tx('โจมตี')} aria-label={tx('โจมตีหน้าอัศวิน')} className={input} />
                     <input value={r.extra} onChange={(e) => setSlot(i, { extra: e.target.value })} inputMode="decimal"
-                      placeholder="บัฟ%+" aria-label="บัฟ % เพิ่มเฉพาะตัว" className={`${input} text-white/70`} />
+                      placeholder={tx('บัฟ%+')} aria-label={tx('บัฟ % เพิ่มเฉพาะตัว')} className={`${input} text-white/70`} />
                     <span className="text-center text-[11px] text-white/45 tabular-nums">
-                      {r.id && baseAtkOf(r.id) ? `base ${fmt(baseAtkOf(r.id)!)}` : 'ไม่มี base'}
+                      {r.id && baseAtkOf(r.id) ? `base ${fmt(baseAtkOf(r.id)!)}` : tx('ไม่มี base')}
                     </span>
                   </>
                 )}
@@ -240,8 +241,7 @@ export default function BiscuitPage() {
         </div>
         </DndContext>
         <p className="biscuit-help mt-4 text-xs text-white/45">
-          กดช่องว่างเพื่อเลือกตัวละคร · กดตัวที่มีอยู่ 1 ครั้งเพื่อเลือก แล้วกดซ้ำเพื่อเปลี่ยนตัว หรือกดช่องอื่นเพื่อสลับตำแหน่ง · ช่องแรกใต้รูป = โจมตี (ตามหน้าตัวละคร) · ช่องที่ 2 = บัฟ % เพิ่มเฉพาะตัว (เช่น สกิลติดตัว) · base ตายตัวตามตัวละคร (ค่าจาก 7K Atlas)
-          · ค่ายกลให้ All Attack % เฉพาะแถวหลัง (แถวหน้าได้ป้องกัน %) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น
+          {tx('กดช่องว่างเพื่อเลือกอัศวิน · กดตัวที่มีอยู่ 1 ครั้งเพื่อเลือก แล้วกดซ้ำเพื่อเปลี่ยนตัว หรือกดช่องอื่นเพื่อสลับตำแหน่ง · ช่องแรกใต้รูป = โจมตี (ตามหน้าอัศวิน) · ช่องที่ 2 = บัฟ % เพิ่มเฉพาะตัว (เช่น สกิลติดตัว) · base ตายตัวตามอัศวิน (ค่าจาก 7K Atlas) · รูปแบบให้ All Attack % เฉพาะแถวหลัง (แถวหน้าได้ป้องกัน %) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น')}
         </p>
       </section>
 
@@ -260,13 +260,13 @@ export default function BiscuitPage() {
 
       {unknownBase.length > 0 && (
         <p role="alert" className="mt-6 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          ⚠️ ไม่รู้ค่า base ของ {unknownBase.map((r) => r.name).join(', ')} — ไม่ได้นับในอันดับด้านล่าง เลือกตัวละครจากรายการแทน
+          {tx('⚠️ ไม่รู้ค่า base ของ')}{' '}{unknownBase.map((r) => r.name).join(', ')}{' '}{tx('— ไม่ได้นับในอันดับด้านล่าง เลือกอัศวินจากรายการแทน')}
         </p>
       )}
 
       {filled.length > 0 && (
         <section className="biscuit-results panel panel-gold mt-8 p-4 sm:p-5">
-          <h2 className="biscuit-section-label font-semibold text-gold">อันดับโจมตีในเกม</h2>
+          <h2 className="biscuit-section-label font-semibold text-gold">{tx('อันดับโจมตีในเกม')}</h2>
           <ol className="mt-3 flex flex-col gap-2">
             {byGame.map((r, k) => {
               const gets = k < BISCUIT_TARGETS
@@ -279,14 +279,14 @@ export default function BiscuitPage() {
                 >
                   <span className="w-5 text-white/50 tabular-nums">{k + 1}</span>
                   <span className="flex-1 font-medium">{r.name}</span>
-                  <span className="text-sm text-white/55 tabular-nums" title={`บัฟรวม ${r.pct}% ของ base ${fmt(r.base)}`}>
-                    {fmt(r.screen)} + {fmt((r.base * r.pct) / 100)} <span className="text-white/35">({r.back ? 'หลัง' : 'หน้า'} {r.pct}%)</span>
+                  <span className="text-sm text-white/55 tabular-nums" title={L(`บัฟรวม ${r.pct}% ของ base ${fmt(r.base)}`, `Total buff ${r.pct}% of base ${fmt(r.base)}`)}>
+                    {fmt(r.screen)} + {fmt((r.base * r.pct) / 100)} <span className="text-white/35">({r.back ? tx('หลัง') : tx('หน้า')} {r.pct}%)</span>
                   </span>
                   <span className="w-16 text-right font-semibold tabular-nums">{fmt(r.game)}</span>
                   <span className={`w-full text-xs sm:w-40 sm:text-right ${gets ? 'text-gold' : 'text-white/45'}`}>
                     {gets
                       ? `🍪 ได้บัฟ${gap !== undefined ? ` · นำอยู่ ${fmt(gap)}` : ''}`
-                      : `ขาดอีก ${fmt(gap! + 1)} ถึงจะได้บัฟ`}
+                      : L(`ขาดอีก ${fmt(gap! + 1)} ถึงจะได้บัฟ`, `${fmt(gap! + 1)} more to get the buff`)}
                   </span>
                 </li>
               )
@@ -294,15 +294,15 @@ export default function BiscuitPage() {
           </ol>
           {unknownBase.length > 0 && (
             <p className="mt-4 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-              อันดับนี้ยังไม่รวม {unknownBase.map((r) => r.name).join(', ')} — ผลจริงอาจต่างจากนี้
+              {tx('อันดับนี้ยังไม่รวม')}{' '}{unknownBase.map((r) => r.name).join(', ')}{' '}{tx('— ผลจริงอาจต่างจากนี้')}
             </p>
           )}
           {flipped.length > 0 ? (
             <p className="mt-4 rounded-xl bg-red-500/15 px-3 py-2 text-sm text-red-200">
-              ⚠️ อันดับในเกมไม่ตรงกับหน้าตัวละคร: {flipped.map((r) => r.name).join(', ')} — ดูจากหน้าตัวละครอย่างเดียวจะเข้าใจผิดว่าบัฟลงใคร
+              {tx('⚠️ อันดับในเกมไม่ตรงกับหน้าอัศวิน:')}{' '}{flipped.map((r) => r.name).join(', ')}{' '}{tx('— ดูจากหน้าอัศวินอย่างเดียวจะเข้าใจผิดว่าบัฟลงใคร')}
             </p>
           ) : unknownBase.length > 0 ? null : (
-            <p className="mt-4 text-sm text-white/55">อันดับในเกมตรงกับหน้าตัวละคร บัฟลงตามที่เห็นในหน้าตัวละคร</p>
+            <p className="mt-4 text-sm text-white/55">{tx('อันดับในเกมตรงกับหน้าอัศวิน บัฟลงตามที่เห็นในหน้าอัศวิน')}</p>
           )}
         </section>
       )}

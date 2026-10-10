@@ -1,9 +1,10 @@
 /**
  * กิลด์ทดลอง (/g/demo) — ใช้หน้าจริงทุกหน้า แต่ข้อมูลอยู่ในเครื่อง (sessionStorage) ไม่ส่งไป API
- * ใช้ฝึกจดทีมศัตรู / แผนวอร์ / เชื่อม Discord · Discord ไม่ส่งจริง แค่เก็บ "ข้อความจำลอง" ไว้โชว์
+ * ใช้ฝึกบ้านศัตรู / แผนสงคราม / เชื่อม Discord · Discord ไม่ส่งจริง แค่เก็บ "ข้อความจำลอง" ไว้โชว์
  */
 import { GAME_SCHEDULE, GAME_SEASON } from '../../../shared/game'
 import type { Announcement, Counter, GuildData, Plan, Target, Team } from './types'
+import { activePlanId } from './war'
 
 export const DEMO_ID = 'demo'
 export const isDemo = (gid: string | undefined) => gid === DEMO_ID
@@ -32,7 +33,7 @@ async function load(): Promise<Store> {
     const raw = sessionStorage.getItem(KEY)
     if (raw) return (store = JSON.parse(raw) as Store)
   } catch { /* เริ่มใหม่ */ }
-  // ทีมตัวอย่างจากคลังคอมพ์จริง (โหลดเฉพาะตอนเข้ากิลด์ทดลอง)
+  // ทีมตัวอย่างจากที่จดไว้จริง (โหลดเฉพาะตอนเข้ากิลด์ทดลอง)
   const comps = (await import('../data/comps.json')).default as unknown as {
     defenses: { id: string; type: string; team: Team; note: string; counters: { id: string; team: Team; skills: Counter['skills']; note: string; heroNotes: Counter['heroNotes'] }[] }[]
   }
@@ -90,7 +91,12 @@ export async function demoRequest(path: string, init: RequestInit = {}): Promise
     const latest = d.announcements[0] ?? null
     const withPlan = d.announcements.find((x) => x.planId)
     const p = withPlan && d.plans.find((x) => x.id === withPlan.planId)
-    return { guildName: d.guild.name, latest, activePlan: p ? { id: p.id, title: p.title } : null, schedule: d.schedule, season: d.season }
+    const activePlans = Object.fromEntries((['attack', 'defense'] as const).flatMap((k) => {
+      const id = activePlanId(d, k)
+      const pl = id && d.plans.find((x) => x.id === id)
+      return pl ? [[k, { id: pl.id, title: pl.title }]] : []
+    }))
+    return { guildName: d.guild.name, latest, activePlan: p ? { id: p.id, title: p.title } : null, activePlans, schedule: d.schedule, season: d.season }
   }
   if (a === 'check') return { canEdit: true }
   if (a === 'password') return { ok: true }
@@ -101,14 +107,14 @@ export async function demoRequest(path: string, init: RequestInit = {}): Promise
     d.targets.unshift(t)
     out = t
   } else if (a === 'targets' && b && c === 'counters' && method === 'POST') {
-    const t = d.targets.find((x) => x.id === b) ?? fail('ไม่พบทีมเป้าหมาย')
+    const t = d.targets.find((x) => x.id === b) ?? fail('ไม่พบบ้านศัตรู')
     const cn: Counter = { id: uid(), targetId: b, team: body.team, skills: body.skills ?? [], note: body.note ?? '', heroNotes: body.heroNotes ?? [], likes: 0, createdAt: now, updatedAt: now }
     t.counters.push(cn)
     touch(t)
     out = cn
   } else if (a === 'targets' && b) {
     const i = d.targets.findIndex((x) => x.id === b)
-    if (i < 0) fail('ไม่พบทีมเป้าหมาย')
+    if (i < 0) fail('ไม่พบบ้านศัตรู')
     if (method === 'DELETE') d.targets.splice(i, 1)
     else Object.assign(d.targets[i], { team: body.team, tags: body.tags ?? [], note: body.note ?? '', updatedAt: now })
   } else if (a === 'counters' && b) {

@@ -11,9 +11,10 @@ import UnitCard, { UNIT_SLOT_RADIUS } from './UnitCard'
 import HeroDetailModal from './HeroDetailModal'
 import type { HeroNote } from '../lib/types'
 import type { HeroStats } from '../lib/stats'
-import { getUnit } from '../data/heroes'
+import { getUnit, unitLabel } from '../data/heroes'
+import { tx, L } from '../lib/i18n'
 
-const getName = (id: string) => getUnit(id)?.name ?? id
+const getName = (id: string) => unitLabel(id)
 
 export type SlotKind = SlotRef['kind']
 
@@ -21,25 +22,27 @@ type Props = {
   team: Team
   variant: 'ally' | 'enemy'
   title?: ReactNode
-  /** ชื่อสั้น ๆ ของทีมนี้ (โชว์ในแถบฮีโร่ว่ากำลังใส่ทีมไหน) */
+  /** ชื่อสั้น ๆ ของทีมนี้ (โชว์ในแถบอัศวินว่ากำลังใส่ทีมไหน) */
   label?: string
   size?: 'md' | 'sm'
   editable?: boolean
   heroNotes?: HeroNote[]
-  /** ดูอย่างเดียวแต่มีสิทธิ์แก้: อัปโหลดรูปสเตตัสจากหน้ารายละเอียดแล้วบันทึกเลย */
+  /** ดูอย่างเดียวแต่มีสิทธิ์แก้: อัปโหลดรูปค่าความสามารถจากหน้ารายละเอียดแล้วบันทึกเลย */
   onSaveHeroStats?: (hero: string, stats: HeroStats) => Promise<void>
   /** กดช่องว่าง → เปิดหน้าเลือก */
   onSlotClick?: (kind: SlotKind, index: number) => void
   onReset?: () => void
   onFormation?: (front: number) => void
   onSpeed?: (speed: number) => void
-  /** ลำดับจองสกิล */
+  /** ลำดับการใช้สกิล */
   skills?: SkillStep[]
   /** ถ้าส่งมา = แก้ลำดับสกิลได้ (กดวงกลมดาวล่างสุด) */
   onSkills?: (s: SkillStep[]) => void
+  /** เปลี่ยนค่า (มากกว่า 0) = เปิดหน้าต่างลำดับการใช้สกิลให้เลย (เช่น กด "กลับไปตั้งลำดับการใช้สกิล") */
+  skillsReq?: number
   /** สลับตำแหน่งในทีม */
   onMove?: (from: SlotRef, to: SlotRef) => void
-  /** ใส่ตัวละครลงช่อง (null = เอาออก) */
+  /** ใส่อัศวินลงช่อง (null = เอาออก) */
   onPlace?: (ref: SlotRef, unit: string | null) => void
   /** ตัวที่ใช้ในไม้อื่นแล้ว (ชื่อฐาน → ป้าย) */
   blocked?: Record<string, string>
@@ -47,18 +50,19 @@ type Props = {
 }
 
 const GAP = 8
-/** ระยะห่างการ์ดฮีโร่บน-ล่าง */
+/** ระยะห่างการ์ดอัศวินบน-ล่าง */
 const ROW_GAP = GAP
 
 export default function TeamPanel({
   team, variant, title, label, size = 'md', editable, onSlotClick, onReset, onFormation, onSpeed,
-  skills = [], onSkills, onMove, onPlace, blocked, heroNotes, onSaveHeroStats, className = '',
+  skills = [], onSkills, onMove, onPlace, blocked, heroNotes, onSaveHeroStats, className = '', skillsReq = 0,
 }: Props) {
   const hub = useDndHub()
   const panelId = useId().replace(/[:|]/g, '')
   const active = !!editable
   const [detailHero, setDetailHero] = useState<string | null>(null)
   const [modal, setModal] = useState<'formation' | 'skills' | null>(null)
+  useEffect(() => { if (skillsReq) setModal('skills') }, [skillsReq])
   const dnd = active && !!hub
   const focused = hub?.focused === panelId
 
@@ -73,7 +77,7 @@ export default function TeamPanel({
   useEffect(() => {
     if (!active) setSelected(null)
   }, [active])
-  // ตำแหน่งเปลี่ยน (เปลี่ยนค่ายกล/ลากย้าย) → ยกเลิกการเลือก
+  // ตำแหน่งเปลี่ยน (เปลี่ยนรูปแบบ/ลากย้าย) → ยกเลิกการเลือก
   const layoutKey = `${team.front}|${team.slots.join(',')}|${team.pet}|${team.extras.join(',')}`
   useEffect(() => setSelected(null), [layoutKey])
   // ช่องที่รอไว้ถูกใส่แล้ว / ไม่ได้เลือกทีมนี้แล้ว → ล้าง
@@ -92,7 +96,7 @@ export default function TeamPanel({
   const latest = useRef({ team, onMove, onPlace, label, blocked })
   latest.current = { team, onMove, onPlace, label, blocked }
   // ลงทะเบียนครั้งเดียว (ผูกกับ register ที่ไม่เปลี่ยน) — ถ้าผูกกับ hub ทั้งก้อน ทุกครั้งที่เปลี่ยนทีมที่เลือก
-  // ทุกทีมจะลงทะเบียนใหม่ แล้วโฟกัสเด้งไปทีมแรกของหน้า → กดตัวละครแล้วไปเข้าทีมอื่น
+  // ทุกทีมจะลงทะเบียนใหม่ แล้วโฟกัสเด้งไปทีมแรกของหน้า → กดอัศวินแล้วไปเข้าทีมอื่น
   const register = hub?.register
   useEffect(() => {
     if (!register || !active) return
@@ -101,7 +105,7 @@ export default function TeamPanel({
       return [...t.slots, t.pet, ...t.extras].filter(Boolean) as string[]
     }
     return register(panelId, {
-      label: () => latest.current.label ?? 'ทีมนี้',
+      label: () => latest.current.label ?? tx('ทีมนี้'),
       valueOf: (r) => {
         const t = latest.current.team
         return r.kind === 'hero' ? t.slots[r.index] ?? null : r.kind === 'pet' ? t.pet : t.extras[r.index] ?? null
@@ -109,6 +113,14 @@ export default function TeamPanel({
       used: units,
       onMove: (a, b) => latest.current.onMove?.(a, b),
       onDropUnit: (r, u) => latest.current.onPlace?.(r, u),
+      // กดที่อื่น (นอกแถบอัศวิน/ช่อง): ยกเลิกช่องที่เลือกไว้ก่อน — คืน true ถ้ามีให้ยกเลิก
+      clearSelection: () => {
+        const had = !!selectedRef.current || !!pendingRef.current
+        setSelected(null)
+        setPending(null)
+        return had
+      },
+      group: variant,
       onQuickAdd: (kind, u) => {
         const t = latest.current.team
         // มีตัวที่เรืองแสงอยู่ (ช่องมีตัว) → กดตัวในแถบ = ใส่แทนตัวนั้น
@@ -134,10 +146,24 @@ export default function TeamPanel({
     })
   }, [register, active, panelId])
 
+  // ดับเบิลคลิกช่องว่าง (ภายใน 400ms) = เปิดตารางอัศวินหน้าใหญ่
+  const lastClick = useRef<{ k: string; t: number } | null>(null)
   function clickSlot(r: SlotRef) {
     if (!active) return
     hub?.setFocused(panelId)
-    // แตะช่องไหนก็ตาม = เปิดแถบตัวละครด้านล่าง (แท็บตามชนิดช่อง)
+    const now = Date.now()
+    const dbl = !!hub && !valueOf(r) && lastClick.current?.k === keyOf(r) && now - lastClick.current.t < 400
+    lastClick.current = { k: keyOf(r), t: now }
+    if (dbl) {
+      hub.setDockTab(r.kind === 'hero' ? 'hero' : 'pet')
+      hub.setDockOpen(true)
+      setSelected(null)
+      setPending(r)
+      hub.openGrid()
+      lastClick.current = null
+      return
+    }
+    // แตะช่องไหนก็ตาม = เปิดแถบอัศวินด้านล่าง (แท็บตามชนิดช่อง)
     if (hub) {
       hub.setDockTab(r.kind === 'hero' ? 'hero' : 'pet')
       hub.setDockOpen(true)
@@ -172,10 +198,10 @@ export default function TeamPanel({
   const backIdx = Array.from({ length: SLOT_COUNT - team.front }, (_, i) => team.front + i)
   // ฝั่งเรา: [หลัง][หน้า] (หน้าอยู่ใกล้ VS) — ฝั่งศัตรู: [หน้า][หลัง]
   const cols = variant === 'ally'
-    ? [{ key: 'back', label: 'หลัง', idx: backIdx }, { key: 'front', label: 'หน้า', idx: frontIdx }]
-    : [{ key: 'front', label: 'หน้า', idx: frontIdx }, { key: 'back', label: 'หลัง', idx: backIdx }]
+    ? [{ key: 'back', label: tx('หลัง'), idx: backIdx }, { key: 'front', label: tx('หน้า'), idx: frontIdx }]
+    : [{ key: 'front', label: tx('หน้า'), idx: frontIdx }, { key: 'back', label: tx('หลัง'), idx: backIdx }]
 
-  /** ลำดับจองสกิลของช่องนี้ เช่น [1, 3] */
+  /** ลำดับการใช้สกิลของช่องนี้ เช่น [1, 3] */
   const queueOf = (slot: number) => skills.map((s, i) => ({ n: i + 1, skill: s.skill, slot: s.slot })).filter((q) => q.slot === slot)
   const lit = Math.min(skills.length, MAX_SKILL_QUEUE)
   const hasExtras = team.extras.some(Boolean)
@@ -197,14 +223,15 @@ export default function TeamPanel({
       } ${className}`}
     >
       {/* header */}
-      <div className={`flex items-center gap-2 border-b border-white/10 ${isSm ? 'pb-1.5' : 'pb-2.5'}`}>
-        <div className={`min-w-0 flex-1 truncate text-center font-semibold ${isSm ? 'text-sm' : 'text-base sm:text-lg'}`}>{title}</div>
+      {/* ไม่มี title = ไม่มีแถบหัว (หน้าที่วางชื่อไว้นอกการ์ด) เหลือแค่ปุ่มล้างทีม */}
+      <div className={`flex items-center gap-2 ${title ? `border-b border-white/10 ${isSm ? 'pb-1.5' : 'pb-2.5'}` : ''}`}>
+        {title && <div className={`min-w-0 flex-1 truncate text-center font-semibold ${isSm ? 'text-sm' : 'text-base sm:text-lg'}`}>{title}</div>}
         {editable && onReset && (
           <button
             type="button"
             onClick={() => { onReset(); setSelected(null) }}
-            title="ล้างทีม"
-            className="absolute -right-3 -top-3 grid h-10 w-10 place-items-center rounded-full border border-white/25 bg-[#1b2032] shadow-lg hover:bg-[#262c44]"
+            title={tx('ล้างทีม')}
+            className="absolute -right-3 -top-3 grid h-10 w-10 place-items-center rounded-full border border-white/25 bg-[var(--surface-3)] shadow-lg hover:bg-[var(--surface-2)]"
           >
             <RotateCcw className="h-5 w-5" />
           </button>
@@ -232,7 +259,7 @@ export default function TeamPanel({
       </div>
 
       {/* body */}
-      {/* จองความสูงไว้ 4 แถวเสมอ (+ป้าย หน้า/หลัง) ทุกค่ายกลจะได้สูงเท่ากัน แล้วจัดกลางแนวตั้ง */}
+      {/* จองความสูงไว้ 4 แถวเสมอ (+ป้าย หน้า/หลัง) ทุกรูปแบบจะได้สูงเท่ากัน แล้วจัดกลางแนวตั้ง */}
       <div
         className={`flex flex-1 items-center justify-center ${isSm ? 'mt-2 gap-2' : 'mt-3 gap-2.5 sm:gap-3'}`}
         style={{ minHeight: `calc(var(--s) * 4 + ${ROW_GAP * 3}px${isSm ? '' : ' + 20px'})` }}
@@ -264,7 +291,7 @@ export default function TeamPanel({
           </div>
         ))}
 
-        {/* ขวาสุดแบบในเกม: สัตว์เลี้ยง · ค่ายกล · จองสกิล */}
+        {/* ขวาสุดแบบในเกม: สัตว์เลี้ยง · รูปแบบ · ตั้งลำดับการใช้สกิล */}
         <div className="ml-1 flex flex-col items-center" style={{ gap: GAP }}>
           <DnDSlot {...slotProps({ kind: 'pet', index: 0 })} round={false}>
             <button
@@ -273,7 +300,7 @@ export default function TeamPanel({
               onClick={() => clickSlot({ kind: 'pet', index: 0 })}
               className="relative block"
               style={{ width: 'var(--s)', height: 'var(--s)', fontSize: 'calc(var(--s) * 0.22)' }}
-              title="สัตว์เลี้ยง"
+              title={tx('สัตว์เลี้ยง')}
             >
               {team.pet ? (
                 <UnitCard id={team.pet} shape="pet" small={isSm} />
@@ -302,7 +329,7 @@ export default function TeamPanel({
             type="button"
             disabled={!(active && onSkills) && (skills.length === 0 || isSm)}
             onClick={() => setModal('skills')}
-            title={skills.length ? `จองสกิล ${skills.length} ครั้ง — กดดู` : 'จองสกิล'}
+            title={skills.length ? L(`ตั้งลำดับการใช้สกิล ${skills.length} ครั้ง — กดดู`, `Skill queue set ${skills.length} times — tap to view`) : tx('ตั้งลำดับการใช้สกิล')}
             className="orb mt-4 grid place-items-center"
             style={{ width: 'var(--s)', height: 'var(--s)' }}
           >
@@ -316,7 +343,7 @@ export default function TeamPanel({
       {(
 
         <div className={`flex items-center justify-center gap-1.5 ${isSm ? 'mt-2' : 'mt-3'} ${!active && !hasExtras ? 'invisible' : ''}`} aria-hidden={!active && !hasExtras}>
-          <span className="text-[11px] text-white/45">สัตว์เลี้ยงสำรอง</span>
+          <span className="text-[11px] text-white/45">{tx('สัตว์เลี้ยงสำรอง')}</span>
           {Array.from({ length: EXTRA_COUNT }, (_, i) => team.extras[i] ?? null).map((x, i) => (
             <div key={i} style={{ width: isSm ? 28 : 30 }}>
               <DnDSlot {...slotProps({ kind: 'extra', index: i })} round>
@@ -324,7 +351,7 @@ export default function TeamPanel({
                   type="button"
                   disabled={!active}
                   onClick={() => clickSlot({ kind: 'extra', index: i })}
-                  title={x ? getName(x) : `สัตว์เลี้ยงสำรอง ${i + 1}`}
+                  title={x ? getName(x) : L(`สัตว์เลี้ยงสำรอง ${i + 1}`, `Backup pet ${i + 1}`)}
                   className="block aspect-square w-full"
                   style={{ fontSize: isSm ? 8 : 9 }}
                 >
@@ -344,7 +371,7 @@ export default function TeamPanel({
 
 
       <div className={isSm ? 'h-1' : 'h-2'} />
-      {!active && heroNotes !== undefined && <p data-noexport className="mt-2 text-center text-[11px] text-white/45">กดตัวละครเพื่อดูสเตตัสและของ</p>}
+      {!active && heroNotes !== undefined && <p data-noexport className="mt-2 text-center text-[11px] text-white/45">{tx('กดอัศวินเพื่อดูค่าความสามารถและของ')}</p>}
       {!active && detailHero && heroNotes !== undefined && (
         <HeroDetailModal hero={detailHero} notes={heroNotes} onClose={() => setDetailHero(null)} onSaveStats={onSaveHeroStats} />
       )}
@@ -368,11 +395,11 @@ function DnDSlot({ id, enabled, filled, selected, round, children }: { id: strin
     if (!to.roster) {
       canDrop = from.roster
         ? (from.kind === 'hero') === (groupOfKey(to.key) === 'hero')
-        : from.panel === to.panel && from.key !== to.key && groupOfKey(from.key) === groupOfKey(to.key)
+        : from.key !== to.key || from.panel !== to.panel ? groupOfKey(from.key) === groupOfKey(to.key) : false
     }
   }
   return (
-    <div
+    <div data-slot
       ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el) }}
       {...(enabled && filled ? { ...drag.listeners, ...drag.attributes } : {})}
       style={!round ? { borderRadius: UNIT_SLOT_RADIUS } : undefined}
@@ -390,7 +417,7 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side, small }: {
   editable: boolean
   inspectable?: boolean
   onClick: () => void
-  /** จองสกิลของช่องนี้: n = ลำดับ, skill = บน(1)/ล่าง(2) */
+  /** ตั้งลำดับการใช้สกิลของช่องนี้: n = ลำดับ, skill = บน(1)/ล่าง(2) */
   queue: { n: number; skill: 1 | 2 | 3 }[]
   side: 'left' | 'right'
   /** การ์ดเล็ก → รูปย่อ */
@@ -402,7 +429,7 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side, small }: {
   const awake = queue.filter((q) => q.skill === 3).map((q) => q.n)
   // ป้ายยื่นออกข้างการ์ด · สกิลบน = มุมบน · สกิลล่าง = มุมล่าง (ขยับเข้าในนิดนึง ไม่ให้ชนการ์ดบน/ล่าง)
   const badge = (nums: number[], pos: string, label: string) => (
-    <span className={`pointer-events-none absolute ${pos} z-10 flex gap-0.5`} title={`${label} ลำดับ ${nums.join(', ')}`}>
+    <span className={`pointer-events-none absolute ${pos} z-10 flex gap-0.5`} title={L(`${label} ลำดับ ${nums.join(', ')}`, `${label} order ${nums.join(', ')}`)}>
       {nums.map((n) => (
         <span key={n} className="grid h-[18px] w-[18px] place-items-center rounded-full border border-white/90 text-[11px] font-bold leading-none shadow-[0_1px_3px_rgba(0,0,0,.6)]" style={queueStyle(n)}>
           {n}
@@ -413,7 +440,7 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side, small }: {
   return (
     <div className="relative" style={{ width: 'var(--s)', height: 'var(--s)', fontSize: 'calc(var(--s) * 0.22)' }}>
       <button type="button" disabled={!editable && !inspectable} onClick={onClick}
-        aria-label={inspectable && id ? `ดูรายละเอียด ${getName(id)}` : undefined}
+        aria-label={inspectable && id ? L(`ดูรายละเอียด ${getName(id)}`, `View details of ${getName(id)}`) : undefined}
         style={{ borderRadius: UNIT_SLOT_RADIUS }}
         className="block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
         {id ? (
@@ -424,20 +451,20 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side, small }: {
           </div>
         )}
       </button>
-      {/* ป้ายแดงแบบในเกม = ลำดับจองสกิล (บน = สกิลบน, ล่าง = สกิลล่าง) */}
-      {id && top.length > 0 && badge(top, `top-0 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, 'สกิลบน')}
-      {id && awake.length > 0 && badge(awake, `top-1/2 -translate-y-1/2 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, 'สกิลอเวค')}
-      {id && bottom.length > 0 && badge(bottom, `bottom-0 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, 'สกิลล่าง')}
+      {/* ป้ายแดงแบบในเกม = ลำดับการใช้สกิล (บน = สกิลบน, ล่าง = สกิลล่าง) */}
+      {id && top.length > 0 && badge(top, `top-0 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, tx('สกิลบน'))}
+      {id && awake.length > 0 && badge(awake, `top-1/2 -translate-y-1/2 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, tx('สกิลอเวค'))}
+      {id && bottom.length > 0 && badge(bottom, `bottom-0 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, tx('สกิลล่าง'))}
     </div>
   )
 }
 
-/** ดาว 4 แฉกเว้าลึกแบบในเกม (ใช้ทั้งค่ายกลและจองสกิล) */
+/** ดาว 4 แฉกเว้าลึกแบบในเกม (ใช้ทั้งรูปแบบและตั้งลำดับการใช้สกิล) */
 const STAR = 'M0-12 C1 -3 3 -1 12 0 C3 1 1 3 0 12 C-1 3 -3 1 -12 0 C-3 -1 -1 -3 0-12Z'
 
 /**
- * ไอคอนค่ายกลแบบในเกม: ดาวแดง = แถวหลัง (ซ้าย), ดาวน้ำเงิน = แถวหน้า (ขวา)
- * เรียงเฉียงขึ้นขวานิด ๆ จำนวนเปลี่ยนตามค่ายกล
+ * ไอคอนรูปแบบแบบในเกม: ดาวแดง = แถวหลัง (ซ้าย), ดาวน้ำเงิน = แถวหน้า (ขวา)
+ * เรียงเฉียงขึ้นขวานิด ๆ จำนวนเปลี่ยนตามรูปแบบ
  */
 export function FormationStars({ front }: { front: number }) {
   const back = SLOT_COUNT - front
@@ -470,7 +497,7 @@ export function FormationStars({ front }: { front: number }) {
   )
 }
 
-/** ดาว 3 ดวงแบบในเกม: สว่างตามจำนวนสกิลที่จอง */
+/** ดาว 3 ดวงแบบในเกม: สว่างตามจำนวนสกิลที่ตั้งลำดับไว้ */
 export function QueueStars({ lit }: { lit: number }) {
   // ตำแหน่งวัดจากภาพในเกม (วงกลม 100x100)
   const pos = [[30, 52], [57, 33], [61, 64]]
@@ -487,8 +514,8 @@ export function QueueStars({ lit }: { lit: number }) {
             className={on ? 'queue-star' : undefined}
             transform={`translate(${x} ${y})`}
             d={star}
-            fill={on ? '#ffd45c' : '#2a2e40'}
-            stroke={on ? '#fff6d0' : '#555a70'}
+            fill={on ? '#ffd45c' : 'var(--queue-off)'}
+            stroke={on ? '#fff6d0' : 'var(--queue-off-line)'}
             strokeWidth="1.2"
             style={on ? { filter: 'drop-shadow(0 0 5px rgba(255,205,80,.95))', animationDelay: `${i * 180}ms` } : undefined}
           />

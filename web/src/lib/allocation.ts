@@ -1,10 +1,11 @@
-import { baseName, getUnit } from '../data/heroes'
+import { baseName, getUnit, unitBase } from '../data/heroes'
 import type { WarOption, WarSlot } from './types'
+import { L } from './i18n'
 
 /**
- * จัดสรรตัวละคร 5 ไม้: แต่ละไม้บุกเลือก "ทีมหลัก" 1 ทีม
- * ตัวละครใช้ได้รอบเดียว → ตัวที่อยู่ในทีมหลักของไม้อื่นถือว่า "ใช้แล้ว"
- * (สัตว์เลี้ยงไม่นับ — ใช้ซ้ำได้)
+ * จัดสรรอัศวิน 5 ไม้: แต่ละไม้เลือก "ทีมหลัก" 1 ทีม
+ * อัศวินใช้ได้รอบเดียว → ตัวที่อยู่ในทีมหลักของไม้อื่นถือว่า "ใช้แล้ว"
+ * แผนบุก: สัตว์เลี้ยงไม่นับ (ใช้ซ้ำได้) · แผนกัน: บ้านกันแต่ละไม้ใช้ทั้งอัศวินและสัตว์เลี้ยงซ้ำกันไม่ได้
  */
 export const heroKey = (id: string) => baseName(getUnit(id)?.name ?? id)
 
@@ -19,12 +20,14 @@ export const mainOption = (slot: WarSlot): WarOption | null => {
 
 export const heroesOf = (o: WarOption | null) => (o ? (o.team.slots.filter(Boolean) as string[]) : [])
 
-/** ฮีโร่ (ชื่อฐาน) → ไม้ที่ใช้ตัวนี้ในทีมหลัก */
+/** ตัวที่นับซ้ำของทีมนี้: อัศวิน (+ สัตว์เลี้ยงหลักถ้าเป็นบ้านกัน) */
+const unitsOf = (o: WarOption | null, defense: boolean) => [...heroesOf(o), ...(defense && o?.team.pet ? [o.team.pet] : [])]
+
+/** อัศวิน/สัตว์เลี้ยง (ชื่อฐาน) → ไม้ที่ใช้ตัวนี้ในทีมหลัก */
 export function heroUsage(slots: WarSlot[]) {
   const use = new Map<string, number[]>()
   slots.forEach((slot, s) => {
-    if (slot.kind !== 'attack') return
-    for (const id of heroesOf(mainOption(slot))) {
+    for (const id of unitsOf(mainOption(slot), slot.kind === 'defense')) {
       const k = heroKey(id)
       use.set(k, [...(use.get(k) ?? []), s])
     }
@@ -33,18 +36,18 @@ export function heroUsage(slots: WarSlot[]) {
 }
 
 /** ตัวในทีมนี้ที่ชนกับทีมหลักของไม้อื่น */
-export function conflictsOf(option: WarOption, slotIndex: number, use: Map<string, number[]>) {
-  return heroesOf(option)
-    .map((id) => ({ id, name: heroKey(id), slots: (use.get(heroKey(id)) ?? []).filter((s) => s !== slotIndex) }))
+export function conflictsOf(option: WarOption, slotIndex: number, use: Map<string, number[]>, defense = false) {
+  return unitsOf(option, defense)
+    .map((id) => ({ id, name: unitBase(id), slots: (use.get(heroKey(id)) ?? []).filter((s) => s !== slotIndex) }))
     .filter((c) => c.slots.length > 0)
 }
 
-/** ตัวที่ใช้ไปแล้วในไม้อื่น → ป้าย เช่น "ไม้ 2" (ใช้หรี่ในแถบตัวละคร) */
+/** ตัวที่ใช้ไปแล้วในไม้อื่น → ป้าย เช่น "ไม้ 2" (ใช้หรี่ในแถบอัศวิน) */
 export function blockedFor(slotIndex: number, use: Map<string, number[]>) {
   const out: Record<string, string> = {}
   for (const [k, slots] of use) {
     const other = slots.filter((s) => s !== slotIndex)
-    if (other.length) out[k] = other.map((s) => `ไม้ ${s + 1}`).join(', ')
+    if (other.length) out[k] = other.map((s) => L(`ไม้ ${s + 1}`, `Slot ${s + 1}`)).join(', ')
   }
   return out
 }

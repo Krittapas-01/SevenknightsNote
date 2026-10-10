@@ -3,12 +3,15 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { GUIDE } from '../lib/guide'
 import PracticeButton from './PracticeButton'
+import { TUTORIAL_ON } from '../lib/onboarding'
 
 /**
  * ปุ่ม "วิธีใช้" — เปิดแผงด้านข้างบนหน้าเดิม เฉพาะหัวข้อของหน้านี้ (ไม่ต้องไปหน้าคู่มือ)
  * แต่ละหัวข้อมีปุ่มลองฝึก: จัดทีม = สนามฝึกซ้อนบนหน้า · ที่เหลือ = บทเรียนในกิลด์ทดลอง
  */
-export default function HelpLink({ section, className = '' }: { section: string | string[]; className?: string }) {
+type Props = { section: string | string[]; className?: string }
+export default function HelpLink(p: Props) { return TUTORIAL_ON ? <HelpInner {...p} /> : null }
+function HelpInner({ section, className = '' }: Props) {
   const [open, setOpen] = useState(false)
   const ids = Array.isArray(section) ? section : [section]
   const list = ids.map((id) => GUIDE.find((g) => g.id === id)).filter((g): g is NonNullable<typeof g> => !!g)
@@ -28,8 +31,8 @@ export default function HelpLink({ section, className = '' }: { section: string 
       </button>
       {open && (
         <div data-noexport className="fixed inset-0" style={{ zIndex: 44 }}>
-          <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
-          <aside className="help-drawer absolute inset-y-0 right-0 flex w-[min(26rem,100vw)] flex-col border-l border-gold/25 bg-[#11162a] shadow-2xl">
+          <div className="absolute inset-0 bg-[var(--backdrop)]" onClick={() => setOpen(false)} />
+          <aside className="help-drawer absolute inset-y-0 right-0 flex w-[min(26rem,100vw)] flex-col border-l border-gold/25 bg-[var(--surface-3)] shadow-2xl">
             <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
               <CircleHelp className="h-5 w-5 text-gold" />
               <span className="font-bold">วิธีใช้หน้านี้</span>

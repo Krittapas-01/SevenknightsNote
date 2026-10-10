@@ -4,6 +4,7 @@ import { HEROES, HEROES_WITH_BASE, HERO_TYPES, PETS, customId, matchUnit, type H
 import Modal from './Modal'
 import type { SlotKind } from './TeamPanel'
 import UnitCard from './UnitCard'
+import { tx, L } from '../lib/i18n'
 
 type Props = {
   open: boolean
@@ -12,7 +13,7 @@ type Props = {
   current: string | null
   /** id ที่ใช้อยู่แล้วในทีม (กันเลือกซ้ำ) */
   used: string[]
-  /** ทีมเต็มแล้ว (ใช้กับช่องฮีโร่ว่าง) */
+  /** ทีมเต็มแล้ว (ใช้กับช่องอัศวินว่าง) */
   full: boolean
   onPick: (id: string | null) => void
   onClose: () => void
@@ -30,7 +31,7 @@ export default function UnitPicker({ open, kind, index, current, used, full, onP
   }, [open])
 
   const list = kind === 'hero' ? (includeBaseForms ? HEROES_WITH_BASE : HEROES) : PETS
-  const title = kind === 'hero' ? 'เลือกฮีโร่' : kind === 'pet' ? 'เลือกสัตว์เลี้ยงหลัก' : `เลือกสัตว์เลี้ยงเสริม ${index + 1}`
+  const title = kind === 'hero' ? tx('เลือกอัศวิน') : kind === 'pet' ? tx('เลือกสัตว์เลี้ยงหลัก') : L(`เลือกสัตว์เลี้ยงเสริม ${index + 1}`, `Pick backup pet ${index + 1}`)
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -43,7 +44,7 @@ export default function UnitPicker({ open, kind, index, current, used, full, onP
   return (
     <Modal open={open} title={title} onClose={onClose}>
       {blocked && (
-        <p className="mb-3 rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-200">ทีมมีฮีโร่ครบ 3 ตัวแล้ว เอาตัวเดิมออกก่อนถึงจะเพิ่มได้</p>
+        <p className="mb-3 rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-200">{tx('ทีมมีอัศวินครบ 3 ตัวแล้ว เอาตัวเดิมออกก่อนถึงจะเพิ่มได้')}</p>
       )}
       <div className="flex flex-wrap items-center gap-2">
         <label className="pill flex flex-1 items-center gap-2 px-3 py-2">
@@ -52,13 +53,13 @@ export default function UnitPicker({ open, kind, index, current, used, full, onP
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ค้นหาชื่อ..."
+            placeholder={tx('ค้นหาชื่อ...')}
             className="w-full bg-transparent outline-none placeholder:text-white/40"
           />
         </label>
         {current && (
           <button type="button" onClick={() => onPick(null)} className="pill flex items-center gap-1.5 px-3 py-2 text-sm text-red-200 hover:bg-red-500/20">
-            <Trash2 className="h-4 w-4" /> เอาออก
+            <Trash2 className="h-4 w-4" />{' '}{tx('เอาออก')}
           </button>
         )}
       </div>
@@ -72,7 +73,7 @@ export default function UnitPicker({ open, kind, index, current, used, full, onP
               onClick={() => setType(t as HeroType | 'all')}
               className={`rounded-full border px-3 py-0.5 text-sm ${type === t ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70 hover:bg-white/5'}`}
             >
-              {t === 'all' ? 'ทั้งหมด' : HERO_TYPES[t as HeroType].label}
+              {t === 'all' ? tx('ทั้งหมด') : HERO_TYPES[t as HeroType].label}
             </button>
           ))}
         </div>
@@ -102,10 +103,10 @@ export default function UnitPicker({ open, kind, index, current, used, full, onP
           onClick={() => onPick(customId(q))}
           className="btn-gold mt-4 w-full px-4 py-2.5"
         >
-          ใช้ชื่อ “{q.trim()}” (ไม่มีในรายการ)
+          {tx('ใช้ชื่อ “')}{q.trim()}{tx('” (ไม่มีในรายการ)')}
         </button>
       )}
-      {filtered.length === 0 && !q.trim() && <p className="mt-4 text-center text-white/50">ไม่มีรายการ</p>}
+      {filtered.length === 0 && !q.trim() && <p className="mt-4 text-center text-white/50">{tx('ไม่มีรายการ')}</p>}
     </Modal>
   )
 }

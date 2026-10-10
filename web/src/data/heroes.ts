@@ -19,17 +19,18 @@ export type Unit = {
 }
 
 export const HERO_TYPES: Record<HeroType, { label: string; color: string }> = {
-  attack: { label: 'โจมตี', color: '#e5484d' },
-  magic: { label: 'เวทย์', color: '#3e8ef7' },
-  defense: { label: 'ป้องกัน', color: '#d9a23b' },
-  support: { label: 'สนับสนุน', color: '#e7bd35' },
-  universal: { label: 'สมดุล', color: '#8e4ec6' },
+  attack: { label: EN ? 'Attack' : 'โจมตี', color: '#e5484d' },
+  magic: { label: EN ? 'Magic' : 'เวท', color: '#3e8ef7' },
+  defense: { label: EN ? 'Defense' : 'ป้องกัน', color: '#d9a23b' },
+  support: { label: EN ? 'Support' : 'สนับสนุน', color: '#e7bd35' },
+  universal: { label: EN ? 'Universal' : 'สมดุล', color: '#8e4ec6' },
 }
 
 // รายชื่อฮีโร่/สัตว์เลี้ยงหลักมาจาก catalog.json (สร้างโดย scripts/import-7k-combo.mjs เรียงตามความนิยม)
-// ชื่อ = id เลย (ใช้ชื่อไทยในเกม เช่น "ซอรัน awake") จะได้เข้ากับคลังคอมพ์
+// ชื่อ = id เลย (ใช้ชื่อไทยในเกม เช่น "ซอรัน awake") จะได้เข้ากับที่จดไว้
 import catalog from './catalog.json'
 import { RELEASE } from './release'
+import { EN } from '../lib/i18n'
 
 /** ฮีโร่ที่ยังไม่มีในคลัง — เพิ่มชื่อเองได้ที่นี่ */
 const EXTRA_HEROES: string[] = ['ทันจิโร่', 'เซนอิทสึ', 'ซอรัน', 'เคลมิส', 'อาริส', 'ยุนกอน', 'โดยอง', 'สกัลด์', 'เดลโลนส์', 'ออร์ก้า', 'ยูชิน', 'เรเชล', 'ไอลีน', 'คาร์มา']
@@ -288,9 +289,9 @@ export const RARE = new Set(Object.keys(PURPLE_TYPE))
 export type Tier = 'o7k' | 'lp' | 'l' | 'r'
 export const TIERS: Record<Tier, { label: string; color: string }> = {
   o7k: { label: 'O7K', color: '#ff9f43' },
-  lp: { label: 'ทองบน', color: '#f4d58d' },
-  l: { label: 'ทองล่าง', color: '#c9a35a' },
-  r: { label: 'ม่วง', color: '#9b7fd6' },
+  lp: { label: EN ? 'L+' : 'ทองบน', color: '#f4d58d' },
+  l: { label: EN ? 'L' : 'ทองล่าง', color: '#c9a35a' },
+  r: { label: EN ? 'Rare' : 'ม่วง', color: '#9b7fd6' },
 }
 const TIER_ORDER: Tier[] = ['o7k', 'lp', 'l', 'r']
 const TIER = new Map<string, Tier>()
@@ -357,7 +358,7 @@ const LEGACY: Record<string, string> = {
   teo: 'เทโอ', karma: 'คาร์มา', yeonhee: 'ยอนฮี', rudy: 'ลูดี้',
 }
 
-// แท็กสำเร็จรูปของทีมเป้าหมาย
+// แท็กสำเร็จรูปของบ้านศัตรู
 export const PRESET_TAGS = ['เวทย์', 'โจมตี', 'ถึก', 'สปีด', 'ต้องการของดี']
 
 // ---------------------------------------------------------------
@@ -378,10 +379,28 @@ export const englishOf = (id: string) => {
   const b = baseName(getUnit(id)?.name ?? id)
   return EN_NAME[b] ?? GOLD_EN[b] ?? PURPLE_EN[b]
 }
+/** ชื่อสัตว์เลี้ยงภาษาอังกฤษ (ชื่อในเกมเวอร์ชันอังกฤษ) */
+const PET_EN: Record<string, string> = {
+  ยอนจี: 'Yeonji', เจโอ: 'Jeo', ยู: 'Yu', อีรีน: 'Eirin', ลู: 'Ruu', คารัม: 'Karam', โยรัง: 'Yorang', ไพค์: 'Pike',
+  เมลแปร์โรว์: 'Merparrow', วินดี้: 'Windy', รีเซล: 'Rizel', ครี: 'Kree', จีฟ: 'Jeb', เดลโล่: 'Dello',
+}
+/** ชื่อที่โชว์ (ไม่มี awake) ตามภาษาที่ตั้ง — id/ชื่อไทยยังเป็นคีย์ข้อมูลเหมือนเดิม */
+export const unitBase = (id: string | null | undefined) => {
+  if (!id) return ''
+  const b = baseName(getUnit(id)?.name ?? id)
+  return EN ? (englishOf(id) ?? PET_EN[b] ?? b) : b
+}
+/** ชื่อเต็มที่โชว์ (ร่าง awake ต่อท้าย) */
+export const unitLabel = (id: string | null | undefined) => {
+  if (!id) return ''
+  const name = getUnit(id)?.name ?? id
+  if (!EN) return name
+  return / awake/.test(name) ? `${unitBase(id)} (Awakened)` : unitBase(id)
+}
 
 export function matchUnit(u: Unit, q: string) {
   const s = q.trim().toLowerCase()
   if (!s) return true
-  const en = (EN_NAME[baseName(u.name)] ?? GOLD_EN[baseName(u.name)] ?? PURPLE_EN[baseName(u.name)])?.toLowerCase() ?? ''
+  const en = (EN_NAME[baseName(u.name)] ?? GOLD_EN[baseName(u.name)] ?? PURPLE_EN[baseName(u.name)] ?? PET_EN[baseName(u.name)])?.toLowerCase() ?? ''
   return u.name.toLowerCase().includes(s) || en.includes(s)
 }

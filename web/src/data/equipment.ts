@@ -9,7 +9,7 @@ const SETS: Record<string, string> = {
 const RING_ALIASES: Record<string, string> = { แหวนแห่งการคืนชีพ: 'แหวนแห่งการคีนชีพ' }
 
 export const ringImage = (name: string) => images[`ring-${RING_ALIASES[name] ?? name}`]
-/** สัญลักษณ์เซ็ต (ป้ายชมพูมุมซ้ายล่างของชิ้นอุปกรณ์ในเกม) */
+/** สัญลักษณ์เซต (ป้ายชมพูมุมซ้ายล่างของชิ้นอุปกรณ์ในเกม) */
 export const setIcon = (name: string): string | undefined => (SETS[name] ? images[`set-${SETS[name]}`] : undefined)
 export const setImages = (name: string) => SETS[name] ? [1, 2, 3].map((piece) => images[`${SETS[name]}${piece}`]) : []
 export const equipmentNames = [

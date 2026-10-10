@@ -11,12 +11,12 @@ type Team = {
   pet: string | null
   extras: (string | null)[] // ช่องเสริม 4 ช่องใต้สัตว์เลี้ยง
   speed: number
-  skills?: SkillStep[] // จองสกิลของทีมนี้ (ใช้กับทีมศัตรู/บ้าน)
+  skills?: SkillStep[] // ตั้งลำดับการใช้สกิลของทีมนี้ (ใช้กับบ้านศัตรู/บ้าน)
 }
 type SkillStep = { slot: number; skill: 1 | 2 | 3 } // 3 = สกิลอเวค (ตัวร่าง awake)
 
 const SLOT_COUNT = 5
-/** จองสกิลได้สูงสุดกี่ครั้ง — ต้องตรงกับ MAX_SKILL_QUEUE ฝั่งเว็บ (web/src/lib/types.ts) */
+/** ตั้งลำดับการใช้สกิลได้สูงสุดกี่ครั้ง — ต้องตรงกับ MAX_SKILL_QUEUE ฝั่งเว็บ (web/src/lib/types.ts) */
 const MAX_SKILL_QUEUE = 3
 const MAX_HEROES = 3
 // จำกัดขนาดกิลด์ให้หน้ากิลด์โหลดได้ในเวลา CPU 10 ms ของแผนฟรี (กิลด์ใหญ่สุดตอนนี้ ~70 ทีม × ≤ 11 ทีมแก้)
@@ -28,7 +28,7 @@ const WAR_SLOTS = 5
 const MAX_OPTIONS = 8
 const MAX_PLANS = 50
 const MAX_ANNOUNCEMENTS = 200
-// ตารางวอร์ / Season / เวลาเฟส / ข้อความประกาศเริ่มต้น — กติกาเกม เหมือนทุกกิลด์ อยู่ที่ shared/game.ts ที่เดียว
+// ตารางสงคราม / Season / เวลาเฟส / ข้อความประกาศเริ่มต้น — กติกาเกม เหมือนทุกกิลด์ อยู่ที่ shared/game.ts ที่เดียว
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -113,7 +113,7 @@ function parseSkills(raw: any, team: Team): SkillStep[] {
 }
 function parseTags(raw: any): string[] {
   if (!Array.isArray(raw)) return []
-  // "กายภาพ"/"กาย" = "โจมตี" (ชื่อประเภทฮีโร่ในเกม) — รวมเป็นแท็กเดียว (ข้อมูลเก่าแปลงแล้วใน migration 0015)
+  // "กายภาพ"/"กาย" = "โจมตี" (ชื่อประเภทอัศวินในเกม) — รวมเป็นแท็กเดียว (ข้อมูลเก่าแปลงแล้วใน migration 0015)
   const tags = [...new Set(raw.map((t) => str(t, 20)).map((t) => (t === 'กายภาพ' || t === 'กาย' ? 'โจมตี' : t)).filter(Boolean))].slice(0, 5)
   // แท็กหลักขึ้นก่อน (ต้องตรงกับ MAIN_TAGS ฝั่งเว็บ) ที่เหลือคงลำดับที่ใส่
   const MAIN = ['โจมตี', 'เวทย์', 'เวท', 'ถึก']
@@ -125,7 +125,7 @@ function idList(raw: any, max = 20): string[] {
   return Array.isArray(raw) ? [...new Set(raw.map(idOrNull).filter(Boolean) as string[])].slice(0, max) : []
 }
 type HeroNote = { hero: string; text: string; sets: string[]; rings: string[]; stats?: Record<string, number | string | boolean> }
-/** สเตตัสฮีโร่ (อ่านจากรูป) — รับเฉพาะคีย์ที่รู้จัก ค่าเป็นตัวเลข */
+/** ค่าความสามารถอัศวิน (อ่านจากรูป) — รับเฉพาะคีย์ที่รู้จัก ค่าเป็นตัวเลข */
 const STAT_KEYS = ['atk', 'def', 'hp', 'spd', 'critRate', 'critDmg', 'weak', 'block', 'hit', 'resist', 'dtr', 'amp', 'crush', 'resil', 'rejuv']
 function parseStats(raw: any): HeroNote['stats'] | undefined {
   if (!raw || typeof raw !== 'object') return undefined
@@ -160,10 +160,10 @@ type PlanData = {
   note: string
   slots: (AltHouse & { name: string; kind: 'attack' | 'defense'; main: number; options: WarOption[]; alts?: AltHouse[] })[]
 }
-/** บ้านอื่นที่ทีมบุกชุดเดียวกันตีได้ */
+/** บ้านอื่นที่ทีมแก้ชุดเดียวกันตีได้ */
 type AltHouse = { vs: Team | null; vsTag: string; vsId: string; vsTags?: string[]; vsNote?: string }
 type WarOption = { team: Team; skills: SkillStep[]; condition: string; notes: string; heroNotes: HeroNote[]; custom?: true; logged?: true }
-/** ไม้บุกเข้าได้หลายบ้าน: บ้านหลัก + บ้านอื่นอีกไม่เกินนี้ (ต้องตรงกับ MAX_HOUSES - 1 ฝั่งเว็บ) */
+/** ไม้เข้าได้หลายบ้าน: บ้านหลัก + บ้านอื่นอีกไม่เกินนี้ (ต้องตรงกับ MAX_HOUSES - 1 ฝั่งเว็บ) */
 const MAX_ALT_HOUSES = 2
 /** บ้านที่จะตี: ทีม + ประเภท + (บ้านที่จัดเอง) แท็ก/โน้ต */
 function parseAltHouse(s: any): AltHouse {
@@ -184,7 +184,7 @@ function parseHouse(s: any) {
     }]
   })
   return {
-    ...parseAltHouse(s), // บ้านที่จะตี (ไม้บุก)
+    ...parseAltHouse(s), // บ้านที่จะตี (ไม้)
     main: Number.isInteger(s?.main) && s.main >= 0 && s.main < options.length ? s.main : 0,
     options,
   }
@@ -207,7 +207,7 @@ function parsePlan(raw: any): PlanData | null {
     : slots.filter((s) => s.kind === 'defense').length > slots.filter((s) => s.kind === 'attack').length ? 'defense' : 'attack'
   for (const s of slots) {
     s.kind = kind
-    if (kind === 'defense') delete s.alts // หลายบ้านมีเฉพาะไม้บุก
+    if (kind === 'defense') delete s.alts // หลายบ้านมีเฉพาะไม้
   }
   const banned = (Array.isArray(raw.banned) ? raw.banned : [])
     .map((g: any) => idList(typeof g === 'string' ? [g] : g, 5))
@@ -343,7 +343,7 @@ async function deleteGuildData(env: Env, gid: string) {
   ))
 }
 
-// ข้อมูลทั้งกิลด์ (ทีมเป้าหมาย + ทีมแก้) ในครั้งเดียว
+// ข้อมูลทั้งกิลด์ (บ้านศัตรู + ทีมแก้) ในครั้งเดียว
 app.get('/api/guild/:id', async (c) => {
   const id = c.req.param('id')
   const guild = await c.env.DB.prepare('SELECT id, name, created_at FROM guilds WHERE id = ?').bind(id).first<any>()
@@ -354,13 +354,18 @@ app.get('/api/guild/:id', async (c) => {
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
     c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(id),
-    // ประกาศล่าสุดที่เลือกแผน (= แผนที่ใช้อยู่) — ต้องมีเสมอ แม้จะเก่ากว่า 30 อันล่าสุด (ประกาศอัตโนมัติรายวันดันตกไป)
-    c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? AND plan_id IS NOT NULL ORDER BY created_at DESC LIMIT 1').bind(id),
+    // ประกาศล่าสุดที่เลือกแผน แยกแผนบุก/แผนกัน (= แผนที่ใช้อยู่ของแต่ละชนิด) — ต้องมีเสมอ แม้จะเก่ากว่า 30 อันล่าสุด
+    c.env.DB.prepare(
+      `SELECT * FROM (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY COALESCE(json_extract(p.data, '$.kind'), json_extract(p.data, '$.slots[0].kind')) ORDER BY a.created_at DESC) AS rn
+       FROM announcements a JOIN plans p ON p.id = a.plan_id WHERE a.guild_id = ?) WHERE rn = 1`,
+    ).bind(id),
     c.env.DB.prepare('SELECT counter_id, COUNT(*) AS n FROM likes WHERE guild_id = ? GROUP BY counter_id').bind(id), // จำนวนไลค์ (ไม่บอกว่าใครกด)
   ])
   const announcements = (a.results as any[]).map(toAnnouncement)
-  const planAnn = (ap.results as any[])[0]
-  if (planAnn && !announcements.some((x) => x.id === planAnn.id)) announcements.push(toAnnouncement(planAnn))
+  for (const planAnn of ap.results as any[]) {
+    if (!announcements.some((x) => x.id === planAnn.id)) announcements.push(toAnnouncement(planAnn))
+  }
+  announcements.sort((x, y) => y.createdAt - x.createdAt)
   const settings = (st.results as any[])[0]
   const schedule = GAME_SCHEDULE
   const autoAnnounce = settings ? !!settings.auto_announce : true
@@ -409,7 +414,7 @@ app.post('/api/guild/:id/targets', async (c) => {
   const team = parseTeam(body.team)
   if (!team) return c.json({ error: 'ข้อมูลทีมไม่ถูกต้อง' }, 400)
   const count = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM targets WHERE guild_id = ?').bind(gid).first<number>('n')
-  if ((count ?? 0) >= MAX_TARGETS) return c.json({ error: 'จำนวนทีมเป้าหมายเต็มแล้ว' }, 400)
+  if ((count ?? 0) >= MAX_TARGETS) return c.json({ error: 'จำนวนบ้านศัตรูเต็มแล้ว' }, 400)
   const now = Date.now()
   const row = { id: randomId(10), team: JSON.stringify(team), tags: JSON.stringify(parseTags(body.tags)), note: str(body.note, 500) }
   await c.env.DB.prepare('INSERT INTO targets (id, guild_id, team, tags, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -453,7 +458,7 @@ app.post('/api/guild/:id/targets/:tid/counters', async (c) => {
   const auth = await checkKey(c, gid)
   if (auth !== 'ok') return deny(c, auth)
   const target = await c.env.DB.prepare('SELECT id FROM targets WHERE id = ? AND guild_id = ?').bind(tid, gid).first()
-  if (!target) return c.json({ error: 'ไม่พบทีมเป้าหมาย' }, 404)
+  if (!target) return c.json({ error: 'ไม่พบบ้านศัตรู' }, 404)
   const count = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM counters WHERE target_id = ?').bind(tid).first<number>('n')
   if ((count ?? 0) >= MAX_COUNTERS) return c.json({ error: 'จำนวนทีมแก้เต็มแล้ว' }, 400)
   const body = await c.req.json().catch(() => ({}))
@@ -488,7 +493,7 @@ app.put('/api/guild/:id/counters/:cid', async (c) => {
   return c.json({ ok: true })
 })
 
-/** แก้/ลบทีมแก้ = ทีมเป้าหมายนั้นมีการแก้ → ขึ้นบนสุดในหน้ากิลด์ (เรียงตาม targets.updated_at) */
+/** แก้/ลบทีมแก้ = บ้านศัตรูนั้นมีการแก้ → ขึ้นบนสุดในหน้ากิลด์ (เรียงตาม targets.updated_at) */
 const touchTargetOf = (env: Env, cid: string, gid: string) =>
   env.DB.prepare('UPDATE targets SET updated_at = ? WHERE id = (SELECT target_id FROM counters WHERE id = ? AND guild_id = ?)').bind(Date.now(), cid, gid).run()
 
@@ -511,7 +516,7 @@ app.post('/api/guild/:id/plans', async (c) => {
   if (auth !== 'ok') return deny(c, auth)
   const body = await c.req.json().catch(() => ({}))
   const data = parsePlan(body.data)
-  const title = str(body.title, 60) || 'แผนวอร์'
+  const title = str(body.title, 60) || 'แผนสงคราม'
   if (!data) return c.json({ error: 'ข้อมูลแผนไม่ถูกต้อง' }, 400)
   const count = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM plans WHERE guild_id = ?').bind(gid).first<number>('n')
   if ((count ?? 0) >= MAX_PLANS) return c.json({ error: 'จำนวนแผนเต็มแล้ว ลบแผนเก่าก่อน' }, 400)
@@ -534,7 +539,7 @@ app.put('/api/guild/:id/plans/:pid', async (c) => {
   const base = Number.isFinite(body.baseUpdatedAt) ? Number(body.baseUpdatedAt) : null
   const now = Date.now()
   const res = await c.env.DB.prepare(`UPDATE plans SET title = ?, data = ?, updated_at = ? WHERE id = ? AND guild_id = ?${base !== null ? ' AND updated_at = ?' : ''}`)
-    .bind(...[str(body.title, 60) || 'แผนวอร์', JSON.stringify(data), now, c.req.param('pid'), gid, ...(base !== null ? [base] : [])])
+    .bind(...[str(body.title, 60) || 'แผนสงคราม', JSON.stringify(data), now, c.req.param('pid'), gid, ...(base !== null ? [base] : [])])
     .run()
   if (!res.meta.changes) {
     if (base !== null && (await c.env.DB.prepare('SELECT 1 FROM plans WHERE id = ? AND guild_id = ?').bind(c.req.param('pid'), gid).first()))
@@ -558,11 +563,17 @@ app.delete('/api/guild/:id/plans/:pid', async (c) => {
 // ---- pulse: ข้อมูลเล็ก ๆ สำหรับแถบประกาศ (เว็บเรียกทุก 60 วิ — ให้เบาที่สุด) ----
 app.get('/api/guild/:id/pulse', async (c) => {
   const gid = c.req.param('id')
-  const [g, latest, withPlan] = await c.env.DB.batch([
+  const [g, latest, withPlan, perKind] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT name FROM guilds WHERE id = ?').bind(gid),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 1').bind(gid),
     c.env.DB.prepare(
       'SELECT a.plan_id, p.title FROM announcements a JOIN plans p ON p.id = a.plan_id WHERE a.guild_id = ? ORDER BY a.created_at DESC LIMIT 1',
+    ).bind(gid),
+    // แผนที่ใช้อยู่แยกแผนบุก/แผนกัน (แถบประกาศเลือกโชว์ตามชนิดของวันนั้น)
+    c.env.DB.prepare(
+      `SELECT plan_id, title, k FROM (SELECT a.plan_id, p.title, COALESCE(json_extract(p.data, '$.kind'), json_extract(p.data, '$.slots[0].kind')) AS k,
+         ROW_NUMBER() OVER (PARTITION BY COALESCE(json_extract(p.data, '$.kind'), json_extract(p.data, '$.slots[0].kind')) ORDER BY a.created_at DESC) AS rn
+       FROM announcements a JOIN plans p ON p.id = a.plan_id WHERE a.guild_id = ?) WHERE rn = 1`,
     ).bind(gid),
   ])
   const guild = (g.results as any[])[0]
@@ -574,6 +585,7 @@ app.get('/api/guild/:id/pulse', async (c) => {
     guildName: guild.name,
     latest: a ? toAnnouncement(a) : null,
     activePlan: p ? { id: p.plan_id, title: p.title } : null,
+    activePlans: Object.fromEntries((perKind.results as any[]).filter((r) => r.k === 'attack' || r.k === 'defense').map((r) => [r.k, { id: r.plan_id, title: r.title }])),
     schedule: GAME_SCHEDULE,
     season: GAME_SEASON,
   })
@@ -781,7 +793,7 @@ app.delete('/api/guild/:id/announcements/:aid', async (c) => {
   return c.json({ ok: true })
 })
 
-// ---- ตารางวอร์ ----
+// ---- ตารางสงคราม ----
 app.put('/api/guild/:id/schedule', async (c) => {
   const gid = c.req.param('id')
   const auth = await checkKey(c, gid)
@@ -960,7 +972,7 @@ app.get('/api/me/likes', async (c) => {
   })
 })
 
-// ---------- พรีเซ็ตทีมบุกส่วนตัว (ล็อกอิน Discord) ----------
+// ---------- พรีเซตทีมแก้ส่วนตัว (ล็อกอิน Discord) ----------
 const MAX_PRESETS = 50
 function parsePreset(body: any) {
   const team = parseTeam(body?.team)
@@ -983,9 +995,9 @@ app.post('/api/me/presets', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const data = parsePreset(body)
   if (!data) return c.json({ error: 'ข้อมูลทีมไม่ถูกต้อง' }, 400)
-  const name = str(body.name, 40) || 'พรีเซ็ต'
+  const name = str(body.name, 40) || 'พรีเซต'
   const n = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM presets WHERE user_id = ?').bind(user.id).first<any>()
-  if ((n?.n ?? 0) >= MAX_PRESETS) return c.json({ error: `มีพรีเซ็ตได้ไม่เกิน ${MAX_PRESETS} ชุด ลบอันเก่าก่อน` }, 400)
+  if ((n?.n ?? 0) >= MAX_PRESETS) return c.json({ error: `มีพรีเซตได้ไม่เกิน ${MAX_PRESETS} ชุด ลบอันเก่าก่อน` }, 400)
   const now = Date.now()
   const row = { id: randomId(10), user_id: user.id, name, data: JSON.stringify(data), created_at: now, updated_at: now }
   await c.env.DB.prepare('INSERT INTO presets (id, user_id, name, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
@@ -1004,7 +1016,7 @@ app.put('/api/me/presets/:pid', async (c) => {
   const res = await c.env.DB.prepare(
     `UPDATE presets SET name = CASE WHEN ? <> '' THEN ? ELSE name END, data = COALESCE(?, data), updated_at = ? WHERE id = ? AND user_id = ?`,
   ).bind(name, name, data ? JSON.stringify(data) : null, Date.now(), c.req.param('pid'), user.id).run()
-  if (!res.meta.changes) return c.json({ error: 'ไม่พบพรีเซ็ต' }, 404)
+  if (!res.meta.changes) return c.json({ error: 'ไม่พบพรีเซต' }, 404)
   return c.json({ ok: true })
 })
 

@@ -1,9 +1,9 @@
 export const SLOT_COUNT = 5
-/** จำนวนฮีโร่สูงสุดต่อทีม (ช่องทั้งหมดมี 5 ช่อง แต่ลงได้ไม่เกินเท่านี้) — ต้องตรงกับฝั่ง api */
+/** จำนวนอัศวินสูงสุดต่อทีม (ช่องทั้งหมดมี 5 ช่อง แต่ลงได้ไม่เกินเท่านี้) — ต้องตรงกับฝั่ง api */
 export const MAX_HEROES = 3
 /** ช่องเสริมใต้สัตว์เลี้ยง */
 export const EXTRA_COUNT = 4
-/** จำนวนไม้ในแผนวอร์ */
+/** จำนวนไม้ในแผนสงคราม */
 export const WAR_SLOTS = 5
 
 export type Team = {
@@ -15,14 +15,14 @@ export type Team = {
   /** ช่องเสริม 4 ช่องใต้สัตว์เลี้ยง */
   extras: (string | null)[]
   speed: number
-  /** จองสกิลที่เก็บในตัวทีม (ใช้กับทีมศัตรู/บ้านที่ไม่มีช่อง skills แยก) */
+  /** ตั้งลำดับการใช้สกิลที่เก็บในตัวทีม (ใช้กับบ้านศัตรู/บ้านที่ไม่มีช่อง skills แยก) */
   skills?: SkillStep[]
 }
 
 /** skill: 1 = สกิลบน, 2 = สกิลล่าง, 3 = สกิลอเวค (เฉพาะตัวร่าง awake ที่มีสกิลอเวค) */
 export type SkillKey = 1 | 2 | 3
 export type SkillStep = { slot: number; skill: SkillKey }
-export const SKILL_LABEL: Record<SkillKey, string> = { 1: 'บน', 2: 'ล่าง', 3: 'อเวค' }
+export const SKILL_LABEL: Record<SkillKey, string> = { 1: tx('บน'), 2: tx('ล่าง'), 3: tx('อเวค') }
 
 export type Counter = {
   id: string
@@ -30,7 +30,7 @@ export type Counter = {
   team: Team
   skills: SkillStep[]
   note: string
-  /** ของ/สเตตัสรายตัว */
+  /** อุปกรณ์/ค่าความสามารถรายตัว */
   heroNotes?: HeroNote[]
   /** จำนวนคนที่กดถูกใจ (ล็อกอิน Discord) */
   likes?: number
@@ -49,7 +49,7 @@ export type Target = {
 }
 
 export type Guild = { id: string; name: string; createdAt: number }
-/** โน้ตรายตัว: ของ/แหวน/สเตตัส */
+/** โน้ตรายตัว: อุปกรณ์/เครื่องประดับ/ค่าความสามารถ */
 import type { HeroStats } from './stats'
 export type HeroNote = { hero: string; text: string; sets: string[]; rings: string[]; stats?: HeroStats }
 
@@ -61,39 +61,39 @@ export type WarOption = {
   /** โน้ต ขึ้นบรรทัดใหม่ = ข้อใหม่ */
   notes: string
   heroNotes?: HeroNote[]
-  /** จัดทีมเองในแผน (ไม่ได้มาจากคลังคอมพ์) */
+  /** จัดทีมเองในแผน (ไม่ได้มาจากที่จดไว้) */
   custom?: boolean
-  /** ถามเรื่องจดลงจดทีมศัตรูแล้ว */
+  /** ถามเรื่องจดลงบ้านศัตรูแล้ว */
   logged?: boolean
 }
 export type WarSlot = {
   name: string
   kind: 'attack' | 'defense'
-  /** ไม้บุก: บ้าน (ทีมกันศัตรู) ที่จะตี */
+  /** ไม้: บ้าน (บ้านกันศัตรู) ที่จะตี */
   vs?: Team | null
-  /** ประเภทบ้าน เช่น เวทย์/โจมตี (= แท็กแรกของ vsTags) */
+  /** ประเภทบ้าน เช่น เวท/โจมตี (= แท็กแรกของ vsTags) */
   vsTag?: string
-  /** บ้านที่จัดเอง: แท็ก + โน้ต (ใช้ตอนจดลงจดทีมศัตรูเป็นบ้านใหม่) */
+  /** บ้านที่จัดเอง: แท็ก + โน้ต (ใช้ตอนจดลงบ้านศัตรูเป็นบ้านใหม่) */
   vsTags?: string[]
   vsNote?: string
-  /** id บ้านในคลังคอมพ์ (ใช้เปิดทีมแก้ของบ้านนั้น) */
+  /** id บ้านในที่จดไว้ (ใช้เปิดทีมแก้ของบ้านนั้น) */
   vsId?: string
-  /** ไม้บุก: index ทีมหลักที่จะใช้จริง (ไม่ใส่ = ทีมแรก) */
+  /** ไม้: index ทีมหลักที่จะใช้จริง (ไม่ใส่ = ทีมแรก) */
   main?: number
   options: WarOption[]
-  /** ไม้บุก: ทีมเดียวกันนี้ตีบ้านอื่นได้อีก (บ้านหลัก = vs ด้านบน) · รวมไม่เกิน MAX_HOUSES บ้าน */
+  /** ไม้: ทีมเดียวกันนี้ตีบ้านอื่นได้อีก (บ้านหลัก = vs ด้านบน) · รวมไม่เกิน MAX_HOUSES บ้าน */
   alts?: WarHouse[]
 }
-/** บ้านที่จะตีอีกบ้าน (ใช้ทีมบุกชุดเดียวกับไม้นี้) */
+/** บ้านที่จะตีอีกบ้าน (ใช้ทีมแก้ชุดเดียวกับไม้นี้) */
 export type WarHouse = Pick<WarSlot, 'vs' | 'vsTag' | 'vsId' | 'vsTags' | 'vsNote'>
 export const MAX_HOUSES = 3
 export const emptyHouse = (): WarHouse => ({ vs: null, vsTag: '', vsId: '', vsTags: [], vsNote: '' })
-/** ไม้นี้ในมุมของบ้านที่ h (0 = บ้านหลัก) — ทีมบุก (options) ใช้ร่วมกันทุกบ้าน */
+/** ไม้นี้ในมุมของบ้านที่ h (0 = บ้านหลัก) — ทีมแก้ (options) ใช้ร่วมกันทุกบ้าน */
 export function houseView(slot: WarSlot, h: number): WarSlot {
   const alt = h > 0 ? slot.alts?.[h - 1] : undefined
   return alt ? { ...slot, vs: alt.vs ?? null, vsTag: alt.vsTag ?? '', vsId: alt.vsId ?? '', vsTags: alt.vsTags ?? [], vsNote: alt.vsNote ?? '' } : slot
 }
-/** เขียนผลที่แก้ในมุมบ้าน h กลับเข้าไม้: บ้าน → alts[h-1], ที่เหลือ (ชื่อ/ทีมบุก) → ตัวไม้ */
+/** เขียนผลที่แก้ในมุมบ้าน h กลับเข้าไม้: บ้าน → alts[h-1], ที่เหลือ (ชื่อ/ทีมแก้) → ตัวไม้ */
 export function houseApply(orig: WarSlot, h: number, v: WarSlot): WarSlot {
   if (h <= 0 || !orig.alts?.[h - 1]) return { ...v, alts: orig.alts }
   const house: WarHouse = { vs: v.vs ?? null, vsTag: v.vsTag ?? '', vsId: v.vsId ?? '', vsTags: v.vsTags ?? [], vsNote: v.vsNote ?? '' }
@@ -115,6 +115,7 @@ export type Plan = { id: string; title: string; data: PlanData; createdAt: numbe
 /** ชนิดวัน — กติกาเกมอยู่ที่ shared/game.ts */
 export type { DayType } from '../../../shared/game'
 import type { DayType } from '../../../shared/game'
+import { tx, L } from './i18n'
 export type Announcement = { id: string; body: string; planId: string | null; opponent: string; createdAt: number; /** ระบบประกาศเองตอน 07:00 */ auto?: boolean; /** คนประกาศ (ถ้าล็อกอิน Discord) */ author?: { name: string; avatar: string; role?: string } | null }
 
 export type GuildData = {
@@ -145,10 +146,11 @@ export const emptyPlan = (kind: PlanKind = 'attack'): PlanData => ({
 /** ชนิดแผน (แผนเก่าที่ยังไม่มี kind → ดูจากไม้ส่วนใหญ่) */
 export const planKind = (d: PlanData): PlanKind =>
   d.kind ?? (d.slots.filter((s) => s.kind === 'defense').length > d.slots.filter((s) => s.kind === 'attack').length ? 'defense' : 'attack')
-export const PLAN_KIND_LABEL: Record<PlanKind, string> = { attack: 'แผนบุก', defense: 'แผนกัน' }
-/** เปลี่ยนชนิดแผน = ทุกไม้เปลี่ยนตาม */
-export const withPlanKind = (d: PlanData, kind: PlanKind): PlanData => ({ ...d, kind, slots: d.slots.map((s) => ({ ...s, kind })) })
+export const PLAN_KIND_LABEL: Record<PlanKind, string> = { attack: tx('แผนบุก'), defense: tx('แผนกัน') }
 export const emptyOption = (): WarOption => ({ team: emptyTeam(), skills: [], condition: '', notes: '' })
+
+/** คีย์คอมพ์สำหรับเช็คซ้ำ: ชุดอัศวิน (ไม่สนตำแหน่ง/รูปแบบ/สัตว์เลี้ยง) — ว่าง = ไม่มีอัศวิน */
+export const compKey = (t: Team) => t.slots.filter((x): x is string => !!x).sort().join('|')
 
 export const emptyTeam = (): Team => ({
   front: 2,
@@ -160,7 +162,7 @@ export const emptyTeam = (): Team => ({
 
 export const heroCount = (t: Team) => t.slots.filter(Boolean).length
 
-/** ใส่ฮีโร่ลงช่องว่างช่องแรก (ทีมมีได้ 3 ตัว · มีอยู่แล้ว/เต็มแล้ว = ไม่เปลี่ยน) */
+/** ใส่อัศวินลงช่องว่างช่องแรก (ทีมมีได้ 3 ตัว · มีอยู่แล้ว/เต็มแล้ว = ไม่เปลี่ยน) */
 export function addHeroToTeam(t: Team, id: string): Team {
   if (heroCount(t) >= MAX_HEROES || t.slots.includes(id)) return t
   const i = t.slots.indexOf(null)
@@ -173,7 +175,7 @@ const remap = (skills: SkillStep[], map: Map<number, number>) =>
   skills.filter((s) => map.has(s.slot)).map((s) => ({ ...s, slot: map.get(s.slot)! }))
 
 /**
- * เปลี่ยนรูปแบบแถว: ฮีโร่แถวหน้ายังอยู่แถวหน้า แถวหลังยังอยู่แถวหลัง (ถ้าช่องไม่พอค่อยล้นไปอีกแถว)
+ * เปลี่ยนรูปแบบแถว: อัศวินแถวหน้ายังอยู่แถวหน้า แถวหลังยังอยู่แถวหลัง (ถ้าช่องไม่พอค่อยล้นไปอีกแถว)
  * พยายามคงตำแหน่งเดิมในแถวไว้ แล้วย้ายลำดับสกิลตามให้ด้วย
  */
 export function changeFormation(team: Team, skills: SkillStep[], front: number) {
@@ -215,7 +217,7 @@ export function changeFormation(team: Team, skills: SkillStep[], front: number) 
 }
 
 /** @deprecated ใช้ changeFormation แทน */
-/** ลากสลับตำแหน่ง: ฮีโร่ ↔ ฮีโร่, สัตว์เลี้ยงหลัก/เสริม ↔ กันเอง */
+/** ลากสลับตำแหน่ง: อัศวิน ↔ อัศวิน, สัตว์เลี้ยงหลัก/เสริม ↔ กันเอง */
 export function moveSlot(team: Team, skills: SkillStep[], from: SlotRef, to: SlotRef) {
   const t: Team = { ...team, slots: [...team.slots], extras: Array.from({ length: EXTRA_COUNT }, (_, i) => team.extras[i] ?? null) }
   if (from.kind === 'hero' && to.kind === 'hero') {
@@ -234,20 +236,20 @@ export function moveSlot(team: Team, skills: SkillStep[], from: SlotRef, to: Slo
   return { team: t, skills }
 }
 
-/** ค่ายกลในเกม: จำนวนแถวหน้า → ชื่อ */
+/** รูปแบบในเกม: จำนวนแถวหน้า → ชื่อ */
 export const FORMATIONS: { front: number; name: string; en: string }[] = [
-  { front: 2, name: 'พื้นฐาน', en: 'Basic' },
-  { front: 3, name: 'สมดุล', en: 'Balanced' },
-  { front: 1, name: 'บุก', en: 'Attack' },
-  { front: 4, name: 'ป้องกัน', en: 'Protective' },
+  { front: 2, name: tx('พื้นฐาน'), en: 'Basic' },
+  { front: 3, name: tx('สมดุล'), en: 'Balanced' },
+  { front: 1, name: tx('บุก'), en: 'Attack' },
+  { front: 4, name: tx('ป้องกัน'), en: 'Protective' },
 ]
-export const formationName = (front: number) => FORMATIONS.find((f) => f.front === front)?.name ?? `หน้า ${front}`
-export const formationLabel = (front: number) => `ค่าย${formationName(front)} · หน้า ${front} หลัง ${SLOT_COUNT - front}`
-/** จองสกิลได้สูงสุดกี่ครั้ง (ดาว 3 ดวงบนวงกลมในเกม) */
+export const formationName = (front: number) => FORMATIONS.find((f) => f.front === front)?.name ?? L(`หน้า ${front}`, `Front ${front}`)
+export const formationLabel = (front: number) => L(`รูปแบบ${formationName(front)} · หน้า ${front} หลัง ${SLOT_COUNT - front}`, `${formationName(front)} formation · front ${front} back ${SLOT_COUNT - front}`)
+/** ตั้งลำดับการใช้สกิลได้สูงสุดกี่ครั้ง (ดาว 3 ดวงบนวงกลมในเกม) */
 export const MAX_SKILL_QUEUE = 3
 
 /**
- * ใส่/เอาออก ตัวละครในช่อง (unit = null คือเอาออก)
+ * ใส่/เอาออก อัศวินในช่อง (unit = null คือเอาออก)
  * - ถ้าตัวนั้นอยู่ในทีมแล้ว → ย้ายไปช่องใหม่ (สลับกับตัวเดิมในช่องนั้น)
  * - ทีมครบ MAX_HEROES แล้ววางลงช่องว่าง → ไม่ทำอะไร (คืน null)
  */
@@ -271,7 +273,7 @@ export function placeUnit(team: Team, skills: SkillStep[], ref: SlotRef, unit: s
   return { team: t, skills }
 }
 
-/** ช่องว่างถัดไปสำหรับกดใส่เร็ว (ฮีโร่: แถวหน้าก่อน / สัตว์เลี้ยง: ช่องหลักก่อน) */
+/** ช่องว่างถัดไปสำหรับกดใส่เร็ว (อัศวิน: แถวหน้าก่อน / สัตว์เลี้ยง: ช่องหลักก่อน) */
 export function nextEmpty(team: Team, kind: 'hero' | 'pet'): SlotRef | null {
   if (kind === 'hero') {
     if (heroCount(team) >= MAX_HEROES) return null

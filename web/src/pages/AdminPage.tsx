@@ -103,7 +103,7 @@ export default function AdminPage() {
         <Tile label="ล็อกอิน Discord อยู่" value={data.discordUsers} sub="คน" />
       </div>
       <p className="mt-2 text-xs text-white/40">
-        รวม ทีมเป้าหมาย {sum('targets').toLocaleString()} · ทีมแก้ {sum('counters').toLocaleString()} · แผน {sum('plans').toLocaleString()}
+        รวม บ้านศัตรู {sum('targets').toLocaleString()} · ทีมแก้ {sum('counters').toLocaleString()} · แผน {sum('plans').toLocaleString()}
       </p>
 
       <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10">
@@ -152,7 +152,7 @@ export default function AdminPage() {
       <Modal open={!!del} title={`ลบกิลด์: ${del?.name ?? ''}`} onClose={() => setDel(null)}>
         {del && (
           <>
-            <p className="text-sm text-white/60">{del.targets} ทีมเป้าหมาย · {del.counters} ทีมแก้ · {del.plans} แผน · {del.announcements} ประกาศ</p>
+            <p className="text-sm text-white/60">{del.targets} บ้านศัตรู · {del.counters} ทีมแก้ · {del.plans} แผน · {del.announcements} ประกาศ</p>
             <DeleteGuild key={del.id} gid={del.id} guildName={del.name} startAt={1} onCancel={() => setDel(null)}
               onDelete={async (typed) => { await api.adminDeleteGuild(del.id, typed); setDel(null); load() }} />
           </>

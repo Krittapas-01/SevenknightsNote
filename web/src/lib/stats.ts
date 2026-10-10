@@ -1,5 +1,6 @@
+import { EN } from './i18n'
 /**
- * สเตตัสฮีโร่ (อ่านจากภาพหน้าจอเกม หรือพิมพ์เอง)
+ * ค่าความสามารถอัศวิน (อ่านจากภาพหน้าจอเกม หรือพิมพ์เอง)
  * อ่านได้ทั้งภาพเกมภาษาอังกฤษ (en) และภาษาไทย (thRe)
  */
 export type StatKey =
@@ -38,7 +39,7 @@ const toNum = (raw: string) => {
   return Number.isFinite(n) ? n : undefined
 }
 
-/** แยกค่าสเตตัสจากข้อความ OCR (ไม่ขึ้นกับขนาดภาพ — จับจากชื่อสเตตัสแล้วเอาเลขที่ตามมา) */
+/** แยกค่าความสามารถจากข้อความ OCR (ไม่ขึ้นกับขนาดภาพ — จับจากชื่อค่าความสามารถแล้วเอาเลขที่ตามมา) */
 export function parseStats(text: string): HeroStats {
   const t = text.replace(/[‘’`´]/g, "'").replace(/[ \t]+/g, ' ') // OCR ไทยต้องเปิด preserve spaces → ยุบช่องว่างยาวให้เหลือ 1
   const out: HeroStats = {}
@@ -49,7 +50,7 @@ export function parseStats(text: string): HeroStats {
     const m = t.match(new RegExp(`(?:${s.en.source})[^\\d\\n%]{0,6}${num}`, 'i'))
       ?? t.match(new RegExp(`(?:${s.thRe.source})[^\\d\\n%]{0,16}${num}`))
     if (!m) continue
-    // สเตตัสที่ไม่ใช่ % เป็นจำนวนเต็มเสมอ — OCR ชอบอ่านจุลภาคหลักพันเป็นจุด (9,318 → 9.318)
+    // ค่าความสามารถที่ไม่ใช่ % เป็นจำนวนเต็มเสมอ — OCR ชอบอ่านจุลภาคหลักพันเป็นจุด (9,318 → 9.318)
     const v = toNum(s.pct ? m[1] : m[1].replace(/\./g, ''))
     if (v === undefined) continue
     out[s.key] = v
@@ -69,6 +70,14 @@ export function parseStats(text: string): HeroStats {
   return out
 }
 
+const STAT_EN: Record<StatKey, string> = {
+  atk: 'Attack', def: 'Defense', hp: 'HP', spd: 'Speed', critRate: 'Crit Rate', critDmg: 'Crit Damage', weak: 'Weakness Hit Chance',
+  block: 'Block Rate', hit: 'Effect Hit Rate', resist: 'Effect Resistance', dtr: 'Damage Taken Reduction', amp: 'Damage Amplification',
+  crush: 'Crush', resil: 'Resilience', rejuv: 'Rejuvenate',
+}
+/** ชื่อค่าความสามารถที่โชว์ (โจมตีของสายเวท = พลังโจมตีเวท) */
+export const statLabel = (key: StatKey, magic?: boolean) =>
+  key === 'atk' && magic ? (EN ? 'Magic Attack' : 'พลังโจมตีเวท') : EN ? STAT_EN[key] : STATS.find((x) => x.key === key)!.th
 export const hasStats = (s?: HeroStats) => !!s && STATS.some((x) => s[x.key] !== undefined)
 
 export const fmtStat = (key: StatKey, v: number) => {

@@ -3,9 +3,10 @@ import high from '../assets/totalwar-ranks/high.webp'
 import rare from '../assets/totalwar-ranks/rare.webp'
 import legend from '../assets/totalwar-ranks/legend.webp'
 import god from '../assets/totalwar-ranks/god.webp'
+import { tx, L } from '../lib/i18n'
 
 const EMBLEMS = [normal, high, rare, legend, god]
-const NAMES = ['ทั่วไป', 'ระดับสูง', 'หายาก', 'ตำนาน', 'เทพเจ้า']
+const NAMES = [tx('ทั่วไป'), tx('ระดับสูง'), tx('หายาก'), tx('ตำนาน'), tx('เทพเจ้า')]
 const GLOWS = ['#e7b08f', '#48d3ad', '#ff5975', '#ffd05b', '#a98aff']
 
 /** ตราแรงค์จากภาพในเกม พร้อมเงาและแสงเรืองสีประจำแรงค์ */
@@ -26,7 +27,7 @@ export default function RankEmblem({ rank, size = 64, glow = false }: { rank: nu
     >
       <img
         src={EMBLEMS[index]}
-        alt={`ตราแรงค์${NAMES[index]}`}
+        alt={L(`ตราแรงค์${NAMES[index]}`, `${NAMES[index]} rank emblem`)}
         draggable={false}
         className="h-full w-full object-contain"
       />

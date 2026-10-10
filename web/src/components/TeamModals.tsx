@@ -2,13 +2,14 @@ import { RotateCcw } from 'lucide-react'
 import { useId } from 'react'
 import { queueStyle } from '../lib/queue'
 import { FORMATIONS, MAX_SKILL_QUEUE, SKILL_LABEL, SLOT_COUNT, type SkillKey, type SkillStep, type Team } from '../lib/types'
-import { baseName, getUnit } from '../data/heroes'
+import { baseName, getUnit, unitBase, unitLabel } from '../data/heroes'
 import { getSkillArt, skillKeysOf } from '../data/skills'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
+import { tx, L } from '../lib/i18n'
 
 /**
- * รูปค่ายกลแบบในเกม: แถวหลัง = หมากแดง, แถวหน้า = โล่น้ำเงิน
+ * รูปรูปแบบแบบในเกม: แถวหลัง = หมากแดง, แถวหน้า = โล่น้ำเงิน
  * เรียงเฉียงขึ้นขวา ตัวเลข = ลำดับตำแหน่ง
  */
 export function FormationDiagram({ front }: { front: number }) {
@@ -45,7 +46,7 @@ export function FormationDiagram({ front }: { front: number }) {
 
 export function FormationModal({ open, front, onSelect, onClose }: { open: boolean; front: number; onSelect: (f: number) => void; onClose: () => void }) {
   return (
-    <Modal open={open} title="ค่ายกล (Formation)" onClose={onClose}>
+    <Modal open={open} title={tx('รูปแบบการจัดทีม (Formation)')} onClose={onClose}>
       <div className="grid grid-cols-2 gap-3">
         {FORMATIONS.map((f) => (
           <button
@@ -56,19 +57,19 @@ export function FormationModal({ open, front, onSelect, onClose }: { open: boole
             }`}
           >
             <FormationDiagram front={f.front} />
-            <div className="font-semibold">{f.front === front && '✓ '}ค่าย{f.name}</div>
-            <div className="text-xs text-white/55">{f.en} · หน้า {f.front} หลัง {SLOT_COUNT - f.front}</div>
+            <div className="font-semibold">{f.front === front && '✓ '}{L(`รูปแบบ${f.name}`, `${f.name} formation`)}</div>
+            <div className="text-xs text-white/55">{f.en}{' '}{tx('· หน้า')}{' '}{f.front}{' '}{tx('หลัง')}{' '}{SLOT_COUNT - f.front}</div>
           </button>
         ))}
       </div>
-      <p className="mt-3 text-xs text-white/45"><span className="text-[#7fa8ff]">โล่น้ำเงิน</span> = แถวหน้า · <span className="text-[#f47c8a]">หมากแดง</span> = แถวหลัง</p>
+      <p className="mt-3 text-xs text-white/45"><span className="text-[#7fa8ff]">{tx('โล่น้ำเงิน')}</span>{' '}{tx('= แถวหน้า ·')}{' '}<span className="text-[#f47c8a]">{tx('หมากแดง')}</span>{' '}{tx('= แถวหลัง')}</p>
     </Modal>
   )
 }
 
-/** จองสกิล: กดสกิลตามลำดับที่ต้องการ (กดซ้ำ = ยกเลิก) สูงสุด MAX_SKILL_QUEUE */
-/* ---------- กรอบหน้าจองสกิล (วัดจากภาพในเกม แล้วย่อสเกลให้รูปฮีโร่รัศมี 54) ----------
- * พิกัดอิงจุดกลางรูปฮีโร่ = (0,0) · องศาเริ่มที่ 12 นาฬิกา หมุนตามเข็ม
+/** ตั้งลำดับการใช้สกิล: กดสกิลตามลำดับที่ต้องการ (กดซ้ำ = ยกเลิก) สูงสุด MAX_SKILL_QUEUE */
+/* ---------- กรอบหน้าลำดับการใช้สกิล (วัดจากภาพในเกม แล้วย่อสเกลให้รูปอัศวินรัศมี 54) ----------
+ * พิกัดอิงจุดกลางรูปอัศวิน = (0,0) · องศาเริ่มที่ 12 นาฬิกา หมุนตามเข็ม
  * เก็บเฉพาะวงนอกที่เว้นช่วงและเครื่องประดับปลายเส้น
  */
 type Pt = readonly [number, number]
@@ -124,7 +125,7 @@ function SkillPortrait({ id }: { id: string }) {
   )
 }
 
-/** ฮีโร่ + สกิลบน/ล่าง + ป้ายคิว (แบบในเกม/Atlas) — ใช้ในหน้าต่างจองสกิล และในรูปที่บันทึก */
+/** อัศวิน + สกิลบน/ล่าง + ป้ายคิว (แบบในเกม/Atlas) — ใช้ในหน้าต่างลำดับการใช้สกิล และในรูปที่บันทึก */
 export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills: SkillStep[]; onChange?: (s: SkillStep[]) => void }) {
   const frameId = useId().replace(/:/g, '')
   const readOnly = !onChange
@@ -139,7 +140,7 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
   return (
     <>
       {heroes.length === 0 ? (
-        <p className="py-8 text-center text-white/45">ใส่ฮีโร่ในทีมก่อน</p>
+        <p className="py-8 text-center text-white/45">{tx('ใส่อัศวินในทีมก่อน')}</p>
       ) : (
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
           {heroes.map((h) => {
@@ -153,12 +154,12 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
                 {keys.map((k) => {
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
-                  const label = `สกิล${SKILL_LABEL[k]}`
-                  const description = `${getUnit(h.id)?.name} · ${label}${art ? ` · ${art.name}` : ''}`
+                  const label = L(`สกิล${SKILL_LABEL[k]}`, `${SKILL_LABEL[k]} skill`)
+                  const description = `${unitLabel(h.id)} · ${label}${art ? ` · ${art.name}` : ''}`
                   return (
                     <button
                       key={k}
-                      aria-label={`${description}${q >= 0 ? ` · ลำดับ ${q + 1}` : ''}`}
+                      aria-label={`${description}${q >= 0 ? L(` · ลำดับ ${q + 1}`, ` · order ${q + 1}`) : ''}`}
                       aria-pressed={q >= 0}
                       title={description}
                       onClick={() => toggle(h.slot, k)}
@@ -176,7 +177,7 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
                       ) : label}
                       {q >= 0 && (
                         <span className="absolute -bottom-[7px] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-px text-[11px] font-bold leading-4 ring-1 ring-white/70 shadow-[0_1px_4px_#000a]" style={queueStyle(q + 1)}>
-                          คิว {q + 1}
+                          {tx('คิว')}{' '}{q + 1}
                         </span>
                       )}
                     </button>
@@ -190,7 +191,7 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
       )}
       {skills.length > 0 && (
         <p className="mt-4 text-center text-sm text-white/70">
-          {skills.map((s, i) => `${i + 1}. ${baseName(getUnit(team.slots[s.slot])?.name ?? '')} ${SKILL_LABEL[s.skill]}`).join('  →  ')}
+          {skills.map((s, i) => `${i + 1}. ${unitBase(team.slots[s.slot])} ${SKILL_LABEL[s.skill]}`).join('  →  ')}
         </p>
       )}
     </>
@@ -203,17 +204,17 @@ export function SkillQueueModal({
   // ไม่ส่ง onChange = ดูอย่างเดียว
   const readOnly = !onChange
   return (
-    <Modal open={open} title={readOnly ? 'ลำดับจองสกิล (Skill Queue)' : 'จองสกิล (Skill Queue)'} onClose={onClose}>
+    <Modal open={open} title={readOnly ? tx('ลำดับการใช้สกิล (Skill Queue)') : tx('ลำดับการใช้สกิล (Skill Queue)')} onClose={onClose}>
       <div className="mb-3 flex min-h-8 items-center justify-between">
-        <span className="text-sm text-white/60">จองแล้ว {skills.length}/{MAX_SKILL_QUEUE}</span>
+        <span className="text-sm text-white/60">{tx('จองแล้ว')}{' '}{skills.length}/{MAX_SKILL_QUEUE}</span>
         {!readOnly && (
           <button onClick={() => onChange([])} className="pill flex items-center gap-1.5 px-4 py-1 text-sm">
-            <RotateCcw className="h-4 w-4" /> รีเซ็ต
+            <RotateCcw className="h-4 w-4" />{' '}{tx('รีเซต')}
           </button>
         )}
       </div>
       <SkillQueueBoard team={team} skills={skills} onChange={onChange} />
-      <button onClick={onClose} className="btn-gold mt-5 w-full py-2">{readOnly ? 'ปิด' : 'เสร็จ'}</button>
+      <button onClick={onClose} className="btn-gold mt-5 w-full py-2">{readOnly ? tx('ปิด') : tx('เสร็จ')}</button>
     </Modal>
   )
 }

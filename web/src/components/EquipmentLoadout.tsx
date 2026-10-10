@@ -10,7 +10,7 @@ export default function EquipmentLoadout({ sets, rings }: { sets: string[]; ring
   )
 }
 
-/** เซ็ตที่ต้องใส่: โชว์แค่สัญลักษณ์เซ็ต (ชี้ค้างดูชื่อ) */
+/** เซตที่ต้องใส่: โชว์แค่สัญลักษณ์เซต (ชี้ค้างดูชื่อ) */
 function SetBadge({ name }: { name: string }) {
   const src = setIcon(name)
   if (!src) return <EquipmentItem name={name} kind="set" />

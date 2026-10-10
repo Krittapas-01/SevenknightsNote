@@ -7,14 +7,16 @@ import Modal from './Modal'
 const KEY = '7k-note:tour-guild'
 const STEPS: { icon: LucideIcon; title: string; text: string; guide: string }[] = [
   { icon: Sparkles, title: 'ยินดีต้อนรับสู่ 7K Note', text: 'สมุดจดของกิลด์สำหรับ Guild War — ทุกคนที่มีลิงก์นี้เห็นแผนและทีมเดียวกัน', guide: 'start' },
-  { icon: ClipboardList, title: 'สองแท็บหลัก', text: '"แผนวอร์" = แต่ละไม้ใช้ทีมไหนตีบ้านไหน · "จดทีมศัตรู" = คลังทีมศัตรูพร้อมทีมที่ใช้ตีผ่าน', guide: 'targets' },
+  { icon: ClipboardList, title: 'สองแท็บหลัก', text: '"แผนสงคราม" = แต่ละไม้ใช้ทีมไหนตีบ้านไหน · "บ้านศัตรู" = บ้านศัตรูที่จดไว้ พร้อมทีมแก้', guide: 'targets' },
   { icon: KeyRound, title: 'อยากช่วยแก้แผน?', text: 'กด "ใส่รหัสแก้ไข" (ขอรหัสจากหัวกิลด์) หรือเข้าสู่ระบบ Discord ถ้ากิลด์ตั้งยศที่แก้ได้ไว้', guide: 'edit' },
-  { icon: Users, title: 'จัดทีมง่าย ๆ', text: 'แตะช่องว่าง → เลือกตัวจากแถบด้านล่าง · แตะตัวซ้ำเพื่อเอาออก · วงกลมดาว = จองลำดับสกิล', guide: 'team' },
+  { icon: Users, title: 'จัดทีมง่าย ๆ', text: 'แตะช่องว่าง → เลือกตัวจากแถบด้านล่าง · แตะตัวซ้ำเพื่อเอาออก · วงกลมดาว = ตั้งลำดับการใช้สกิล', guide: 'team' },
   { icon: MessageCircle, title: 'สงสัยหรือเจอบั๊ก', text: 'กด "วิธีใช้" ตามหน้าต่าง ๆ เพื่อเปิดคู่มือ หรือทักผ่านปุ่ม Discord มุมขวาล่าง', guide: 'contact' },
 ]
 
 /** ทัวร์สั้น ๆ ครั้งแรกที่เปิดหน้ากิลด์ (รอให้ป๊อปอัป "มีอะไรใหม่" ปิดก่อน) */
-export default function GuildTour() {
+import { TUTORIAL_ON } from '../lib/onboarding'
+export default function GuildTour() { return TUTORIAL_ON ? <TourInner /> : null }
+function TourInner() {
   const [open, setOpen] = useState(false)
   const [i, setI] = useState(0)
 

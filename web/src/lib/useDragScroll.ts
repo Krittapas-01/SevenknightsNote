@@ -22,6 +22,8 @@ export function useDragScroll(ref: React.RefObject<HTMLDivElement | null>, axis:
       const s = st.current
       const el = target()
       if (!s.down || !el) return
+      // ปล่อยเมาส์นอกกล่องไปแล้ว → จบการลาก (กันเลื่อนตามเมาส์ต่อโดยไม่ได้กด)
+      if (e.buttons === 0) { s.down = false; return }
       const d = pos(e) - s.p
       s.moved = Math.max(s.moved, Math.abs(d))
       set(el, s.start - d)

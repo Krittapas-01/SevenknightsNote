@@ -1,6 +1,7 @@
 import { Camera, CheckCircle2, ClipboardPaste, ImageUp, Save } from 'lucide-react'
 import example from '../assets/help/stats-example.webp'
 import Modal from './Modal'
+import { tx } from '../lib/i18n'
 
 const SEEN_KEY = '7kn-stats-help-seen'
 /** เคยเห็นวิธีใช้แล้วหรือยัง (เบราว์เซอร์นี้) — เปิดให้อัตโนมัติแค่ครั้งแรก */
@@ -10,39 +11,39 @@ export const markHelpSeen = () => { try { localStorage.setItem(SEEN_KEY, '1') } 
 const STEPS = [
   {
     icon: Camera,
-    title: 'เปิดหน้าข้อมูลฮีโร่ในเกม',
-    body: 'กดที่ตัวละครให้ขึ้นหน้าต่างที่มีสเตตัส 2 คอลัมน์ แบบในรูปตัวอย่าง · ตั้งเกมเป็นภาษาไทยหรืออังกฤษก็ได้',
+    title: tx('เปิดหน้าข้อมูลอัศวินในเกม'),
+    body: tx('กดที่อัศวินให้ขึ้นหน้าต่างที่มีค่าความสามารถ 2 คอลัมน์ แบบในรูปตัวอย่าง · ตั้งเกมเป็นภาษาไทยหรืออังกฤษก็ได้'),
   },
   {
     icon: ImageUp,
-    title: 'แคปหน้าจอ',
-    body: 'PC: กด Win + Shift + S แล้วลากครอบ (หรือ PrtSc ทั้งจอ) · มือถือ: แคปจอตามปกติ · ไม่ต้องครอปก็ได้ แต่อย่าให้มีอะไรบังชื่อหรือตัวเลข',
+    title: tx('แคปหน้าจอ'),
+    body: tx('PC: กด Win + Shift + S แล้วลากครอบ (หรือ PrtSc ทั้งจอ) · มือถือ: แคปจอตามปกติ · ไม่ต้องครอปก็ได้ แต่อย่าให้มีอะไรบังชื่อหรือตัวเลข'),
   },
   {
     icon: ClipboardPaste,
-    title: 'ใส่รูปเข้าเว็บ',
-    body: 'กดกรอบ "เลือกรูป" · ลากไฟล์มาวาง · หรือถ้าเพิ่งแคปบน PC กด Ctrl + V วางได้เลย — รอสักครู่ เว็บจะอ่านตัวเลขและชื่อฮีโร่ให้',
+    title: tx('ใส่รูปเข้าเว็บ'),
+    body: tx('กดกรอบ "เลือกรูป" · ลากไฟล์มาวาง · หรือถ้าเพิ่งแคปบน PC กด Ctrl + V วางได้เลย — รอสักครู่ เว็บจะอ่านตัวเลขและชื่ออัศวินให้'),
   },
   {
     icon: CheckCircle2,
-    title: 'เช็กก่อนใส่',
-    body: 'ดูว่าเลือกฮีโร่ถูกตัว (กรอบสีทอง) และตัวเลขตรงกับในเกม — ผิดช่องไหนพิมพ์แก้ได้เลย · ถ้าภาพเป็นตัวที่ไม่อยู่ในทีม เว็บจะเตือน และมีปุ่มเพิ่มตัวนั้นเข้าทีม (ทีมยังไม่ครบ 3)',
+    title: tx('เช็กก่อนใส่'),
+    body: tx('ดูว่าเลือกอัศวินถูกตัว (กรอบสีทอง) และตัวเลขตรงกับในเกม — ผิดช่องไหนพิมพ์แก้ได้เลย · ถ้าภาพเป็นตัวที่ไม่อยู่ในทีม เว็บจะเตือน และมีปุ่มเพิ่มตัวนั้นเข้าทีม (ทีมยังไม่ครบ 3)'),
   },
   {
     icon: Save,
-    title: 'กด "ใส่สเตตัส" แล้วกดบันทึกของหน้านั้น',
-    body: 'สเตตัสจะยังไม่ถูกบันทึกจนกดปุ่ม "บันทึก" ของทีม/แผนที่กำลังแก้',
+    title: tx('กด "ใส่ค่าความสามารถ" แล้วกดบันทึกของหน้านั้น'),
+    body: tx('ค่าความสามารถจะยังไม่ถูกบันทึกจนกดปุ่ม "บันทึก" ของทีม/แผนที่กำลังแก้'),
   },
 ]
 
-/** หน้าต่างวิธีใช้ "อ่านสเตตัสจากรูป" */
+/** หน้าต่างวิธีใช้ "อ่านค่าความสามารถจากรูป" */
 export default function StatsHelp({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Modal open={open} title="วิธีใช้: อ่านสเตตัสจากรูป" onClose={onClose}>
+    <Modal open={open} title={tx('วิธีใช้: อ่านค่าความสามารถจากรูป')} onClose={onClose}>
       <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <figure>
-          <img src={example} alt="ตัวอย่างหน้าข้อมูลฮีโร่ในเกม" className="w-full rounded-xl border border-white/10" />
-          <figcaption className="mt-1.5 text-center text-xs text-white/45">ตัวอย่างหน้าที่ต้องแคป — มีชื่อฮีโร่ + สเตตัสครบ 2 คอลัมน์</figcaption>
+          <img src={example} alt={tx('ตัวอย่างหน้าข้อมูลอัศวินในเกม')} className="w-full rounded-xl border border-white/10" />
+          <figcaption className="mt-1.5 text-center text-xs text-white/45">{tx('ตัวอย่างหน้าที่ต้องแคป — มีชื่ออัศวิน + ค่าความสามารถครบ 2 คอลัมน์')}</figcaption>
         </figure>
         <ol className="space-y-3">
           {STEPS.map(({ icon: Icon, title, body }, i) => (
@@ -57,10 +58,9 @@ export default function StatsHelp({ open, onClose }: { open: boolean; onClose: (
         </ol>
       </div>
       <p className="mt-4 rounded-lg bg-white/5 px-3 py-2 text-xs leading-relaxed text-white/50">
-        💡 ภาพชัด ไม่เบลอ จะอ่านแม่นที่สุด · ครั้งแรกต้องโหลดตัวอ่านประมาณ 8MB (ครั้งต่อไปเร็วขึ้น) · รูปไม่ถูกส่งไปไหน อ่านในเครื่องคุณเท่านั้น
-        · ถ้ายังมีช่องว่าง พิมพ์ค่าเองได้ หรือส่งข้อความใน "ข้อความที่อ่านได้" มาที่ช่องแจ้งบั๊กท้ายเว็บ
+        {tx('💡 ภาพชัด ไม่เบลอ จะอ่านแม่นที่สุด · ครั้งแรกต้องโหลดตัวอ่านประมาณ 8MB (ครั้งต่อไปเร็วขึ้น) · รูปไม่ถูกส่งไปไหน อ่านในเครื่องคุณเท่านั้น · ถ้ายังมีช่องว่าง พิมพ์ค่าเองได้ หรือส่งข้อความใน "ข้อความที่อ่านได้" มาที่ช่องแจ้งบั๊กท้ายเว็บ')}
       </p>
-      <button type="button" onClick={onClose} className="btn-gold mt-4 w-full py-2">เข้าใจแล้ว</button>
+      <button type="button" onClick={onClose} className="btn-gold mt-4 w-full py-2">{tx('เข้าใจแล้ว')}</button>
     </Modal>
   )
 }

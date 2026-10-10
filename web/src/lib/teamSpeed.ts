@@ -2,8 +2,8 @@ import { noteFor } from '../components/HeroDetailModal'
 import type { HeroNote, Team } from './types'
 
 /**
- * สปีดทีมจากสเตตัสรายตัว: บวก "ความเร็วโจมตี" ของฮีโร่ทุกตัวในทีม (ไม่นับสัตว์เลี้ยง)
- * full = ทุกตัวมีสปีด → ใช้ค่านี้แทนช่องสปีดที่พิมพ์เอง
+ * ความเร็วทีมจากค่าความสามารถรายตัว: บวก "ความเร็วโจมตี" ของอัศวินทุกตัวในทีม (ไม่นับสัตว์เลี้ยง)
+ * full = ทุกตัวมีความเร็ว → ใช้ค่านี้แทนช่องความเร็วที่พิมพ์เอง
  */
 export function autoSpeed(team: Team, notes: HeroNote[] | undefined) {
   const heroes = team.slots.filter((h): h is string => !!h)

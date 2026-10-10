@@ -2,11 +2,12 @@ import { Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import { RING_NAMES, SET_NAMES, ringImage, setIcon, setImages } from '../data/equipment'
 import Modal from './Modal'
+import { tx, L } from '../lib/i18n'
 
 const MAX_SETS = 3
 const MAX_RINGS = 3
 
-/** แก้เซ็ต/แหวนของฮีโร่ 1 ตัว: กดไอคอน = เอาออก · กด + = เลือกเพิ่ม */
+/** แก้เซต/เครื่องประดับของอัศวิน 1 ตัว: กดไอคอน = เอาออก · กด + = เลือกเพิ่ม */
 export default function EquipmentEditor({ sets, rings, onChange }: {
   sets: string[]
   rings: string[]
@@ -21,12 +22,12 @@ export default function EquipmentEditor({ sets, rings, onChange }: {
   }
   return (
     <div className="mt-2 flex flex-wrap items-center gap-3">
-      <Group label="เซ็ต" items={sets.map((s) => ({ name: `ชุด${s}`, src: setIcon(s) ?? setImages(s)[0] }))} max={MAX_SETS}
+      <Group label={tx('เซต')} items={sets.map((s) => ({ name: `ชุด${s}`, src: setIcon(s) ?? setImages(s)[0] }))} max={MAX_SETS}
         onRemove={(i) => onChange(sets.filter((_, j) => j !== i), rings)} onAdd={() => setPick('set')} />
-      <Group label="แหวน" items={rings.map((r) => ({ name: r, src: ringImage(r) }))} max={MAX_RINGS}
+      <Group label={tx('เครื่องประดับ')} items={rings.map((r) => ({ name: r, src: ringImage(r) }))} max={MAX_RINGS}
         onRemove={(i) => onChange(sets, rings.filter((_, j) => j !== i))} onAdd={() => setPick('ring')} />
 
-      <Modal open={pick !== null} title={pick === 'set' ? 'เลือกเซ็ตไอเทม' : 'เลือกแหวน'} onClose={() => setPick(null)}>
+      <Modal open={pick !== null} title={pick === 'set' ? tx('เลือกเซตไอเทม') : tx('เลือกเครื่องประดับ')} onClose={() => setPick(null)}>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
           {options.map((name) => {
             const src = pick === 'set' ? setIcon(name) ?? setImages(name)[0] : ringImage(name)
@@ -55,14 +56,14 @@ function Group({ label, items, max, onRemove, onAdd }: {
     <div className="flex items-center gap-1">
       <span className="mr-0.5 text-[11px] text-white/45">{label}</span>
       {items.map((it, i) => (
-        <button key={i} type="button" onClick={() => onRemove(i)} title={`${it.name} — กดเพื่อเอาออก`}
+        <button key={i} type="button" onClick={() => onRemove(i)} title={L(`${it.name} — กดเพื่อเอาออก`, `${it.name} — tap to remove`)}
           className="group relative grid h-10 w-10 place-items-center overflow-hidden rounded-lg border border-gold/30 bg-black/30">
           {it.src ? <img src={it.src} alt={it.name} className="h-full w-full object-contain" draggable={false} /> : <span className="px-0.5 text-[8px] leading-tight">{it.name}</span>}
-          <span className="absolute inset-0 hidden place-items-center bg-black/60 group-hover:grid"><X className="h-4 w-4 text-red-300" /></span>
+          <span className="absolute inset-0 hidden place-items-center bg-[#000]/60 group-hover:grid"><X className="h-4 w-4 text-red-300" /></span>
         </button>
       ))}
       {items.length < max && (
-        <button type="button" onClick={onAdd} title={`เพิ่ม${label}`}
+        <button type="button" onClick={onAdd} title={L(`เพิ่ม${label}`, `Add ${label}`)}
           className="grid h-10 w-10 place-items-center rounded-lg border border-dashed border-white/25 text-white/60 hover:border-gold hover:text-gold">
           <Plus className="h-4 w-4" />
         </button>
