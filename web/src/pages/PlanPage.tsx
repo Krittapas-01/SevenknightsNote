@@ -4,7 +4,7 @@ import type { HeroNote, WarSlot } from '../lib/types'
 import { hasStats } from '../lib/stats'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import TeamCardLite, { CARD_HEIGHT } from '../components/TeamCardLite'
+import TeamCardLite, { CARD_EXTRA, CARD_UNIT } from '../components/TeamCardLite'
 import SkillSkipAsk, { skillShort } from '../components/SkillSkipAsk'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import CompLibrary, { type Comp, type Defense } from '../components/CompLibrary'
@@ -542,7 +542,9 @@ export default function PlanPage() {
   }
 
   /** ความสูงการ์ดไม้ในตาราง: ช่องอัศวิน 3 แถว + หัว/ความเร็ว/สัตว์เลี้ยงสำรอง — ล็อกเท่ากันทุกใบ (รวมการ์ดเพิ่มไม้) */
-  const CARD_H = CARD_HEIGHT // การ์ดมาตรฐานเดียวกับหน้ากิล
+  // ช่องอัศวินย่อตามความกว้างการ์ด (จอกว้างวาง 5 ไม้แถวเดียว การ์ดแคบลง) · cqw = ความกว้างของการ์ดไม้นั้น
+  const CARD_U = `min(${CARD_UNIT}, 26cqw)`
+  const CARD_H = `calc(${CARD_U} * 3 + ${CARD_EXTRA}px)`
   /** การ์ดไม้ (แผนบุก) — โชว์แค่ทีมแก้หลัก · กดการ์ด = แก้ (หน้าต่างตั้งไม้) / ดูรายละเอียด */
   const slotCard = (raw: WarSlot, s: number) => {
     const u = slotUI(raw, s)
@@ -566,7 +568,7 @@ export default function PlanPage() {
         className="group @container flex cursor-pointer flex-col transition hover:-translate-y-0.5">
         {mainOpt && heroCount(mainOpt.team) ? (
           <div style={{ height: CARD_H }}>
-            <TeamCardLite variant="ally" team={mainOpt.team} skills={mainOpt.skills}
+            <TeamCardLite variant="ally" team={mainOpt.team} skills={mainOpt.skills} unit={CARD_U}
               title={<span className="text-gold">{name || L(`ไม้ ${s + 1}`, `Slot ${s + 1}`)}</span>} className="h-full group-hover:border-gold/70" />
           </div>
         ) : (
@@ -1186,7 +1188,7 @@ export default function PlanPage() {
       {/* แผนกัน (ตอนดู): การ์ดเต็มของแต่ละไม้ซ่อนไว้ — ปุ่ม "บันทึกรูปทุกทีม" ใช้ปุ่มรูปในการ์ดเหล่านี้ */}
       {EXPORT_ON && !editing && !atkPlan && <div className="hidden">{view.slots.map((raw, s) => (raw.options.length ? <Fragment key={s}>{slotUI(raw, s).section}</Fragment> : null))}</div>}
       {/* ทั้งแผนบุกและแผนกัน: ตารางการ์ด 1 ใบ/ไม้ (กดดูรายละเอียด / กดแก้ = หน้าต่างตั้งไม้) */}
-      <div className="mt-8 grid items-start gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="mt-8 grid items-start gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {view.slots.map((raw, s) => {
           if (!editing && raw.options.length === 0 && !raw.vs && !raw.alts?.length) return null
           if (editing && s >= visibleSlots) return null
