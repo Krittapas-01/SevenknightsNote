@@ -144,6 +144,8 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   const [noHero, setNoHero] = useState(false)
   // ภาพเป็นคนละตัว → กดใส่ครั้งแรก = ถามยืนยัน, ครั้งที่สอง = ใส่จริง
   const [confirming, setConfirming] = useState(false)
+  // อ่านรูปแล้วเจออัศวินที่ยังไม่อยู่ในทีม (ทีมยังไม่เต็ม) → เด้งถามว่าจะเพิ่มเข้าทีมไหม
+  const [askAdd, setAskAdd] = useState(false)
   const [picking, setPicking] = useState(false)
   const [help, setHelp] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -193,6 +195,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
     setMismatchId(null)
     setNoHero(false)
     setConfirming(false)
+    setAskAdd(false)
     setImg((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(file) })
     setProgress(0)
     try {
@@ -216,7 +219,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
         if (!hero && heroes[0]) setHero(heroes[0])
         // ภาพเป็นอัศวินตัวอื่นที่ไม่ได้อยู่ในคอมพ์ → เตือน (ข้อความทั้งภาพต้องตรงเป๊ะ กันเตือนผิดตัว)
         const other = anyHero?.id ?? detectHero([text], HEROES.map((h) => h.id), false)
-        if (other) setMismatchId(other)
+        if (other) { setMismatchId(other); if (canAdd) setAskAdd(true) }
         else setNoHero(true)
       }
       if (!hasStats(s)) setErr(tx('อ่านค่าความสามารถไม่เจอ — ใช้ภาพหน้าข้อมูลอัศวินในเกม (ภาษาไทยหรืออังกฤษ) หรือพิมพ์ค่าเองด้านล่าง'))
@@ -394,6 +397,25 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
           {confirming ? tx('ภาพกับตัวที่เลือกไม่ตรงกัน — กดอีกครั้งเพื่อยืนยัน หรือเลือกตัวใหม่ด้านบน') : tx('ตรวจตัวเลขก่อนกดใส่ · ยังไม่บันทึกจนกด "บันทึก" ของหน้านั้น')}
         </p>
         </>}
+      </Modal>
+      <Modal open={askAdd && !!mismatchId} title={L('เพิ่มอัศวินเข้าทีม?', 'Add this hero to the team?')} onClose={() => setAskAdd(false)}>
+        {mismatchId && (
+          <div className="text-center">
+            <div className="mx-auto h-28 w-28"><UnitCard id={mismatchId} /></div>
+            <p className="mt-3 text-sm leading-relaxed text-white/80">
+              {L('ภาพนี้เป็นค่าความสามารถของ', 'This image shows the stats of')}{' '}<b className="text-gold">{mismatch}</b>
+              <br />{L('ซึ่งยังไม่อยู่ในทีม — จะเพิ่มเข้าทีมเลยไหม?', "who isn't on this team yet. Add them now?")}
+            </p>
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row">
+              <button type="button" onClick={() => setAskAdd(false)} className="pill flex-1 px-4 py-2 text-sm text-white/75 hover:border-gold/60">
+                {L('ไม่เพิ่ม', 'Not now')}
+              </button>
+              <button type="button" onClick={() => { addHero(mismatchId); setAskAdd(false) }} className="btn-gold flex flex-1 items-center justify-center gap-1.5 py-2">
+                <Plus className="h-4 w-4" />{' '}{L(`เพิ่ม ${mismatch} เข้าทีม`, `Add ${mismatch}`)}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
       <StatsHelp open={help} onClose={() => setHelp(false)} />
       <UnitPicker open={picking} kind="hero" index={0} current={null} used={heroes} full={!canAdd} allowCustom={false}
