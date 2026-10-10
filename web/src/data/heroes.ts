@@ -394,8 +394,9 @@ export const unitBase = (id: string | null | undefined) => {
 export const unitLabel = (id: string | null | undefined) => {
   if (!id) return ''
   const name = getUnit(id)?.name ?? id
-  if (!EN) return name
-  return / awake/.test(name) ? `${unitBase(id)} (Awakened)` : unitBase(id)
+  // ตัวที่มีตรา awake แต่ id ไม่มีคำว่า awake (ไอลีน, ฮายอน) → เติมให้เหมือนตัวอื่น
+  if (!EN) return isAwake(name) && !/ awake/.test(name) ? `${name} awake` : name
+  return isAwake(name) ? `${unitBase(id)} (Awakened)` : unitBase(id)
 }
 
 export function matchUnit(u: Unit, q: string) {

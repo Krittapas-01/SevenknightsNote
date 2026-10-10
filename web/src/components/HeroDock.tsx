@@ -163,7 +163,7 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
                       key={u.id}
                       onClick={() => !inTeam && add(u)}
                       className={`relative aspect-[4/5] text-[13px] transition ${inTeam ? 'opacity-35' : usedIn(u) ? 'opacity-60 hover:opacity-90' : 'hover:-translate-y-0.5'}`}
-                      title={inTeam ? tx('อยู่ในทีมแล้ว') : L(`ใส่ ${u.name}`, `Add ${unitLabel(u.id)}`)}
+                      title={inTeam ? tx('อยู่ในทีมแล้ว') : L(`ใส่ ${unitLabel(u.id)}`, `Add ${unitLabel(u.id)}`)}
                     >
                       <UnitCard id={u.id} shape={tab === 'hero' ? 'hero' : 'pet'} small />
                       {inTeam && <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-[#000]/60 py-0.5 text-center text-xs text-[#fff]">{tx('ในทีม')}</span>}
@@ -238,7 +238,7 @@ function RosterCard({ unit, kind, onClick, usedIn }: { unit: Unit; kind: 'hero' 
       draggable={false}
       className={`relative w-[68px] shrink-0 text-[13px] sm:w-[80px] ${isDragging ? 'opacity-30' : usedIn ? 'opacity-55 hover:opacity-90' : 'hover:-translate-y-1'} transition`}
       style={{ aspectRatio: '4 / 5', touchAction: 'pan-x' }}
-      title={unit.name}
+      title={unitLabel(unit.id)}
     >
       <UnitCard id={unit.id} shape={kind === 'hero' ? 'hero' : 'pet'} />
       {usedIn && <UsedBadge label={usedIn} />}
