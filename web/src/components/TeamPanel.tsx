@@ -281,7 +281,7 @@ export default function TeamPanel({
                     inspectable={!active && heroNotes !== undefined && !!team.slots[i]}
                     onClick={() => active ? clickSlot(r) : setDetailHero(team.slots[i])}
                     queue={queueOf(i)}
-                    side={variant === 'ally' ? 'left' : 'right'}
+                    side="left" // ป้ายลำดับสกิลอยู่ซ้ายเสมอ ทั้งทีมเราและทีมศัตรู
                     small={isSm}
                   />
                 </DnDSlot>

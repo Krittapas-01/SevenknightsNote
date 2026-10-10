@@ -96,7 +96,7 @@ function Hero({ id, skills, slot }: { id: string | null; skills: SkillStep[]; sl
     const nums = q.filter((x) => x.skill === skill).map((x) => x.n)
     if (!nums.length) return null
     return (
-      <span className={`pointer-events-none absolute ${pos} -right-1.5 z-10 flex gap-0.5`}>
+      <span className={`pointer-events-none absolute ${pos} -left-1.5 z-10 flex gap-0.5`}>
         {nums.map((n) => (
           <span key={n} className="grid h-[18px] w-[18px] place-items-center rounded-full border border-white/90 text-[11px] font-bold leading-none shadow-[0_1px_3px_rgba(0,0,0,.6)]" style={queueStyle(n)}>{n}</span>
         ))}
