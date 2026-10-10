@@ -331,6 +331,18 @@ a.pill:active { transform: scale(.98); }
   .modal-backdrop, .hero-dock { backdrop-filter: none; }
 }
 
+/* เข้าหน้า (ทุกหน้า): ส่วนต่าง ๆ ของหน้าลอยขึ้นทีละชิ้น
+ * ข้ามชิ้นที่ fixed/sticky หรือมีของ fixed อยู่ข้างใน (transform จะทำให้ของ fixed กระโดด)
+ * เบราว์เซอร์เก่าที่ไม่รู้จัก :has จะไม่มีแอนิเมชันนี้เฉย ๆ */
+.page-stage > * > :not(.fixed, .sticky, .modal-backdrop, [role="dialog"], [data-bottom-bar], :has(.fixed, .sticky, [data-bottom-bar])) {
+  animation: content-arrive 420ms var(--motion-out) backwards;
+}
+.page-stage > * > :nth-child(2) { animation-delay: 45ms; }
+.page-stage > * > :nth-child(3) { animation-delay: 90ms; }
+.page-stage > * > :nth-child(4) { animation-delay: 135ms; }
+.page-stage > * > :nth-child(5) { animation-delay: 180ms; }
+.page-stage > * > :nth-child(6) { animation-delay: 220ms; }
+.page-stage > * > :nth-child(n+7) { animation-delay: 260ms; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes card-arrive { from { opacity: .35; transform: scale(.95); } to { opacity: 1; transform: none; } }
 @keyframes content-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

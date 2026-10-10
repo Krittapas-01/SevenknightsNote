@@ -1,5 +1,5 @@
 import { Menu } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Link, Outlet, useMatch } from 'react-router'
 import Account from './Account'
 import AnnouncementBar from './AnnouncementBar'
@@ -12,6 +12,7 @@ import WhatsNew, { useHasUpdate } from './WhatsNew'
 import CoachPanel from './CoachPanel'
 import { isDemo } from '../lib/demo'
 import { tx } from '../lib/i18n'
+import { usePageEnter } from '../lib/motion'
 
 export default function Layout() {
   // อยู่ในหน้าของกิลด์ไหน → โชว์แถบประกาศของกิลด์นั้นทุกหน้า
@@ -20,6 +21,8 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const closeMenu = useCallback(() => setMenuOpen(false), [])
   const hasUpdate = useHasUpdate()
+  const stage = useRef<HTMLElement>(null)
+  usePageEnter(stage)
   return (
     <div className="min-h-dvh">
       <header className="site-header sticky top-0 z-40 border-b border-gold/15 bg-[var(--surface-deep)]/95 backdrop-blur">
@@ -45,7 +48,7 @@ export default function Layout() {
         {gid && <AnnouncementBar key={gid} gid={gid} />}
         {gid && <ViewerBar gid={gid} />}
       </div>
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+      <main ref={stage} className="page-stage mx-auto max-w-6xl px-4 py-6 sm:py-8">
         <Outlet />
       </main>
       <footer className="mx-auto max-w-6xl px-4 pb-8 pt-10 text-xs leading-relaxed text-white/40">
