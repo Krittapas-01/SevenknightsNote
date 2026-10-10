@@ -177,7 +177,7 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
                       ) : label}
                       {q >= 0 && (
                         <span className="absolute -bottom-[7px] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-px text-[11px] font-bold leading-4 ring-1 ring-white/70 shadow-[0_1px_4px_#000a]" style={queueStyle(q + 1)}>
-                          {tx('คิว')}{' '}{q + 1}
+                          {tx('ลำดับ')}{' '}{q + 1}
                         </span>
                       )}
                     </button>
@@ -206,7 +206,7 @@ export function SkillQueueModal({
   return (
     <Modal open={open} title={readOnly ? tx('ลำดับการใช้สกิล (Skill Queue)') : tx('ลำดับการใช้สกิล (Skill Queue)')} onClose={onClose}>
       <div className="mb-3 flex min-h-8 items-center justify-between">
-        <span className="text-sm text-white/60">{tx('จองแล้ว')}{' '}{skills.length}/{MAX_SKILL_QUEUE}</span>
+        <span className="text-sm text-white/60">{tx('ตั้งแล้ว')}{' '}{skills.length}/{MAX_SKILL_QUEUE}</span>
         {!readOnly && (
           <button onClick={() => onChange([])} className="pill flex items-center gap-1.5 px-4 py-1 text-sm">
             <RotateCcw className="h-4 w-4" />{' '}{tx('รีเซต')}

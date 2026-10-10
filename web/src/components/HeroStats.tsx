@@ -330,9 +330,10 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
               )}
             </div>
             {canAdd && <p className="mt-1 text-xs text-white/40">{tx('ทีมนี้มี')}{' '}{heroes.length}/{MAX_HEROES}{' '}{tx('ตัว — เพิ่มอัศวินเข้าทีมได้จากตรงนี้')}</p>}
-            <div className="mt-4 grid grid-flow-row-dense grid-cols-2 gap-x-3 gap-y-1.5">
+            <div className="mt-4 grid grid-flow-row-dense grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2">
               {STATS.map((s) => (
-                <label key={s.key} className={`${col(s.key)} flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2 py-1 text-sm`}>
+                // มือถือ: คอลัมน์เดียว ชื่อค่าไม่โดนตัด · จอใหญ่: 2 คอลัมน์แบบในเกม
+                <label key={s.key} className={`${LEFT.has(s.key) ? 'sm:col-start-1' : 'sm:col-start-2'} flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2 py-1 text-sm`}>
                   <span className="flex min-w-0 items-center gap-1.5 text-white/65"><StatIcon k={s.key} magic={stats.magic} className="h-4 w-4" /><span className="truncate" title={statLabel(s.key, stats.magic)}>{statLabel(s.key, stats.magic)}</span></span>
                   <span className="flex items-center gap-0.5">
                     <input type="number" inputMode="decimal" value={stats[s.key] ?? ''} onChange={(e) => set(s.key, e.target.value)}
@@ -344,7 +345,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
             </div>
             {gear && (
               <div className="mt-4 space-y-2 rounded-xl border border-white/10 bg-black/15 p-3">
-                <p className="text-sm text-white/60">{tx('ของ · คำอธิบาย')}</p>
+                <p className="text-sm text-white/60">{tx('อุปกรณ์ · คำอธิบาย')}</p>
                 <EquipmentEditor sets={extra.sets} rings={extra.rings} onChange={(sets, rings) => setExtra((x) => ({ ...x, sets, rings }))} />
                 <textarea value={extra.text} onChange={(e) => setExtra((x) => ({ ...x, text: e.target.value }))} maxLength={300} rows={2}
                   placeholder={tx('คำอธิบายอัศวิน เช่น ใส่ความเร็วให้ออกก่อน, ใช้สกิล 2 ก่อน')}

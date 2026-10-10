@@ -8,6 +8,7 @@ import { loginWithDiscord, useAuth } from '../lib/auth'
 import { toggleLike } from '../lib/likes'
 import { tagStyle, tagText } from '../lib/tags'
 import { tx, L } from '../lib/i18n'
+import ConfirmDelete from '../components/ConfirmDelete'
 
 /** ทีมที่ฉันชอบ — ทีมแก้ที่กดถูกใจไว้ (ทุกกิลด์) เก็บกับบัญชี Discord */
 export default function FavoritesPage() {
@@ -47,7 +48,6 @@ export default function FavoritesPage() {
     loadPresets()
   }
   const remove = async (p: Preset) => {
-    if (!confirm(L(`ลบพรีเซต "${p.name}"?`, `Delete preset "${p.name}"?`))) return
     await api.deletePreset(p.id).catch((e) => alert((e as Error).message))
     loadPresets()
   }
@@ -66,7 +66,7 @@ export default function FavoritesPage() {
               <div className="mb-2 flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate font-semibold text-gold">{p.name}</span>
                 <button onClick={() => rename(p)} title={tx('เปลี่ยนชื่อ')} className="rounded-full p-1.5 text-white/60 hover:bg-white/10"><Pencil className="h-4 w-4" /></button>
-                <button onClick={() => remove(p)} title={tx('ลบ')} className="rounded-full p-1.5 text-white/50 hover:bg-red-500/15 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
+                <ConfirmDelete onConfirm={() => void remove(p)} label="" confirmLabel={tx('กดอีกครั้งเพื่อลบ')} className="!px-2 !py-1.5" />
               </div>
               <TeamPanel variant="ally" size="sm" team={p.team} skills={p.skills} heroNotes={p.heroNotes} />
               {p.note && <p className="mt-2 line-clamp-2 text-sm text-white/65">{p.note}</p>}

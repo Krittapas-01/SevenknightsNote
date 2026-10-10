@@ -6,7 +6,7 @@ import attackRole from '../assets/ui/attack-role.webp'
 import defenseRole from '../assets/ui/defense-role.webp'
 import supportRole from '../assets/ui/support-role.webp'
 import universalRole from '../assets/ui/universal-role.webp'
-import { HERO_TYPES, baseName, getUnit, isAwake, type HeroType, RARE, unitBase } from '../data/heroes'
+import { HERO_TYPES, baseName, getUnit, isAwake, type HeroType, RARE, unitBase, unitLabel } from '../data/heroes'
 import { tx } from '../lib/i18n'
 
 const ROLE_BADGE: Record<HeroType, { image: string; tone: string }> = {
@@ -51,7 +51,7 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
     <div
       className={`unit-card relative h-full w-full overflow-hidden ${awake ? 'unit-awake' : RARE.has(label) ? 'unit-rare' : ''} ${round ? 'rounded-full' : ''} ${className}`}
       style={{ '--unit-color': color, ...(!round ? { borderRadius: UNIT_SLOT_RADIUS } : {}) } as CSSProperties}
-      title={u.name}
+      title={unitLabel(u.id)}
     >
       {src && failedImage !== src ? (
         <img src={src} alt={u.name} className={`absolute inset-0 h-full w-full object-cover ${shape === 'hero' ? 'origin-[50%_24%] scale-[1.6]' : ''}`} draggable={false} loading="lazy" decoding="async" onError={() => setFailedImage(src)} />

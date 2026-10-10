@@ -9,9 +9,9 @@ import WarBoard from '../components/WarBoard'
 import ViewAsToggle from '../components/ViewAsToggle'
 import { activePlanId } from '../lib/war'
 import { useSlideDir, useSlidePill } from '../lib/slide'
-import { getUnit } from '../data/heroes'
+import { getUnit, englishOf, unitBase } from '../data/heroes'
 import { EditLogin, EditSettings } from '../components/EditAccess'
-import { PLAN_KIND_LABEL, planKind, type Plan, type PlanKind, type Target, type Team } from '../lib/types'
+import { PLAN_KIND_LABEL, planKind, type Plan, type PlanKind, type Target, type Team, slotLabel } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import { renderAhead } from '../lib/renderAhead'
 import HelpLink from '../components/HelpLink'
@@ -23,7 +23,8 @@ import { useSmoothWheel } from '../lib/smoothWheel'
 import NotFound from './NotFound'
 import { tx, L, LOCALE } from '../lib/i18n'
 
-const names = (t: Team) => t.slots.map((id) => getUnit(id)?.name ?? '').join(' ')
+// ค้นได้ทั้งชื่อไทยและอังกฤษ (ไม่ขึ้นกับภาษาที่ตั้ง)
+const names = (t: Team) => [...t.slots, t.pet].map((id) => (id ? `${getUnit(id)?.name ?? ''} ${englishOf(id) ?? ''} ${unitBase(id)}` : '')).join(' ')
 const matches = (t: Target, q: string) =>
   [names(t.team), t.note, ...t.tags].join(' ').toLowerCase().includes(q)
 
@@ -67,7 +68,7 @@ export default function GuildPage() {
           <p className="eyebrow mb-1.5">GUILD HEADQUARTERS</p>
           <h1 className="gold-title break-words text-3xl font-extrabold sm:text-4xl">{data.guild.name}</h1>
           <p className="mt-0.5 text-sm text-white/55">
-            {data.plans.length}{' '}{tx('แผนสงคราม ·')}{' '}{data.targets.length}{' '}{tx('บ้านศัตรู')}{' '}{!canEdit && tx('· ดูอย่างเดียว')}
+            {L(`${data.plans.length} แผนสงคราม · ${data.targets.length} บ้านศัตรู`, `${data.plans.length} war plan${data.plans.length === 1 ? '' : 's'} · ${data.targets.length} enemy defense${data.targets.length === 1 ? '' : 's'}`)}{' '}{!canEdit && tx('· ดูอย่างเดียว')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -189,7 +190,7 @@ export default function GuildPage() {
                           {ago < 3600_000 ? L(`${Math.max(1, Math.floor(ago / 60_000))} นาที`, `${Math.max(1, Math.floor(ago / 60_000))}m`) : L(`${Math.floor(ago / 3600_000)} ชม.`, `${Math.floor(ago / 3600_000)}h`)}
                         </span>
                       )}
-                      <span className="flex items-center gap-1 text-gold"><Swords className="h-3.5 w-3.5" /> {t.counters.length}{' '}{tx('ทีมแก้')}</span>
+                      <span className="flex items-center gap-1 text-gold"><Swords className="h-3.5 w-3.5" /> {L(`${t.counters.length} ทีมแก้`, `${t.counters.length} counter${t.counters.length === 1 ? '' : 's'}`)}</span>
                     </span>
                   </span>
                 }
@@ -337,8 +338,8 @@ function PlanCard({ gid, plan: p, active, usedAt }: { gid: string; plan: Plan; a
         {used.map((s, i) => (
           <li key={i} className="flex items-center gap-2 text-white/80">
             {s.kind === 'attack' ? <Swords className="h-4 w-4 text-red-300" /> : <Shield className="h-4 w-4 text-sky-300" />}
-            <span className="truncate">{s.name}</span>
-            <span className="ml-auto shrink-0 text-white/45">{s.options.length}{' '}{tx('แบบ')}</span>
+            <span className="truncate">{slotLabel(s.name, i)}</span>
+            <span className="ml-auto shrink-0 text-white/45">{L(`${s.options.length} แบบ`, `${s.options.length} option${s.options.length === 1 ? '' : 's'}`)}</span>
           </li>
         ))}
       </ul>

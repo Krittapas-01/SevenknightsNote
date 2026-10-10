@@ -377,7 +377,7 @@ export default function TargetPage() {
         onChange={(e) => setCDraft((d) => ({ ...d, note: e.target.value }))}
         maxLength={500}
         rows={3}
-        placeholder={tx('โน้ต เช่น ทำช้า, ต้องมีของดี, แนะนำตัวนี้มากกว่าไคล์')}
+        placeholder={tx('โน้ต เช่น ทำช้า, ต้องมีอุปกรณ์ดี, แนะนำตัวนี้มากกว่าไคล์')}
         className="mt-4 w-full rounded-xl border border-white/15 bg-black/20 p-3 outline-none focus:border-gold"
       />
       <div className="mt-4">

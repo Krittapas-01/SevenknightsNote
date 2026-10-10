@@ -156,7 +156,7 @@ export default function BiscuitPage() {
           {L('เช็กบัฟ', 'Biscuit ')}<span className="text-gold">{L('บิสกิต', 'Buff Check')}</span>
         </h1>
       <p className="mt-2 text-white/65">
-        {tx('บิสกิตบัฟให้ตัวที่โจมตีสูงสุด')}{' '}{BISCUIT_TARGETS}{' '}{tx('ตัวในทีม แต่เกมนับจาก')}<b className="text-white">{tx('โจมตีในเกม')}</b>{' '}{tx('ซึ่งรวมบัฟ % ที่คิดจาก base ของแต่ละตัวแล้ว ตัวที่หน้าอัศวินสูงกว่าจึงอาจไม่ได้บัฟ')}
+        {tx('บิสกิตบัฟให้ตัวที่โจมตีสูงสุด')}{' '}{BISCUIT_TARGETS}{' '}{tx('ตัวในทีม แต่เกมนับจาก')}{L('', ' ')}<b className="text-white">{tx('โจมตีในเกม')}</b>{' '}{tx('ซึ่งรวมบัฟ % ที่คิดจาก base ของแต่ละตัวแล้ว ตัวที่หน้าอัศวินสูงกว่าจึงอาจไม่ได้บัฟ')}
       </p>
       </header>
 
@@ -285,7 +285,7 @@ export default function BiscuitPage() {
                   <span className="w-16 text-right font-semibold tabular-nums">{fmt(r.game)}</span>
                   <span className={`w-full text-xs sm:w-40 sm:text-right ${gets ? 'text-gold' : 'text-white/45'}`}>
                     {gets
-                      ? `🍪 ได้บัฟ${gap !== undefined ? ` · นำอยู่ ${fmt(gap)}` : ''}`
+                      ? L(`🍪 ได้บัฟ${gap !== undefined ? ` · นำอยู่ ${fmt(gap)}` : ''}`, `🍪 Gets the buff${gap !== undefined ? ` · ahead by ${fmt(gap)}` : ''}`)
                       : L(`ขาดอีก ${fmt(gap! + 1)} ถึงจะได้บัฟ`, `${fmt(gap! + 1)} more to get the buff`)}
                   </span>
                 </li>

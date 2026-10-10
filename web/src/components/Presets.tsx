@@ -48,7 +48,7 @@ export function SavePresetButton({ team, skills, note, heroNotes, className = ''
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} autoFocus
           onKeyDown={(e) => e.key === 'Enter' && save()}
           className="mt-1 w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 outline-none focus:border-gold" placeholder={tx('เช่น ทีมตีบ้านเวทของฉัน')} />
-        <p className="mt-1 text-xs text-white/45">{tx('เก็บทีม ลำดับสกิล โน้ต ของ และค่าความสามารถ · ใช้ได้ทุกกิลด์ทุกเครื่อง')}</p>
+        <p className="mt-1 text-xs text-white/45">{tx('เก็บทีม ลำดับสกิล โน้ต อุปกรณ์ และค่าความสามารถ · ใช้ได้ทุกกิลด์ทุกเครื่อง')}</p>
         {msg && <p className="mt-3 text-sm text-gold">{msg}</p>}
         <div className="mt-4 flex gap-2">
           <button disabled={busy} onClick={save} className="btn-gold px-6 py-2">{tx('บันทึก')}</button>

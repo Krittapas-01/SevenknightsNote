@@ -580,3 +580,8 @@ html[data-theme="light"] .unit-card {
 }
 html[data-theme="light"] .unit-card.skill-queue-portrait { background: radial-gradient(circle at 40% 30%, #b9bfc7, #7d848f 60%, #5c636e); }
 html[data-theme="light"] .skill-queue-face { box-shadow: 0 0 0 1px #69717c66, 0 2px 5px #1a224033; }
+
+/* โหมดสว่าง: ป้ายทองทึบ (bg-gold + ตัวหนังสือ text-ink) ใช้ทองอ่อน ไม่ใช่ทองเข้มที่ใช้กับตัวหนังสือ */
+html[data-theme="light"] .bg-gold { background-color: #e2bf72; }
+/* พื้นทับมืด (bg-ink/xx) บนการ์ด → พื้นสว่างโปร่ง */
+html[data-theme="light"] :is(.bg-ink\/80, .bg-ink\/85) { background-color: #eef1f6e6; }

@@ -13,6 +13,7 @@ const fmtDate = (key: string) => new Date(`${key}T00:00:00+07:00`).toLocaleDateS
 import DiscordSettings from './DiscordSettings'
 import Modal from './Modal'
 import { tx, L, LOCALE, EN } from '../lib/i18n'
+import ConfirmDelete from './ConfirmDelete'
 
 type Props = { gid: string; data: GuildData; canEdit: boolean; reload: () => Promise<void> }
 
@@ -79,7 +80,7 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
         {([['attack', activeAtk], ['defense', activeDef]] as const).map(([k, p]) => (
           <span key={k} className="flex items-center gap-1.5">
             <span className="flex items-center gap-1 text-white/70">
-              {k === 'attack' ? <Swords className="h-4 w-4 text-red-300" /> : <Shield className="h-4 w-4 text-sky-300" />}{PLAN_KIND_LABEL[k]}{tx('ที่ใช้:')}
+              {k === 'attack' ? <Swords className="h-4 w-4 text-red-300" /> : <Shield className="h-4 w-4 text-sky-300" />}{L(`${PLAN_KIND_LABEL[k]}ที่ใช้:`, `Active ${PLAN_KIND_LABEL[k].toLowerCase()}:`)}
             </span>
             {p ? (
               <Link to={`/g/${gid}/p/${p.id}`} className="font-semibold text-gold underline-offset-4 hover:underline">{p.title}</Link>
@@ -128,7 +129,6 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
 function AnnouncementItem({ a, data, gid, canEdit, reload, highlight }: { a: Announcement; data: GuildData; gid: string; canEdit: boolean; reload: () => Promise<void>; highlight?: boolean }) {
   const plan = data.plans.find((p) => p.id === a.planId)
   async function remove() {
-    if (!confirm(tx('ลบประกาศนี้?'))) return
     await api.deleteAnnouncement(gid, a.id)
     await reload()
   }
@@ -152,9 +152,8 @@ function AnnouncementItem({ a, data, gid, canEdit, reload, highlight }: { a: Ann
         )}
         {a.opponent && <span className="text-red-200">vs {a.opponent}</span>}
         {canEdit && (
-          <button onClick={remove} title={tx('ลบประกาศ')} className="ml-auto rounded-full p-1 text-white/40 hover:bg-red-500/15 hover:text-red-300">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          // ลบประกาศ: กด 2 ครั้ง (ไม่ใช้หน้าต่างยืนยันของเบราว์เซอร์)
+          <span title={tx('ลบประกาศ')} className="ml-auto"><ConfirmDelete onConfirm={() => void remove()} label="" className="!px-2 !py-1 text-xs" /></span>
         )}
       </div>
       {a.body && <p className={`mt-1.5 whitespace-pre-wrap ${highlight ? 'text-lg' : ''}`}>{a.body}</p>}

@@ -44,11 +44,11 @@ export default function HeroDetailModal({ hero, notes, onClose, onSaveStats }: {
         </div>
         <div className="min-w-0">
           <h3 className="break-words text-2xl font-semibold text-gold">{unitLabel(hero)}</h3>
-          <p className="mt-1 text-sm text-white/50">{tx('ค่าความสามารถและของที่จดไว้ในคอมพ์นี้')}</p>
+          <p className="mt-1 text-sm text-white/50">{tx('ค่าความสามารถและอุปกรณ์ที่จดไว้ในคอมพ์นี้')}</p>
         </div>
       </div>
       <section className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
-        <h4 className="text-sm font-semibold text-gold">{tx('ค่าความสามารถ / วิธีจัดของ')}</h4>
+        <h4 className="text-sm font-semibold text-gold">{tx('ค่าความสามารถ / วิธีจัดอุปกรณ์')}</h4>
         <p className={`mt-3 whitespace-pre-wrap break-words text-base leading-relaxed ${note?.text.trim() ? 'text-white/90' : 'text-white/45'}`}>
           {note?.text.trim() ? note.text : hasStats(note?.stats) ? '' : tx('ยังไม่ได้ระบุค่าความสามารถในคอมพ์นี้')}
         </p>

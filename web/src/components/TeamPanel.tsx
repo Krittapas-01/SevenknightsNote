@@ -371,7 +371,7 @@ export default function TeamPanel({
 
 
       <div className={isSm ? 'h-1' : 'h-2'} />
-      {!active && heroNotes !== undefined && <p data-noexport className="mt-2 text-center text-[11px] text-white/45">{tx('กดอัศวินเพื่อดูค่าความสามารถและของ')}</p>}
+      {!active && heroNotes !== undefined && <p data-noexport className="mt-2 text-center text-[11px] text-white/45">{tx('กดอัศวินเพื่อดูค่าความสามารถและอุปกรณ์')}</p>}
       {!active && detailHero && heroNotes !== undefined && (
         <HeroDetailModal hero={detailHero} notes={heroNotes} onClose={() => setDetailHero(null)} onSaveStats={onSaveHeroStats} />
       )}

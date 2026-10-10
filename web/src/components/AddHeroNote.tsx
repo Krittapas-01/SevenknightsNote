@@ -8,7 +8,7 @@ export default function AddHeroNote({ team, have, onAdd }: { team: (string | nul
   if (!left.length || have.length >= 5) return null
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
-      <span className="text-white/50">{tx('เพิ่มของรายตัว:')}</span>
+      <span className="text-white/50">{tx('เพิ่มอุปกรณ์รายตัว:')}</span>
       {left.map((h) => (
         <button key={h} type="button" onClick={() => onAdd(h)}
           className="flex items-center gap-1 rounded-full border border-dashed border-white/25 px-2.5 py-0.5 text-white/75 hover:border-gold hover:text-gold">

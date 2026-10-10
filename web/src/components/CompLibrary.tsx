@@ -1,7 +1,7 @@
 import { ArrowLeft, Search, Shield, Swords } from 'lucide-react'
 import { houseLabel, tagText } from '../lib/tags'
 import { useEffect, useMemo, useState } from 'react'
-import { getUnit, unitLabel } from '../data/heroes'
+import { getUnit, unitLabel, unitBase } from '../data/heroes'
 import type { HeroNote, SkillStep, Target, Team } from '../lib/types'
 import Modal from './Modal'
 import EquipmentLoadout from './EquipmentLoadout'
@@ -64,7 +64,7 @@ export function teamType(t: Team) {
 const typeLabel = (t: string, attack: boolean) => (t === 'ทั้งหมด' ? t : attack ? `ทีม${tagText(t)}` : houseLabel(t))
 
 const teamText = (t: Team, extra = '') =>
-  [...t.slots, t.pet, ...t.extras].map((id) => getUnit(id)?.name ?? '').join(' ') + ' ' + extra
+  [...t.slots, t.pet, ...t.extras].map((id) => (id ? `${getUnit(id)?.name ?? ''} ${unitBase(id)}` : '')).join(' ') + ' ' + extra
 
 export default function CompLibrary({ open, targets, guildName, initialTab, onPick, onPickDefense, focusDefenseId, onClose }: Props) {
   const pickMode = !!onPickDefense
@@ -148,7 +148,7 @@ export default function CompLibrary({ open, targets, guildName, initialTab, onPi
             )}
           </div>
           <p className="mt-2 text-xs text-white/45">
-            {list.length}{' '}{tx('ทีม')}{' '}{!vs && type !== 'ทั้งหมด' && `(${typeLabel(type, tab === 'attack')})`}{' '}{tx('· ทีมที่กิลด์')}{' '}{guildName}{' '}{tx('จดไว้ในแท็บ "บ้านศัตรู"')}
+            {L(`${list.length} ทีม`, `${list.length} teams`)}{' '}{!vs && type !== 'ทั้งหมด' && `(${typeLabel(type, tab === 'attack')})`}{' '}{tx('· ทีมที่กิลด์')}{' '}{guildName}{' '}{tx('จดไว้ในแท็บ "บ้านศัตรู"')}
           </p>
 
           {lib.defenses.length === 0 && (

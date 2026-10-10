@@ -30,13 +30,13 @@ import VsArena from '../components/VsArena'
 import { baseName, getUnit, unitBase, unitLabel } from '../data/heroes'
 import { api } from '../lib/api'
 import {
-  MAX_HEROES, MAX_HOUSES, MAX_OPTIONS, MAX_SKILL_QUEUE, changeFormation, emptyHouse, houseApply, houseView, emptyOption, emptyPlan, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type PlanData, type PlanKind, type Team, type WarOption, PLAN_KIND_LABEL, planKind,
-} from '../lib/types'
+  MAX_HEROES, MAX_HOUSES, MAX_OPTIONS, MAX_SKILL_QUEUE, changeFormation, emptyHouse, houseApply, houseView, emptyOption, emptyPlan, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type PlanData, type PlanKind, type Team, type WarOption, PLAN_KIND_LABEL, planKind, slotLabel } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import { activePlanId } from '../lib/war'
 import NotFound from './NotFound'
 import { tx, L, LOCALE } from '../lib/i18n'
 import { useSlideDir } from '../lib/slide'
+import ConfirmDelete from '../components/ConfirmDelete'
 
 type Picker =
   | { target: 'op' }
@@ -186,7 +186,7 @@ export default function PlanPage() {
       const kind = planKind(d)
       const rest = d.slots.filter((_, i) => i !== s)
       const slots = [...rest, { name: '', kind, vs: null, vsTag: '', vsId: '', options: [] } as WarSlot]
-        .map((x, i) => (!x.name.trim() || /^ไม้\s*\d+$/.test(x.name.trim()) ? { ...x, name: `ไม้ ${i + 1}` } : x))
+        .map((x, i) => (!x.name.trim() || /^(ไม้|Slot)\s*\d+$/i.test(x.name.trim()) ? { ...x, name: `ไม้ ${i + 1}` } : x))
       return { ...d, slots }
     })
     setHouse({})
@@ -484,7 +484,6 @@ export default function PlanPage() {
     void save(plan, false, true)
   }
   async function remove() {
-    if (!confirm(tx('ลบแผนนี้?'))) return
     setBusy(true)
     try {
       await api.deletePlan(gid, pid)
@@ -550,7 +549,7 @@ export default function PlanPage() {
     const mainOpt = u.main >= 0 ? u.slot.options[u.main] : null
     const isDef = raw.kind === 'defense'
     const clash = mainOpt ? conflictsOf(mainOpt, s, use, isDef) : []
-    const name = raw.name?.trim() && !/^ไม้\s*\d+$/.test(raw.name.trim()) ? raw.name.trim() : ''
+    const name = raw.name?.trim() && !/^(ไม้|Slot)\s*\d+$/i.test(raw.name.trim()) ? raw.name.trim() : ''
     if (editing && !slotUsed(raw)) {
       return (
         <div key={s} className="@container"><button type="button" onClick={() => openWiz(s, true)} style={{ height: CARD_H }}
@@ -720,7 +719,7 @@ export default function PlanPage() {
           {w.step === 3 && (
             // กว้างพอให้ตารางอุปกรณ์/ค่าความสามารถเป็น 2 คอลัมน์ (อัศวิน+ของ | คำอธิบาย+ค่าความสามารถ) แบบหน้าบ้านศัตรู
             <div className="mx-auto w-full max-w-4xl">
-              <p className="mb-4 text-center text-sm text-white/55">{tx('ใส่ของ ค่าความสามารถ และคำอธิบายของแต่ละตัว (แถวละ 1 ตัว) — ข้ามได้ กด "เสร็จ" ได้เลย')}</p>
+              <p className="mb-4 text-center text-sm text-white/55">{tx('ใส่อุปกรณ์ ค่าความสามารถ และคำอธิบายของแต่ละตัว (แถวละ 1 ตัว) — ข้ามได้ กด "เสร็จ" ได้เลย')}</p>
               {mainOpt && u.card(mainOpt, u.main, 'details')}
             </div>
           )}
@@ -787,7 +786,7 @@ export default function PlanPage() {
           // แผนบุก: ตัวซ้ำข้ามไม้ · แผนกัน: ตัว+สัตว์เลี้ยงซ้ำข้ามไม้ (เช็คเฉพาะบ้านกันหลัก)
           conflicts={slot.kind === 'attack' || o === mainIndex(slot) ? conflictsOf(opt, s, use, slot.kind === 'defense') : []}
           blocked={blockedFor(s, use)}
-          shot={!editing && !isAtk ? { guild: data?.guild.name ?? '', plan: viewTitle, heading: /^ไม้\s*\d+$/.test(slot.name?.trim() ?? '') || !slot.name?.trim() ? L(`บ้านกันที่ ${s + 1}`, `Defense ${s + 1}`) : slot.name.trim() } : undefined}
+          shot={!editing && !isAtk ? { guild: data?.guild.name ?? '', plan: viewTitle, heading: /^(ไม้|Slot)\s*\d+$/i.test(slot.name?.trim() ?? '') || !slot.name?.trim() ? L(`บ้านกันที่ ${s + 1}`, `Defense ${s + 1}`) : slot.name.trim() } : undefined}
         />
       )
       const addBtns = editing && slot.options.length < MAX_OPTIONS ? (
@@ -823,14 +822,15 @@ export default function PlanPage() {
       ) : null
     const nameInput = (<label title={tx('กดเพื่อตั้งชื่อไม้')} className="group flex min-w-0 flex-1 cursor-text items-center gap-2 rounded-t-lg border-b border-dashed border-white/30 px-1 transition hover:bg-white/5 focus-within:border-solid focus-within:border-gold">
                       <input
-                        value={slot.name}
+                        // ชื่อเริ่มต้น "ไม้ N" ที่เก็บไว้ → โชว์ตามภาษา (ภาษาอังกฤษ = Slot N)
+                        value={/^(ไม้|Slot)\s*\d+$/i.test(slot.name.trim()) ? slotLabel(slot.name, s) : slot.name}
                         onChange={(e) => patchSlot(s, (x) => ({ ...x, name: e.target.value }))}
                         maxLength={40}
                         placeholder={tx('ชื่อไม้ เช่น บ้านกันที่ 1 / ไม้กายภาพ')}
                         className="min-w-0 flex-1 bg-transparent py-1 text-xl font-semibold outline-none"
                       />
                       {/* ยังเป็นชื่อเริ่มต้น → ใบ้ว่าตั้งชื่อได้ */}
-                      {(!slot.name.trim() || /^ไม้\s*\d+$/.test(slot.name.trim())) && (
+                      {(!slot.name.trim() || /^(ไม้|Slot)\s*\d+$/i.test(slot.name.trim())) && (
                         <span className="shrink-0 text-xs text-white/35 group-hover:text-white/60">{tx('ตั้งชื่อได้')}</span>
                       )}
                       <Pencil className="h-4 w-4 shrink-0 text-white/40 group-hover:text-gold" />
@@ -998,12 +998,13 @@ export default function PlanPage() {
                   </>
                 ) : (
                   <>
-                    <h2 className="text-2xl font-semibold">{slot.name || L(`ไม้ ${s + 1}`, `Slot ${s + 1}`)}</h2>
+                    {/* ชื่อเริ่มต้น (ไม้ N) ซ้ำกับป้ายด้านหน้า → ไม่ต้องโชว์ */}
+                    {!/^(ไม้|Slot)\s*\d+$/i.test(slot.name?.trim() ?? '') && slot.name?.trim() && <h2 className="text-2xl font-semibold">{slot.name}</h2>}
                     <span className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm ${slot.kind === 'attack' ? 'bg-red-500/20 text-red-200' : 'bg-sky-400/20 text-sky-100'}`}>
                       <Icon className="h-4 w-4" /> {slot.kind === 'attack' ? tx('บุก') : tx('กัน')}
                     </span>
                     {slot.kind === 'defense' && slot.options.length > 1 && (
-                      <span className="text-sm text-white/50">{tx('เลือกตั้ง 1 ใน')}{' '}{slot.options.length}{' '}{tx('แบบ ตามลำดับ')}</span>
+                      <span className="text-sm text-white/50">{tx('เลือกตั้ง 1 ใน')}{' '}{L(`${slot.options.length} แบบ ตามลำดับ`, `${slot.options.length} option${slot.options.length === 1 ? '' : 's'}, in order`)}</span>
                     )}
                   </>
                 )}
@@ -1223,9 +1224,8 @@ export default function PlanPage() {
             <button disabled={busy} onClick={cancel} className="pill px-5 py-2">{tx('ยกเลิก')}</button>
             {err && <span data-error className="text-sm font-semibold text-red-300">{err}</span>}
             {!isNew && (
-              <button disabled={busy} onClick={remove} className="ml-auto flex items-center gap-1 rounded-full px-3 py-2 text-sm text-red-300 hover:bg-red-500/15">
-                <Trash2 className="h-4 w-4" />{' '}{tx('ลบแผน')}
-              </button>
+              // ลบแผน: กด 2 ครั้ง (ไม่ใช้หน้าต่างยืนยันของเบราว์เซอร์)
+              <ConfirmDelete disabled={busy} onConfirm={() => void remove()} label={tx('ลบแผน')} className="ml-auto" />
             )}
           </div>
         </div>

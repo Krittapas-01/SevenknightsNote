@@ -300,3 +300,11 @@ export const teamOps = {
     return { ...r.team, skills: r.skills }
   },
 }
+
+/** ชื่อไม้ที่โชว์: ชื่อเริ่มต้น "ไม้ N" (ที่เก็บในข้อมูล) แปลตามภาษา · ว่าง = ไม้ลำดับ i */
+export function slotLabel(name: string | undefined, i: number) {
+  const n = name?.trim() ?? ''
+  const m = /^(ไม้|Slot)\s*(\d+)$/i.exec(n)
+  if (!n || m) { const k = m ? m[2] : String(i + 1); return L(`ไม้ ${k}`, `Slot ${k}`) }
+  return n
+}
