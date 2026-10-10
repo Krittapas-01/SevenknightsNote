@@ -557,7 +557,8 @@ export default function TargetPage() {
         ) : editingC && wide ? (
           // จอคอม แก้ทีมแก้: การ์ดทีมแก้ + ฟอร์มรายละเอียดอยู่ข้างกัน
           <div className="flex items-stretch justify-center gap-6">
-            <div className="w-[380px]">{allyBlock}</div>
+            {/* การ์ดทีมไม่ยืดตามฟอร์มขวา (โน้ตรายตัวยาว → การ์ดยาวตาม ทีมไปอยู่กลางจอ) · ติดจอตอนเลื่อนลงไปแก้โน้ต */}
+            <div className="sticky top-[8.5rem] w-[380px] self-start">{allyBlock}</div>
             <div className="flex w-[460px] flex-col">
               <p className="mb-2 text-center text-lg font-semibold text-gold">{tx('รายละเอียดทีมแก้')}</p>
               <div className="flex-1 [&>*]:h-full">{counterForm}</div>
