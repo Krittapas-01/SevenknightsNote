@@ -450,25 +450,27 @@ html { scrollbar-width: thin; scrollbar-color: #c9a35a66 transparent; }
   --unit-name: #080d19; /* แถบชื่อใต้รูปอัศวิน */
   --alert-bg: #2a1520;
 }
+/* โหมดสว่าง (แบบ "ชั้นชัด"): พื้นหลังเทาอมฟ้า · การ์ด/กล่องสว่างกว่าพื้นชัด ๆ + เงาบาง ๆ ให้ลอย
+ * ช่องภายในการ์ด (bg-black/xx = "หลุม") เป็นเทาอมฟ้าจาง · ตัวหนังสือรองเข้มพออ่าน · ทองเป็นทองอำพัน */
 :root[data-theme="light"] {
   color-scheme: light;
-  --surface: #c5ccd9;
-  --surface-2: #ced4dfe6;
-  --surface-3: #cbd2dd;
-  --surface-deep: #c8cfdb;
-  --surface-wiz: #cbd2ddf2;
-  --dock: #cbd2ddf2;
-  --backdrop: #141c3266;
-  --announce: #d9c99ee6;
-  --tw-bar: #cdc6dccc;
-  --queue-off: #a9b1c1;
-  --queue-off-line: #7d879b;
-  --unit-name: #222c44;
-  --alert-bg: #e3c9c9;
-  --color-white: #1a2238;
-  --color-black: #d8dde6;
-  --color-gold: #855604;
-  --color-gold-deep: #6e4703;
+  --surface: #efeeed;
+  --surface-2: #f3f2f1f0;
+  --surface-3: #efeeed;
+  --surface-deep: #edecea;
+  --surface-wiz: #f3f2f1f5;
+  --dock: #f3f2f1f5;
+  --backdrop: #27241f66;
+  --announce: #f1e3bcf0;
+  --tw-bar: #e9e8e5e6;
+  --queue-off: #c7c5c1;
+  --queue-off-line: #9d9a95;
+  --unit-name: #38342e;
+  --alert-bg: #f6dcdc;
+  --color-white: #25221d;
+  --color-black: #88847c;
+  --color-gold: #9a5f00;
+  --color-gold-deep: #7a4a00;
   /* ตัวอักษรสีอ่อน (ไว้บนพื้นมืด) → เข้มขึ้นให้อ่านบนพื้นสว่าง */
   --color-red-50: #991b1b; --color-red-100: #991b1b; --color-red-200: #b91c1c; --color-red-300: #b91c1c; --color-red-400: #dc2626;
   --color-sky-100: #075985; --color-sky-200: #075985; --color-sky-300: #0369a1; --color-sky-400: #0284c7;
@@ -479,68 +481,70 @@ html { scrollbar-width: thin; scrollbar-color: #c9a35a66 transparent; }
 /* ของที่วางบนรูป/พื้นมืดเสมอ (การ์ดฮีโร่ ปุ่มทอง) — คงตัวอักษรขาวแบบเดิม */
 :root[data-theme="light"] :is(.unit-card, .skill-queue-face) { --color-white: #ffffff; --color-black: #000000; }
 
-html[data-theme="light"], html[data-theme="light"] body { background-color: #bfc7d4; color: #1a2238; }
+html[data-theme="light"], html[data-theme="light"] body { background-color: #d1cfcc; color: #25221d; }
 html[data-theme="light"] body {
   background:
-    radial-gradient(ellipse 85% 650px at 50% 0%, #d6cdb8, transparent),
-    repeating-linear-gradient(120deg, #2a3a6608 0 1px, transparent 1px 48px),
-    linear-gradient(180deg, #c6cdd9 0%, #bfc7d4 60%, #b7bfcd 100%);
+    radial-gradient(ellipse 85% 650px at 50% 0%, #ddd3bd, transparent),
+    repeating-linear-gradient(120deg, #514a3f08 0 1px, transparent 1px 48px),
+    linear-gradient(180deg, #d7d5d2 0%, #d1cfcc 60%, #cac8c5 100%);
 }
-html[data-theme="light"] ::selection { background: #f4d58d80; color: #1a2238; }
-html[data-theme="light"] :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus { border-color: #c9a35a; }
-html[data-theme="light"] :where(button, a, input[type="checkbox"], input[type="radio"]):focus-visible { outline-color: #c9a35a; }
+html[data-theme="light"] ::selection { background: #f4d58d99; color: #25221d; }
+html[data-theme="light"] :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus { border-color: #c08a1e; }
+html[data-theme="light"] :where(button, a, input[type="checkbox"], input[type="radio"]):focus-visible { outline-color: #c08a1e; }
 
+/* การ์ด: สว่างกว่าพื้น + ขอบชัด + เงาสองชั้น (ใกล้/ไกล) */
 html[data-theme="light"] .panel {
-  border-color: #8292bc55;
-  background: linear-gradient(150deg, #d6dbe4 0%, #cfd5df 50%, #c8cfda 100%);
-  box-shadow: inset 0 0 0 4px #cdd3dd, inset 0 1px 0 #dde1e8, 0 10px 28px #1a22401f;
+  border-color: #c1beb9;
+  background: linear-gradient(160deg, #f5f5f4 0%, #efeeed 100%);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 2px #322e281a, 0 10px 26px #322e2824;
 }
 html[data-theme="light"] .panel-gold {
-  border-color: #c9a35acc;
-  box-shadow: inset 0 0 0 3px #d8d2c2, inset 0 0 0 4px #c9a35a33, 0 10px 28px #1a224014, 0 0 24px #f4d58d22;
+  border-color: #c9a35a;
+  box-shadow: inset 0 1px 0 #ffffff, inset 0 0 0 3px #f6efdd, 0 1px 2px #322e281a, 0 10px 26px #322e2824;
 }
 html[data-theme="light"] .panel-enemy {
-  border-color: #9b8cc8aa;
-  background: linear-gradient(150deg, #d4d0df 0%, #cdc8db 50%, #c6c0d6 100%);
-  box-shadow: inset 0 0 0 3px #cfcadb, inset 0 0 0 4px #9b8cc833, 0 10px 28px #1a224014;
+  border-color: #a99ad0;
+  background: linear-gradient(160deg, #f3f0f8 0%, #e9e4f3 100%);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 2px #322e281a, 0 10px 26px #322e2824;
 }
-html[data-theme="light"] .panel::before, html[data-theme="light"] .panel::after { color: #8a96b5; }
+html[data-theme="light"] .panel::before, html[data-theme="light"] .panel::after { color: #a5a19a; }
 html[data-theme="light"] .panel-gold::before, html[data-theme="light"] .panel-gold::after,
 html[data-theme="light"] .guild-banner::after { color: #d9a93f; text-shadow: 0 0 6px #ffffff, 0 0 10px #f4d58d; }
-html[data-theme="light"] .modal-surface { background: linear-gradient(145deg, #d3d8e1, #cdd3dd); }
-html[data-theme="light"] .modal-backdrop { background-color: #141c3266; }
+html[data-theme="light"] .modal-surface { background: linear-gradient(160deg, #f7f6f5, #f0efee); }
+html[data-theme="light"] .modal-backdrop { background-color: #27241f66; }
+/* ช่องว่างในการ์ดทีม: เส้นประจาง ๆ แทนก้อนทึบ */
 html[data-theme="light"] .slot-empty {
-  border-color: #8292bc4d;
-  background:
-    radial-gradient(circle at center, transparent 29%, #8292bc1a 30% 31%, transparent 32% 40%, #8292bc12 41% 42%, transparent 43%),
-    linear-gradient(135deg, #d8dde680, transparent 50%), #bcc4d1;
-  box-shadow: inset 0 1px 2px #1a22401a;
+  border: 1.5px dashed #b1aea8;
+  background: #e7e6e4b3;
+  box-shadow: none;
 }
-html[data-theme="light"] .round-slot { border-color: #8292bc80; background: radial-gradient(circle at 40% 35%, #d6dbe4, #b3bbca); }
+html[data-theme="light"] .round-slot { border-color: #b1aea8; background: #ebeae8; }
 html[data-theme="light"] .pill {
-  border-color: #c9a35a66;
-  background: linear-gradient(180deg, #d5dae3, #cdd3dd);
-  box-shadow: inset 0 0 0 2px #f1f4f866, 0 1px 2px #1a22401a;
+  border-color: #c9a35a80;
+  background: linear-gradient(180deg, #ffffff, #f3f2f1);
+  box-shadow: 0 1px 2px #322e281f;
 }
 html[data-theme="light"] .orb {
-  border-color: #8292bc66;
-  background: radial-gradient(circle at 40% 35%, #d5dae3, #b1b9c8);
-  box-shadow: inset 0 0 10px #1a22401f;
+  border-color: #b1aea8;
+  background: radial-gradient(circle at 40% 35%, #ffffff, #e5e4e2);
+  box-shadow: inset 0 0 8px #322e2814, 0 1px 2px #322e281a;
 }
-html[data-theme="light"] .hero-dock { box-shadow: 0 -10px 30px #1a22401f, inset 0 2px 0 #c9a35a1a; }
+html[data-theme="light"] .hero-dock { box-shadow: 0 -10px 30px #322e2826, inset 0 2px 0 #c9a35a26; }
 html[data-theme="light"] .guild-banner {
-  border-color: #c9a35a66;
-  background: radial-gradient(ellipse at 95% 0, #f4d58d33, transparent 60%), linear-gradient(120deg, #d5dae3, #cdd3dd 70%);
-  box-shadow: inset 0 0 0 4px #ccd2dc, 0 8px 24px #1a224012;
+  border-color: #c9a35a99;
+  background: radial-gradient(ellipse at 95% 0, #f4d58d40, transparent 60%), linear-gradient(120deg, #f7f6f5, #efeeed 70%);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 2px #322e281a, 0 10px 26px #322e2820;
 }
-html[data-theme="light"] .eyebrow { color: #8c7a55; }
-html[data-theme="light"] .gold-title { color: #a06c0e; background: linear-gradient(180deg, #c99a3c 10%, #7c560c 85%); background-clip: text; -webkit-background-clip: text; }
-html[data-theme="light"] .brand-mark, html[data-theme="light"] .hero-crest { color: #a06c0e; }
-html[data-theme="light"] .hero-crest { background: linear-gradient(140deg, #f4d58d40, #cfd5df); box-shadow: inset 0 0 0 4px #cfd5df, inset 0 0 0 5px #c9a35a40; }
-html[data-theme="light"] .section-divider { color: #8c7a55; }
-html[data-theme="light"] .plan-card li { background: #1a22400a; }
-html[data-theme="light"] .plan-heading { border-bottom-color: #c9a35a40; }
-html[data-theme="light"] .tag-accent { box-shadow: inset 0 3px 0 color-mix(in srgb, var(--tag) 80%, transparent), 0 0 14px color-mix(in srgb, var(--tag) 18%, transparent), 0 8px 22px #1a224014; }
+html[data-theme="light"] .eyebrow { color: #7d6a42; }
+html[data-theme="light"] .gold-title { color: #a8690a; background: linear-gradient(180deg, #d19a36 10%, #8a5400 85%); background-clip: text; -webkit-background-clip: text; }
+html[data-theme="light"] .brand-mark, html[data-theme="light"] .hero-crest { color: #9a5f00; }
+html[data-theme="light"] .hero-crest { background: linear-gradient(140deg, #f4d58d55, #f5f5f4); box-shadow: inset 0 0 0 4px #f5f5f4, inset 0 0 0 5px #c9a35a55; }
+html[data-theme="light"] .section-divider { color: #7d6a42; }
+html[data-theme="light"] .plan-card li { background: #88847c14; }
+html[data-theme="light"] .plan-heading { border-bottom-color: #c9a35a55; }
+html[data-theme="light"] .tag-accent { box-shadow: inset 0 3px 0 color-mix(in srgb, var(--tag) 80%, transparent), 0 0 14px color-mix(in srgb, var(--tag) 18%, transparent), 0 10px 24px #322e2820; }
+/* VS กว้างกว่าคอลัมน์กลาง: ให้ลอดใต้การ์ดซ้าย-ขวา ไม่ทับขอบการ์ด */
+.vs-arena > :not(.vs-mid) { position: relative; z-index: 1; }
 html[data-theme="light"] .vs-arena::before { background: radial-gradient(ellipse at 15% 40%, #3672db14, transparent 50%), radial-gradient(ellipse at 85% 60%, #db456812, transparent 50%); }
 /* วงเวทหน้าแรก: แฉกทอง (conic) บนพื้นสว่างต้องเข้มกว่าโหมดมืด ไม่งั้นมองไม่เห็น */
 html[data-theme="light"] .arcane-ring {
@@ -566,22 +570,22 @@ html[data-theme="light"] .keep-dark {
 
 /* ปุ่ม Discord ลอยมุมขวาล่าง */
 html[data-theme="light"] .contact-fab-btn {
-  background: radial-gradient(circle at 35% 30%, #eef1f6, #c3cad7 75%) !important;
+  background: radial-gradient(circle at 35% 30%, #f3f2f1, #d0cecb 75%) !important;
   color: #855604;
   border-color: #a0781f99;
-  box-shadow: 0 8px 22px #1a224033, inset 0 0 0 3px #ffffff80;
+  box-shadow: 0 8px 22px #322e2833, inset 0 0 0 3px #ffffff80;
 }
 html[data-theme="light"] .contact-fab-btn:hover { color: #5e3d02; }
 
 /* การ์ดอัศวิน: พื้นหลังรูปเทาอมฟ้าแทนดำ (รูปยังเด่น ตัวหนังสือชื่อยังขาว) */
 html[data-theme="light"] .unit-card {
-  background: radial-gradient(ellipse at 50% 10%, color-mix(in srgb, var(--unit-color) 40%, transparent), transparent 80%), #4a5672;
-  box-shadow: 0 3px 8px #1a22402e, inset 0 0 0 2px #ffffff26;
+  background: radial-gradient(ellipse at 50% 10%, color-mix(in srgb, var(--unit-color) 40%, transparent), transparent 80%), #635f59;
+  box-shadow: 0 3px 8px #322e282e, inset 0 0 0 2px #ffffff26;
 }
-html[data-theme="light"] .unit-card.skill-queue-portrait { background: radial-gradient(circle at 40% 30%, #b9bfc7, #7d848f 60%, #5c636e); }
-html[data-theme="light"] .skill-queue-face { box-shadow: 0 0 0 1px #69717c66, 0 2px 5px #1a224033; }
+html[data-theme="light"] .unit-card.skill-queue-portrait { background: radial-gradient(circle at 40% 30%, #c2c0be, #888784 60%, #676663); }
+html[data-theme="light"] .skill-queue-face { box-shadow: 0 0 0 1px #75737066, 0 2px 5px #322e2833; }
 
 /* โหมดสว่าง: ป้ายทองทึบ (bg-gold + ตัวหนังสือ text-ink) ใช้ทองอ่อน ไม่ใช่ทองเข้มที่ใช้กับตัวหนังสือ */
 html[data-theme="light"] .bg-gold { background-color: #e2bf72; }
 /* พื้นทับมืด (bg-ink/xx) บนการ์ด → พื้นสว่างโปร่ง */
-html[data-theme="light"] :is(.bg-ink\/80, .bg-ink\/85) { background-color: #eef1f6e6; }
+html[data-theme="light"] :is(.bg-ink\/80, .bg-ink\/85) { background-color: #ffffffe6; }

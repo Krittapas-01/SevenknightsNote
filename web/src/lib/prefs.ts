@@ -54,6 +54,6 @@ export function applyTheme() {
   const light = t === 'light' || (t === 'system' && darkMq ? !darkMq.matches : false)
   const root = document.documentElement
   root.dataset.theme = light ? 'light' : 'dark'
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#bfc7d4' : '#161c2e')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#d1cfcc' : '#161c2e')
 }
 darkMq?.addEventListener?.('change', () => { if (getPrefs().theme === 'system') applyTheme() })
