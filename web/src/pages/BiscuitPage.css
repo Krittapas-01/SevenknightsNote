@@ -33,8 +33,16 @@
   .biscuit-row-label { font-size: 10px; }
 }
 
+/* เปลี่ยนรูปแบบ: ช่องหน้า/หลังเลื่อนขึ้นลงนุ่ม ๆ · ป้ายหน้า/หลังเด้งเปลี่ยน · การ์ดรูปแบบที่เลือกเด้งรับ */
+.biscuit-col { transition: margin-top 420ms var(--motion-out); }
+.biscuit-flip { animation: biscuit-flip 340ms var(--motion-out); }
+.biscuit-formation-active { animation: biscuit-pick 360ms var(--motion-out); }
+@keyframes biscuit-flip { from { opacity: 0; transform: translateY(-5px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes biscuit-pick { 0% { transform: scale(.96); } 60% { transform: scale(1.015); } 100% { transform: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   .biscuit-formation { transition: none; }
+  .biscuit-col { transition: none; }
 }
 
 /* โหมดสว่าง (ตั้งค่า → ธีม) */
