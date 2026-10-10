@@ -5,6 +5,8 @@ import { DEMO_ID, demoRequest } from './demo'
 
 export type Pulse = {
   guildName: string
+  /** เวอร์ชันข้อมูลกิลด์ (API เก่าไม่มี) — เปลี่ยน = มีคนแก้อะไรสักอย่าง */
+  rev?: string
   latest: Announcement | null
   activePlan: { id: string; title: string } | null
   /** แผนที่ใช้อยู่แยกชนิด (API เก่าไม่มี) */
@@ -91,7 +93,8 @@ export const api = {
   createGuild: (name: string, password: string) =>
     req<{ id: string; name: string; editKey: string }>('/api/guild', { method: 'POST', body: JSON.stringify({ name, password }) }),
   // แท็กหลัก (กายภาพ/เวท/แทงก์) ขึ้นก่อนเสมอ — ข้อมูลเก่าที่ลำดับต่างกันก็เรียงให้ตอนโหลด
-  getGuild: (gid: string) => req<GuildData>(`/api/guild/${gid}`).then((d) => ({ ...d, targets: d.targets.map((t) => ({ ...t, tags: sortTags(t.tags) })) })),
+  /** rev = เวอร์ชันที่มีในเครื่อง → ถ้าบนเซิร์ฟเวอร์ยังเท่าเดิมได้ null (ใช้ของเดิมต่อ ไม่ต้องโหลดทั้งกิลด์) */
+  getGuild: (gid: string, rev?: string) => req<GuildData | { unchanged: true; rev: string }>(`/api/guild/${gid}${rev && gid !== DEMO_ID ? `?rev=${encodeURIComponent(rev)}` : ''}`).then((d) => 'unchanged' in d ? null : ({ ...d, targets: d.targets.map((t) => ({ ...t, tags: sortTags(t.tags) })) })),
   pulse: (gid: string) => req<Pulse>(`/api/guild/${gid}/pulse`),
   checkEdit: (gid: string, key?: string) => req<{ canEdit: boolean; locked?: boolean }>(`/api/guild/${gid}/check`, { gid, key }),
   setPassword: (gid: string, password: string) =>

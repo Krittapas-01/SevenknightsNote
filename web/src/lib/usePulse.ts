@@ -13,6 +13,7 @@ export const notifyGuildChanged = (gid: string) => window.dispatchEvent(new Cust
 export function usePulse(gid: string | undefined) {
   const [pulse, setPulse] = useState<Pulse | null>(null)
   const lastId = useRef<string | null | undefined>(undefined)
+  const lastRev = useRef<string | undefined>(undefined)
   const lastAt = useRef(0) // กันเช็กซ้อน (กลับมาที่แท็บ = visibilitychange + focus ยิงพร้อมกัน)
   const gone = useRef(false) // ไม่พบกิลด์ (ลิงก์ผิด/ถูกลบ) → หยุดเช็ก
 
@@ -26,7 +27,10 @@ export function usePulse(gid: string | undefined) {
       const p = await api.pulse(gid)
       setPulse(p)
       const id = p.latest?.id ?? null
-      if (lastId.current !== undefined && lastId.current !== id) {
+      // ประกาศล่าสุดเปลี่ยน หรือมีคนแก้ข้อมูลกิลด์ (เลขเวอร์ชันขยับ) → ให้ทุกหน้าโหลดใหม่ (ถ้าเลขตรงกับที่มีอยู่แล้ว useGuild จะไม่โหลดซ้ำ)
+      const revChanged = lastRev.current !== undefined && p.rev !== undefined && lastRev.current !== p.rev
+      lastRev.current = p.rev
+      if ((lastId.current !== undefined && lastId.current !== id) || revChanged) {
         selfNotify.current = true
         notifyGuildChanged(gid)
         selfNotify.current = false
@@ -41,6 +45,7 @@ export function usePulse(gid: string | undefined) {
   useEffect(() => {
     if (!gid) return
     lastId.current = undefined
+    lastRev.current = undefined
     lastAt.current = 0
     gone.current = false
     setPulse(null)

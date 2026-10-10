@@ -32,6 +32,14 @@ const MAX_ANNOUNCEMENTS = 200
 
 const app = new Hono<{ Bindings: Env }>()
 
+/**
+ * เวอร์ชันข้อมูลกิลด์ที่ส่งให้เว็บ = เลขในฐานข้อมูล + รุ่นรูปแบบข้อมูล + Season
+ * (Season/รูปแบบ JSON เปลี่ยนตอน deploy → เวอร์ชันเปลี่ยนเอง ไม่ค้างของเก่าในเครื่อง)
+ * เปลี่ยนรูปแบบ JSON ของ GET /api/guild/:id เมื่อไหร่ ให้ขยับ GUILD_SHAPE ด้วย
+ */
+const GUILD_SHAPE = 1
+const guildRev = (n: unknown) => `${Number(n) || 0}.${GUILD_SHAPE}.${GAME_SEASON.start}.${GAME_SEASON.end}`
+
 app.use('/api/*', async (c, next) =>
   cors({
     origin: (origin) => (allowedOrigin(origin, c.env) ? origin : null),
@@ -74,6 +82,17 @@ app.use('/api/*', async (c, next) => {
   }
   await next()
 })
+
+// ข้อมูลกิลด์เปลี่ยน (เขียนสำเร็จ) → ขยับเลขเวอร์ชันของกิลด์ ให้เว็บรู้ว่าต้องโหลดใหม่
+// ครอบทุก POST/PUT/DELETE ใต้ /api/guild/:id ที่เดียว จะได้ไม่มี endpoint ไหนลืม (ยกเว้นที่ไม่เปลี่ยนข้อมูลที่หน้าเว็บเห็น)
+const NO_REV = /\/(password|discord\/test)$/
+const bumpRev = async (c: any, next: () => Promise<void>) => {
+  await next()
+  if (c.req.method === 'GET' || c.req.method === 'OPTIONS' || c.res.status >= 300 || NO_REV.test(c.req.path)) return
+  const gid = c.req.param('id')
+  if (gid) await c.env.DB.prepare('UPDATE guilds SET rev = rev + 1 WHERE id = ?').bind(gid).run()
+}
+app.use('/api/guild/:id/*', bumpRev)
 
 // ---------- helpers ----------
 const ALPHABET = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -346,8 +365,12 @@ async function deleteGuildData(env: Env, gid: string) {
 // ข้อมูลทั้งกิลด์ (บ้านศัตรู + ทีมแก้) ในครั้งเดียว
 app.get('/api/guild/:id', async (c) => {
   const id = c.req.param('id')
-  const guild = await c.env.DB.prepare('SELECT id, name, created_at FROM guilds WHERE id = ?').bind(id).first<any>()
+  const guild = await c.env.DB.prepare('SELECT id, name, created_at, rev FROM guilds WHERE id = ?').bind(id).first<any>()
   if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
+  c.header('Cache-Control', 'no-store')
+  // เว็บส่งเวอร์ชันที่มีอยู่มา → ยังเท่าเดิม = ไม่ต้องอ่านทั้งกิลด์ (อ่านแค่แถวกิลด์ 1 แถว)
+  const rev = guildRev(guild.rev)
+  if (c.req.query('rev') === rev) return c.json({ unchanged: true, rev })
   const [t, k, p, a, st, ap, lk] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT * FROM targets WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY created_at ASC').bind(id),
@@ -384,7 +407,7 @@ app.get('/api/guild/:id', async (c) => {
     ...toTarget(r),
     counters: counters.filter((x) => x.targetId === r.id),
   }))
-  return c.json({ guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce, autoText, season, discord })
+  return c.json({ rev, guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce, autoText, season, discord })
 })
 
 // ตรวจว่า key ใช้แก้ไขได้ไหม
@@ -564,7 +587,7 @@ app.delete('/api/guild/:id/plans/:pid', async (c) => {
 app.get('/api/guild/:id/pulse', async (c) => {
   const gid = c.req.param('id')
   const [g, latest, withPlan, perKind] = await c.env.DB.batch([
-    c.env.DB.prepare('SELECT name FROM guilds WHERE id = ?').bind(gid),
+    c.env.DB.prepare('SELECT name, rev FROM guilds WHERE id = ?').bind(gid),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 1').bind(gid),
     c.env.DB.prepare(
       'SELECT a.plan_id, p.title FROM announcements a JOIN plans p ON p.id = a.plan_id WHERE a.guild_id = ? ORDER BY a.created_at DESC LIMIT 1',
@@ -583,6 +606,7 @@ app.get('/api/guild/:id/pulse', async (c) => {
   c.header('Cache-Control', 'no-store')
   return c.json({
     guildName: guild.name,
+    rev: guildRev(guild.rev),
     latest: a ? toAnnouncement(a) : null,
     activePlan: p ? { id: p.plan_id, title: p.title } : null,
     activePlans: Object.fromEntries((perKind.results as any[]).filter((r) => r.k === 'attack' || r.k === 'defense').map((r) => [r.k, { id: r.plan_id, title: r.title }])),
@@ -1129,6 +1153,7 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   ).bind(...bodyArgs, now, dayStart).run()
   const posted = ins.meta.changes ?? 0
   if (!posted) return 0
+  await env.DB.prepare('UPDATE guilds SET rev = rev + 1 WHERE id IN (SELECT guild_id FROM announcements WHERE auto = 1 AND created_at = ?)').bind(now).run()
   // 2) เก็บแค่ล่าสุด MAX_ANNOUNCEMENTS อันต่อกิลด์ — query เดียวทุกกิลด์
   await env.DB.prepare(
     `DELETE FROM announcements WHERE id IN (

@@ -52,8 +52,11 @@ export function useGuild(gid: string) {
 
   const reload = useCallback(async () => {
     try {
-      const d = await api.getGuild(gid)
-      store(gid, d)
+      // มีของในเครื่องพร้อมเลขเวอร์ชัน → ถามแค่ว่าเปลี่ยนไหม (เซิร์ฟเวอร์อ่าน 1 แถว) · ไม่เปลี่ยน = ใช้ของเดิม
+      const cached = peek(gid)
+      const fresh = await api.getGuild(gid, cached?.rev)
+      const d = fresh ?? cached!
+      if (fresh) store(gid, fresh)
       setData(d)
       setError(null)
       pushRecent({ id: d.guild.id, name: d.guild.name })
