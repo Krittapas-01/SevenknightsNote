@@ -211,7 +211,11 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
       const exact = (m: ReturnType<typeof matchHeroName>) => (m && m.dist === 0 ? m : null)
       const inTeam = (name ? matchHeroName(name, heroes.map(candidate)) : null) ?? exact(matchHeroName(head, heroes.map(candidate)))
       const anyHero = (name ? matchHeroName(name, ALL_CANDIDATES) : null) ?? exact(matchHeroName(head, ALL_CANDIDATES))
-      const byName = inTeam && (!anyHero || inTeam.dist <= anyHero.dist) ? inTeam.id : null
+      // ชื่อสั้น (เช่น ลุค) OCR อ่านเพี้ยนไป 1 ตัวก็ตรงกับอีกตัวเป๊ะ (ซีค) → ตัวในทีมได้แต้มต่อ 1 ตัวอักษร
+      // (คนส่วนใหญ่อ่านรูปของตัวในทีมนั้นเอง · ทีมมีแค่ 3 ตัว โอกาสจับผิดตัวต่ำ)
+      // ต้องใกล้พอทั้งแบบตัดสระและแบบมีสระ (กัน ริน ในทีม ไปแย่งรูปของ รีน่า)
+      const team = inTeam ?? (name ? matchHeroName(name, heroes.map(candidate), 1) : null)
+      const byName = team && (!anyHero || anyHero.id === team.id || (team.dist <= anyHero.dist + 1 && team.raw <= anyHero.raw + 1)) ? team.id : null
       // 2) สำรอง: หาจากข้อความทั้งภาพแบบเดิม
       const found = byName ?? detectHero([name, text], heroes)
       if (found) setHero(found)

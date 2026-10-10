@@ -47,8 +47,8 @@ const NOISE = /[\s|"'`“”‘’.,:;!?()[\]{}<>\-_=+*#@%&/\\~^]/g
 /** ยอมผิดได้กี่ตัว: ชื่อสั้น (≤3 ตัวหลังตัดสระ) ต้องตรงเป๊ะ กันไปตรงกับชื่อสั้นตัวอื่น */
 const allowed = (len: number) => Math.floor((len - 1) / 3)
 
-/** อัศวินที่ชื่อใกล้ข้อความที่สุด (null = ไม่มีตัวไหนใกล้พอ) */
-export function matchHeroName(text: string, cands: HeroCandidate[]): HeroMatch | null {
+/** อัศวินที่ชื่อใกล้ข้อความที่สุด (null = ไม่มีตัวไหนใกล้พอ) · slack = ยอมผิดเพิ่มอีกกี่ตัว (ใช้กับรายชื่อสั้น ๆ เช่นตัวในทีม) */
+export function matchHeroName(text: string, cands: HeroCandidate[], slack = 0): HeroMatch | null {
   const parts = spans(text).map((x) => ({ k: skeleton(x), raw: x.toLowerCase().replace(NOISE, '') }))
   let best: HeroMatch | null = null
   for (const c of cands)
@@ -60,7 +60,7 @@ export function matchHeroName(text: string, cands: HeroCandidate[]): HeroMatch |
         // ชื่อ 1 พยัญชนะ (เช่น ลี) ต้องตรงทั้งคำ
         if (k.length < 2 && p.raw !== nRaw) continue
         const dist = lev(p.k, k)
-        if (dist > allowed(k.length)) continue
+        if (dist > allowed(k.length) + slack) continue
         // ตัวตัดสินรอง: เทียบแบบมีสระ (ริน vs รีน่า ตัดสระแล้วใกล้กัน แต่มีสระแล้วต่างกัน)
         const raw = lev(p.raw, nRaw)
         if (!best || dist < best.dist || (dist === best.dist && (raw < best.raw || (raw === best.raw && k.length > best.len))))
