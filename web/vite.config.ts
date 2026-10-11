@@ -8,9 +8,12 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // แยกไลบรารีที่ไม่ค่อยเปลี่ยนออกเป็นไฟล์ของมันเอง (deploy รอบหน้าเบราว์เซอร์ใช้ของเดิมใน cache ได้)
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router'],
-          dnd: ['@dnd-kit/core'],
+        // (ใช้ฟังก์ชันจับจาก path — แบบรายชื่อแพ็กเกจ react-dom/client หลุดไปอยู่ไฟล์หลัก ทำให้ไฟล์หลักใหญ่ 600 kB และ cache ไม่ได้ทุกครั้งที่ deploy)
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (/node_modules\/(react|react-dom|react-router|scheduler)\//.test(id)) return 'react'
+          if (id.includes('node_modules/@dnd-kit/')) return 'dnd'
+          if (id.includes('node_modules/lucide-react/')) return 'icons'
         },
       },
     },

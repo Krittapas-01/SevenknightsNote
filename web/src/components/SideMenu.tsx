@@ -1,11 +1,13 @@
 import { Calculator, Cookie, ExternalLink, Home, Megaphone, MessagesSquare, Settings, Shield, Sparkles, ThumbsUp, X } from 'lucide-react'
-import { useEffect, useState, type ComponentType } from 'react'
+import { Suspense, lazy, useEffect, useState, type ComponentType } from 'react'
 import { NavLink } from 'react-router'
 import { getRecent, refreshRecent } from '../lib/api'
 import { useHasUpdate } from './WhatsNew'
 import Modal from './Modal'
-import { SettingsBody } from '../pages/SettingsPage'
 import { tx } from '../lib/i18n'
+
+// หน้าต่างตั้งค่าในเมนู โหลดตอนเปิดครั้งแรก (ไม่ต้องอยู่ในไฟล์หลักที่ทุกหน้าโหลด)
+const SettingsBody = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsBody })))
 
 // เมนูหลักของเว็บ เพิ่มหน้า/เครื่องมือใหม่ที่นี่ที่เดียว
 const NAV: { to: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
@@ -94,7 +96,7 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
         </div>
       </nav>
       <Modal open={settings} title={tx('ตั้งค่า')} onClose={() => setSettings(false)}>
-        <SettingsBody onNavigate={() => setSettings(false)} />
+        <Suspense fallback={<p className="py-8 text-center text-white/50">{tx('กำลังโหลด...')}</p>}><SettingsBody onNavigate={() => setSettings(false)} /></Suspense>
       </Modal>
     </div>
   )

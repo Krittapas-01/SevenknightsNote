@@ -77,7 +77,7 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
             className="flex min-w-0 flex-1 basis-60 items-center gap-2 text-left"
             title={tx('กดเพื่อดูทั้งหมด')}
           >
-            <Megaphone className={`h-4 w-4 shrink-0 ${unseen ? 'animate-bounce text-gold' : 'text-white/50'}`} />
+            <span className={`inline-flex shrink-0 ${unseen ? 'animate-bounce' : ''}`}><Megaphone className={`h-4 w-4 ${unseen ? 'text-gold' : 'text-white/50'}`} /></span>
             {unseen && <span className="shrink-0 rounded-full bg-gold px-1.5 text-[11px] font-bold text-ink">{tx('ใหม่')}</span>}
             <span className={`min-w-0 ${open ? 'whitespace-pre-wrap' : 'truncate'} ${unseen ? 'font-semibold text-white' : 'text-white/80'}`}>
               {a.body || (activePlan ? L(`ใช้แผน ${activePlan.title}`, `Plan: ${activePlan.title}`) : '')}
