@@ -83,7 +83,7 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
 
   return (
     <>
-      <div className="hero-dock fixed inset-x-0 z-30 border-t border-gold/30 bg-[var(--dock)] backdrop-blur" style={{ bottom, ...(z ? { zIndex: z } : {}) }}>
+      <div data-tour="hero-dock" className="hero-dock fixed inset-x-0 z-30 border-t border-gold/30 bg-[var(--dock)] backdrop-blur" style={{ bottom, ...(z ? { zIndex: z } : {}) }}>
         {/* ปุ่มเก็บแถบตรงกลางแบบในเกม */}
         <button
           onClick={() => hub.setDockOpen(false)}

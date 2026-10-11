@@ -217,6 +217,7 @@ export default function TeamPanel({
   return (
     <div
       style={style}
+      data-tour-editing={active ? '' : undefined}
       onPointerDown={() => active && hub?.setFocused(panelId)}
       className={`team-panel panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col ${isSm ? 'px-3 pb-3 pt-2.5' : 'px-4 pb-4 pt-3 sm:px-5'} ${
         focused && active ? 'panel-focused' : ''
@@ -240,7 +241,7 @@ export default function TeamPanel({
 
       {/* speed */}
       <div data-noexport={!team.speed && !editable ? '' : undefined} className={`flex justify-end ${isSm ? 'mt-1.5' : 'mt-2.5'}`}>
-        <label className={`pill flex items-center gap-1.5 border-gold-deep/60 ${isSm ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-base'}`}>
+        <label data-tour="team-speed" className={`pill flex items-center gap-1.5 border-gold-deep/60 ${isSm ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-base'}`}>
           <Footprints className={isSm ? 'h-3.5 w-3.5 text-gold' : 'h-5 w-5 text-gold'} />
           {editable && onSpeed ? (
             <input
@@ -261,6 +262,7 @@ export default function TeamPanel({
       {/* body */}
       {/* จองความสูงไว้ 4 แถวเสมอ (+ป้าย หน้า/หลัง) ทุกรูปแบบจะได้สูงเท่ากัน แล้วจัดกลางแนวตั้ง */}
       <div
+        data-tour="team-body"
         className={`flex flex-1 items-center justify-center ${isSm ? 'mt-2 gap-2' : 'mt-3 gap-2.5 sm:gap-3'}`}
         style={{ minHeight: `calc(var(--s) * 4 + ${ROW_GAP * 3}px${isSm ? '' : ' + 20px'})` }}
       >
@@ -298,6 +300,7 @@ export default function TeamPanel({
               type="button"
               disabled={!active}
               onClick={() => clickSlot({ kind: 'pet', index: 0 })}
+              data-tour="team-pet"
               className="relative block"
               style={{ width: 'var(--s)', height: 'var(--s)', fontSize: 'calc(var(--s) * 0.22)' }}
               title={tx('สัตว์เลี้ยง')}
@@ -317,6 +320,7 @@ export default function TeamPanel({
             type="button"
             disabled={!active || !onFormation}
             onClick={() => setModal('formation')}
+            data-tour="team-formation"
             title={formationLabel(team.front)}
             className="orb mt-1.5 grid place-items-center"
             style={{ width: 'var(--s)', height: 'var(--s)' }}
@@ -329,6 +333,7 @@ export default function TeamPanel({
             type="button"
             disabled={!(active && onSkills) && (skills.length === 0 || isSm)}
             onClick={() => setModal('skills')}
+            data-tour="team-skills"
             title={skills.length ? L(`ตั้งลำดับการใช้สกิล ${skills.length} ครั้ง — กดดู`, `Skill queue set ${skills.length} times — tap to view`) : tx('ตั้งลำดับการใช้สกิล')}
             className="orb mt-4 grid place-items-center"
             style={{ width: 'var(--s)', height: 'var(--s)' }}

@@ -188,7 +188,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
 
   return (
     <>
-      <button type="button" onClick={openImport}
+      <button type="button" data-tour="stats-import" onClick={openImport}
         className="mt-2 flex items-center gap-1.5 rounded-full border border-sky-300/50 px-3 py-1 text-sm text-sky-100 hover:bg-sky-400/10">
         <Camera className="h-4 w-4" />{' '}{tx('อ่านค่าความสามารถจากรูป')}
       </button>

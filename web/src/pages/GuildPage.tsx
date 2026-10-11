@@ -17,6 +17,7 @@ import { renderAhead } from '../lib/renderAhead'
 import HelpLink from '../components/HelpLink'
 import GuildTour from '../components/GuildTour'
 import { isDemo } from '../lib/demo'
+import { useTour } from '../lib/tour'
 import GuildOnboarding from '../components/GuildOnboarding'
 import { markShared, onboardFlags } from '../lib/onboarding'
 import { useSmoothWheel } from '../lib/smoothWheel'
@@ -39,6 +40,9 @@ export default function GuildPage() {
   const tabPill = useSlidePill(tab)
   const tabSlide = useSlideDir(tab === 'plans' ? 0 : 1)
   useSmoothWheel(tab === 'targets')
+  // สอนใช้: คนแก้ได้ = สอนจัดการกิลด์ · คนดูอย่างเดียว = สอนดูแผน + เข้าแก้ไข
+  useTour('guild-editor', !!data && canEdit && !isDemo(gid))
+  useTour('guild-viewer', !!data && !realCanEdit && !isDemo(gid))
 
   const allTags = useMemo(() => sortTags([...new Set(data?.targets.flatMap((t) => t.tags) ?? [])]), [data])
   const list = useMemo(() => {
@@ -88,7 +92,7 @@ export default function GuildPage() {
       {/* แท็บ */}
       <div className="mt-6 flex flex-wrap items-center gap-3">
         {/* แท็บ: พื้นทองวิ่งตามแท็บที่เลือก */}
-        <div ref={tabPill.box} className="pill relative flex p-1">
+        <div ref={tabPill.box} data-tour="guild-tabs" className="pill relative flex p-1">
           <span aria-hidden className="slide-pill" style={tabPill.pill} />
           {([
             ['plans', tx('แผนสงคราม'), ClipboardList],
@@ -96,6 +100,7 @@ export default function GuildPage() {
           ] as const).map(([k, label, Icon]) => (
             <button
               key={k}
+              data-tour={`tab-${k}`}
               ref={tabPill.item(k)}
               onClick={() => setParams(k === 'plans' ? {} : { tab: k }, { replace: true })}
               className={`relative z-10 flex items-center gap-1.5 rounded-full px-4 py-1.5 transition-colors sm:px-5 ${tab === k ? 'font-semibold text-ink' : 'text-white/70 hover:bg-white/10'}`}

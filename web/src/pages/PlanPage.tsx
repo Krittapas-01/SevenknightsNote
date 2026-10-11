@@ -35,6 +35,8 @@ import { useGuild } from '../lib/useGuild'
 import { activePlanId } from '../lib/war'
 import NotFound from './NotFound'
 import { tx, L, LOCALE } from '../lib/i18n'
+import { useTour } from '../lib/tour'
+import { isDemo } from '../lib/demo'
 import { useSlideDir } from '../lib/slide'
 import ConfirmDelete from '../components/ConfirmDelete'
 
@@ -166,6 +168,11 @@ export default function PlanPage() {
       setEditing(true)
     }
   }, [isNew, canEdit, newKind])
+  // สอนใช้: ดูแผน → กดแก้ไข → จัดทีมทีละช่อง (หน้าต่างช่วยจัด)
+  const live = !!data && canEdit && !isDemo(gid)
+  useTour('plan-view', live && !editing && !isNew)
+  useTour('plan-edit', live && editing && !wiz)
+  useTour('plan-wizard', live && !!wiz)
 
   if (error) return <NotFound message={error} />
   if (!data) return <p className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
@@ -649,7 +656,7 @@ export default function PlanPage() {
         <div className="shrink-0 rounded-t-[18px] border-b border-white/10 bg-[var(--surface-wiz)]/95">
           <div className="flex flex-wrap items-center gap-3 px-4 py-3">
             <span className="btn-gold rounded-lg px-3 py-1 text-sm">{tx('ไม้')}{' '}{w.s + 1}</span>
-            <div className="flex flex-wrap items-center gap-1 text-sm">
+            <div data-tour="wiz-steps" className="flex flex-wrap items-center gap-1 text-sm">
               {STEPS.map(([n, label], i) => (
                 <Fragment key={n}>
                   {i > 0 && <span className="text-white/25">›</span>}
@@ -663,7 +670,7 @@ export default function PlanPage() {
           </div>
         </div>
 
-        <div className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-6 pt-6">
+        <div data-tour="wiz-body" className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-6 pt-6">
           {w.step === 1 && (
             // ทุกอย่างกว้างเท่ากัน + จัดกลาง (ชื่อไม้ · คำอธิบาย · แท็บบ้าน · การ์ดบ้าน) ไม่ให้ซ้ายบ้างกลางบ้าง
             <div className="mx-auto my-auto w-full max-w-[400px] space-y-4 text-center">
@@ -1131,7 +1138,7 @@ export default function PlanPage() {
             {canEdit && createPortal(
               // ห่อด้วย div fixed — .btn-gold ตั้ง position เอง ใส่ fixed ที่ปุ่มตรง ๆ แล้วโดนทับ (ไปโผล่ซ้ายล่าง)
               <div data-noexport className="fixed right-20 z-40 sm:right-24" style={{ bottom: 'calc(20px + env(safe-area-inset-bottom))' }}>
-                <button onClick={startEdit} className="btn-gold flex items-center gap-1.5 px-5 py-3 text-sm font-semibold shadow-[0_6px_24px_rgba(0,0,0,.5)]">
+                <button data-tour="plan-edit" onClick={startEdit} className="btn-gold flex items-center gap-1.5 px-5 py-3 text-sm font-semibold shadow-[0_6px_24px_rgba(0,0,0,.5)]">
                   <Pencil className="h-4 w-4" />{' '}{tx('แก้ไขแผน')}
                 </button>
               </div>,
@@ -1222,7 +1229,7 @@ export default function PlanPage() {
       {editing && (
         <HideWhileDock>
         <div data-bottom-bar className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[var(--surface)]/90 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3">
+          <div data-tour="plan-save" className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3">
             <button disabled={busy} onClick={() => void save()} className="btn-gold px-6 py-2">{busy ? tx('กำลังบันทึก...') : tx('บันทึกแผน')}</button>
             <button disabled={busy} onClick={cancel} className="pill px-5 py-2">{tx('ยกเลิก')}</button>
             {err && <span data-error className="text-sm font-semibold text-red-300">{err}</span>}
@@ -1503,7 +1510,7 @@ function AllocationBar({ slots, use, onAuto, compact }: { slots: WarSlot[]; use:
   const shown = !compact || open || dup > 0
   if (!attacks.length) return null
   return (
-    <section className={`panel mx-auto max-w-4xl ${compact ? 'mt-4 p-3' : 'mt-8 p-4 sm:p-5'}`}>
+    <section data-tour="alloc" className={`panel mx-auto max-w-4xl ${compact ? 'mt-4 p-3' : 'mt-8 p-4 sm:p-5'}`}>
       <div className={`flex flex-wrap items-center gap-2 ${shown ? 'mb-3' : ''}`}>
         <Swords className="h-5 w-5 text-gold" />
         <span className={compact ? 'font-semibold' : 'text-lg font-semibold'}>{tx('จัดสรรอัศวิน')}</span>

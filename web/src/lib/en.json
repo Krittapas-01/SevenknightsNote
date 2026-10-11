@@ -654,5 +654,12 @@
  "โน้ต เช่น ทำช้า, ต้องมีอุปกรณ์ดี, แนะนำตัวนี้มากกว่าไคล์": "Note, e.g. slow, needs good gear, prefer this over Kyle",
  "ใส่อุปกรณ์ ค่าความสามารถ และคำอธิบายของแต่ละตัว (แถวละ 1 ตัว) — ข้ามได้ กด \"เสร็จ\" ได้เลย": "Add gear, stats and notes for each hero (one per row) — optional, just tap \"Done\"",
  "เลือกสัตว์เลี้ยงก่อน": "Pick a pet first",
- "เลือกสัตว์เลี้ยงของบ้านนี้ก่อน": "Pick this defense's pet first"
+ "เลือกสัตว์เลี้ยงของบ้านนี้ก่อน": "Pick this defense's pet first",
+ "ปิดการสอน": "Close guide",
+ "ลองกดที่ปุ่มที่ส่องไว้ได้เลย": "Go ahead — tap the highlighted button",
+ "ข้ามขั้นนี้": "Skip this step",
+ "ข้ามการสอนทั้งหมด": "Skip the whole guide",
+ "ดูการสอนใช้หน้านี้": "Show the guide for this page",
+ "กดค้างแล้วลากเพื่อเรียงลำดับ (#1 = แนะนำให้ใช้ก่อน)": "Press and drag to reorder (#1 = try first)",
+ "ทีมแนะนำ (ใช้ก่อน)": "Recommended (try first)"
 }

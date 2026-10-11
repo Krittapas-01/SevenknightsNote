@@ -43,6 +43,8 @@ import { useSlideDir, useSlidePill } from '../lib/slide'
 import { useTabReorder } from '../lib/useTabReorder'
 import GuildOnboarding from '../components/GuildOnboarding'
 import { tx, L } from '../lib/i18n'
+import { useTour } from '../lib/tour'
+import { isDemo } from '../lib/demo'
 
 const copyNotes = (n?: HeroNote[]) => (n ?? []).map((x) => ({ ...x, sets: [...x.sets], rings: [...x.rings] }))
 
@@ -101,6 +103,11 @@ export default function TargetPage() {
   useEffect(() => {
     if (isNew && canEdit) setMode('target')
   }, [isNew, canEdit])
+  // สอนใช้ตามสิ่งที่ทำอยู่: ดูทีมแก้ / จดบ้านศัตรูครั้งแรก / จัดทีมแก้ครั้งแรก
+  const live = !!data && canEdit && !isDemo(gid)
+  useTour('target-view', live && mode === 'view' && !isNew && serverCounters.length > 0)
+  useTour('target-new', live && mode === 'target')
+  useTour('counter-edit', live && mode === 'counter')
 
   if (error) return <NotFound message={error} />
   if (!data) return <p className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
@@ -380,7 +387,7 @@ export default function TargetPage() {
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={() => setLibrary('counter')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
+        <button data-tour="library" onClick={() => setLibrary('counter')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
           <Library className="h-4 w-4" />{' '}{tx('เลือกจากที่จดไว้')}
         </button>
         <PresetPickerButton onPick={(p) => setCDraft((d) => ({ ...d, team: clone(p.team), skills: [...p.skills], note: d.note || p.note.slice(0, 500), heroNotes: copyNotes(p.heroNotes) }))} />
@@ -411,7 +418,7 @@ export default function TargetPage() {
           <Library className="h-4 w-4" />{' '}{tx('เลือกจากที่จดไว้')}
         </button>
       </div>
-      <TagEditor tags={tDraft.tags} onChange={(tags) => setTDraft((d) => ({ ...d, tags }))} />
+      <div data-tour="tag-editor"><TagEditor tags={tDraft.tags} onChange={(tags) => setTDraft((d) => ({ ...d, tags }))} /></div>
       <textarea
         value={tDraft.note}
         onChange={(e) => setTDraft((d) => ({ ...d, note: e.target.value }))}
@@ -436,7 +443,7 @@ export default function TargetPage() {
       {/* แถบเลือกทีมแก้ แบบปุ่มแคปซูลในเกม */}
       {!isNew && (counters.length > 0 || editingC) && (
         <div className="mt-5 flex justify-center">
-          <div ref={counterPill.box} className="scrollbar-thin pill relative flex max-w-full gap-1 overflow-x-auto p-1">
+          <div ref={counterPill.box} data-tour="counter-tabs" className="scrollbar-thin pill relative flex max-w-full gap-1 overflow-x-auto p-1">
             <span aria-hidden className="slide-pill" style={counterPill.pill} />
             {counters.map((c, i) => (
               <button
@@ -574,7 +581,7 @@ export default function TargetPage() {
         </div>
       </Modal>
 
-      <div className="mt-8">
+      <div className="mt-8" data-tour="vs-arena">
         {editingT && wide ? (
           // จอคอม แก้บ้านศัตรู: คอมพ์ศัตรู + ฟอร์มรายละเอียดอยู่ข้างกัน (ไม่มีทีมแก้/VS มาเกะกะ)
           <div className="flex items-stretch justify-center gap-6">
@@ -676,7 +683,7 @@ export default function TargetPage() {
       {canEdit && !isNew && mode === 'view' && createPortal(
         <div data-noexport className="fixed right-20 z-40 flex flex-col items-end gap-2 sm:right-24" style={{ bottom: 'calc(20px + env(safe-area-inset-bottom))' }}>
           {editMenu && (
-            <div className="panel panel-gold flex w-56 flex-col p-1.5 text-sm shadow-[0_6px_24px_rgba(0,0,0,.5)]">
+            <div data-tour="edit-menu" className="panel panel-gold flex w-56 flex-col p-1.5 text-sm shadow-[0_6px_24px_rgba(0,0,0,.5)]">
               {current && (
                 <button type="button" onClick={() => { setEditMenu(false); editCounter(false) }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-white/10">
                   <Pencil className="h-4 w-4 text-gold" />{' '}{tx('แก้ไขทีมแก้ #')}{Math.min(sel, counters.length - 1) + 1}
@@ -690,7 +697,7 @@ export default function TargetPage() {
               </button>
             </div>
           )}
-          <button type="button" onClick={() => setEditMenu((v) => !v)} aria-expanded={editMenu}
+          <button type="button" data-tour="edit-fab" onClick={() => setEditMenu((v) => !v)} aria-expanded={editMenu}
             className="btn-gold flex items-center gap-1.5 px-5 py-3 text-sm font-semibold shadow-[0_6px_24px_rgba(0,0,0,.5)]">
             {editMenu ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}{' '}{tx('แก้ไข')}
           </button>
@@ -704,7 +711,7 @@ export default function TargetPage() {
 
 function Actions({ busy, onSave, onCancel, onDelete }: { busy: boolean; onSave: () => void; onCancel: () => void; onDelete?: () => void }) {
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-2">
+    <div data-tour="save-actions" className="mt-4 flex flex-wrap items-center gap-2">
       <button disabled={busy} onClick={onSave} className="btn-gold px-6 py-2">{busy ? tx('กำลังบันทึก...') : tx('บันทึก')}</button>
       <button disabled={busy} onClick={onCancel} className="pill px-5 py-2">{tx('ยกเลิก')}</button>
       {onDelete && (

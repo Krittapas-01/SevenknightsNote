@@ -312,6 +312,21 @@ a.pill:active { transform: scale(.98); }
 .section-divider { display: flex; align-items: center; justify-content: center; gap: 20px; color: #b6a584; font-size: 12px; }
 .section-divider::before, .section-divider::after { content: ""; width: min(20%, 130px); height: 1px; background: linear-gradient(90deg, transparent, #c9a35a66); }
 .section-divider::after { rotate: 180deg; }
+/* ---------- สอนใช้ (spotlight tour) ---------- */
+.tour-layer { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
+.tour-dim { position: fixed; inset: 0; background: #050915a6; animation: fade-in 200ms ease-out; }
+.tour-spot { position: fixed; border-radius: 16px; box-shadow: 0 0 0 9999px #050915a6, 0 0 0 2px #f4d58d, 0 0 24px 4px #f4d58d55;
+  transition: top 280ms var(--motion-out), left 280ms var(--motion-out), width 280ms var(--motion-out), height 280ms var(--motion-out); animation: fade-in 200ms ease-out; }
+.tour-spot::after { content: ""; position: absolute; inset: -6px; border-radius: 20px; border: 2px solid #f4d58d; opacity: 0; will-change: transform, opacity; animation: tour-ping 1.6s ease-out 300ms infinite; }
+@keyframes tour-ping { 0% { opacity: .8; transform: scale(.96); } 100% { opacity: 0; transform: scale(1.12); } }
+.tour-card { position: fixed; pointer-events: auto; padding: 14px 16px; box-shadow: 0 16px 48px #000a; animation: modal-arrive 260ms var(--motion-out); }
+.tour-try { background: #f4d58d1a; animation: tour-try 1.4s ease-in-out infinite; }
+@keyframes tour-try { 50% { box-shadow: 0 0 0 2px #f4d58d66; } }
+html[data-theme="light"] .tour-try { background: #c08a1e1f; }
+html[data-theme="light"] .tour-dim { background: #1a223f73; }
+html[data-theme="light"] .tour-spot { box-shadow: 0 0 0 9999px #1a223f73, 0 0 0 2px #c08a1e, 0 0 24px 4px #c08a1e55; }
+html[data-theme="light"] .tour-spot::after { border-color: #c08a1e; }
+
 /* ป้ายรอบ Season: เติมทองตามความคืบหน้า + ประกายวิ่งผ่านเบา ๆ */
 .season-round { position: relative; overflow: hidden; isolation: isolate; background: linear-gradient(90deg, #f4d58d33 0 var(--p), transparent var(--p)); }
 .season-round::after { content: ""; position: absolute; inset: 0; z-index: -1; will-change: transform; background: linear-gradient(100deg, transparent 30%, #fff3c94d 50%, transparent 70%); transform: translateX(-120%); animation: season-shine 6s ease-in-out 1.2s infinite; }
