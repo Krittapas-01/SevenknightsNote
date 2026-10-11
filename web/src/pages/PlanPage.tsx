@@ -543,7 +543,8 @@ export default function PlanPage() {
 
   /** ความสูงการ์ดไม้ในตาราง: ช่องอัศวิน 3 แถว + หัว/ความเร็ว/สัตว์เลี้ยงสำรอง — ล็อกเท่ากันทุกใบ (รวมการ์ดเพิ่มไม้) */
   // ช่องอัศวินย่อตามความกว้างการ์ด (จอกว้างวาง 5 ไม้แถวเดียว การ์ดแคบลง) · cqw = ความกว้างของการ์ดไม้นั้น
-  const CARD_U = `min(${CARD_UNIT}, 26cqw)`
+  // จอคอมกว้าง (5 ไม้แถวเดียว): ตารางยืดออกเกินกรอบหน้า ใช้พื้นที่ด้านข้าง + ช่องอัศวินใหญ่ขึ้นได้ถึง 92px (--plan-u ตั้งที่ตาราง)
+  const CARD_U = `var(--plan-u, min(${CARD_UNIT}, 26cqw))`
   const CARD_H = `calc(${CARD_U} * 3 + ${CARD_EXTRA}px)`
   /** การ์ดไม้ (แผนบุก) — โชว์แค่ทีมแก้หลัก · กดการ์ด = แก้ (หน้าต่างตั้งไม้) / ดูรายละเอียด */
   const slotCard = (raw: WarSlot, s: number) => {
@@ -670,7 +671,7 @@ export default function PlanPage() {
               <p className="text-sm text-white/55">{ATTACK_LIBRARY ? tx('เลือกบ้านจากที่จดไว้ แล้วทีมแก้ของบ้านนั้นจะถูกใส่เป็นทีมแก้ให้เลย') : tx('จัดทีมบ้านที่จะตี — กดช่อง + เพื่อเลือกตัว แล้วเลือกประเภทบ้าน')}</p>
               {/* แท็บบ้าน (เพิ่มบ้านอื่น) โผล่หลังเลือกบ้านแรกแล้ว — ตอนแรกไม่รก */}
               {(raw.vs || (raw.alts?.length ?? 0) > 0) && <div className="flex justify-center [&_.pill]:justify-center [&>div]:justify-center">{u.houseTabs}</div>}
-              {raw.vs && heroCount(raw.vs) > 0 && !raw.vs.pet && <p className="text-center text-sm font-semibold text-amber-300">{tx('เลือกสัตว์เลี้ยงของบ้านนี้ก่อน (ช่องขวาบนของการ์ด)')}</p>}
+              {raw.vs && heroCount(raw.vs) > 0 && !raw.vs.pet && <p className="text-center text-sm font-semibold text-amber-300">{tx('เลือกสัตว์เลี้ยงของบ้านนี้ก่อน')}</p>}
               <div className="text-left">{u.enemy}</div>
               <div className="text-left">{u.enemyExtras}</div>
             </div>
@@ -686,7 +687,7 @@ export default function PlanPage() {
                   </p>
                 )
               })()}
-              {mainOpt && heroCount(mainOpt.team) > 0 && !mainOpt.team.pet && <p className="mb-2 text-center text-sm font-semibold text-amber-300">{def ? L('เลือกสัตว์เลี้ยงของบ้านกัน', 'Pick a pet for the defense') : L('เลือกสัตว์เลี้ยงของทีมแก้', 'Pick a pet for the counter')}{tx('ก่อน (ช่องขวาบนของการ์ด)')}</p>}
+              {mainOpt && heroCount(mainOpt.team) > 0 && !mainOpt.team.pet && <p className="mb-2 text-center text-sm font-semibold text-amber-300">{def ? L('เลือกสัตว์เลี้ยงของบ้านกันก่อน', 'Pick a pet for the defense first') : L('เลือกสัตว์เลี้ยงของทีมแก้ก่อน', 'Pick a pet for the counter first')}</p>}
               <p className="mb-4 text-center text-sm text-white/55">{def ? L('จัดบ้านกันหลัก', 'Build the main defense') : L('จัดทีมแก้หลัก', 'Build the main counter')}{' '}{tx('— กดช่อง + เพื่อเลือกตัว (ดับเบิลคลิก = เปิดหน้าใหญ่) หรือใช้พรีเซต')}</p>
               {/* แผนกัน: การ์ดเดียวตรงกลาง (ไม่มีบ้านศัตรู/VS) */}
               {def ? <div className="mx-auto w-full max-w-[420px]">{mainOpt && u.card(mainOpt, u.main, 'panel')}</div> : <VsArena
@@ -1188,7 +1189,7 @@ export default function PlanPage() {
       {/* แผนกัน (ตอนดู): การ์ดเต็มของแต่ละไม้ซ่อนไว้ — ปุ่ม "บันทึกรูปทุกทีม" ใช้ปุ่มรูปในการ์ดเหล่านี้ */}
       {EXPORT_ON && !editing && !atkPlan && <div className="hidden">{view.slots.map((raw, s) => (raw.options.length ? <Fragment key={s}>{slotUI(raw, s).section}</Fragment> : null))}</div>}
       {/* ทั้งแผนบุกและแผนกัน: ตารางการ์ด 1 ใบ/ไม้ (กดดูรายละเอียด / กดแก้ = หน้าต่างตั้งไม้) */}
-      <div className="mt-8 grid items-start gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="mt-8 grid items-start gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:mx-[calc((100%-min(100vw-4rem,108rem))/2)] xl:grid-cols-5 xl:[--plan-u:min(92px,26cqw)]">
         {view.slots.map((raw, s) => {
           if (!editing && raw.options.length === 0 && !raw.vs && !raw.alts?.length) return null
           if (editing && s >= visibleSlots) return null

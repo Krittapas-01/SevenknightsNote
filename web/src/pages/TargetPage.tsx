@@ -161,7 +161,7 @@ export default function TargetPage() {
     if (!tSkillOk.current && tDraft.team.pet && skillShort(tDraft.team, tSkills)) { setSkillAsk({ which: 'target', have: tSkills.length }); return }
     return run(async () => {
       if (heroCount(tDraft.team) === 0) throw new Error(tx('ใส่อัศวินอย่างน้อย 1 ตัว'))
-      if (!tDraft.team.pet) throw new Error(tx('เลือกสัตว์เลี้ยงก่อน (ช่องขวาบนของการ์ดทีม)'))
+      if (!tDraft.team.pet) throw new Error(tx('เลือกสัตว์เลี้ยงก่อน'))
       // ทุกบ้านต้องมีประเภทหลัก (ใช้กรอง/สีการ์ด)
       if (!tDraft.tags.some(isMainTag)) throw new Error(tx('เลือกประเภทคอมพ์ก่อน: กายภาพ / เวท / แทงก์'))
       // คอมพ์ซ้ำ (อัศวินชุดเดียวกัน) ห้ามจดซ้ำ — ไปเพิ่มทีมแก้ที่บ้านเดิมแทน
@@ -189,7 +189,7 @@ export default function TargetPage() {
   // จัดทีมเสร็จ (กดบันทึก) แล้วทุกตัวมีความเร็วโจมตีในค่าความสามารถ → ถามก่อนว่าจะใส่ผลรวมเป็นความเร็วทีมไหม (state speedAsk อยู่ด้านบน)
   const saveCounter = (speed?: number) => {
     // ทุกทีมต้องมีสัตว์เลี้ยง (เช็คก่อนถามความเร็ว)
-    if (heroCount(cDraft.team) > 0 && !cDraft.team.pet) { setErr(tx('เลือกสัตว์เลี้ยงก่อน (ช่องขวาบนของการ์ดทีม)')); shakeScreen(); return }
+    if (heroCount(cDraft.team) > 0 && !cDraft.team.pet) { setErr(tx('เลือกสัตว์เลี้ยงก่อน')); shakeScreen(); return }
     if (!skillOk.current && skillShort(cDraft.team, cDraft.skills)) { setSkillAsk({ which: 'counter', have: cDraft.skills.length }); return }
     if (speed === undefined && heroCount(cDraft.team) > 0) {
       const spd = autoSpeed(cDraft.team, cDraft.heroNotes)
@@ -346,7 +346,7 @@ export default function TargetPage() {
   const counterForm = (
     <div className="panel panel-gold flex h-full flex-col p-5">
       {!wide && <p className="mb-3 text-sm font-semibold text-gold">{tx('รายละเอียดทีมแก้')}</p>}
-      {/* บ้านศัตรูย่อ ไว้ดูเทียบ + ใช้ทั้งคอมพ์ (แทนการลากตอนกำลังแก้) */}
+      {/* บ้านศัตรูย่อ ไว้ดูเทียบตอนกำลังแก้ */}
       {heroCount(rightTeam) > 0 && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2">
           <span className="shrink-0 text-xs font-semibold text-red-200">{tx('ศัตรู')}</span>
@@ -358,11 +358,6 @@ export default function TargetPage() {
                 : <span key={i} title={u?.name} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-[10px]">{u?.name.slice(0, 3)}</span>
             })}
           </div>
-          {canCopy && (
-            <button type="button" onClick={copyTarget} className="shrink-0 rounded-full border border-gold/50 bg-gold/10 px-2.5 py-1 text-xs font-semibold text-gold hover:bg-gold/20">
-              {tx('ใช้ทั้งคอมพ์')}
-            </button>
-          )}
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
@@ -370,7 +365,6 @@ export default function TargetPage() {
           <Library className="h-4 w-4" />{' '}{tx('เลือกจากที่จดไว้')}
         </button>
         <PresetPickerButton onPick={(p) => setCDraft((d) => ({ ...d, team: clone(p.team), skills: [...p.skills], note: d.note || p.note.slice(0, 500), heroNotes: copyNotes(p.heroNotes) }))} />
-        <span className="text-xs text-white/50">{tx('กดวงกลมดาวล่างสุดเพื่อตั้งลำดับการใช้สกิล · กดอัศวิน 2 ครั้งเพื่อเอาออก')}</span>
       </div>
       <textarea
         value={cDraft.note}

@@ -20,7 +20,6 @@
  "กด “เพิ่มบ้านศัตรู” ด้านบน จดบ้านที่เจอ แล้วเพิ่มทีมแก้ — ทั้งกิลด์จะได้ดูข้อมูลเดียวกัน และดึงไปใช้ในแผนสงครามได้": "Tap “Add enemy defense” above, note the defenses you meet, then add counters — the whole guild sees the same data and can use it in war plans",
  "กด 👍 ที่ทีมแก้ที่ตีแล้วชนะ แล้วจะมารวมอยู่ที่นี่ ใช้ได้ทุกเครื่อง": "Tap 👍 on counters that won, and they'll gather here on every device",
  "กดช่องว่างเพื่อเลือกอัศวิน · กดตัวที่มีอยู่ 1 ครั้งเพื่อเลือก แล้วกดซ้ำเพื่อเปลี่ยนตัว หรือกดช่องอื่นเพื่อสลับตำแหน่ง · ช่องแรกใต้รูป = โจมตี (ตามหน้าอัศวิน) · ช่องที่ 2 = บัฟ % เพิ่มเฉพาะตัว (เช่น สกิลติดตัว) · base ตายตัวตามอัศวิน (ค่าจาก 7K Atlas) · รูปแบบให้ All Attack % เฉพาะแถวหลัง (แถวหน้าได้ป้องกัน %) · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น": "Tap an empty slot to pick a hero · tap a hero once to select, tap again to change, or tap another slot to swap · first box under the portrait = Attack (from the hero page) · second box = personal buff % (e.g. passive skill) · base is fixed per hero · formations give All Attack % to the back row only (front row gets Defense %) · data is saved on this device only",
- "กดวงกลมดาวล่างสุดเพื่อตั้งลำดับการใช้สกิล · กดอัศวิน 2 ครั้งเพื่อเอาออก": "Tap the bottom star circle to set the skill queue · tap a hero twice to remove",
  "กดเพื่อดูทั้งหมด": "Tap to see all",
  "กดเพื่อตั้งชื่อแผน": "Tap to name the plan",
  "กดเพื่อตั้งชื่อไม้": "Tap to name the slot",
@@ -40,7 +39,6 @@
  "กิลด์ที่เคยเปิด": "Recent guilds",
  "กิลด์ที่เจอ (ถ้ามี)": "Guilds found (if any)",
  "กู้คืนไม่ได้": "Cannot be undone",
- "ก่อน (ช่องขวาบนของการ์ด)": "first (top-right box of the card)",
  "ขนาดหน้าเว็บ": "Page size",
  "ของฉัน": "Mine",
  "ของอัศวินตัวไหน": "Which hero's gear",
@@ -352,7 +350,6 @@
  "เลือกประเภทคอมพ์ (กายภาพ / เวท / แทงก์) ให้บ้านใหม่ที่ติ๊กไว้ก่อน": "Pick a comp type (Physical / Magic / Tank) for the new checked defenses first",
  "เลือกรูปหน้าข้อมูลอัศวิน หรือลากไฟล์มาวาง": "Pick a hero page screenshot or drop the file here",
  "เลือกสัตว์เลี้ยงของ": "Pick a pet for",
- "เลือกสัตว์เลี้ยงของบ้านนี้ก่อน (ช่องขวาบนของการ์ด)": "Pick this defense's pet first (top-right box of the card)",
  "เลื่อนขึ้นก่อน": "Move up",
  "เลื่อนหน้านุ่ม (ลูกกลิ้งเมาส์)": "Smooth scrolling (mouse wheel)",
  "เลื่อนไปหลัง": "Move down",
@@ -406,7 +403,6 @@
  "ใช้ค่าความสามารถล่าสุดของฉัน (": "Use my latest stats (",
  "ใช้ชื่อ “": "Use name “",
  "ใช้ตอนยืมเครื่องคนอื่น กลับมาแก้ได้โดยใส่รหัสอีกครั้ง": "For borrowed devices — enter the code again to edit later",
- "ใช้ทั้งคอมพ์": "Use whole comp",
  "ใช้ทีมนี้": "Use this team",
  "ใช้ทีมนี้เป็นทีมหลักของไม้นี้": "Use this team as this slot's main team",
  "ใช้พรีเซตของฉัน": "Use my preset",
@@ -624,7 +620,6 @@
  "ล้างค่าความสามารถที่จำไว้แล้ว": "Saved stats cleared",
  "ล้างแคชแล้ว": "Cache cleared",
  "ใส่อัศวินอย่างน้อย 1 ตัว": "Add at least 1 hero",
- "เลือกสัตว์เลี้ยงก่อน (ช่องขวาบนของการ์ดทีม)": "Pick a pet first (top-right box of the team card)",
  "เลือกประเภทคอมพ์ก่อน: กายภาพ / เวท / แทงก์": "Pick a comp type first: Physical / Magic / Tank",
  "ทีมแก้ใหม่": "New counter",
  "บ้านศัตรูใหม่": "New enemy defense",
@@ -658,5 +653,7 @@
  "เก็บทีม ลำดับสกิล โน้ต อุปกรณ์ และค่าความสามารถ · ใช้ได้ทุกกิลด์ทุกเครื่อง": "Keeps team, skill queue, notes, gear and stats · works in every guild on every device",
  "เพิ่มอุปกรณ์รายตัว:": "Add per-hero gear:",
  "โน้ต เช่น ทำช้า, ต้องมีอุปกรณ์ดี, แนะนำตัวนี้มากกว่าไคล์": "Note, e.g. slow, needs good gear, prefer this over Kyle",
- "ใส่อุปกรณ์ ค่าความสามารถ และคำอธิบายของแต่ละตัว (แถวละ 1 ตัว) — ข้ามได้ กด \"เสร็จ\" ได้เลย": "Add gear, stats and notes for each hero (one per row) — optional, just tap \"Done\""
+ "ใส่อุปกรณ์ ค่าความสามารถ และคำอธิบายของแต่ละตัว (แถวละ 1 ตัว) — ข้ามได้ กด \"เสร็จ\" ได้เลย": "Add gear, stats and notes for each hero (one per row) — optional, just tap \"Done\"",
+ "เลือกสัตว์เลี้ยงก่อน": "Pick a pet first",
+ "เลือกสัตว์เลี้ยงของบ้านนี้ก่อน": "Pick this defense's pet first"
 }
