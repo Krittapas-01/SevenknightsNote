@@ -501,6 +501,8 @@ body:has(.hero-dock, [data-bottom-bar]) .contact-fab { display: none; }
 .wiz-arrive { animation: modal-arrive 320ms var(--motion-out); }
 .bar-arrive { animation: bar-arrive 360ms var(--motion-out); }
 @keyframes bar-arrive { from { transform: translateY(100%); } to { transform: none; } }
+.pack-bar { transform-origin: left; animation: pack-bar 700ms var(--motion-out) backwards; }
+@keyframes pack-bar { from { transform: scaleX(0); } }
 .edit-arrive { animation: content-arrive 380ms var(--motion-out) 60ms backwards; }
 /* บันทึกสำเร็จ: ป้ายลอย + ประกาย (lib/celebrate.ts) */
 .saved-toast { position: fixed; left: 50%; bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 5rem)); z-index: 95; display: flex; align-items: center; gap: .5rem;

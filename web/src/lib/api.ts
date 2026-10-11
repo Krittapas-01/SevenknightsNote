@@ -1,3 +1,4 @@
+import type { Pack } from './packs'
 import { getSession } from './auth'
 import type { Announcement, Counter, DayType, GuildData, HeroNote, Plan, PlanData, SkillStep, Target, Team } from './types'
 import { sortTags } from './tags'
@@ -148,7 +149,15 @@ export const api = {
   /** แอดมินลบกิลด์ (ต้องพิมพ์ชื่อกิลด์ยืนยัน) */
   adminDeleteGuild: (gid: string, confirmName: string) =>
     req<{ ok: true }>(`/api/admin/guilds/${gid}`, { method: 'DELETE', body: JSON.stringify({ confirmName }) }),
+  /** แพ็คในเกม (หน้าเช็กความคุ้มค่า) — ที่ยังไม่หมดอายุ */
+  packs: () => req<{ packs: Pack[] }>('/api/packs'),
+  /** แอดมิน: แพ็คทั้งหมด (รวมที่หมดอายุ) / เพิ่ม / แก้ / ลบ */
+  adminPacks: () => req<{ packs: Pack[] }>('/api/admin/packs'),
+  adminCreatePack: (p: PackInput) => req<{ id: string }>('/api/admin/packs', { method: 'POST', body: JSON.stringify(p) }),
+  adminUpdatePack: (id: string, p: PackInput) => req<{ ok: true }>(`/api/admin/packs/${id}`, { method: 'PUT', body: JSON.stringify(p) }),
+  adminDeletePack: (id: string) => req<{ ok: true }>(`/api/admin/packs/${id}`, { method: 'DELETE' }),
 }
+export type PackInput = Omit<Pack, 'id' | 'updatedAt'>
 
 export type AdminGuild = {
   id: string; name: string; createdAt: number; lastActive: number

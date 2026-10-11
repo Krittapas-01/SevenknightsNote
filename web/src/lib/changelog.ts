@@ -31,6 +31,11 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     summary: 'การสอนใช้แบบส่องปุ่มจริง เรียงลำดับทีมแก้ แอนิเมชันทั้งเว็บ และอ่านชื่อจากรูปแม่นขึ้น',
     sections: [
       { kind: 'new', groups: [
+        g('เช็กความคุ้มค่าแพ็ค (ใหม่)',
+          'หน้าใหม่ เข้าได้จากหน้าแรกหรือเมนู ☰: เรียงแพ็คในเกมจากคุ้มสุดไปน้อยสุด เทียบเป็น % กับ Monthly Key Bundle (= 100%)',
+          'คิดเป็นรูบี้ต่อบาท: กล่องกุญแจ 1 กล่อง (60 กุญแจ) = 100 รูบี้ · ตั๋วสุ่ม 1 ใบ = 100 รูบี้ · ตั๋วเรด โทปาซ และของอื่นแสดงไว้แต่ไม่นับ · กดดูวิธีคิดของแต่ละแพ็คได้',
+          'ใส่งบ (บาท) แล้วแนะนำชุดแพ็คที่ได้ของมากที่สุดในงบนั้น',
+          'กด + ที่แพ็คที่ซื้อไปแล้ว → ไม่แนะนำซ้ำเกินจำนวนที่ซื้อได้ · แพ็ครายวัน/สัปดาห์/เดือนนับใหม่เองตามรอบ 07:00'),
         g('การสอนใช้ (กลับมาแล้วแบบใหม่)',
           'เข้าแต่ละหน้าครั้งแรกจะส่องปุ่มจริงแล้วอธิบายทีละขั้น: หน้ากิลด์ บ้านศัตรู การจัดทีม แผนสงคราม และอ่านค่าความสามารถจากรูป',
           'บางขั้นให้ลองทำเอง เช่น แตะช่อง + 2 ครั้งเปิดตารางอัศวินจอใหญ่ หรือใส่รูปจริง — ทำสำเร็จแล้วไปขั้นต่อไปเอง',
@@ -197,6 +202,11 @@ const CHANGELOG_EN: ChangelogEntry[] = [
     summary: 'Spotlight guides, counter ordering, animations everywhere and sharper screenshot name reading',
     sections: [
       { kind: 'new', groups: [
+        g('Pack value checker (new)',
+          'A new page, from the home page or the ☰ menu: in-game packs ranked from best to worst value, as a % of the Monthly Key Bundle (= 100%)',
+          'Measured in rubies per baht: 1 key chest (60 keys) = 100 rubies · 1 summon ticket = 100 rubies · raid tickets, topaz and extras are shown but not counted · tap a pack to see the math',
+          'Enter a budget (baht) to get the pack combo with the most value for it',
+          "Tap + on packs you've already bought so they aren't suggested past their limit · daily/weekly/monthly packs reset on their own at the 07:00 reset"),
         g('Guides (back, rebuilt)',
           'The first time you open a page, the real buttons are highlighted and explained step by step: guild, enemy defenses, team building, war plans and reading stats from a screenshot',
           'Some steps let you try it yourself — double-tap + for the big hero grid, or add a real screenshot — and move on once it works',

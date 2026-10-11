@@ -1113,6 +1113,75 @@ app.get('/api/admin/stats', async (c) => {
   return c.json({ now, guilds: guilds.results, discordUsers: (users.results[0] as any)?.n ?? 0 })
 })
 
+// ---------- แพ็คในเกม (หน้าเช็กความคุ้มค่าแพ็ค) — ทุกคนอ่านได้ · แอดมินเพิ่ม/แก้/ลบ ----------
+type PackRow = { id: string; name: string; group_name: string; price: number; gems: number; items: string; limit_count: number; limit_period: string; ends_at: number | null; is_base: number; sort: number; updated_at: number }
+const PACK_PERIODS = ['once', 'daily', 'weekly', 'monthly']
+const packOut = (r: PackRow) => {
+  let items: any = {}
+  try { items = JSON.parse(r.items) } catch { /* ข้อมูลเสีย = ว่าง */ }
+  return { id: r.id, name: r.name, group: r.group_name, price: r.price, gems: r.gems, items, limit: r.limit_count, period: r.limit_period, endsAt: r.ends_at, base: !!r.is_base, sort: r.sort, updatedAt: r.updated_at }
+}
+const isAdmin = async (c: any) => {
+  const user = await currentUser(c)
+  const admins = (c.env.ADMIN_DISCORD_IDS || '').split(',').map((x: string) => x.trim()).filter(Boolean)
+  return !!user && admins.includes(user.id)
+}
+const nonNeg = (v: unknown, max = 1e7) => { const n = Math.floor(Number(v) || 0); return Math.min(max, Math.max(0, n)) }
+/** ตรวจ/ทำความสะอาดข้อมูลแพ็คจากหน้าแอดมิน · คืน string = ข้อความ error */
+function cleanPack(b: any): Omit<PackRow, 'id' | 'updated_at'> | string {
+  const name = str(b?.name, 80)
+  if (!name) return 'ใส่ชื่อแพ็ค'
+  const price = Math.round(Number(b?.price) * 100) / 100
+  if (!(price > 0) || price > 100000) return 'ราคาไม่ถูกต้อง'
+  const it = b?.items ?? {}
+  const items = { rubies: nonNeg(it.rubies), chests: nonNeg(it.chests), summon: nonNeg(it.summon), raid: nonNeg(it.raid), other: str(it.other, 120) }
+  const period = PACK_PERIODS.includes(b?.period) ? b.period : 'once'
+  const endsAt = b?.endsAt == null || b.endsAt === '' ? null : Number(b.endsAt)
+  if (endsAt !== null && !Number.isFinite(endsAt)) return 'วันหมดอายุไม่ถูกต้อง'
+  return { name, group_name: str(b?.group, 80), price, gems: nonNeg(b?.gems), items: JSON.stringify(items), limit_count: Math.max(1, nonNeg(b?.limit, 999)), limit_period: period, ends_at: endsAt, is_base: b?.base ? 1 : 0, sort: nonNeg(b?.sort, 9999) }
+}
+
+app.get('/api/packs', async (c) => {
+  const now = Date.now()
+  const r = await c.env.DB.prepare('SELECT * FROM packs WHERE ends_at IS NULL OR ends_at > ? ORDER BY sort, price').bind(now).all<PackRow>()
+  c.header('Cache-Control', 'public, max-age=300')
+  return c.json({ packs: r.results.map(packOut) })
+})
+app.get('/api/admin/packs', async (c) => {
+  c.header('Cache-Control', 'no-store')
+  if (!(await isAdmin(c))) return c.json({ error: 'not found' }, 404)
+  const r = await c.env.DB.prepare('SELECT * FROM packs ORDER BY sort, price').all<PackRow>()
+  return c.json({ packs: r.results.map(packOut) })
+})
+app.post('/api/admin/packs', async (c) => {
+  if (!(await isAdmin(c))) return c.json({ error: 'not found' }, 404)
+  const p = cleanPack(await c.req.json().catch(() => null))
+  if (typeof p === 'string') return c.json({ error: p }, 400)
+  const now = Date.now(), id = randomId(10)
+  const stmts = [c.env.DB.prepare(`INSERT INTO packs (id, name, group_name, price, gems, items, limit_count, limit_period, ends_at, is_base, sort, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(id, p.name, p.group_name, p.price, p.gems, p.items, p.limit_count, p.limit_period, p.ends_at, p.is_base, p.sort, now, now)]
+  if (p.is_base) stmts.unshift(c.env.DB.prepare('UPDATE packs SET is_base = 0')) // เส้นฐานมีได้แพ็คเดียว
+  await c.env.DB.batch(stmts)
+  return c.json({ id })
+})
+app.put('/api/admin/packs/:pid', async (c) => {
+  if (!(await isAdmin(c))) return c.json({ error: 'not found' }, 404)
+  const p = cleanPack(await c.req.json().catch(() => null))
+  if (typeof p === 'string') return c.json({ error: p }, 400)
+  const pid = c.req.param('pid')
+  const stmts = [c.env.DB.prepare(`UPDATE packs SET name = ?, group_name = ?, price = ?, gems = ?, items = ?, limit_count = ?, limit_period = ?, ends_at = ?, is_base = ?, sort = ?, updated_at = ? WHERE id = ?`)
+    .bind(p.name, p.group_name, p.price, p.gems, p.items, p.limit_count, p.limit_period, p.ends_at, p.is_base, p.sort, Date.now(), pid)]
+  if (p.is_base) stmts.unshift(c.env.DB.prepare('UPDATE packs SET is_base = 0 WHERE id <> ? AND EXISTS (SELECT 1 FROM packs WHERE id = ?)').bind(pid, pid))
+  const res = await c.env.DB.batch(stmts)
+  if (!res.at(-1)?.meta.changes) return c.json({ error: 'ไม่พบแพ็ค' }, 404)
+  return c.json({ ok: true })
+})
+app.delete('/api/admin/packs/:pid', async (c) => {
+  if (!(await isAdmin(c))) return c.json({ error: 'not found' }, 404)
+  await c.env.DB.prepare('DELETE FROM packs WHERE id = ?').bind(c.req.param('pid')).run()
+  return c.json({ ok: true })
+})
+
 // ---------- ประกาศอัตโนมัติ 07:00 เวลาไทย (Cron Trigger "0 0 * * *" = 00:00 UTC) ----------
 // เวลาไทย = UTC+7 ตลอด และวันในเกมเริ่ม 07:00 ไทย = 00:00 UTC → "วันในเกม" ตรงกับวันที่ UTC พอดี
 const gameDayIndex = (ts: number) => (new Date(ts).getUTCDay() + 6) % 7 // 0 = จันทร์

@@ -663,5 +663,6 @@
  "กดค้างแล้วลากเพื่อเรียงลำดับ (#1 = แนะนำให้ใช้ก่อน)": "Press and drag to reorder (#1 = try first)",
  "ทีมแนะนำ (ใช้ก่อน)": "Recommended (try first)",
  "เรียงตามไลค์": "Sort by likes",
- "เรียงทีมแก้ตามจำนวนไลค์ (มากไปน้อย) · ลากปรับต่อเองได้": "Sort counters by likes (most first) · drag to fine-tune"
+ "เรียงทีมแก้ตามจำนวนไลค์ (มากไปน้อย) · ลากปรับต่อเองได้": "Sort counters by likes (most first) · drag to fine-tune",
+ "เช็กความคุ้มค่าแพ็ค": "Pack value checker"
 }
