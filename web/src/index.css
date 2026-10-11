@@ -258,7 +258,10 @@ a.pill:active { transform: scale(.98); }
   color: #f4d58d;
 }
 .eyebrow { color: #c9b68d; font-size: 10px; font-weight: 500; letter-spacing: .24em; }
-.gold-title { color: #f4d58d; background: linear-gradient(180deg, #fff1ce 10%, #e3bd70 80%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.gold-title { color: #f4d58d; background: linear-gradient(105deg, transparent 42%, #fffdf3e6 50%, transparent 58%) no-repeat, linear-gradient(180deg, #fff1ce 10%, #e3bd70 80%); background-size: 250% 100%, 100% 100%; background-position: 160% 0, 0 0; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  animation: gold-title-sheen 1.3s ease-in-out 500ms both; }
+/* แสงวาบวิ่งผ่านหัวข้อสีทองครั้งเดียวตอนเปิดหน้า (วนตลอดจะต้องวาดตัวหนังสือใหม่ทุกเฟรม) */
+@keyframes gold-title-sheen { from { background-position: 160% 0, 0 0; } to { background-position: -60% 0, 0 0; } }
 .landing-hero { isolation: isolate; }
 .arcane-ring {
   position: absolute;
@@ -271,12 +274,29 @@ a.pill:active { transform: scale(.98); }
   transform: translateX(-50%);
   border-radius: 50%;
   border: 1px solid #d9bd7c0f;
-  background:
-    repeating-conic-gradient(from 15deg, #e8c9860c 0deg 1deg, transparent 1deg 30deg),
-    radial-gradient(circle, #dfba7110, transparent 65%);
+  background: radial-gradient(circle, #dfba7110, transparent 65%);
   box-shadow: inset 0 0 0 22px #0c142520, inset 0 0 0 23px #d9bd7c0b;
   mask-image: linear-gradient(#000, transparent 85%);
 }
+/* วงเวทหมุนช้า ๆ (แฉก) + วงในเส้นประหมุนสวน — หมุนที่ชั้นใน หน้ากากจางด้านล่างอยู่กับที่ */
+.arcane-ring::before, .arcane-ring::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
+.arcane-ring::before { inset: 0; will-change: transform; background: repeating-conic-gradient(from 15deg, #e8c98617 0deg 1deg, transparent 1deg 30deg); animation: arcane-spin 140s linear infinite; }
+.arcane-ring::after { inset: 17%; will-change: transform; border: 1px dashed #d9bd7c33; box-shadow: 0 0 0 9px #d9bd7c08, 0 0 60px #f4d58d0d; animation: arcane-spin 90s linear infinite reverse; }
+@keyframes arcane-spin { to { rotate: 360deg; } }
+/* ละอองทองลอยขึ้นหลังหัวเว็บหน้าแรก */
+.hero-motes { position: absolute; inset: 0 0 auto; height: 520px; z-index: -1; pointer-events: none; overflow: hidden; mask-image: linear-gradient(#000 40%, transparent); }
+.hero-motes span { will-change: transform, opacity; position: absolute; bottom: -10px; width: 4px; height: 4px; border-radius: 50%; background: #ffe7a8; box-shadow: 0 0 10px 3px #f4d58d77; opacity: 0; animation: hero-mote 11s linear infinite; }
+@keyframes hero-mote { 0% { opacity: 0; transform: translate(0, 0); } 12% { opacity: .8; } 80% { opacity: .35; } 100% { opacity: 0; transform: translate(var(--drift, 0px), -500px); } }
+/* ปุ่มไลค์: พลุเล็ก ๆ ตอนกดถูกใจ */
+.like-burst { position: absolute; left: 50%; top: 50%; pointer-events: none; }
+.like-burst i { position: absolute; left: -2px; top: -2px; width: 4px; height: 4px; border-radius: 50%; background: #9fd0ff; box-shadow: 0 0 6px #7dd3fc; animation: like-burst 600ms cubic-bezier(.2, .8, .3, 1) forwards; }
+.like-burst i:nth-child(even) { background: #f4d58d; box-shadow: 0 0 6px #f4d58d; }
+@keyframes like-burst { from { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1.2); } to { opacity: 0; transform: rotate(var(--a)) translateY(-22px) scale(.3); } }
+.like-pop { animation: like-pop 380ms cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes like-pop { 40% { transform: scale(1.35) rotate(-12deg); } }
+/* มงกุฎทีมแก้ #1 */
+.crown-1 { will-change: transform; animation: crown-bob 2.8s ease-in-out infinite; }
+@keyframes crown-bob { 50% { transform: translateY(-1.5px) rotate(-6deg); } }
 .hero-crest {
   position: relative;
   display: grid;
@@ -292,6 +312,46 @@ a.pill:active { transform: scale(.98); }
 .section-divider { display: flex; align-items: center; justify-content: center; gap: 20px; color: #b6a584; font-size: 12px; }
 .section-divider::before, .section-divider::after { content: ""; width: min(20%, 130px); height: 1px; background: linear-gradient(90deg, transparent, #c9a35a66); }
 .section-divider::after { rotate: 180deg; }
+/* ป้ายรอบ Season: เติมทองตามความคืบหน้า + ประกายวิ่งผ่านเบา ๆ */
+.season-round { position: relative; overflow: hidden; isolation: isolate; background: linear-gradient(90deg, #f4d58d33 0 var(--p), transparent var(--p)); }
+.season-round::after { content: ""; position: absolute; inset: 0; z-index: -1; will-change: transform; background: linear-gradient(100deg, transparent 30%, #fff3c94d 50%, transparent 70%); transform: translateX(-120%); animation: season-shine 6s ease-in-out 1.2s infinite; }
+@keyframes season-shine { 0% { transform: translateX(-120%); } 22%, 100% { transform: translateX(120%); } }
+html[data-theme="light"] .season-round { background: linear-gradient(90deg, #c9a35a40 0 var(--p), transparent var(--p)); }
+
+/* ---------- VS: ฉากปะทะตอนเข้า + มีชีวิตตอนอยู่นิ่ง ---------- */
+.vs-mark :is(.vs-haze, .vs-letters, .vs-flare, .vs-slash, .vs-core, .vs-twinkle) { transform-box: fill-box; transform-origin: center; }
+.vs-haze { animation: vs-haze-in 700ms var(--motion-out) both; }
+.vs-haze-r { animation-delay: 80ms; }
+.vs-wave { stroke-dasharray: 1; animation: vs-wave-in 650ms cubic-bezier(.5, 0, .2, 1) 150ms both; }
+.vs-wave-l { --wave-from: 1; }
+.vs-wave-r { --wave-from: -1; }
+.vs-letters { animation: vs-slam 560ms cubic-bezier(.2, 1.4, .4, 1) 420ms both; }
+.vs-slash { animation: vs-slash-in 380ms cubic-bezier(.3, 0, .1, 1) 780ms both; }
+.vs-flare { animation: vs-burst 900ms ease-out 760ms both; }
+.vs-core { animation: vs-burst 700ms ease-out 820ms both; }
+.vs-twinkle { animation: vs-burst 600ms ease-out 1s both; }
+@keyframes vs-haze-in { from { opacity: 0; transform: scale(.6); } }
+@keyframes vs-wave-in { from { stroke-dashoffset: var(--wave-from); opacity: 0; } 30% { opacity: 1; } to { stroke-dashoffset: 0; } }
+@keyframes vs-slam { 0% { opacity: 0; transform: scale(1.9); filter: brightness(2.2); } 55% { opacity: 1; filter: brightness(1.6); } 100% { transform: none; filter: none; } }
+@keyframes vs-slash-in { from { opacity: 0; transform: translate(14%, -18%) scale(.4); } 60% { opacity: 1; } to { transform: none; } }
+@keyframes vs-burst { 0% { opacity: 0; transform: scale(.2); } 35% { opacity: 1; transform: scale(1.35); } 100% { transform: none; } }
+/* ตอนอยู่เฉย ๆ: แสงหายใจ + ดาวระยิบ เป็นชั้น HTML แยก (เลื่อน/จางด้วย GPU ล้วน) — แอนิเมชันวนในตัว SVG ทำให้คำนวณเลย์เอาต์ใหม่ทุกเฟรม */
+.vs-glow { position: absolute; left: 50%; top: 50%; width: 46%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; z-index: 1;
+  background: radial-gradient(circle, #fff3c455, #ffcf5a22 45%, transparent 70%); mix-blend-mode: screen; opacity: 0; will-change: transform, opacity;
+  animation: vs-glow 3.4s ease-in-out 1.8s infinite; }
+@keyframes vs-glow { 0%, 100% { opacity: .35; transform: scale(.9); } 50% { opacity: .9; transform: scale(1.08); } }
+.vs-stars { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.vs-stars i { position: absolute; width: 6px; height: 6px; translate: -50% -50%; opacity: 0; will-change: transform, opacity;
+  background: radial-gradient(circle, #fff7d6 0 30%, transparent 70%); animation: vs-twinkle 2.8s ease-in-out infinite; }
+@keyframes vs-twinkle { 0%, 100% { opacity: 0; transform: scale(.4); } 50% { opacity: .95; transform: scale(1.3); } }
+/* ประกายไฟ */
+.vs-embers { position: absolute; inset: 8% 0; pointer-events: none; overflow: hidden; z-index: -1; }
+.vs-embers span { position: absolute; bottom: 0; width: 4px; height: 4px; border-radius: 50%; opacity: 0; will-change: transform, opacity; animation: vs-ember 5s ease-in infinite; }
+.vs-embers .ember-b { background: #8fc3ff; box-shadow: 0 0 6px 2px #3988ffaa; }
+.vs-embers .ember-r { background: #ff9fb1; box-shadow: 0 0 6px 2px #f13b65aa; }
+@keyframes vs-ember { 0% { opacity: 0; transform: translate(0, 0) scale(.6); } 15% { opacity: .9; } 70% { opacity: .5; } 100% { opacity: 0; transform: translate(var(--drift, 0px), -150px) scale(.2); } }
+html[data-theme="light"] .vs-embers .ember-b { background: #3a7fe0; box-shadow: 0 0 5px 1px #3988ff66; }
+html[data-theme="light"] .vs-embers .ember-r { background: #e0405f; box-shadow: 0 0 5px 1px #f13b6566; }
 .vs-arena { isolation: isolate; }
 .vs-arena::before {
   content: "";
@@ -552,7 +612,7 @@ html[data-theme="light"] .guild-banner {
   box-shadow: inset 0 1px 0 #ffffff, 0 1px 2px #322e281a, 0 10px 26px #322e2820;
 }
 html[data-theme="light"] .eyebrow { color: #7d6a42; }
-html[data-theme="light"] .gold-title { color: #a8690a; background: linear-gradient(180deg, #d19a36 10%, #8a5400 85%); background-clip: text; -webkit-background-clip: text; }
+html[data-theme="light"] .gold-title { color: #a8690a; background: linear-gradient(105deg, transparent 42%, #fff6dccc 50%, transparent 58%) no-repeat, linear-gradient(180deg, #d19a36 10%, #8a5400 85%); background-size: 250% 100%, 100% 100%; background-position: 160% 0, 0 0; background-clip: text; -webkit-background-clip: text; }
 html[data-theme="light"] .brand-mark, html[data-theme="light"] .hero-crest { color: #9a5f00; }
 html[data-theme="light"] .hero-crest { background: linear-gradient(140deg, #f4d58d55, #f5f5f4); box-shadow: inset 0 0 0 4px #f5f5f4, inset 0 0 0 5px #c9a35a55; }
 html[data-theme="light"] .section-divider { color: #7d6a42; }
@@ -563,11 +623,12 @@ html[data-theme="light"] .tag-accent { box-shadow: inset 0 3px 0 color-mix(in sr
 .vs-arena > :not(.vs-mid) { position: relative; z-index: 1; }
 html[data-theme="light"] .vs-arena::before { background: radial-gradient(ellipse at 15% 40%, #3672db14, transparent 50%), radial-gradient(ellipse at 85% 60%, #db456812, transparent 50%); }
 /* วงเวทหน้าแรก: แฉกทอง (conic) บนพื้นสว่างต้องเข้มกว่าโหมดมืด ไม่งั้นมองไม่เห็น */
+html[data-theme="light"] .arcane-ring::before { background: repeating-conic-gradient(from 15deg, #a0781f2e 0deg 1deg, transparent 1deg 30deg); }
+html[data-theme="light"] .arcane-ring::after { border-color: #a0781f40; box-shadow: 0 0 0 9px #a0781f0d; }
+html[data-theme="light"] .hero-motes span { background: #c99a3a; box-shadow: 0 0 6px 1px #c99a3a55; }
 html[data-theme="light"] .arcane-ring {
   border-color: #a0781f33;
-  background:
-    repeating-conic-gradient(from 15deg, #a0781f2e 0deg 1deg, transparent 1deg 30deg),
-    radial-gradient(circle, #c9a35a1f, transparent 65%);
+  background: radial-gradient(circle, #c9a35a1f, transparent 65%);
   box-shadow: inset 0 0 0 22px #ffffff14, inset 0 0 0 23px #a0781f26;
 }
 

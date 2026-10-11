@@ -18,7 +18,14 @@ export default function SeasonBanner({ season: dates, schedule, now }: { season?
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2">
         <Trophy className="h-5 w-5 shrink-0 text-gold" aria-hidden="true" />
         <span className="text-xs font-semibold tracking-widest text-gold">SEASON</span>
-        {round && <span className="rounded-full border border-gold/40 px-2.5 py-0.5 text-sm font-semibold tabular-nums text-gold">{tx('รอบ')}{' '}{round.round}/{round.total}</span>}
+        {round && (
+          // ป้ายรอบ: พื้นหลังเติมทองตามความคืบหน้าของ Season (รอบ 8/18 = เติม ~44%)
+          <span className="season-round rounded-full border border-gold/40 px-2.5 py-0.5 text-sm font-semibold tabular-nums text-gold"
+            style={{ ['--p' as string]: `${Math.round((round.round / Math.max(1, round.total)) * 100)}%` }}
+            title={L(`ผ่านไป ${round.round} จาก ${round.total} รอบ`, `Round ${round.round} of ${round.total}`)}>
+            {tx('รอบ')}{' '}{round.round}/{round.total}
+          </span>
+        )}
         <strong className="text-lg tabular-nums text-gold">
           {season.phase === 'in' ? season.daysLeft === 1 ? tx('วันสุดท้าย') : L(`เหลือ ${season.daysLeft} วัน`, `${season.daysLeft} days left`) : season.phase === 'before' ? tx('รอเริ่ม Season') : tx('พักระหว่าง Season')}
         </strong>

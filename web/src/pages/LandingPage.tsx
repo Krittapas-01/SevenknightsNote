@@ -12,6 +12,13 @@ const DEMO_ALLY: Team = { front: 2, slots: ['ลูดี้ awake', null, 'ย�
 const DEMO_ENEMY: Team = { front: 2, slots: ['เดลโลนส์ awake', 'ไอลีน', null, 'วาเนสซา', null], pet: 'ยอนจี', extras: ['ยู', 'โยรัง', 'เจโอ', null], speed: 198 }
 const DEMO_SKILLS = [{ slot: 2, skill: 1 as const }, { slot: 2, skill: 2 as const }, { slot: 3, skill: 1 as const }]
 
+// ละอองทองหลังหัวเว็บ (ตำแหน่ง/จังหวะคงที่)
+const MOTES = [
+  { x: 12, d: 0, t: 11, drift: 20 }, { x: 22, d: 4.5, t: 13, drift: -16 }, { x: 31, d: 8, t: 10, drift: 12 }, { x: 40, d: 2, t: 14, drift: -10 },
+  { x: 47, d: 6.5, t: 12, drift: 18 }, { x: 55, d: 1, t: 11.5, drift: -22 }, { x: 63, d: 9, t: 13.5, drift: 14 }, { x: 71, d: 3.5, t: 10.5, drift: -12 },
+  { x: 80, d: 7, t: 12.5, drift: 16 }, { x: 88, d: 5, t: 14.5, drift: -18 }, { x: 35, d: 11, t: 12, drift: 8 }, { x: 66, d: 12.5, t: 11, drift: -8 },
+]
+
 export default function LandingPage() {
   const nav = useNavigate()
   const [name, setName] = useState('')
@@ -45,6 +52,9 @@ export default function LandingPage() {
     <div>
       <section className="landing-hero relative mx-auto pt-7 text-center sm:pt-12">
         <div className="arcane-ring" aria-hidden="true" />
+        <div className="hero-motes" aria-hidden="true">
+          {MOTES.map((m, i) => <span key={i} style={{ left: `${m.x}%`, animationDelay: `${m.d}s`, animationDuration: `${m.t}s`, ['--drift' as string]: `${m.drift}px` }} />)}
+        </div>
         <p className="eyebrow relative">SEVEN KNIGHTS RE:BIRTH</p>
         <div className="hero-crest mx-auto mt-6" aria-hidden="true"><Swords className="h-7 w-7" strokeWidth={1.3} /></div>
         <h1 className="relative mt-5 text-[2.65rem] font-extrabold leading-[1.15] sm:text-7xl">

@@ -1,4 +1,4 @@
-import { ChevronLeft, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, ThumbsUp, Trash2, Undo2, X } from 'lucide-react'
+import { ChevronLeft, Crown, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, ThumbsUp, Trash2, Undo2, X } from 'lucide-react'
 import { isMainTag, tagColor, tagStyle, tagText } from '../lib/tags'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -454,6 +454,12 @@ export default function TargetPage() {
                     : 'text-white/70 hover:bg-white/10 disabled:hover:bg-transparent'
                 }`}
               >
+                {i === 0 && counters.length > 1 && (
+                  // ขยับที่ span (HTML) ไม่ใช่ที่ svg — แอนิเมชันบน svg ไม่ได้ใช้ GPU ทำให้หน้าเว็บคำนวณใหม่ทุกเฟรม
+                  <span className="crown-1 -mt-0.5 mr-1 inline-block align-middle" aria-hidden title={tx('ทีมแนะนำ (ใช้ก่อน)')}>
+                    <Crown className={`h-3.5 w-3.5 ${i === Math.min(sel, counters.length - 1) && !(editingC && !cDraft.id) ? 'text-ink' : 'text-gold'}`} fill="currentColor" />
+                  </span>
+                )}
                 {tx('ทีมแก้ #')}{i + 1}
                 {!!c.likes && (
                   <span className={`ml-1.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-px align-middle text-xs font-bold tabular-nums ${
