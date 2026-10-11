@@ -13,6 +13,7 @@ import type { HeroNote } from '../lib/types'
 import type { HeroStats } from '../lib/stats'
 import { getUnit, unitLabel } from '../data/heroes'
 import { tx, L } from '../lib/i18n'
+import { motionOK, useTeamMotion } from '../lib/teamMotion'
 
 const getName = (id: string) => unitLabel(id)
 
@@ -204,6 +205,25 @@ export default function TeamPanel({
   /** ลำดับการใช้สกิลของช่องนี้ เช่น [1, 3] */
   const queueOf = (slot: number) => skills.map((s, i) => ({ n: i + 1, skill: s.skill, slot: s.slot })).filter((q) => q.slot === slot)
   const lit = Math.min(skills.length, MAX_SKILL_QUEUE)
+  // แอนิเมชันตอนแก้ทีม: ใส่ตัว = เด้งเข้า · ย้าย/สลับ/เปลี่ยนรูปแบบ = เลื่อนไปที่ใหม่ · ตั้งลำดับสกิล = ป้ายเด้ง
+  const rootRef = useRef<HTMLDivElement>(null)
+  useTeamMotion(rootRef, `${team.front}|${team.slots.join(',')}|${team.pet}|${team.extras.join(',')}|${skills.map((q) => `${q.slot}.${q.skill}`).join(',')}`, active)
+  // เพิ่งกดแก้ (การ์ดเดิมกลายเป็นแก้ได้): การ์ดเด้งรับนิด ๆ + ขอบทองวาบ ให้รู้ว่าแก้ตรงนี้
+  const wasActive = useRef(active)
+  useEffect(() => {
+    if (active && !wasActive.current && motionOK()) {
+      const el = rootRef.current
+      if (el) {
+        const base = getComputedStyle(el).boxShadow
+        const keep = base && base !== 'none' ? `${base}, ` : ''
+        el.animate(
+          [{ transform: 'scale(.97)', boxShadow: `${keep}0 0 0 0 #f4d58d00, 0 0 0 0 #f4d58d00` }, { transform: 'scale(1.01)', boxShadow: `${keep}0 0 0 3px #f4d58d99, 0 0 24px 2px #f4d58d44`, offset: 0.45 }, { transform: 'none', boxShadow: `${keep}0 0 0 0 #f4d58d00, 0 0 0 0 #f4d58d00` }],
+          { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' },
+        )
+      }
+    }
+    wasActive.current = active
+  }, [active])
   const hasExtras = team.extras.some(Boolean)
   const isSm = size === 'sm'
 
@@ -217,6 +237,7 @@ export default function TeamPanel({
 
   return (
     <div
+      ref={rootRef}
       style={style}
       data-tour-editing={active ? '' : undefined}
       onPointerDown={() => active && hub?.setFocused(panelId)}
@@ -284,6 +305,7 @@ export default function TeamPanel({
                     inspectable={!active && heroNotes !== undefined && !!team.slots[i]}
                     onClick={() => active ? clickSlot(r) : setDetailHero(team.slots[i])}
                     queue={queueOf(i)}
+                    slotIndex={i}
                     side="left" // ป้ายลำดับสกิลอยู่ซ้ายเสมอ ทั้งทีมเราและทีมศัตรู
                     small={isSm}
                   />
@@ -307,9 +329,9 @@ export default function TeamPanel({
               title={tx('สัตว์เลี้ยง')}
             >
               {team.pet ? (
-                <UnitCard id={team.pet} shape="pet" small={isSm} />
+                <span data-mp={`hero:pet:${team.pet}`} className="block h-full w-full"><UnitCard id={team.pet} shape="pet" small={isSm} /></span>
               ) : (
-                <div className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
+                <div data-mp="empty:pet" className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
                   <PawPrint className="absolute h-[55%] w-[55%] text-white/15" />
                   {active && <Plus className="relative h-[45%] w-[45%] text-white drop-shadow" strokeWidth={3} />}
                 </div>
@@ -326,7 +348,7 @@ export default function TeamPanel({
             className="orb mt-1.5 grid place-items-center"
             style={{ width: 'var(--s)', height: 'var(--s)' }}
           >
-            <FormationStars front={team.front} />
+            <span data-mp={`orb:f${team.front}`} className="absolute inset-0"><FormationStars front={team.front} /></span>
             <span className="absolute -bottom-1.5 rounded-full bg-black/70 px-1.5 text-[10px] leading-4 text-white/85">{formationName(team.front)}</span>
           </button>
 
@@ -339,7 +361,7 @@ export default function TeamPanel({
             className="orb mt-4 grid place-items-center"
             style={{ width: 'var(--s)', height: 'var(--s)' }}
           >
-            <QueueStars lit={lit} />
+            <span data-mp={`orb:q${lit}`} className="absolute inset-0"><QueueStars lit={lit} /></span>
           </button>
         </div>
       </div>
@@ -362,9 +384,9 @@ export default function TeamPanel({
                   style={{ fontSize: isSm ? 8 : 9 }}
                 >
                   {x ? (
-                    <UnitCard id={x} shape="round" small />
+                    <span data-mp={`hero:x${i}:${x}`} className="block h-full w-full"><UnitCard id={x} shape="round" small /></span>
                   ) : (
-                    <div className="round-slot grid h-full w-full place-items-center">
+                    <div data-mp={`empty:x${i}`} className="round-slot grid h-full w-full place-items-center">
                       {active && <Plus className="h-[50%] w-[50%] text-white/70" strokeWidth={3} />}
                     </div>
                   )}
@@ -418,8 +440,10 @@ function DnDSlot({ id, enabled, filled, selected, round, kind, children }: { id:
   )
 }
 
-function HeroSlot({ id, editable, inspectable, onClick, queue, side, small }: {
+function HeroSlot({ id, editable, inspectable, onClick, queue, side, small, slotIndex }: {
   id: string | null
+  /** ลำดับช่อง (คีย์แอนิเมชันของช่องว่าง) */
+  slotIndex?: number
   editable: boolean
   inspectable?: boolean
   onClick: () => void
@@ -437,14 +461,14 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side, small }: {
   const badge = (nums: number[], pos: string, label: string) => (
     <span className={`pointer-events-none absolute ${pos} z-10 flex gap-0.5`} title={L(`${label} ลำดับ ${nums.join(', ')}`, `${label} order ${nums.join(', ')}`)}>
       {nums.map((n) => (
-        <span key={n} className="grid h-[18px] w-[18px] place-items-center rounded-full border border-white/90 text-[11px] font-bold leading-none shadow-[0_1px_3px_rgba(0,0,0,.6)]" style={queueStyle(n)}>
+        <span key={n} data-mp={`badge:${id}:${label}:${n}`} className="grid h-[18px] w-[18px] place-items-center rounded-full border border-white/90 text-[11px] font-bold leading-none shadow-[0_1px_3px_rgba(0,0,0,.6)]" style={queueStyle(n)}>
           {n}
         </span>
       ))}
     </span>
   )
   return (
-    <div className="relative" style={{ width: 'var(--s)', height: 'var(--s)', fontSize: 'calc(var(--s) * 0.22)' }}>
+    <div className="relative" data-m={id ? `h:${id}` : undefined} style={{ width: 'var(--s)', height: 'var(--s)', fontSize: 'calc(var(--s) * 0.22)' }}>
       <button type="button" disabled={!editable && !inspectable} onClick={onClick}
         aria-label={inspectable && id ? L(`ดูรายละเอียด ${getName(id)}`, `View details of ${getName(id)}`) : undefined}
         style={{ borderRadius: UNIT_SLOT_RADIUS }}
@@ -452,7 +476,7 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side, small }: {
         {id ? (
           <UnitCard id={id} small={small} />
         ) : (
-          <div className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
+          <div data-mp={`empty:${slotIndex}`} className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
             {editable && <Plus className="h-[45%] w-[45%] text-white drop-shadow" strokeWidth={3} />}
           </div>
         )}

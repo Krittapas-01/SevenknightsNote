@@ -44,6 +44,7 @@ import { useTabReorder } from '../lib/useTabReorder'
 import GuildOnboarding from '../components/GuildOnboarding'
 import { tx, L } from '../lib/i18n'
 import { useTour } from '../lib/tour'
+import { flashSaved, savedToast } from '../lib/celebrate'
 import { isDemo } from '../lib/demo'
 
 const copyNotes = (n?: HeroNote[]) => (n ?? []).map((x) => ({ ...x, sets: [...x.sets], rings: [...x.rings] }))
@@ -181,6 +182,11 @@ export default function TargetPage() {
       setBusy(false)
     }
   }
+  // บันทึกสำเร็จ: ป้าย "บันทึกแล้ว" + การ์ดที่เพิ่งบันทึกเรืองทอง (รอหน้ากลับไปโหมดดูก่อน)
+  const celebrate = (which: 'ally' | 'enemy') => {
+    savedToast()
+    window.setTimeout(() => flashSaved(document.querySelector(`[data-flash="${which}"] > .team-panel`)), 120)
+  }
   const saveTarget = () => {
     // บ้านศัตรูตั้งลำดับการใช้สกิลไม่ครบ → ถามก่อน (เช็คหลังมีตัว+สัตว์เลี้ยงแล้ว)
     const tSkills = tDraft.team.skills ?? []
@@ -203,6 +209,7 @@ export default function TargetPage() {
         await reload()
       }
       setMode('view')
+      celebrate('enemy')
     })
   }
   const deleteTarget = () => {
@@ -239,6 +246,7 @@ export default function TargetPage() {
         setSel(counters.length) // ตัวใหม่อยู่ท้ายสุด
       }
       setMode('view')
+      celebrate('ally')
     })
   }
   const deleteCounter = () => {
@@ -326,7 +334,7 @@ export default function TargetPage() {
     setCDraft((d) => ({ ...d, team: { ...clone(rightTeam), skills: undefined, speed: 0 }, skills: [] }))
   }
   const allyBlock = (
-    <div key={mode === 'view' ? `v${sel}` : 'edit'} className={`flex h-full flex-col ${mode === 'view' ? counterSlide : ''}`}>
+    <div key={mode === 'view' ? `v${sel}` : 'edit'} className={`flex h-full flex-col ${mode === 'view' ? counterSlide : editingC ? 'edit-arrive' : ''}`}>
       <p className="mb-2 text-center text-lg font-semibold text-gold">{leftTitle}</p>
       <div
         onDragOver={(e) => { if (canCopy && e.dataTransfer.types.includes(TEAM_MIME)) { e.preventDefault(); setDropOver(true) } }}
@@ -334,7 +342,7 @@ export default function TargetPage() {
         onDrop={(e) => { e.preventDefault(); setDropOver(false); if (canCopy && e.dataTransfer.types.includes(TEAM_MIME)) copyTarget() }}
         className={`flex-1 rounded-[20px] transition [&>*]:h-full ${dropOver ? 'ring-2 ring-gold ring-offset-4 ring-offset-[var(--surface-deep)]' : ''}`}
       >
-        <div className="relative [&>*]:h-full">
+        <div data-flash="ally" className="relative [&>*]:h-full">
           {allyPanel}
           {/* ยังไม่มีทีมแก้ → กดตรงกลางการ์ดเพื่อเริ่มจดทีมแก้ */}
           {canEdit && !isNew && mode === 'view' && !current && (
@@ -361,6 +369,7 @@ export default function TargetPage() {
       <div
         draggable={canCopy}
         onDragStart={(e) => { if (!canCopy) return; e.dataTransfer.setData(TEAM_MIME, '1'); e.dataTransfer.effectAllowed = 'copy' }}
+        data-flash="enemy"
         className={`flex-1 [&>*]:h-full ${canCopy ? 'cursor-grab active:cursor-grabbing' : ''}`}
       >
         {enemyPanel}
@@ -370,7 +379,7 @@ export default function TargetPage() {
 
   // ฟอร์มทีมแก้ — จอคอมวางข้างการ์ดทีมแก้ เหมือนฟอร์มบ้านศัตรู
   const counterForm = (
-    <div className="panel panel-gold flex h-full flex-col p-5">
+    <div className="edit-arrive panel panel-gold flex h-full flex-col p-5">
       {!wide && <p className="mb-3 text-sm font-semibold text-gold">{tx('รายละเอียดทีมแก้')}</p>}
       {/* บ้านศัตรูย่อ ไว้ดูเทียบตอนกำลังแก้ */}
       {heroCount(rightTeam) > 0 && (
@@ -411,7 +420,7 @@ export default function TargetPage() {
 
   // ฟอร์มบ้านศัตรู (คลัง · แท็ก · โน้ต · บันทึก) — จอคอมวางข้างคอมพ์ ไม่ต้องเลื่อนลงไปหา
   const targetForm = (
-    <div className="panel panel-enemy flex h-full flex-col p-5">
+    <div className="edit-arrive panel panel-enemy flex h-full flex-col p-5">
       {!wide && <p className="mb-3 text-sm font-semibold text-red-200">{tx('รายละเอียดบ้านศัตรู')}</p>}
       <div className="mb-4">
         <button onClick={() => setLibrary('target')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">

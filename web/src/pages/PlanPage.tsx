@@ -36,6 +36,8 @@ import { activePlanId } from '../lib/war'
 import NotFound from './NotFound'
 import { tx, L, LOCALE } from '../lib/i18n'
 import { useTour } from '../lib/tour'
+import { flashSaved, savedToast } from '../lib/celebrate'
+import SlidePillBox from '../components/SlidePillBox'
 import { isDemo } from '../lib/demo'
 import { useSlideDir } from '../lib/slide'
 import ConfirmDelete from '../components/ConfirmDelete'
@@ -154,6 +156,26 @@ export default function PlanPage() {
   const [exitAsk, setExitAsk] = useState(false)
   const [wiz, setWiz] = useState<{ s: number; step: 1 | 2 | 3; snap: WarSlot; isNew: boolean; skillOk?: boolean; vsSkillOk?: boolean } | null>(null)
   useEffect(() => { if (!editing) setWiz(null) }, [editing])
+  // หน้าต่างตั้งไม้: เปลี่ยนขั้น = เนื้อหาเลื่อนเข้าตามทิศ
+  const wizSlide = useSlideDir(wiz ? wiz.step : 0)
+  // ปิดหน้าต่างตั้งไม้ (เสร็จ) แล้วไม้นั้นเปลี่ยน → การ์ดไม้เรืองทองให้เห็นว่าแก้ตรงไหน
+  const prevWiz = useRef(wiz)
+  useEffect(() => {
+    const p = prevWiz.current
+    prevWiz.current = wiz
+    if (!p || wiz) return
+    if (JSON.stringify(draft.slots[p.s]) === JSON.stringify(p.snap)) return
+    window.setTimeout(() => flashSaved(document.querySelector(`#slot-${p.s} .panel`)), 80)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wiz])
+  // ไม้หลายบ้าน: สลับบ้าน = เนื้อหาเลื่อนเข้าตามทิศ (จำบ้านล่าสุดของแต่ละไม้)
+  const houseDirs = useRef(new Map<number, { h: number; dir: string }>())
+  const houseDir = (s: number, h: number) => {
+    const m = houseDirs.current.get(s)
+    if (!m) { houseDirs.current.set(s, { h, dir: '' }); return '' }
+    if (m.h !== h) { m.dir = h > m.h ? 'slide-in-r' : 'slide-in-l'; m.h = h }
+    return m.dir
+  }
   useEffect(() => {
     if (!wiz) return
     const prev = document.body.style.overflow
@@ -448,6 +470,7 @@ export default function PlanPage() {
         await reload()
       }
       setEditing(false)
+      savedToast()
       rememberNotes(body.data.slots.flatMap((x) => x.options.flatMap((o) => o.heroNotes ?? []))) // จำค่าความสามารถล่าสุดของเครื่องนี้
       const askLog = items.length ? () => setLogAsk({ items, planId, body, picked: items.map(() => true) }) : null
       const sync = findSyncItems(body.data, data?.targets ?? [], isNew ? undefined : data?.plans.find((p) => p.id === pid)?.data)
@@ -640,7 +663,7 @@ export default function PlanPage() {
       // หน้าต่างกลางจอ (ไม่เต็มจอ) — พื้นหลังมืด ล็อกจนกด เสร็จ/ยกเลิก · pb เผื่อแถบอัศวินด้านล่าง
       // ขนาดหน้าต่างคงที่ทุกขั้น (ไม่ยืด/หดตอนเปลี่ยนขั้น) — เนื้อหาเลื่อนข้างใน
       // กดพื้นหลังนอกกรอบ = ยกเลิก (เหมือนกด "ยกเลิก") — ถ้าแถบอัศวินเปิดอยู่ ครั้งนั้นแค่ปิดแถบ/ยกเลิกช่องที่เลือก
-      <div className="fixed inset-0 z-[45] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true"
+      <div className="wiz-backdrop fixed inset-0 z-[45] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true"
         onPointerDown={(e) => { backdropDown.current = e.target === e.currentTarget && !document.querySelector('.hero-dock') }}
         onClick={(e) => {
           if (e.target === e.currentTarget && backdropDown.current) {
@@ -652,25 +675,28 @@ export default function PlanPage() {
         }}>
         <DockAware>{(dockOpen) => (
         // แถบอัศวินเปิด → หดหน้าต่างให้อยู่เหนือแถบ (ปุ่มล่างไม่โดนบัง)
-        <div className={`panel panel-gold flex max-h-[920px] w-full max-w-6xl flex-col ${dockOpen ? 'mb-auto h-[calc(100dvh-15rem)]' : 'h-[calc(100dvh-1.5rem)] sm:h-[calc(100dvh-3rem)]'}`}>
+        <div className={`wiz-arrive panel panel-gold flex max-h-[920px] w-full max-w-6xl flex-col ${dockOpen ? 'mb-auto h-[calc(100dvh-15rem)]' : 'h-[calc(100dvh-1.5rem)] sm:h-[calc(100dvh-3rem)]'}`}>
         <div className="shrink-0 rounded-t-[18px] border-b border-white/10 bg-[var(--surface-wiz)]/95">
           <div className="flex flex-wrap items-center gap-3 px-4 py-3">
             <span className="btn-gold rounded-lg px-3 py-1 text-sm">{tx('ไม้')}{' '}{w.s + 1}</span>
-            <div data-tour="wiz-steps" className="flex flex-wrap items-center gap-1 text-sm">
+            <SlidePillBox active={w.step} tour="wiz-steps" className="flex flex-wrap items-center gap-1 text-sm">{(item) => (
+              <>
               {STEPS.map(([n, label], i) => (
                 <Fragment key={n}>
                   {i > 0 && <span className="text-white/25">›</span>}
-                  <button type="button" disabled={!can(n)} onClick={() => (w.step === 1 && n > 1 ? leaveHouse(() => go(n)) : w.step === 2 && n === 3 ? leaveTeam(() => go(3)) : go(n))}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 ${w.step === n ? 'bg-gold font-semibold text-ink' : can(n) ? 'text-white/75 hover:bg-white/10' : 'text-white/30'}`}>
+                  <button type="button" ref={item(n)} disabled={!can(n)} onClick={() => (w.step === 1 && n > 1 ? leaveHouse(() => go(n)) : w.step === 2 && n === 3 ? leaveTeam(() => go(3)) : go(n))}
+                    className={`relative z-10 flex items-center gap-1.5 rounded-full px-3 py-1 transition-colors duration-200 ${w.step === n ? 'font-semibold text-ink' : can(n) ? 'text-white/75 hover:bg-white/10' : 'text-white/30'}`}>
                     <span className={`grid h-5 w-5 place-items-center rounded-full text-xs ${w.step === n ? 'bg-ink/20' : 'border border-current'}`}>{i + 1}</span>{label}
                   </button>
                 </Fragment>
               ))}
-            </div>
+              </>
+            )}</SlidePillBox>
           </div>
         </div>
 
         <div data-tour="wiz-body" className="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-6 pt-6">
+          <div key={w.step} className={`flex flex-1 flex-col ${wizSlide}`}>
           {w.step === 1 && (
             // ทุกอย่างกว้างเท่ากัน + จัดกลาง (ชื่อไม้ · คำอธิบาย · แท็บบ้าน · การ์ดบ้าน) ไม่ให้ซ้ายบ้างกลางบ้าง
             <div className="mx-auto my-auto w-full max-w-[400px] space-y-4 text-center">
@@ -733,6 +759,7 @@ export default function PlanPage() {
               {mainOpt && u.card(mainOpt, u.main, 'details')}
             </div>
           )}
+          </div>
         </div>
         {/* ปุ่มอยู่ล่าง (ซ้าย = ยกเลิก · ขวา = ย้อนกลับ/ถัดไป/เสร็จ) — ติดขอบล่างหน้าต่างเสมอ */}
         <div className="flex shrink-0 items-center gap-2 rounded-b-[18px] border-t border-white/10 bg-[var(--surface-wiz)]/95 px-4 py-3">
@@ -862,23 +889,23 @@ export default function PlanPage() {
     const houseTabs = (<>{/* ไม้เข้าได้หลายบ้าน: แท็บเลือกบ้าน (บ้าน 1 = บ้านหลัก) */}
               {isAtk && (editing || houses > 1) && (
                 <div className={`flex flex-wrap items-center gap-2 ${editing ? 'mb-3' : 'mb-5'}`}>
-                  <div className="pill flex flex-wrap gap-1 p-1">
+                  <SlidePillBox active={h} className="pill flex flex-wrap gap-1 p-1">{(item) => (<>
                     {Array.from({ length: houses }, (_, i) => {
                       const hv = houseView(raw, i)
                       const label = hv.vsTag ? houseLabel(hv.vsTag) : hv.vs ? teamNames(hv.vs) || L(`บ้าน ${i + 1}`, `Defense ${i + 1}`) : L(`บ้าน ${i + 1}`, `Defense ${i + 1}`)
                       return (
-                        <button key={i} type="button" onClick={() => setHouse((m) => ({ ...m, [s]: i }))}
-                          className={`max-w-[14rem] truncate rounded-full px-3 py-1 text-sm ${i === h ? 'bg-gradient-to-b from-[#fff1c9] to-[#e2bf72] font-semibold text-ink' : 'text-white/70 hover:bg-white/10'}`}>
+                        <button key={i} ref={item(i)} type="button" onClick={() => setHouse((m) => ({ ...m, [s]: i }))}
+                          className={`relative z-10 max-w-[14rem] truncate rounded-full px-3 py-1 text-sm transition-colors duration-200 ${i === h ? 'font-semibold text-ink' : 'text-white/70 hover:bg-white/10'}`}>
                           {i === 0 && '★ '}{label}
                         </button>
                       )
                     })}
                     {editing && houses < MAX_HOUSES && (
-                      <button type="button" onClick={() => addHouse(s)} className="flex items-center gap-1 rounded-full px-3 py-1 text-sm text-gold hover:bg-white/10">
+                      <button type="button" onClick={() => addHouse(s)} className="relative z-10 flex items-center gap-1 rounded-full px-3 py-1 text-sm text-gold hover:bg-white/10">
                         <Plus className="h-4 w-4" />{' '}{tx('เพิ่มบ้าน')}
                       </button>
                     )}
-                  </div>
+                  </>)}</SlidePillBox>
                   {houses > 1 && <span className="text-xs text-white/45">{tx('ทีมนี้ตีได้')}{' '}{houses}{' '}{tx('บ้าน · ★ = บ้านหลัก')}</span>}
                   {editing && houses > 1 && (
                     <span className="ml-auto flex gap-2 text-sm">
@@ -894,7 +921,8 @@ export default function PlanPage() {
                 </div>
               )}
 </>)
-    const enemy = (<div className="flex h-full flex-col">
+    const hDir = houses > 1 ? houseDir(s, h) : ''
+    const enemy = (<div key={`h${h}`} className={`flex h-full flex-col ${hDir}`}>
                     <div className="mb-4 flex min-h-8 items-center justify-center gap-2">
                       <span className="text-lg font-semibold text-red-200">{tx('บ้านที่จะตี')}</span>
                       {slot.vsTag && <span className="rounded-full px-2.5 py-0.5 text-sm font-semibold" style={tagStyle(slot.vsTag)}>{houseLabel(slot.vsTag)}</span>}
@@ -1228,7 +1256,7 @@ export default function PlanPage() {
       {/* ---------- แถบบันทึก ---------- */}
       {editing && (
         <HideWhileDock>
-        <div data-bottom-bar className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[var(--surface)]/90 backdrop-blur">
+        <div data-bottom-bar className="bar-arrive fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[var(--surface)]/90 backdrop-blur">
           <div data-tour="plan-save" className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3">
             <button disabled={busy} onClick={() => void save()} className="btn-gold px-6 py-2">{busy ? tx('กำลังบันทึก...') : tx('บันทึกแผน')}</button>
             <button disabled={busy} onClick={cancel} className="pill px-5 py-2">{tx('ยกเลิก')}</button>

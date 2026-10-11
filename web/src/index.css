@@ -494,6 +494,34 @@ body:has(.hero-dock, [data-bottom-bar]) .contact-fab { display: none; }
 @keyframes error-glow { from { box-shadow: 0 0 0 2px #f87171aa, 0 0 22px #ef444466; } to { box-shadow: 0 0 0 0 transparent; } }
 @media (prefers-reduced-motion: reduce) { .error-shake { animation: error-glow 1.2s ease-out; } }
 
+/* เข้าโหมดแก้: ฟอร์มรายละเอียดเลื่อนเข้า */
+.tag-pop { animation: tag-pop 320ms cubic-bezier(.34,1.56,.64,1); }
+@keyframes tag-pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.wiz-backdrop { animation: fade-in 220ms ease-out; }
+.wiz-arrive { animation: modal-arrive 320ms var(--motion-out); }
+.bar-arrive { animation: bar-arrive 360ms var(--motion-out); }
+@keyframes bar-arrive { from { transform: translateY(100%); } to { transform: none; } }
+.edit-arrive { animation: content-arrive 380ms var(--motion-out) 60ms backwards; }
+/* บันทึกสำเร็จ: ป้ายลอย + ประกาย (lib/celebrate.ts) */
+.saved-toast { position: fixed; left: 50%; bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 5rem)); z-index: 95; display: flex; align-items: center; gap: .5rem;
+  padding: .5rem 1.1rem .5rem .55rem; border-radius: 9999px; background: linear-gradient(to bottom, #fff1c9, #e2bf72); color: #1b1407; font-weight: 700; font-size: .95rem;
+  box-shadow: 0 10px 30px #0008, 0 0 0 1px #fff6d9 inset; pointer-events: none; translate: -50% 0; animation: saved-in 420ms cubic-bezier(.34,1.56,.64,1); }
+.saved-toast.out { animation: saved-out 380ms ease-in forwards; }
+.saved-toast-check { position: relative; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 9999px; background: #1b1407; color: #ffe39a; }
+.saved-toast-check svg path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: saved-draw 380ms 160ms ease-out forwards; }
+.saved-toast-check i { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 9999px; background: #ffd45c; opacity: 0;
+  animation: like-burst 620ms 120ms ease-out; }
+@keyframes saved-in { from { opacity: 0; transform: translateY(18px) scale(.8); } to { opacity: 1; transform: none; } }
+@keyframes saved-out { to { opacity: 0; transform: translateY(10px) scale(.95); } }
+@keyframes saved-draw { to { stroke-dashoffset: 0; } }
+/* การ์ดที่เพิ่งบันทึก/แก้: แสงทองกวาดผ่าน 1 ครั้ง (lib/celebrate.ts → flashSaved ใส่ span นี้ชั่วคราว) */
+.just-saved-sweep { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 20; overflow: hidden; }
+.just-saved-sweep::before { content: ""; position: absolute; inset: 0 -60%; will-change: transform;
+  background: linear-gradient(105deg, transparent 38%, #fff3c855 47%, #ffffff70 50%, #fff3c855 53%, transparent 62%);
+  animation: just-saved-sweep 900ms 60ms ease-out both; }
+@keyframes just-saved-sweep { from { transform: translateX(-45%); } to { transform: translateX(45%); } }
+html[data-theme="light"] .saved-toast { box-shadow: 0 10px 26px #4a3a1a44, 0 0 0 1px #fff6d9 inset; }
+
 /* ตั้งค่า → ลดแอนิเมชัน */
 html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
   animation-duration: 0.001ms !important;

@@ -1,7 +1,7 @@
-import { ChevronLeft, ChevronRight, CircleHelp, MousePointerClick, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MousePointerClick, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { closeAllTours, goStep, registerTours, startSubTour, startTour, useTourState } from '../lib/tour'
+import { closeAllTours, goStep, registerTours, startSubTour, useTourState } from '../lib/tour'
 import { TOURS } from '../lib/tours'
 import { tx, L } from '../lib/i18n'
 import { uiZoom } from '../lib/zoom'
@@ -173,18 +173,5 @@ export default function TourOverlay() {
       </div>
     </div>,
     document.body,
-  )
-}
-
-/** ปุ่ม ? บนหัวเว็บ: เล่นการสอนของหน้านี้อีกครั้ง (โผล่เฉพาะหน้าที่มีการสอน) */
-export function TourHelpButton() {
-  const { available, active } = useTourState()
-  const id = available.at(-1)
-  if (!id) return null
-  return (
-    <button type="button" data-tour="help-button" onClick={() => (active ? closeAllTours() : startTour(id))} title={tx('ดูการสอนใช้หน้านี้')} aria-label={tx('ดูการสอนใช้หน้านี้')}
-      className="mr-2 grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/20 text-white/80 hover:border-gold hover:text-gold">
-      <CircleHelp className="h-5 w-5" />
-    </button>
   )
 }

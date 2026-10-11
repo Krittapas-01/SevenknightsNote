@@ -1,5 +1,5 @@
 import { Menu } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useRef, useState } from 'react'
 import { Link, Outlet, useMatch } from 'react-router'
 import Account from './Account'
 import AnnouncementBar from './AnnouncementBar'
@@ -10,7 +10,9 @@ import ContactFab from './ContactFab'
 import { ViewerBar } from './ViewAsToggle'
 import WhatsNew, { useHasUpdate } from './WhatsNew'
 import CoachPanel from './CoachPanel'
-import TourOverlay, { TourHelpButton } from './TourOverlay'
+import TourHelpButton from './TourHelpButton'
+// ชั้นสอนใช้ + เนื้อหาการสอนทั้งหมด โหลดแยก (ไฟล์หลักเล็กลง) — การสอนเริ่มหลังหน้านิ่งอยู่แล้ว
+const TourOverlay = lazy(() => import('./TourOverlay'))
 import { isDemo } from '../lib/demo'
 import { tx } from '../lib/i18n'
 import { usePageEnter } from '../lib/motion'
@@ -64,7 +66,7 @@ export default function Layout() {
         <p className="mt-2 text-center sm:text-left">{tx('ข้อมูลและไอคอนบางส่วนจาก')}{' '}<a className="underline underline-offset-4 hover:text-gold" href="https://7katlas.com" target="_blank" rel="noreferrer">7K Atlas</a>{' '}{tx('· ขอบคุณมากครับ')}</p>
       </footer>
       <ContactFab />
-      <TourOverlay />
+      <Suspense fallback={null}><TourOverlay /></Suspense>
       {isDemo(gid) ? <CoachPanel /> : <WhatsNew />}
     </div>
   )

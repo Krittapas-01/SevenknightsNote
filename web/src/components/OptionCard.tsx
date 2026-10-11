@@ -88,7 +88,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
       <div className="mb-4 flex min-h-8 items-center gap-2">
         {attack ? (
           main ? (
-            <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold px-3 py-0.5 text-sm font-semibold text-ink shadow-[0_0_12px_rgba(244,213,141,.5)]">
+            <span className={`${editing ? 'tag-pop ' : ''}flex shrink-0 items-center gap-1 rounded-full bg-gold px-3 py-0.5 text-sm font-semibold text-ink shadow-[0_0_12px_rgba(244,213,141,.5)]`}>
               <Star className="h-3.5 w-3.5 fill-current" />{' '}{tx('ทีมหลัก')}
             </span>
           ) : editing && onMakeMain ? (

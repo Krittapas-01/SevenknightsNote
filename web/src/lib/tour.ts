@@ -45,21 +45,29 @@ export const useTourState = () => useSyncExternalStore(subscribe, () => state)
 
 let registry: Record<string, Tour> = {}
 /** ลงทะเบียนเนื้อหาการสอนทั้งหมด (เรียกครั้งเดียวจาก TourOverlay) */
-export const registerTours = (tours: Tour[]) => { registry = Object.fromEntries(tours.map((t) => [t.id, t])) }
+// เนื้อหาการสอนโหลดแยกทีหลัง → สั่งเริ่มก่อนโหลดเสร็จ = จำไว้แล้วเริ่มตอนโหลดเสร็จ
+let pending: { id: string; sub: boolean } | null = null
+export const registerTours = (tours: Tour[]) => {
+  registry = Object.fromEntries(tours.map((t) => [t.id, t]))
+  const p = pending
+  pending = null
+  if (p) (p.sub ? startSubTour : startTour)(p.id)
+}
+export const toursLoaded = () => Object.keys(registry).length > 0
 
 // การสอนที่พักไว้ระหว่างสอนหน้าต่างย่อย (กลับมาเล่นต่อที่ขั้นถัดไป)
 let stack: { tour: Tour; i: number }[] = []
 
 export function startTour(id: string) {
   const tour = registry[id]
-  if (!tour) return
+  if (!tour) { if (!toursLoaded()) pending = { id, sub: false }; return }
   stack = []
   set({ active: { tour, i: 0 } })
 }
 /** เริ่มการสอนของหน้าต่างย่อยที่เพิ่งเปิด — การสอนเดิมพักไว้ แล้วกลับมาเล่นต่อที่ขั้นถัดไป */
 export function startSubTour(id: string) {
   const tour = registry[id], a = state.active
-  if (!tour) return
+  if (!tour) { if (!toursLoaded()) pending = { id, sub: true }; return }
   if (a) stack.push({ tour: a.tour, i: a.i + 1 })
   set({ active: { tour, i: 0 } })
 }

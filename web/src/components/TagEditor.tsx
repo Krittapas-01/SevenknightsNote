@@ -23,7 +23,7 @@ export default function TagEditor({ tags, onChange, className = '' }: { tags: st
       <p className="text-sm text-white/60">{tx('แท็ก (สูงสุด')}{' '}{MAX_TAGS}) <span className={`text-xs ${tags.some(isMainTag) ? 'text-white/40' : 'font-semibold text-amber-300'}`}>{tx('· ต้องเลือกประเภท 1 อย่าง: กายภาพ / เวท / แทงก์')}</span></p>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {tags.map((t) => (
-          <span key={t} className="flex items-center gap-1 rounded-full py-0.5 pl-3 pr-1 text-sm font-semibold" style={tagStyle(t)}>
+          <span key={t} className="tag-pop flex items-center gap-1 rounded-full py-0.5 pl-3 pr-1 text-sm font-semibold" style={tagStyle(t)}>
             {tagText(t)}
             <button type="button" onClick={() => onChange(tags.filter((x) => x !== t))} className="rounded-full p-0.5 hover:bg-white/10" aria-label={L(`เอาแท็ก ${tagText(t)} ออก`, `Remove tag ${tagText(t)}`)}>
               <X className="h-3.5 w-3.5" />
