@@ -20,7 +20,6 @@ export default function SkillSkipAsk({ items, onBack, onSkip, onCancel }: { item
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-sm text-white/50">{tx('ตั้งลำดับการใช้สกิล = กดวงกลมดาวล่างสุดของการ์ด แล้วกดสกิลตามลำดับที่อยากให้ออก · ไม่ตั้งหรือตั้งไม่ครบก็ได้')}</p>
       <div className="mt-5 flex gap-2">
         <button type="button" onClick={onBack} className="btn-gold flex-1 py-2">{tx('กลับไปตั้งลำดับการใช้สกิล')}</button>
         <button type="button" onClick={onSkip} className="pill px-5 py-2">{tx('ไม่ตั้ง ไปต่อเลย')}</button>
