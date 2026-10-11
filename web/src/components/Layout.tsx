@@ -11,6 +11,7 @@ import { ViewerBar } from './ViewAsToggle'
 import WhatsNew, { useHasUpdate } from './WhatsNew'
 import CoachPanel from './CoachPanel'
 import TourHelpButton from './TourHelpButton'
+import LangButton, { LangSuggest } from './LangButton'
 // ชั้นสอนใช้ + เนื้อหาการสอนทั้งหมด โหลดแยก (ไฟล์หลักเล็กลง) — การสอนเริ่มหลังหน้านิ่งอยู่แล้ว
 const TourOverlay = lazy(() => import('./TourOverlay'))
 import { isDemo } from '../lib/demo'
@@ -41,7 +42,7 @@ export default function Layout() {
             <HeaderClock />
           </div>
           <span className="ml-auto mr-3 hidden text-xs font-medium tracking-[.2em] text-white/45 md:inline">GUILD WAR COMPANION</span>
-          <div className="ml-auto flex items-center md:ml-0"><TourHelpButton /><Account /></div>
+          <div className="ml-auto flex items-center md:ml-0"><TourHelpButton /><LangButton /><Account /></div>
         </div>
       </header>
       <SideMenu open={menuOpen} onClose={closeMenu} />
@@ -66,6 +67,7 @@ export default function Layout() {
         <p className="mt-2 text-center sm:text-left">{tx('ข้อมูลและไอคอนบางส่วนจาก')}{' '}<a className="underline underline-offset-4 hover:text-gold" href="https://7katlas.com" target="_blank" rel="noreferrer">7K Atlas</a>{' '}{tx('· ขอบคุณมากครับ')}</p>
       </footer>
       <ContactFab />
+      <LangSuggest />
       <Suspense fallback={null}><TourOverlay /></Suspense>
       {isDemo(gid) ? <CoachPanel /> : <WhatsNew />}
     </div>
