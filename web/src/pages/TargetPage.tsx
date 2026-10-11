@@ -40,6 +40,7 @@ import HelpLink from '../components/HelpLink'
 import { shakeScreen } from '../lib/shake'
 import { useMediaQuery } from '../lib/useMediaQuery'
 import { useSlideDir, useSlidePill } from '../lib/slide'
+import { useTabReorder } from '../lib/useTabReorder'
 import GuildOnboarding from '../components/GuildOnboarding'
 import { tx, L } from '../lib/i18n'
 
@@ -81,6 +82,20 @@ export default function TargetPage() {
   const [picker, setPicker] = useState<Picker>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  // เรียงลำดับทีมแก้: กดค้างที่แท็บ ทีมแก้ #n แล้วลาก (#1 = แนะนำให้ใช้ก่อน) · ลากอยู่ = แท็บที่เลือกตามไปด้วย
+  const serverCounters = target?.counters ?? []
+  const selId = useRef<string | null>(null)
+  const commitOrder = async (ids: string[]) => {
+    try {
+      await api.orderCounters(gid, tid, ids)
+      await reload()
+    } catch (e) {
+      setErr((e as Error).message)
+      reorder.cancelPreview()
+    }
+  }
+  const reorder = useTabReorder(serverCounters.map((c) => c.id), canEdit && mode === 'view', commitOrder,
+    (ids) => { const i = selId.current ? ids.indexOf(selId.current) : -1; if (i >= 0) setSel(i) })
   const [library, setLibrary] = useState<'target' | 'counter' | null>(null)
 
   useEffect(() => {
@@ -92,8 +107,12 @@ export default function TargetPage() {
   if (!isNew && !target) return <NotFound message="ไม่พบบ้านศัตรูนี้" />
   if (isNew && !canEdit) return <NotFound message="ลิงก์นี้ไม่มีสิทธิ์แก้ไข" />
 
-  const counters = target?.counters ?? []
+  const counters = reorder.order.map((id) => serverCounters.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => !!c)
   const current = counters[Math.min(sel, counters.length - 1)]
+  if (!reorder.dragId) selId.current = current?.id ?? null
+  // ไลค์มากก่อน (เท่ากัน = ลำดับเดิม) — ปุ่มลัด "เรียงตามไลค์" โชว์เมื่อมีไลค์และลำดับยังไม่ตรง
+  const byLikes = [...counters].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0)).map((c) => c.id)
+  const canSortByLikes = canEdit && counters.length > 1 && counters.some((c) => c.likes) && byLikes.join('|') !== counters.map((c) => c.id).join('|')
 
   // ---------- เริ่มแก้ไข ----------
   function editTarget() {
@@ -422,10 +441,14 @@ export default function TargetPage() {
             {counters.map((c, i) => (
               <button
                 key={c.id}
-                ref={counterPill.item(i)}
+                {...reorder.bind(c.id)}
+                ref={(el) => { counterPill.item(i)(el); reorder.bind(c.id).ref(el) }}
                 disabled={mode !== 'view'}
                 onClick={() => setSel(i)}
-                className={`relative z-10 shrink-0 rounded-full px-4 py-1.5 text-sm transition-colors sm:text-base ${
+                title={canEdit && counters.length > 1 && mode === 'view' ? tx('กดค้างแล้วลากเพื่อเรียงลำดับ (#1 = แนะนำให้ใช้ก่อน)') : undefined}
+                className={`relative z-10 shrink-0 select-none rounded-full px-4 py-1.5 text-sm transition-[color,background-color,transform,opacity] sm:text-base ${
+                  reorder.dragId === c.id ? 'scale-105 cursor-grabbing opacity-80 ring-2 ring-gold/70' : canEdit && counters.length > 1 && mode === 'view' ? 'cursor-grab' : ''
+                } ${
                   i === Math.min(sel, counters.length - 1) && !(editingC && !cDraft.id)
                     ? 'font-semibold text-ink'
                     : 'text-white/70 hover:bg-white/10 disabled:hover:bg-transparent'
@@ -462,6 +485,13 @@ export default function TargetPage() {
               </button>
             )}
           </div>
+          {canSortByLikes && (
+            <button disabled={mode !== 'view' || busy} onClick={() => void commitOrder(byLikes)}
+              title={tx('เรียงทีมแก้ตามจำนวนไลค์ (มากไปน้อย) · ลากปรับต่อเองได้')}
+              className="pill ml-2 flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-sm text-sky-200 hover:bg-white/10 disabled:opacity-40">
+              <ThumbsUp className="h-4 w-4" />{' '}{tx('เรียงตามไลค์')}
+            </button>
+          )}
           {counters.length > 1 && (
             <button disabled={mode !== 'view'} onClick={() => setShowAll(true)}
               className="pill ml-2 flex shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm text-gold hover:bg-white/10 disabled:opacity-40">

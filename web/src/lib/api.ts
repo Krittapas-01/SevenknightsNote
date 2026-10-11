@@ -113,6 +113,9 @@ export const api = {
   updateCounter: (gid: string, cid: string, body: { team: Team; skills: SkillStep[]; note: string; heroNotes?: HeroNote[] }) =>
     req(`/api/guild/${gid}/counters/${cid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
   deleteCounter: (gid: string, cid: string) => req(`/api/guild/${gid}/counters/${cid}`, { method: 'DELETE', gid }),
+  /** เรียงลำดับทีมแก้ของบ้านศัตรู (ids ครบทุกตัว #1 ก่อน) */
+  orderCounters: (gid: string, tid: string, ids: string[]) =>
+    req<{ ok: true }>(`/api/guild/${gid}/targets/${tid}/counters/order`, { method: 'PUT', body: JSON.stringify({ ids }), gid }),
 
   createPlan: (gid: string, body: { title: string; data: PlanData }) =>
     req<Plan>(`/api/guild/${gid}/plans`, { method: 'POST', body: JSON.stringify(body), gid }),

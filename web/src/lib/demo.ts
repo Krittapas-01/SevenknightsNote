@@ -86,7 +86,7 @@ export async function demoRequest(path: string, init: RequestInit = {}): Promise
     if (method === 'GET') return clone(d)
     return fail('กิลด์ทดลองลบไม่ได้')
   }
-  const [a, b, c] = seg
+  const [a, b, c, rest] = seg
   if (a === 'pulse') {
     const latest = d.announcements[0] ?? null
     const withPlan = d.announcements.find((x) => x.planId)
@@ -106,6 +106,10 @@ export async function demoRequest(path: string, init: RequestInit = {}): Promise
     const t: Target = { id: uid(), team: body.team, tags: body.tags ?? [], note: body.note ?? '', counters: [], createdAt: now, updatedAt: now }
     d.targets.unshift(t)
     out = t
+  } else if (a === 'targets' && b && c === 'counters' && rest === 'order' && method === 'PUT') {
+    const t = d.targets.find((x) => x.id === b) ?? fail('ไม่พบบ้านศัตรู')
+    const ids: string[] = body.ids ?? []
+    t.counters = ids.map((id) => t.counters.find((y) => y.id === id)).filter((y): y is Counter => !!y)
   } else if (a === 'targets' && b && c === 'counters' && method === 'POST') {
     const t = d.targets.find((x) => x.id === b) ?? fail('ไม่พบบ้านศัตรู')
     const cn: Counter = { id: uid(), targetId: b, team: body.team, skills: body.skills ?? [], note: body.note ?? '', heroNotes: body.heroNotes ?? [], likes: 0, createdAt: now, updatedAt: now }

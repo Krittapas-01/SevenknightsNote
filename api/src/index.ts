@@ -373,7 +373,8 @@ app.get('/api/guild/:id', async (c) => {
   if (c.req.query('rev') === rev) return c.json({ unchanged: true, rev })
   const [t, k, p, a, st, ap, lk] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT * FROM targets WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
-    c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY created_at ASC').bind(id),
+    // ลำดับที่หัวกิลด์เรียงไว้ก่อน (sort) · ยังไม่เคยเรียง/เพิ่มใหม่ = ต่อท้ายตามเวลาที่จด
+    c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY sort IS NULL, sort, created_at ASC').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
     c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(id),
@@ -494,6 +495,24 @@ app.post('/api/guild/:id/targets/:tid/counters', async (c) => {
     .run()
   await c.env.DB.prepare('UPDATE targets SET updated_at = ? WHERE id = ?').bind(now, tid).run()
   return c.json(toCounter({ ...row, created_at: now, updated_at: now }), 201)
+})
+
+// เรียงลำดับทีมแก้ของบ้านศัตรู 1 บ้าน: ids = id ทีมแก้ทั้งหมดของบ้านนั้นตามลำดับใหม่ (#1 ก่อน)
+app.put('/api/guild/:id/targets/:tid/counters/order', async (c) => {
+  const gid = c.req.param('id')
+  const tid = c.req.param('tid')
+  const auth = await checkKey(c, gid)
+  if (auth !== 'ok') return deny(c, auth)
+  const body = await c.req.json().catch(() => ({}))
+  const ids = Array.isArray(body.ids) ? body.ids.filter((x: unknown): x is string => typeof x === 'string') : []
+  const { results } = await c.env.DB.prepare('SELECT id FROM counters WHERE target_id = ? AND guild_id = ?').bind(tid, gid).all<{ id: string }>()
+  const have = new Set(results.map((r) => r.id))
+  // ต้องครบทุกตัวและไม่ซ้ำ (กันข้อมูลเก่าในเครื่องที่ยังไม่เห็นทีมแก้ที่คนอื่นเพิ่ม/ลบ)
+  if (ids.length !== have.size || new Set(ids).size !== ids.length || ids.some((x: string) => !have.has(x)))
+    return c.json({ error: 'รายการทีมแก้ไม่ตรงกับข้อมูลล่าสุด ลองรีเฟรชหน้าแล้วเรียงใหม่' }, 409)
+  if (ids.length) await c.env.DB.batch(ids.map((x: string, i: number) =>
+    c.env.DB.prepare('UPDATE counters SET sort = ? WHERE id = ? AND target_id = ? AND guild_id = ?').bind(i, x, tid, gid)))
+  return c.json({ ok: true })
 })
 
 app.put('/api/guild/:id/counters/:cid', async (c) => {
