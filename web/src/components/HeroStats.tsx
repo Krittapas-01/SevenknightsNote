@@ -1,7 +1,7 @@
 import { Camera, CircleHelp, ClipboardPaste, Loader2, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { HEROES, baseName, englishOf, getUnit, unitBase } from '../data/heroes'
-import { matchHeroName, type HeroCandidate } from '../lib/heroMatch'
+import { pickHero } from '../lib/heroPick'
 import { readImageText } from '../lib/ocr'
 import { STATS, fmtStat, hasStats, parseStats, type HeroStats, type StatKey, statLabel } from '../lib/stats'
 import { MAX_HEROES, type HeroNote } from '../lib/types'
@@ -66,56 +66,6 @@ export function upsertStats(notes: HeroNote[], hero: string, stats: HeroStats, e
   return [...notes, patch({ hero, text: '', sets: [], rings: [] })].slice(0, 5)
 }
 
-/** ตัดสระบน/ล่าง/วรรณยุกต์ไทย + ช่องว่าง — OCR มักอ่านพวกนี้เพี้ยน (ซอรัน → ซอร์น) */
-const thaiSkeleton = (x: string) => x.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E\s]/g, '').replace(/ช/g, 'ซ') // ช/ซ OCR สลับกันบ่อย
-
-/** ชื่อในเกมที่ต่างจากชื่อในเว็บ (ชื่อเต็ม/สะกดต่าง) — ใช้หาอัศวินจากภาพเท่านั้น */
-const OCR_ALIASES: Record<string, string[]> = {
-  'ทันจิโร่': ['คามาโดะ'],
-  'เซนอิทสึ': ['อางาซึมะ', 'เซนอิทซึ', 'เซนอิท'],
-}
-
-/** ชื่อที่ใช้จับคู่ของอัศวิน 1 ตัว: ชื่อไทย + ชื่อเต็ม/สะกดในเกม + ชื่ออังกฤษ */
-const candidate = (id: string): HeroCandidate => {
-  const base = baseName(getUnit(id)?.name ?? id)
-  const en = englishOf(id)
-  return { id, names: [base, ...(OCR_ALIASES[base] ?? []), ...(en ? [en] : [])] }
-}
-const ALL_CANDIDATES = HEROES.map((h) => candidate(h.id))
-
-/** ส่วนหัวของภาพ (ก่อนแถวโจมตี) — ชื่ออัศวินอยู่ตรงนี้ ส่วนล่างของภาพมีชื่ออัศวินตัวอื่นในคลังปนอยู่ */
-const header = (text: string) => {
-  const i = text.search(/[กภ]ายภ|เวท|[พผ]ลังโจ|attack/i)
-  return i > 0 ? text.slice(0, i) : text
-}
-
-/**
- * หาชื่ออัศวินในข้อความ (เทียบชื่ออังกฤษ/ไทย เลือกชื่อที่ยาวที่สุดที่เจอ)
- * loose = เทียบชื่อไทยแบบตัดสระ/วรรณยุกต์ (ใช้กับอัศวินในทีม) · ไม่ loose = ต้องตรงเป๊ะ (กันเตือนผิดตัว)
- */
-function detectHero(texts: string[], team: string[], loose = true) {
-  const text = texts.map(header).join('\n')
-  const t = text.toLowerCase()
-  const flat = text.replace(/\s+/g, '')
-  const skel = thaiSkeleton(text)
-  let best: { id: string; len: number } | null = null
-  const hit = (id: string, len: number) => { if (!best || len > best.len) best = { id, len } }
-  for (const id of team) {
-    const en = englishOf(id)?.toLowerCase()
-    if (en && new RegExp(`\\b${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(t)) hit(id, en.length)
-    // ชื่อไทย (ภาพเกมภาษาไทย) — ชื่อสั้นเกินไปข้าม กันไปตรงกับคำอื่นในภาพ
-    const base = baseName(getUnit(id)?.name ?? '')
-    for (const name of [base, ...(OCR_ALIASES[base] ?? [])]) {
-      const th = name.replace(/\s+/g, '')
-      if (th.length >= 3 && flat.includes(th)) hit(id, th.length)
-      else if (loose) {
-        const k = thaiSkeleton(th)
-        if (k.length >= 3 && skel.includes(k)) hit(id, k.length)
-      }
-    }
-  }
-  return (best as { id: string } | null)?.id ?? null
-}
 
 /**
  * ปุ่ม "อ่านค่าความสามารถจากรูป": เลือกรูป / วางรูป (Ctrl+V) → อ่านตัวเลข → ตรวจทาน → ใส่ให้อัศวินในทีม
@@ -204,25 +154,11 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
       setRaw(name ? `ชื่อ: ${name}\n---\n${text}` : text)
       const s = parseStats(text)
       setStats(s)
-      // 1) บรรทัดชื่อ → เทียบกับชื่ออัศวินทุกตัวแบบยอมเพี้ยน (ในทีมได้ก่อนถ้าใกล้เท่ากัน)
-      // บรรทัดชื่ออ่านพลาด (ครอปไม่โดนชื่อ เช่นภาพแคปจากหน้าจัดทีม) → ลองหาชื่อในบรรทัดก่อนแถวค่าความสามารถของภาพทั้งภาพ
-      // รับเฉพาะที่ตรงเป๊ะเมื่อตัดสระ/วรรณยุกต์ (อารส = อาริส) กันจับคำอื่นผิดเป็นชื่ออัศวิน
-      const head = header(text)
-      const exact = (m: ReturnType<typeof matchHeroName>) => (m && m.dist === 0 ? m : null)
-      const inTeam = (name ? matchHeroName(name, heroes.map(candidate)) : null) ?? exact(matchHeroName(head, heroes.map(candidate)))
-      const anyHero = (name ? matchHeroName(name, ALL_CANDIDATES) : null) ?? exact(matchHeroName(head, ALL_CANDIDATES))
-      // ชื่อสั้น (เช่น ลุค) OCR อ่านเพี้ยนไป 1 ตัวก็ตรงกับอีกตัวเป๊ะ (ซีค) → ตัวในทีมได้แต้มต่อ 1 ตัวอักษร
-      // (คนส่วนใหญ่อ่านรูปของตัวในทีมนั้นเอง · ทีมมีแค่ 3 ตัว โอกาสจับผิดตัวต่ำ)
-      // ต้องใกล้พอทั้งแบบตัดสระและแบบมีสระ (กัน ริน ในทีม ไปแย่งรูปของ รีน่า)
-      const team = inTeam ?? (name ? matchHeroName(name, heroes.map(candidate), 1) : null)
-      const byName = team && (!anyHero || anyHero.id === team.id || (team.dist <= anyHero.dist + 1 && team.raw <= anyHero.raw + 1)) ? team.id : null
-      // 2) สำรอง: หาจากข้อความทั้งภาพแบบเดิม
-      const found = byName ?? detectHero([name, text], heroes)
+      const { found, other } = pickHero(name, text, heroes)
       if (found) setHero(found)
       else {
         if (!hero && heroes[0]) setHero(heroes[0])
         // ภาพเป็นอัศวินตัวอื่นที่ไม่ได้อยู่ในคอมพ์ → เตือน (ข้อความทั้งภาพต้องตรงเป๊ะ กันเตือนผิดตัว)
-        const other = anyHero?.id ?? detectHero([text], HEROES.map((h) => h.id), false)
         if (other) { setMismatchId(other); if (canAdd) setAskAdd(true) }
         else setNoHero(true)
       }
