@@ -1,4 +1,4 @@
-import { Camera, CircleHelp, ClipboardPaste, Loader2, Plus, X } from 'lucide-react'
+import { Camera, CircleHelp, ClipboardPaste, History, Loader2, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { HEROES, baseName, englishOf, getUnit, unitBase } from '../data/heroes'
 import { pickHero } from '../lib/heroPick'
@@ -11,6 +11,7 @@ import UnitCard from './UnitCard'
 import UnitPicker from './UnitPicker'
 import StatsHelp, { helpSeen, markHelpSeen } from './StatsHelp'
 import { tourSeen, useTour } from '../lib/tour'
+import { agoText, recallNote } from '../lib/myStats'
 import { tx, L } from '../lib/i18n'
 
 /** ไอคอนค่าความสามารถแบบในเกม (จาก 7K Atlas) */
@@ -107,6 +108,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   const openImport = () => {
     setOpen(true)
     setStep('upload')
+    setRecalledAt(null)
     setHero((h) => h || heroes[0])
     // ครั้งแรก: มีการสอนแบบส่องปุ่ม (lib/tours: stats-import) แล้ว → ไม่ต้องเด้งหน้าวิธีใช้ซ้อน
     if (!helpSeen() && tourSeen('stats-import')) { setHelp(true); markHelpSeen() }
@@ -130,8 +132,12 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   // เซต/เครื่องประดับ/คำอธิบาย: เปลี่ยนตัว (หรือเปิดหน้าต่าง) = ดึงของเดิมของตัวนั้นมา
   const gear = !!notes
   const [extra, setExtra] = useState<NoteExtra>({ sets: [], rings: [], text: '' })
+  // ใช้ของเดิมที่เครื่องนี้เคยจด: ตั้งตัว + เติมค่าพร้อมกัน (effect ด้านล่างจะไม่ดึงโน้ตเดิมมาทับ)
+  const recallRef = useRef<{ hero: string; extra: NoteExtra } | null>(null)
+  const [recalledAt, setRecalledAt] = useState<number | null>(null)
   useEffect(() => {
     if (!open || !notes) return
+    if (recallRef.current && recallRef.current.hero === hero) { setExtra(recallRef.current.extra); recallRef.current = null; return }
     const n = hero ? findNote(notes, hero) : undefined
     setExtra({ sets: n?.sets ?? [], rings: n?.rings ?? [], text: n?.text ?? '' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,9 +145,27 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   const hasExtra = gear && (extra.sets.length > 0 || extra.rings.length > 0 || extra.text.trim() !== '')
   const canApply = hasStats(stats) || hasExtra
   const extraOut = gear ? extra : undefined
+  /** ตัวในทีมที่เครื่องนี้เคยจดค่าความสามารถ/อุปกรณ์ไว้ (ล่าสุดก่อน) */
+  const savedHeroes = heroes.map((h) => ({ h, saved: recallNote(h) })).filter((x): x is { h: string; saved: NonNullable<ReturnType<typeof recallNote>> } => !!x.saved)
+    .sort((a, b) => b.saved.at - a.saved.at)
+  const savedOfHero = validHero ? recallNote(hero) : null
+  function applySaved(h: string) {
+    const sv = recallNote(h)
+    if (!sv) return
+    const cur = notes ? findNote(notes, h) : undefined
+    const ex: NoteExtra = { sets: sv.note.sets ?? [], rings: sv.note.rings ?? [], text: cur?.text?.trim() ? cur.text : sv.note.text ?? '' }
+    recallRef.current = { hero: h, extra: ex }
+    if (h === hero) { setExtra(ex); recallRef.current = null }
+    setHero(h)
+    setStats({ ...(sv.note.stats ?? {}) })
+    setErr(null); setMismatchId(null); setNoHero(false); setConfirming(false)
+    setRecalledAt(sv.at)
+    setStep('details')
+  }
 
   async function run(file: Blob) {
     setOpen(true)
+    setRecalledAt(null)
     setErr(null)
     setStats({})
     setRaw('')
@@ -238,6 +262,20 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
                   : <>{tx('⚠️ ภาพนี้เป็นค่าความสามารถของ')}{' '}<b>{mismatch}</b>{' '}{tx('ซึ่งไม่ได้อยู่ในคอมพ์นี้ — เช็กว่าใช้รูปถูกตัว ก่อนกดใส่ให้')}{' '}{validHero ? nameOf(hero) : tx('อัศวินในทีม')}</>}
               </p>
             )}
+            {!details && progress === null && savedHeroes.length > 0 && (
+              <div data-tour="stats-recall" className="mt-4 rounded-xl border border-sky-300/25 bg-sky-400/5 p-3">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-sky-100"><History className="h-4 w-4" />{' '}{L('เคยจดไว้ในเครื่องนี้ — ใช้ของเดิมได้เลย ไม่ต้องแคปใหม่', 'Saved on this device — reuse it, no new screenshot needed')}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {savedHeroes.map(({ h, saved }) => (
+                    <button key={h} type="button" onClick={() => applySaved(h)}
+                      className="flex items-center gap-2 rounded-full border border-sky-300/40 py-0.5 pl-0.5 pr-3 text-sm text-sky-50 hover:border-gold hover:text-gold">
+                      <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={h} shape="round" small /></span>
+                      {unitBase(h)}{' '}<span className="text-xs text-white/45">· {agoText(saved.at)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {!details && progress === null && (
               <button type="button" onClick={() => setStep('details')}
                 className="mx-auto mt-4 block text-sm text-white/55 underline-offset-4 hover:text-gold hover:underline">
@@ -255,7 +293,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
             <label className="text-sm text-white/60">{tx('ของอัศวินตัวไหน')}</label>
             <div data-tour="stats-hero" className="mt-1 flex flex-wrap gap-2">
               {heroes.map((h) => (
-                <button key={h} type="button" onClick={() => setHero(h)}
+                <button key={h} type="button" onClick={() => { setHero(h); setRecalledAt(null) }}
                   className={`flex items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3 text-sm ${hero === h ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70'}`}>
                   <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={h} shape="round" small /></span>
                   {unitBase(h)}
@@ -275,6 +313,15 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
                 </button>
               )}
             </div>
+            {recalledAt !== null && savedOfHero && (
+              <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-sky-400/10 px-3 py-1.5 text-xs text-sky-100"><History className="h-3.5 w-3.5 shrink-0" />{' '}{L(`เติมจากที่เคยจดไว้ (${agoText(recalledAt)}) — ตรวจแล้วกดใส่ได้เลย`, `Filled from your saved data (${agoText(recalledAt)}) — check, then apply`)}</p>
+            )}
+            {recalledAt === null && savedOfHero && (
+              <button type="button" onClick={() => applySaved(hero)}
+                className="mt-2 flex items-center gap-1 rounded-full border border-sky-300/40 px-2.5 py-0.5 text-xs text-sky-100 hover:bg-sky-400/10">
+                <History className="h-3.5 w-3.5" />{' '}{L(`ใช้ของเดิมของ ${nameOf(hero)} (${agoText(savedOfHero.at)})`, `Use my saved ${nameOf(hero)} (${agoText(savedOfHero.at)})`)}
+              </button>
+            )}
             {canAdd && <p className="mt-1 text-xs text-white/40">{tx('ทีมนี้มี')}{' '}{heroes.length}/{MAX_HEROES}{' '}{tx('ตัว — เพิ่มอัศวินเข้าทีมได้จากตรงนี้')}</p>}
             <div data-tour="stats-grid" className="mt-4 grid grid-flow-row-dense grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2">
               {STATS.map((s) => (
