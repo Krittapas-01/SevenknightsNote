@@ -24,6 +24,53 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
+    id: '2026-10-11',
+    version: '1.4',
+    date: '11 ต.ค. 2026',
+    title: 'Guided Tour',
+    summary: 'การสอนใช้แบบส่องปุ่มจริง เรียงลำดับทีมแก้ แอนิเมชันทั้งเว็บ และอ่านชื่อจากรูปแม่นขึ้น',
+    sections: [
+      { kind: 'new', groups: [
+        g('การสอนใช้ (กลับมาแล้วแบบใหม่)',
+          'เข้าแต่ละหน้าครั้งแรกจะส่องปุ่มจริงแล้วอธิบายทีละขั้น: หน้ากิลด์ บ้านศัตรู การจัดทีม แผนสงคราม และอ่านค่าความสามารถจากรูป',
+          'บางขั้นให้ลองทำเอง เช่น แตะช่อง + 2 ครั้งเปิดตารางอัศวินจอใหญ่ หรือใส่รูปจริง — ทำสำเร็จแล้วไปขั้นต่อไปเอง',
+          'สอนทางลัดด้วย: แตะตัวในทีมแล้วแตะช่องอื่น = สลับ · แตะตัวในแถบ = เปลี่ยนตัว · แตะซ้ำ = เอาออก',
+          'ดูซ้ำได้ที่ปุ่ม ? บนหัวเว็บ · สอนใหม่ตั้งแต่ต้นได้ที่ ตั้งค่า → ข้อมูลในเครื่อง → การสอนใช้'),
+        g('เรียงลำดับทีมแก้',
+          'กดค้างที่แท็บ "ทีมแก้ #" แล้วลากไปวางตำแหน่งที่ต้องการ (มือถือกดค้างครู่หนึ่งก่อนลาก)',
+          'ทีมแก้ #1 มีมงกุฎ = แนะนำให้ใช้ก่อน',
+          'ปุ่ม "เรียงตามไลค์" เรียงตามจำนวน 👍 ให้ในครั้งเดียว'),
+        g('อ่านค่าความสามารถจากรูป', 'ถ้ารูปเป็นอัศวินที่ยังไม่อยู่ในทีม จะเด้งถามว่าจะเพิ่มเข้าทีมเลยไหม'),
+        g('แอนิเมชัน',
+          'เปิดหน้าไหนส่วนต่าง ๆ จะค่อย ๆ ลอยขึ้นมา · VS ปะทะกันตอนเปิดหน้า',
+          'หน้าแรกมีวงเวทหมุนและละอองทอง · กดไลค์มีประกาย · แถบ Season เติมสีทองตามรอบที่ผ่านไป',
+          'บิสกิต: เปลี่ยนรูปแบบแล้วช่องเลื่อนไปที่ใหม่แบบลื่น ๆ',
+          'ไม่ชอบหรือเครื่องช้า ปิดได้ที่ ตั้งค่า → ลดแอนิเมชัน'),
+      ] },
+      { kind: 'change', groups: [
+        g('แผนสงคราม',
+          'จอคอมเห็นการ์ดครบ 5 ไม้ในแถวเดียว ทั้งแผนบุกและแผนกัน และใช้พื้นที่ด้านข้างได้เต็มขึ้น',
+          'หน้าต่างถามลำดับการใช้สกิลกระชับขึ้น'),
+        g('หน้าตา',
+          'โหมดสว่างเปลี่ยนเป็นโทนเทาอุ่น การ์ดสว่างกว่าพื้นหลัง อ่านง่ายขึ้น',
+          'VS อยู่ใต้การ์ดทีม ไม่บังอัศวิน',
+          'เลขลำดับการใช้สกิลอยู่ซ้ายรูปอัศวินทุกที่'),
+        g('ชื่ออัศวิน', 'ไอลีนกับฮายอนร่าง awake แสดงคำว่า awake ตามตราในเกม'),
+        g('อ่านชื่ออัศวินจากรูป', 'แม่นขึ้นมาก ทั้งชื่อไทยและอังกฤษ (ชื่อไทยอ่านถูกจาก ~70% เป็น ~90%) และเลือกผิดตัวเงียบ ๆ น้อยลงมาก'),
+        g('เร็วและลื่นขึ้น',
+          'เปิดกิลด์ซ้ำ ถ้าข้อมูลไม่เปลี่ยนจะไม่โหลดใหม่ทั้งหมด · สิ่งที่คนอื่นแก้จะขึ้นภายในราว 1 นาที',
+          'ไฟล์ที่โหลดครั้งแรกเล็กลง และแอนิเมชันไม่กินเครื่องตอนเปิดหน้าทิ้งไว้'),
+        g('ข้อความสั้นลง', 'ตัดคำแนะนำที่ไม่จำเป็นออก (เช่น ตำแหน่งช่องสัตว์เลี้ยง) และเอาปุ่ม "ใช้ทั้งคอมพ์" ข้างฟอร์มทีมแก้ออก'),
+      ] },
+      { kind: 'fix', groups: [
+        g(undefined,
+          'รูปแบบบุก/ป้องกัน (4 ตัวในแถวเดียว) การ์ดทีมไม่ล้นกรอบแล้ว และอัศวินยังตัวใหญ่เท่าเดิมถ้าไม่มีสัตว์เลี้ยงสำรอง',
+          'จอคอม: หน้าแก้ทีมแก้ การ์ดทีมไม่ยืดตามโน้ตยาว ๆ จนตกไปด้านล่าง และติดอยู่บนจอตอนเลื่อน',
+          'อ่านรูป: ชื่อสั้นที่ต่างกันตัวเดียวไม่สลับกันแล้ว (เช่น ลุค ↔ ซีค)'),
+      ] },
+    ],
+  },
+  {
     id: '2026-10-10',
     version: '1.3',
     date: '10 ต.ค. 2026',
@@ -139,6 +186,43 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
+  {
+    id: '2026-10-11', version: '1.4', date: '11 Oct 2026', title: 'Guided Tour',
+    summary: 'Spotlight guides, counter ordering, animations everywhere and sharper screenshot name reading',
+    sections: [
+      { kind: 'new', groups: [
+        g('Guides (back, rebuilt)',
+          'The first time you open a page, the real buttons are highlighted and explained step by step: guild, enemy defenses, team building, war plans and reading stats from a screenshot',
+          'Some steps let you try it yourself — double-tap + for the big hero grid, or add a real screenshot — and move on once it works',
+          'Shortcuts too: tap a hero then another slot = swap · tap a hero in the bar = replace · tap again = remove',
+          'Replay with the ? button at the top · restart every guide in Settings → Local data → Guides'),
+        g('Counter order',
+          'Press and drag a "Counter #" tab to reorder (on mobile, hold a moment before dragging)',
+          'Counter #1 wears a crown = try this one first',
+          '"Sort by likes" orders them by 👍 in one tap'),
+        g('Stats from screenshot', "If the screenshot shows a hero who isn't on the team, a popup asks whether to add them"),
+        g('Animations',
+          'Page sections rise in as each page opens · the VS emblem clashes in',
+          'Landing page arcane ring and drifting gold motes · likes burst with sparkles · the Season pill fills with gold as the season goes on',
+          'Biscuit: slots glide into place when you switch formation',
+          'Not your thing or a slow device? Settings → Reduce motion'),
+      ] },
+      { kind: 'change', groups: [
+        g('War plans', 'On desktop all 5 slot cards fit in one row for attack and defense plans, using the side space', 'The skill-order prompt is shorter'),
+        g('Look & feel', 'Light mode uses a warm grey palette with cards lighter than the page', 'The VS emblem sits under the team cards instead of covering heroes', 'Skill-order badges are on the left of the hero everywhere'),
+        g('Hero names', 'Awakened Eileene and Hayeon are now labeled (Awakened), matching the in-game badge'),
+        g('Reading names from screenshots', 'Much more accurate for Thai and English names (Thai ~70% → ~90% correct) and far fewer silent wrong picks'),
+        g('Faster & smoother', "Reopening a guild skips the full reload when nothing changed · edits by others show up within about a minute", 'Smaller first download, and animations no longer cost anything while the page sits idle'),
+        g('Shorter messages', 'Removed unneeded hints (like where the pet box is) and the "use whole comp" button next to the counter form'),
+      ] },
+      { kind: 'fix', groups: [
+        g(undefined,
+          'Attack/Protective formations (four heroes in one column) no longer overflow the team card, and heroes stay full size when there are no backup pets',
+          'Desktop counter editor: the team card no longer stretches with long hero notes and stays in view while scrolling',
+          'Screenshot reading: short names one letter apart no longer get swapped (e.g. Rook ↔ Sieg)'),
+      ] },
+    ],
+  },
   {
     id: '2026-10-10', version: '1.3', date: '10 Oct 2026', title: 'Light & Words',
     summary: 'Light mode, English, new wording, card-style war plans and step-by-step slot setup',

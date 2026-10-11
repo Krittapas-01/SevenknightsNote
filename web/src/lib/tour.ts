@@ -96,7 +96,18 @@ export function useTour(id: string, when: boolean, delay = 900) {
   useEffect(() => {
     if (!when) return
     set({ available: [...state.available.filter((x) => x !== id), id] })
-    const t = !tourSeen(id) ? window.setTimeout(() => { if (!state.active && document.visibilityState === 'visible') startTour(id) }, delay) : 0
+    // เริ่มเองครั้งแรก — ถ้ามีหน้าต่างอื่นเปิดอยู่ (เช่น "มีอะไรใหม่") รอจนปิดก่อน
+    // ยกเว้นการสอนที่อยู่ "ในหน้าต่าง" เอง (หน้าต่างนั้นคือบนสุด)
+    let t = 0
+    const tryStart = () => {
+      if (state.active || tourSeen(id)) return
+      const ms = document.querySelectorAll('[data-app-modal]')
+      const top = ms[ms.length - 1]
+      const mine = !!top && !!registry[id]?.steps.some((st) => st.sel && top.querySelector(st.sel))
+      if ((top && !mine) || document.visibilityState !== 'visible') { t = window.setTimeout(tryStart, 700); return }
+      startTour(id)
+    }
+    if (!tourSeen(id)) t = window.setTimeout(tryStart, delay)
     return () => {
       clearTimeout(t)
       set({ available: state.available.filter((x) => x !== id) })
