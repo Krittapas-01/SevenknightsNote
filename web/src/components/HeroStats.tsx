@@ -10,6 +10,7 @@ import EquipmentEditor from './EquipmentEditor'
 import UnitCard from './UnitCard'
 import UnitPicker from './UnitPicker'
 import StatsHelp, { helpSeen, markHelpSeen } from './StatsHelp'
+import { tourSeen, useTour } from '../lib/tour'
 import { tx, L } from '../lib/i18n'
 
 /** ไอคอนค่าความสามารถแบบในเกม (จาก 7K Atlas) */
@@ -107,8 +108,10 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
     setOpen(true)
     setStep('upload')
     setHero((h) => h || heroes[0])
-    if (!helpSeen()) { setHelp(true); markHelpSeen() }
+    // ครั้งแรก: มีการสอนแบบส่องปุ่ม (lib/tours: stats-import) แล้ว → ไม่ต้องเด้งหน้าวิธีใช้ซ้อน
+    if (!helpSeen() && tourSeen('stats-import')) { setHelp(true); markHelpSeen() }
   }
+  useTour('stats-import', open, 600)
   const nameOf = (id: string) => unitBase(id)
   const mismatch = mismatchId ? nameOf(mismatchId) : null
   const canAdd = !!onAddHero && heroes.length < MAX_HEROES
@@ -198,11 +201,11 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
       <Modal open={open} title={tx('อ่านค่าความสามารถจากรูป')} onClose={() => setOpen(false)} wide>
         <div className={details ? 'grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]' : 'mx-auto max-w-xl'}>
           <div>
-            <button type="button" onClick={() => setHelp(true)}
+            <button type="button" data-tour="stats-help" onClick={() => setHelp(true)}
               className="mb-2 flex items-center gap-1.5 text-sm text-sky-200/80 hover:text-sky-100">
               <CircleHelp className="h-4 w-4" />{' '}{tx('วิธีใช้ / ต้องแคปหน้าไหน')}
             </button>
-            <button type="button" onClick={() => input.current?.click()}
+            <button type="button" data-tour="stats-drop" onClick={() => input.current?.click()}
               onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
               onDragLeave={() => setDragging(false)}
               onDrop={(e) => {
@@ -250,7 +253,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
 
           {details && <div>
             <label className="text-sm text-white/60">{tx('ของอัศวินตัวไหน')}</label>
-            <div className="mt-1 flex flex-wrap gap-2">
+            <div data-tour="stats-hero" className="mt-1 flex flex-wrap gap-2">
               {heroes.map((h) => (
                 <button key={h} type="button" onClick={() => setHero(h)}
                   className={`flex items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3 text-sm ${hero === h ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70'}`}>
@@ -273,7 +276,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
               )}
             </div>
             {canAdd && <p className="mt-1 text-xs text-white/40">{tx('ทีมนี้มี')}{' '}{heroes.length}/{MAX_HEROES}{' '}{tx('ตัว — เพิ่มอัศวินเข้าทีมได้จากตรงนี้')}</p>}
-            <div className="mt-4 grid grid-flow-row-dense grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2">
+            <div data-tour="stats-grid" className="mt-4 grid grid-flow-row-dense grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2">
               {STATS.map((s) => (
                 // มือถือ: คอลัมน์เดียว ชื่อค่าไม่โดนตัด · จอใหญ่: 2 คอลัมน์แบบในเกม
                 <label key={s.key} className={`${LEFT.has(s.key) ? 'sm:col-start-1' : 'sm:col-start-2'} flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2 py-1 text-sm`}>
@@ -304,7 +307,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
           </div>}
         </div>
         {details && <>
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div data-tour="stats-apply" className="mt-5 flex flex-wrap gap-2">
           {/* ภาพเป็นตัวที่ยังไม่อยู่ในทีม และทีมยังไม่ครบ → ปุ่มหลัก = เพิ่มเข้าทีมแล้วใส่ค่าความสามารถในคลิกเดียว */}
           {quickAdd && (
             <button disabled={!canApply || progress !== null}

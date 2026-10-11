@@ -21,6 +21,8 @@ export type TourStep = {
   tryHint?: string
   /** 'bottom' = กล่องอธิบายชิดล่างจอเสมอ (สิ่งที่ส่องใหญ่ เช่น หน้าต่างตาราง) */
   place?: 'bottom'
+  /** ขั้น click ที่เปิดหน้าต่างซึ่งมีการสอนของตัวเอง → สอนหน้าต่างนั้นก่อน จบแล้วกลับมาขั้นถัดไปของการสอนนี้ */
+  sub?: string
 }
 export type Tour = { id: string; steps: TourStep[] }
 
@@ -45,9 +47,31 @@ let registry: Record<string, Tour> = {}
 /** ลงทะเบียนเนื้อหาการสอนทั้งหมด (เรียกครั้งเดียวจาก TourOverlay) */
 export const registerTours = (tours: Tour[]) => { registry = Object.fromEntries(tours.map((t) => [t.id, t])) }
 
+// การสอนที่พักไว้ระหว่างสอนหน้าต่างย่อย (กลับมาเล่นต่อที่ขั้นถัดไป)
+let stack: { tour: Tour; i: number }[] = []
+
 export function startTour(id: string) {
   const tour = registry[id]
-  if (tour) set({ active: { tour, i: 0 } })
+  if (!tour) return
+  stack = []
+  set({ active: { tour, i: 0 } })
+}
+/** เริ่มการสอนของหน้าต่างย่อยที่เพิ่งเปิด — การสอนเดิมพักไว้ แล้วกลับมาเล่นต่อที่ขั้นถัดไป */
+export function startSubTour(id: string) {
+  const tour = registry[id], a = state.active
+  if (!tour) return
+  if (a) stack.push({ tour: a.tour, i: a.i + 1 })
+  set({ active: { tour, i: 0 } })
+}
+/** ปิดการสอนที่เล่นอยู่ (seen = นับว่าดูแล้ว) แล้วกลับไปเล่นการสอนที่พักไว้ต่อ (ถ้ามี) */
+function finish(seen: boolean) {
+  if (state.active && seen) markTourSeen(state.active.tour.id)
+  while (stack.length) {
+    const p = stack.pop()!
+    if (p.i < p.tour.steps.length) return set({ active: p })
+    markTourSeen(p.tour.id)
+  }
+  set({ active: null })
 }
 export function goStep(i: number) {
   const a = state.active
@@ -55,8 +79,12 @@ export function goStep(i: number) {
   if (i >= a.tour.steps.length) return endTour()
   set({ active: { tour: a.tour, i: Math.max(0, i) } })
 }
-export function endTour() {
+export function endTour() { finish(true) }
+/** ปิดการสอนทั้งหมด รวมที่พักไว้ (ปุ่ม ✕ / Esc / ข้ามทั้งหมด) */
+export function closeAllTours() {
   if (state.active) markTourSeen(state.active.tour.id)
+  for (const p of stack) markTourSeen(p.tour.id)
+  stack = []
   set({ active: null })
 }
 
@@ -73,8 +101,9 @@ export function useTour(id: string, when: boolean, delay = 900) {
       clearTimeout(t)
       set({ available: state.available.filter((x) => x !== id) })
       // ออกจากหน้า/เงื่อนไขหมด ระหว่างสอน (เช่น กดบันทึกแล้ว) → ปิดการสอนนั้น (ไม่นับว่าดูจบ — ยกเว้นเดินมาถึงครึ่งแล้ว)
+      stack = stack.filter((p) => p.tour.id !== id)
       const a = state.active
-      if (a?.tour.id === id) { if (a.i >= a.tour.steps.length / 2) markTourSeen(id); set({ active: null }) }
+      if (a?.tour.id === id) finish(a.i >= a.tour.steps.length / 2)
     }
   }, [id, when, delay])
 }

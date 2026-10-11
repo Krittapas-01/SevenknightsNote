@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, CircleHelp, MousePointerClick, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { endTour, goStep, registerTours, startTour, useTourState } from '../lib/tour'
+import { closeAllTours, goStep, registerTours, startSubTour, startTour, useTourState } from '../lib/tour'
 import { TOURS } from '../lib/tours'
 import { tx, L } from '../lib/i18n'
 import { uiZoom } from '../lib/zoom'
@@ -13,7 +13,12 @@ const PAD = 6
 const visible = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 }
 /** ขอบบนที่ใช้ได้จริง (ใต้หัวเว็บ + แถบ Season/ประกาศที่ติดด้านบน) — พิกเซลจอ */
 const safeTop = () => Math.max(0, ...[...document.querySelectorAll('[data-sticky-top]')].map((e) => e.getBoundingClientRect().bottom))
-const find = (sel: string) => [...document.querySelectorAll(sel)].find(visible) ?? null
+/** หาสิ่งที่จะส่อง — มีหน้าต่างเปิดอยู่ = นับเฉพาะของในหน้าต่างบนสุด (ของใต้หน้าต่างถูกบังอยู่ รอจนหน้าต่างปิด) */
+const find = (sel: string) => {
+  const ms = document.querySelectorAll('[data-app-modal]')
+  const top = ms[ms.length - 1]
+  return [...document.querySelectorAll(sel)].find((e) => visible(e) && (!top || top.contains(e))) ?? null
+}
 
 /** ชั้นสอนใช้: ส่องสิ่งที่สอน (ที่เหลือมืดลง) + กล่องอธิบายข้าง ๆ · อยู่ใน Layout ทุกหน้า */
 export default function TourOverlay() {
@@ -71,8 +76,8 @@ export default function TourOverlay() {
     if (!active || !step?.sel || step.action !== 'click' || !ready) return
     const el = find(step.sel)
     if (!el) return
-    const i = active.i
-    const onClick = () => window.setTimeout(() => goStep(i + 1), 350)
+    const i = active.i, sub = step.sub
+    const onClick = () => window.setTimeout(() => (sub ? startSubTour(sub) : goStep(i + 1)), 350)
     el.addEventListener('click', onClick, { once: true, capture: true })
     return () => el.removeEventListener('click', onClick, { capture: true })
   }, [active, step, ready])
@@ -95,7 +100,7 @@ export default function TourOverlay() {
     if (!active) return
     const onKey = (e: KeyboardEvent) => {
       // มีหน้าต่างเปิดอยู่ = Esc ไว้ปิดหน้าต่างนั้น ไม่ใช่ปิดการสอน
-      if (e.key === 'Escape') { if (!document.querySelector('[data-app-modal]')) endTour() }
+      if (e.key === 'Escape') { if (!document.querySelector('[data-app-modal]')) closeAllTours() }
       else if (e.key === 'ArrowRight' && step?.action !== 'click' && !step?.until) goStep(active.i + 1)
       else if (e.key === 'ArrowLeft' && active.i > 0) goStep(active.i - 1)
     }
@@ -119,7 +124,10 @@ export default function TourOverlay() {
     const below = box.top + box.height + PAD + 12
     const above = box.top - PAD - 12 - cardH
     // ใต้ → บน → (สิ่งที่ส่องสูงเกินจอ) ชิดล่างจอ
-    const top = step.place === 'bottom' ? vh - cardH - 12 : below + cardH < vh - 8 ? below : above >= safeTop() / z + 8 ? above : vh - cardH - 8
+    // ใต้ → บน → ไม่พอทั้งคู่: ชิดบนหรือชิดล่างจอ แล้วแต่ฝั่งไหนบังสิ่งที่ส่องน้อยกว่า (ต้องยังแตะสิ่งที่ส่องได้)
+    const st = safeTop() / z + 8, sb = vh - cardH - 8
+    const cover = (y: number) => Math.max(0, Math.min(y + cardH, box.top + box.height) - Math.max(y, box.top))
+    const top = step.place === 'bottom' ? vh - cardH - 12 : below + cardH < vh - 8 ? below : above >= st ? above : cover(st) < cover(sb) ? st : sb
     pos = { top, left: Math.min(vw - W - 12, Math.max(12, box.left + box.width / 2 - W / 2)) }
   } else pos = { top: Math.max(12, vh / 2 - cardH / 2), left: vw / 2 - W / 2 }
 
@@ -131,7 +139,7 @@ export default function TourOverlay() {
       <div ref={card} key={`${active.tour.id}-${active.i}`} className="tour-card panel panel-gold" style={{ top: pos.top, left: pos.left, width: W }}>
         <div className="flex items-start gap-2">
           <p className="flex-1 text-xs font-semibold tabular-nums text-gold/80">{L(`สอนใช้ · ${active.i + 1}/${n}`, `Guide · ${active.i + 1}/${n}`)}</p>
-          <button type="button" onClick={endTour} aria-label={tx('ปิดการสอน')} className="-mr-1 -mt-1 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white">
+          <button type="button" onClick={closeAllTours} aria-label={tx('ปิดการสอน')} className="-mr-1 -mt-1 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -160,7 +168,7 @@ export default function TourOverlay() {
             )}
         </div>
         {active.i === 0 && n > 1 && (
-          <button type="button" onClick={endTour} className="mt-2 text-xs text-white/45 underline-offset-2 hover:text-white/70 hover:underline">{tx('ข้ามการสอนทั้งหมด')}</button>
+          <button type="button" onClick={closeAllTours} className="mt-2 text-xs text-white/45 underline-offset-2 hover:text-white/70 hover:underline">{tx('ข้ามการสอนทั้งหมด')}</button>
         )}
       </div>
     </div>,
@@ -174,7 +182,7 @@ export function TourHelpButton() {
   const id = available.at(-1)
   if (!id) return null
   return (
-    <button type="button" data-tour="help-button" onClick={() => (active ? endTour() : startTour(id))} title={tx('ดูการสอนใช้หน้านี้')} aria-label={tx('ดูการสอนใช้หน้านี้')}
+    <button type="button" data-tour="help-button" onClick={() => (active ? closeAllTours() : startTour(id))} title={tx('ดูการสอนใช้หน้านี้')} aria-label={tx('ดูการสอนใช้หน้านี้')}
       className="mr-2 grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/20 text-white/80 hover:border-gold hover:text-gold">
       <CircleHelp className="h-5 w-5" />
     </button>
