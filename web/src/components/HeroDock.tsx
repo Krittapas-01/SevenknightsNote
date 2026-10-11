@@ -144,7 +144,7 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
           <RoundBtn title={tx('ค้นหาชื่อ')} onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
           {query && <span className="self-center text-sm text-white/60">{tx('ค้นหา: “')}{query}”</span>}
         </div>
-        <div ref={gridRef} {...gridScroll} className="cursor-grab select-none space-y-5 active:cursor-grabbing">
+        <div ref={gridRef} {...gridScroll} data-tour="hero-grid" className="cursor-grab select-none space-y-5 active:cursor-grabbing">
           {groups.map((g) => (
             <section key={g.key}>
               {g.tier && (

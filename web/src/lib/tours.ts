@@ -10,13 +10,23 @@ const s = (sel: string | undefined, title: [string, string], body: [string, stri
 
 // ใช้ร่วมกันระหว่างแก้บ้านศัตรู / แก้ทีมแก้ (ส่องเฉพาะการ์ดที่กำลังแก้)
 const E = '[data-tour-editing]'
+const visibleSel = (sel: string) => [...document.querySelectorAll(sel)].some((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 })
 const teamSteps = (who: [string, string]): TourStep[] => [
-  s(`${E} [data-tour="team-body"]`, [`ช่องอัศวินของ${who[0]}`, `${who[1]} hero slots`],
-    ['แตะช่อง + เพื่อเลือกช่องที่จะใส่ แถบอัศวินจะเด้งขึ้นมาด้านล่าง\n(แตะช่องว่าง 2 ครั้ง = เปิดตารางอัศวินทั้งหมด · แตะอัศวินในทีม 2 ครั้ง = เอาออก · ลากเพื่อสลับตำแหน่ง)',
-      'Tap a + slot to choose where a hero goes — the hero bar pops up at the bottom.\n(Double-tap an empty slot for the full grid · double-tap a hero to remove it · drag to swap.)'], { action: 'click' }),
-  s('[data-tour="hero-dock"]', ['แถบอัศวิน', 'Hero bar'],
-    ['ลากอัศวินจากตรงนี้ไปวางในช่องได้เลย · มีค้นหาชื่อ / กรองประเภท / ดูทั้งหมด และแท็บสัตว์เลี้ยง\nอัศวินที่ขึ้นว่า "ในทีม" ใช้ไปแล้ว',
-      'Drag heroes from here into a slot · search, filter by type, open the full grid, or switch to pets.\nHeroes marked "In team" are already used.'], { wait: 1200 }),
+  // ทางลัด: แตะช่องว่าง 2 ครั้ง = ตารางอัศวินจอใหญ่ (ให้ลองทำจริง)
+  s(`${E} [data-slot="hero"][data-empty]`, [`ช่องอัศวินของ${who[0]}`, `${who[1]} hero slots`],
+    ['แตะช่อง + 1 ครั้ง = เลือกช่องนั้น แถบอัศวินจะเด้งขึ้นด้านล่าง\nแตะ 2 ครั้งเร็ว ๆ = เปิดตารางอัศวินทั้งหมดแบบจอใหญ่ เลือกง่ายกว่า',
+      'Tap a + slot once to select it — the hero bar pops up at the bottom.\nDouble-tap it to open the full hero grid on a big screen — much easier to pick.'],
+    { until: () => visibleSel('[data-tour="hero-grid"]'), tryHint: L('ลองแตะช่องที่ส่องอยู่ 2 ครั้งเร็ว ๆ', 'Try it — double-tap the highlighted slot') }),
+  s('[data-app-modal]:has([data-tour="hero-grid"])', ['ตารางอัศวินทั้งหมด', 'Full hero grid'],
+    ['เรียงตามระดับ · มีค้นหาชื่อ / กรองประเภทด้านบน\nแตะตัวไหน = ใส่ช่องที่เลือกไว้ทันที แตะต่อได้เรื่อย ๆ (ใส่ช่องว่างถัดไปให้เอง) · ตัวที่ขึ้น "ในทีม" ใช้ไปแล้ว',
+      'Sorted by tier · search and filter at the top.\nTap a hero to drop it into the selected slot, keep tapping to fill the next empty ones · "In team" means already used.'],
+    { until: () => !visibleSel('[data-tour="hero-grid"]'), tryHint: L('ลองแตะอัศวินสักตัว แล้วปิดหน้าต่างนี้ (✕ หรือแตะนอกกรอบ)', 'Try it — tap a hero, then close this window (✕ or tap outside)'), place: 'bottom', wait: 800 }),
+  s('[data-tour="hero-dock"]', ['แถบอัศวินด้านล่าง', 'Hero bar'],
+    ['แตะอัศวินในแถบ = ใส่ช่องที่เลือกไว้ · ไม่ได้เลือกช่อง = ใส่ช่องว่างถัดไปให้เอง\nลากไปวางในช่องก็ได้ · ปุ่มซ้าย: ดูทั้งหมด / ค้นหา / กรอง · มีแท็บสัตว์เลี้ยง\nปุ่มลูกศรตรงกลางบน = เก็บแถบ',
+      'Tap a hero to fill the selected slot — nothing selected? It goes into the next empty one.\nYou can also drag it onto a slot · left buttons: full grid / search / filter · Pets tab.\nThe arrow on top hides the bar.'], { wait: 1200 }),
+  s(`${E} [data-slot="hero"]:not([data-empty])`, ['ทางลัดกับตัวที่อยู่ในทีม', 'Shortcuts for heroes on the team'],
+    ['แตะอัศวินในทีม 1 ครั้ง = เรืองแสง (เลือกไว้) แล้ว…\n• แตะช่องอื่น = ย้าย / สลับตำแหน่ง\n• แตะตัวในแถบด้านล่าง = เปลี่ยนเป็นตัวนั้น\n• แตะตัวเดิมซ้ำ = เอาออก\nบนคอมลากวางสลับได้เลย · มือถือกดค้างแล้วลาก',
+      'Tap a hero on the team once to select it (it glows), then…\n• tap another slot to move / swap\n• tap a hero in the bar to replace it\n• tap it again to remove it\nOn desktop just drag to swap · on mobile press and hold, then drag.'], { wait: 800 }),
   s(`${E} [data-tour="team-pet"]`, ['สัตว์เลี้ยง', 'Pet'],
     ['ทุกทีมต้องมีสัตว์เลี้ยง 1 ตัว (บันทึกไม่ได้ถ้ายังไม่เลือก) · แตะแล้วเลือกจากแท็บสัตว์เลี้ยง',
       'Every team needs one pet (you can\'t save without it) · tap it and pick from the Pets tab.']),
@@ -28,6 +38,8 @@ const teamSteps = (who: [string, string]): TourStep[] => [
       'Tap this, then tap skills in the order they should fire (up to 3).\nColored numbers on portraits show the order: red 1 · yellow 2 · green 3.']),
   s(`${E} [data-tour="team-speed"]`, ['ความเร็วทีม', 'Team speed'],
     ['ใส่ความเร็วรวมของทีม (ไม่ใส่ก็ได้) — ใช้เทียบว่าใครได้ออกก่อน', 'Total team speed (optional) — handy to compare who moves first.']),
+  s(`${E} [data-slot="extra"]`, ['สัตว์เลี้ยงสำรอง', 'Backup pets'],
+    ['วงเล็กใต้ทีม = สัตว์เลี้ยงตัวอื่นที่ใช้แทนได้ (ไม่ใส่ก็ได้)', 'Small circles under the team = other pets that also work (optional).'], { wait: 600 }),
 ]
 
 export const TOURS: Tour[] = [
@@ -53,6 +65,9 @@ export const TOURS: Tour[] = [
           'Change the edit password, get the editor link, let Discord roles edit, or delete the guild.']),
       s('[data-tour="tab-targets"]', ['ไปที่บ้านศัตรู', 'Go to enemy defenses'],
         ['เริ่มจากจดบ้านศัตรูก่อน — กดแท็บนี้', 'Start by saving enemy defenses — tap this tab.'], { action: 'click' }),
+      s('[data-tour="target-search"]', ['ค้นหาบ้านเร็ว ๆ', 'Find a defense fast'],
+        ['พิมพ์ชื่ออัศวินตัวไหนก็ได้ในบ้าน (ไทยหรืออังกฤษ) / โน้ต / แท็ก · หรือแตะแท็กเพื่อกรอง\nบ้านที่แก้ล่าสุดอยู่บนสุด · จุดเขียว = มีการแก้ใน 24 ชม.',
+          'Type any hero in the defense (Thai or English), a note or a tag · or tap a tag to filter.\nMost recently edited first · green dot = changed in the last 24h.'], { wait: 1000 }),
       s('[data-onboard="add-target"]', ['จดบ้านศัตรูบ้านแรก', 'Save your first enemy defense'],
         ['เจอบ้านใหม่ก็กดปุ่มนี้ — เข้าไปแล้วจะสอนการจัดทีมทีละขั้น', 'Tap this when you meet a new defense — the team editor tour starts inside.']),
       s('[data-tour="help-button"]', ['ดูการสอนซ้ำ', 'Replay the guide'],
@@ -80,6 +95,9 @@ export const TOURS: Tour[] = [
       s('[data-tour="vs-arena"]', ['ทีมเรา VS บ้านศัตรู', 'Your team VS the defense'],
         ['แตะอัศวินเพื่อดูอุปกรณ์/ค่าความสามารถที่จดไว้ · เลขสีบนรูป = ลำดับการใช้สกิล',
           'Tap a hero to see the gear/stats noted · colored numbers = skill order.']),
+      s('[data-tour="counter-head"]', ['ไลค์ & เก็บเป็นพรีเซต', 'Like & save as preset'],
+        ['👍 = บอกว่าทีมนี้ใช้ได้ผล (ล็อกอิน Discord) · ทีมไหนไลค์เยอะ จะมีปุ่ม "เรียงตามไลค์" ขึ้นให้กดทีเดียว\nปุ่มเก็บพรีเซต = เก็บทีมนี้ไว้ใช้เองในบ้านอื่น / แผนอื่น',
+          '👍 = this team works (Discord sign-in) · when likes pile up a "Sort by likes" button appears for one-tap ordering.\nSave as preset = keep this team for yourself to reuse on other defenses/plans.'], { wait: 800 }),
       s('[data-tour="edit-fab"]', ['แก้ไข', 'Edit'],
         ['กดปุ่มนี้เพื่อแก้ทีมแก้ เพิ่มทีมแก้ใหม่ หรือแก้บ้านศัตรู — ลองกดดู', 'Edit a counter, add a new one, or edit the defense — give it a tap.'], { action: 'click' }),
       s('[data-tour="edit-menu"]', ['เลือกสิ่งที่จะแก้', 'Pick what to edit'],
@@ -106,10 +124,11 @@ export const TOURS: Tour[] = [
         ['ทีมแก้ = ทีมที่ใช้ตีบ้านนี้ผ่าน จัดทีม ตั้งลำดับสกิล จดอุปกรณ์ แล้วบันทึก', 'A counter is a team that beat this defense: build it, set skill order, note gear, save.']),
       ...teamSteps(['ทีมแก้', 'Counter']),
       s('[data-tour="library"]', ['เลือกจากที่จดไว้', 'Pick from saved'],
-        ['ใช้ทีมแก้ที่เคยจดในบ้านอื่นซ้ำได้ ไม่ต้องจัดใหม่ (หรือพรีเซ็ตส่วนตัวข้าง ๆ)', 'Reuse a counter saved on another defense instead of rebuilding (or your personal presets next to it).']),
+        ['ใช้ทีมแก้ที่เคยจดในบ้านอื่นซ้ำได้ ไม่ต้องจัดใหม่ — กดเดียวได้ทั้งทีม ลำดับสกิล และอุปกรณ์\nปุ่มพรีเซตข้าง ๆ = ทีมที่คุณเก็บไว้เอง (ล็อกอิน Discord)',
+          'Reuse a counter saved on another defense — one tap brings the team, skill order and gear.\nThe preset button next to it = teams you saved yourself (Discord sign-in).']),
       s('[data-tour="stats-import"]', ['อ่านค่าความสามารถจากรูป', 'Read stats from a screenshot'],
-        ['แคปหน้าข้อมูลอัศวินในเกม แล้วอัปโหลด/วาง (Ctrl+V) — ระบบอ่านตัวเลขให้ ตรวจแล้วกดใส่\nถ้ารูปเป็นตัวที่ยังไม่อยู่ในทีม จะถามว่าจะเพิ่มเข้าทีมไหม',
-          'Screenshot the hero info page in game and upload/paste it (Ctrl+V) — numbers are read for you, check and apply.\nIf it\'s a hero not on the team yet, you\'ll be asked to add it.']),
+        ['แคปหน้าข้อมูลอัศวินในเกม แล้วอัปโหลด/วาง (Ctrl+V) — ระบบอ่านตัวเลขให้ ตรวจแล้วกดใส่\nถ้ารูปเป็นตัวที่ยังไม่อยู่ในทีม จะถามว่าจะเพิ่มเข้าทีมไหม\nเคยจดค่าของตัวนี้แล้ว → มีปุ่ม "ใช้ค่าความสามารถล่าสุดของฉัน" กดทีเดียวเติมให้',
+          'Screenshot the hero info page in game and upload/paste it (Ctrl+V) — numbers are read for you, check and apply.\nIf it\'s a hero not on the team yet, you\'ll be asked to add it.\nNoted this hero before? "Use my latest stats" fills it in one tap.']),
       s('[data-tour="save-actions"]', ['บันทึก', 'Save'],
         ['กดบันทึก — ถ้ายังไม่ได้ตั้งลำดับสกิลหรือความเร็ว ระบบจะถามก่อน', 'Save — if skill order or speed is missing, you\'ll be asked first.']),
     ],

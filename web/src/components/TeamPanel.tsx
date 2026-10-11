@@ -212,6 +212,7 @@ export default function TeamPanel({
     enabled: dnd,
     filled: !!valueOf(r),
     selected: selected === keyOf(r) || (!!pending && keyOf(pending) === keyOf(r)),
+    kind: r.kind,
   })
 
   return (
@@ -390,7 +391,7 @@ export default function TeamPanel({
 }
 
 /** ห่อช่องให้ลากได้ (ถ้ามีตัว) และรับการวาง (ช่องกลุ่มเดียวกัน หรือการ์ดจากแถบล่าง) */
-function DnDSlot({ id, enabled, filled, selected, round, children }: { id: string; enabled: boolean; filled: boolean; selected: boolean; round: boolean; children: ReactNode }) {
+function DnDSlot({ id, enabled, filled, selected, round, kind, children }: { id: string; enabled: boolean; filled: boolean; selected: boolean; round: boolean; kind: SlotKind; children: ReactNode }) {
   const drag = useDraggable({ id, disabled: !enabled || !filled })
   const drop = useDroppable({ id, disabled: !enabled })
   let canDrop = false
@@ -404,7 +405,7 @@ function DnDSlot({ id, enabled, filled, selected, round, children }: { id: strin
     }
   }
   return (
-    <div data-slot
+    <div data-slot={kind} data-empty={filled ? undefined : ''}
       ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el) }}
       {...(enabled && filled ? { ...drag.listeners, ...drag.attributes } : {})}
       style={!round ? { borderRadius: UNIT_SLOT_RADIUS } : undefined}

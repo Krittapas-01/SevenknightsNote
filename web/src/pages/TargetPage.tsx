@@ -620,7 +620,7 @@ export default function TargetPage() {
           <div className="grid gap-5 md:grid-cols-2">
             <div key={sel} className={`panel panel-gold p-5 ${counterSlide}`}>
               <div className="flex items-center justify-between">
-                <h3 className="flex items-center gap-2 font-semibold text-gold">
+                <h3 data-tour="counter-head" className="flex items-center gap-2 font-semibold text-gold">
                   {current ? L(`ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}`, `Counter #${Math.min(sel, counters.length - 1) + 1}`) : tx('ทีมแก้')}
                   {current && <LikeButton key={current.id} gid={gid} cid={current.id} count={current.likes ?? 0} onChanged={reload} />}
                   {current && <SavePresetButton team={current.team} skills={current.skills} note={current.note} heroNotes={current.heroNotes} className="font-normal" />}

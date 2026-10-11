@@ -77,16 +77,31 @@ export default function TourOverlay() {
     return () => el.removeEventListener('click', onClick, { capture: true })
   }, [active, step, ready])
 
+  // ขั้น "ลองทำเอง" แบบเช็กผล: ทำสำเร็จแล้วไปต่อเอง
+  useEffect(() => {
+    if (!active || !step?.until || !ready) return
+    const until = step.until, i = active.i
+    let t = 0
+    const id = window.setInterval(() => {
+      if (!until()) return
+      clearInterval(id)
+      t = window.setTimeout(() => goStep(i + 1), 400)
+    }, 200)
+    return () => { clearInterval(id); clearTimeout(t) }
+  }, [active, step, ready])
+
   // คีย์บอร์ด: Esc ปิด · ←/→ ย้อน/ถัดไป
   useEffect(() => {
     if (!active) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') endTour()
-      else if (e.key === 'ArrowRight' && step?.action !== 'click') goStep(active.i + 1)
+      // มีหน้าต่างเปิดอยู่ = Esc ไว้ปิดหน้าต่างนั้น ไม่ใช่ปิดการสอน
+      if (e.key === 'Escape') { if (!document.querySelector('[data-app-modal]')) endTour() }
+      else if (e.key === 'ArrowRight' && step?.action !== 'click' && !step?.until) goStep(active.i + 1)
       else if (e.key === 'ArrowLeft' && active.i > 0) goStep(active.i - 1)
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // capture: ต้องเช็กว่ามีหน้าต่างเปิดอยู่ "ก่อน" ที่หน้าต่างจะปิดตัวเองจากปุ่ม Esc เดียวกัน
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [active, step])
 
   useLayoutEffect(() => { if (card.current) setCardH(card.current.offsetHeight) }, [step, ready])
@@ -94,6 +109,7 @@ export default function TourOverlay() {
   if (!active || !step || !ready) return null
   const n = active.tour.steps.length
   const last = active.i === n - 1
+  const trying = step.action === 'click' || !!step.until
   const z = uiZoom()
   const vw = window.innerWidth / z, vh = window.innerHeight / z
   const W = Math.min(360, vw - 24)
@@ -103,7 +119,7 @@ export default function TourOverlay() {
     const below = box.top + box.height + PAD + 12
     const above = box.top - PAD - 12 - cardH
     // ใต้ → บน → (สิ่งที่ส่องสูงเกินจอ) ชิดล่างจอ
-    const top = below + cardH < vh - 8 ? below : above >= safeTop() / z + 8 ? above : vh - cardH - 8
+    const top = step.place === 'bottom' ? vh - cardH - 12 : below + cardH < vh - 8 ? below : above >= safeTop() / z + 8 ? above : vh - cardH - 8
     pos = { top, left: Math.min(vw - W - 12, Math.max(12, box.left + box.width / 2 - W / 2)) }
   } else pos = { top: Math.max(12, vh / 2 - cardH / 2), left: vw / 2 - W / 2 }
 
@@ -121,9 +137,9 @@ export default function TourOverlay() {
         </div>
         <h3 className="mt-1 text-base font-bold text-gold">{step.title}</h3>
         <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-white/80">{step.body}</p>
-        {step.action === 'click' && (
+        {trying && (
           <p className="tour-try mt-3 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-gold">
-            <MousePointerClick className="h-4 w-4 shrink-0" />{' '}{tx('ลองกดที่ปุ่มที่ส่องไว้ได้เลย')}
+            <MousePointerClick className="h-4 w-4 shrink-0" />{' '}{step.tryHint ?? tx('ลองกดที่ปุ่มที่ส่องไว้ได้เลย')}
           </p>
         )}
         <div className="mt-3 flex items-center gap-2">
@@ -135,7 +151,7 @@ export default function TourOverlay() {
               <ChevronLeft className="h-4 w-4" />
             </button>
           )}
-          {step.action === 'click'
+          {trying
             ? <button type="button" onClick={() => goStep(active.i + 1)} className="pill px-3 py-1 text-sm text-white/70">{tx('ข้ามขั้นนี้')}</button>
             : (
               <button type="button" onClick={() => goStep(active.i + 1)} className="btn-gold flex items-center gap-1 px-4 py-1.5 text-sm">

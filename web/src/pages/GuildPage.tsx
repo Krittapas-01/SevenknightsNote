@@ -138,7 +138,7 @@ export default function GuildPage() {
         </div>
       ) : (
         <>
-      <div className="mt-5 flex flex-wrap items-center gap-2">
+      <div data-tour="target-search" className="mt-5 flex flex-wrap items-center gap-2">
         <label className="pill flex min-w-60 flex-1 items-center gap-2 px-4 py-2">
           <Search className="h-4 w-4 text-white/50" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tx('ค้นหาชื่ออัศวิน, โน้ต, แท็ก...')} className="w-full bg-transparent outline-none placeholder:text-white/40" />
