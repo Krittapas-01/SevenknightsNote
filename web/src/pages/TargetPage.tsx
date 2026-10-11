@@ -1,4 +1,4 @@
-import { ChevronLeft, Crown, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, ThumbsUp, Trash2, Undo2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Crown, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, ThumbsUp, Trash2, Undo2, X } from 'lucide-react'
 import { isMainTag, tagColor, tagStyle, tagText } from '../lib/tags'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -43,7 +43,7 @@ import { useSlideDir, useSlidePill } from '../lib/slide'
 import { useTabReorder } from '../lib/useTabReorder'
 import GuildOnboarding from '../components/GuildOnboarding'
 import { tx, L } from '../lib/i18n'
-import { useTour } from '../lib/tour'
+import { tourSeen, useTour } from '../lib/tour'
 import { flashSaved, savedToast } from '../lib/celebrate'
 import { isDemo } from '../lib/demo'
 
@@ -88,9 +88,11 @@ export default function TargetPage() {
   // เรียงลำดับทีมแก้: กดค้างที่แท็บ ทีมแก้ #n แล้วลาก (#1 = แนะนำให้ใช้ก่อน) · ลากอยู่ = แท็บที่เลือกตามไปด้วย
   const serverCounters = target?.counters ?? []
   const selId = useRef<string | null>(null)
+  const [reordered, setReordered] = useState(false) // ใช้เช็กขั้น "ลองลากเรียง" ในการสอน
   const commitOrder = async (ids: string[]) => {
     try {
       await api.orderCounters(gid, tid, ids)
+      setReordered(true)
       await reload()
     } catch (e) {
       setErr((e as Error).message)
@@ -109,6 +111,8 @@ export default function TargetPage() {
   useTour('target-view', live && mode === 'view' && !isNew && serverCounters.length > 0)
   useTour('target-new', live && mode === 'target')
   useTour('counter-edit', live && mode === 'counter')
+  // สอนเรียงทีมแก้ (คนที่เคยดูการสอนหน้านี้ไปแล้วก็ได้เห็น) — เมื่อมีทีมแก้ 2 ทีมขึ้นไป
+  useTour('counter-order', live && mode === 'view' && !isNew && serverCounters.length > 1 && tourSeen('target-view'))
 
   if (error) return <NotFound message={error} />
   if (!data) return <p className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
@@ -452,7 +456,7 @@ export default function TargetPage() {
       {/* แถบเลือกทีมแก้ แบบปุ่มแคปซูลในเกม */}
       {!isNew && (counters.length > 0 || editingC) && (
         <div className="mt-5 flex justify-center">
-          <div ref={counterPill.box} data-tour="counter-tabs" className="scrollbar-thin pill relative flex max-w-full gap-1 overflow-x-auto p-1">
+          <div ref={counterPill.box} data-tour="counter-tabs" data-reordered={reordered || undefined} className="scrollbar-thin pill relative flex max-w-full gap-1 overflow-x-auto p-1">
             <span aria-hidden className="slide-pill" style={counterPill.pill} />
             {counters.map((c, i) => (
               <button
@@ -515,7 +519,7 @@ export default function TargetPage() {
             </button>
           )}
           {counters.length > 1 && (
-            <button disabled={mode !== 'view'} onClick={() => setShowAll(true)}
+            <button data-tour="counter-all" disabled={mode !== 'view'} onClick={() => setShowAll(true)}
               className="pill ml-2 flex shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm text-gold hover:bg-white/10 disabled:opacity-40">
               <LayoutGrid className="h-4 w-4" />{' '}{tx('ดูทั้งหมด')}
             </button>
@@ -562,7 +566,30 @@ export default function TargetPage() {
               onKeyDown={(e) => e.key === 'Enter' && (setSel(i), setShowAll(false))}
               className={`flex w-[min(340px,85vw)] shrink-0 cursor-pointer flex-col rounded-2xl border border-white/10 p-3 text-left transition hover:bg-white/5 ${i === Math.min(sel, counters.length - 1) ? 'ring-1 ring-gold/60' : ''}`}>
               <span className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-gold">{tx('ทีมแก้ #')}{i + 1}</span>
+                <span className="flex items-center gap-1 text-sm font-semibold text-gold">{i === 0 && <Crown className="h-4 w-4" />}{tx('ทีมแก้ #')}{i + 1}</span>
+                {canEdit && counters.length > 1 && (
+                  // เรียงลำดับในหน้าดูทั้งหมด: ซ้าย/ขวาทีละช่อง · มงกุฎ = ขึ้นเป็น #1 (แถวนี้ลากเพื่อเลื่อนดูอยู่แล้ว เลยใช้ปุ่มแทนการลาก)
+                  <span data-tour={i === 0 ? 'all-order' : undefined} className="ml-auto flex items-center gap-0.5" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                    {([
+                      [<ChevronLeft key="l" className="h-4 w-4" />, L('ย้ายไปทางซ้าย', 'Move left'), i - 1],
+                      [<ChevronRight key="r" className="h-4 w-4" />, L('ย้ายไปทางขวา', 'Move right'), i + 1],
+                      [<Crown key="c" className="h-4 w-4" />, L('ตั้งเป็น #1', 'Make #1'), 0],
+                    ] as const).map(([icon, label, to]) => (
+                      <button key={label} type="button" title={label} aria-label={label}
+                        disabled={busy || to < 0 || to >= counters.length || to === i}
+                        onClick={() => {
+                          const ids = counters.map((x) => x.id)
+                          const keep = current?.id
+                          ids.splice(i, 1); ids.splice(to, 0, c.id)
+                          // ทีมที่เปิดอยู่ยังเป็นทีมเดิมหลังเรียง
+                          run(async () => { await commitOrder(ids); if (keep) setSel(Math.max(0, ids.indexOf(keep))) })
+                        }}
+                        className="grid h-7 w-7 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-gold disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-white/60">
+                        {icon}
+                      </button>
+                    ))}
+                  </span>
+                )}
                 {canEdit && (
                   // กด 2 ครั้งถึงลบ กันกดพลาด
                   <button type="button" disabled={busy}

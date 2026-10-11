@@ -7,6 +7,7 @@ import Modal from './Modal'
 import { tx } from '../lib/i18n'
 
 // หน้าต่างตั้งค่าในเมนู โหลดตอนเปิดครั้งแรก (ไม่ต้องอยู่ในไฟล์หลักที่ทุกหน้าโหลด)
+import { PACKS_ON } from '../lib/packs'
 const SettingsBody = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsBody })))
 
 // เมนูหลักของเว็บ เพิ่มหน้า/เครื่องมือใหม่ที่นี่ที่เดียว
@@ -14,7 +15,7 @@ const NAV: { to: string; label: string; icon: ComponentType<{ className?: string
   { to: '/', label: tx('หน้าแรก'), icon: Home },
   { to: '/biscuit', label: tx('เช็กบัฟบิสกิต'), icon: Cookie },
   { to: '/totalwar', label: tx('คำนวณแต้มเบ็ดเสร็จ'), icon: Calculator },
-  { to: '/packs', label: tx('เช็กความคุ้มค่าแพ็ค'), icon: Gem },
+  ...(PACKS_ON ? [{ to: '/packs', label: tx('เช็กความคุ้มค่าแพ็ค'), icon: Gem }] : []),
   { to: '/favorites', label: tx('พรีเซต & ทีมที่ชอบ'), icon: ThumbsUp },
 ]
 

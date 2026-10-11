@@ -20,6 +20,7 @@ export type ChangelogEntry = {
 export const PATCH_KIND: Record<PatchKind, string> = EN
   ? { new: 'New features', change: 'Changes', fix: 'Bug fixes' }
   : { new: 'ฟีเจอร์ใหม่', change: 'การเปลี่ยนแปลง', fix: 'แก้บั๊ก' }
+import { PACKS_ON } from './packs'
 const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGroup => ({ title, items: items.map((x) => (typeof x === 'string' ? { text: x } : x)) })
 
 const CHANGELOG_TH: ChangelogEntry[] = [
@@ -31,11 +32,12 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     summary: 'การสอนใช้แบบส่องปุ่มจริง เรียงลำดับทีมแก้ แอนิเมชันทั้งเว็บ และอ่านชื่อจากรูปแม่นขึ้น',
     sections: [
       { kind: 'new', groups: [
+        ...(PACKS_ON ? [
         g('เช็กความคุ้มค่าแพ็ค (ใหม่)',
           'หน้าใหม่ เข้าได้จากหน้าแรกหรือเมนู ☰: เรียงแพ็คในเกมจากคุ้มสุดไปน้อยสุด เทียบเป็น % กับ Monthly Key Bundle (= 100%)',
           'คิดเป็นรูบี้ต่อบาท: กล่องกุญแจ 1 กล่อง (60 กุญแจ) = 100 รูบี้ · ตั๋วสุ่ม 1 ใบ = 100 รูบี้ · ตั๋วเรด โทปาซ และของอื่นแสดงไว้แต่ไม่นับ · กดดูวิธีคิดของแต่ละแพ็คได้',
           'ใส่งบ (บาท) แล้วแนะนำชุดแพ็คที่ได้ของมากที่สุดในงบนั้น',
-          'กด + ที่แพ็คที่ซื้อไปแล้ว → ไม่แนะนำซ้ำเกินจำนวนที่ซื้อได้ · แพ็ครายวัน/สัปดาห์/เดือนนับใหม่เองตามรอบ 07:00'),
+          'กด + ที่แพ็คที่ซื้อไปแล้ว → ไม่แนะนำซ้ำเกินจำนวนที่ซื้อได้ · แพ็ครายวัน/สัปดาห์/เดือนนับใหม่เองตามรอบ 07:00')] : []),
         g('การสอนใช้ (กลับมาแล้วแบบใหม่)',
           'เข้าแต่ละหน้าครั้งแรกจะส่องปุ่มจริงแล้วอธิบายทีละขั้น: หน้ากิลด์ บ้านศัตรู การจัดทีม แผนสงคราม และอ่านค่าความสามารถจากรูป',
           'บางขั้นให้ลองทำเอง เช่น แตะช่อง + 2 ครั้งเปิดตารางอัศวินจอใหญ่ หรือใส่รูปจริง — ทำสำเร็จแล้วไปขั้นต่อไปเอง',
@@ -44,7 +46,9 @@ const CHANGELOG_TH: ChangelogEntry[] = [
         g('เรียงลำดับทีมแก้',
           'กดค้างที่แท็บ "ทีมแก้ #" แล้วลากไปวางตำแหน่งที่ต้องการ (มือถือกดค้างครู่หนึ่งก่อนลาก)',
           'ทีมแก้ #1 มีมงกุฎ = แนะนำให้ใช้ก่อน',
-          'ปุ่ม "เรียงตามไลค์" เรียงตามจำนวน 👍 ให้ในครั้งเดียว'),
+          'ปุ่ม "เรียงตามไลค์" เรียงตามจำนวน 👍 ให้ในครั้งเดียว',
+          'ในหน้าต่าง "ดูทั้งหมด" มีปุ่ม ◀ ▶ ย้ายทีละช่อง และ 👑 ขึ้นเป็น #1 — เห็นทุกทีมพร้อมกันแล้วเรียงได้เลย',
+          'มีการสอนให้ลองลากเรียงจริง ขึ้นครั้งเดียวตอนเข้าบ้านที่มีทีมแก้ 2 ทีมขึ้นไป (คนที่เคยดูการสอนหน้านี้แล้วก็ได้เห็น)'),
         g('อ่านค่าความสามารถจากรูป',
           'ตัวที่เคยจดไว้ในเครื่องนี้ ใช้ของเดิมได้เลยในหน้าต่างนี้ (ค่าความสามารถ เซต เครื่องประดับ) ไม่ต้องแคปใหม่',
           'ถ้ารูปเป็นอัศวินที่ยังไม่อยู่ในทีม จะเด้งถามว่าจะเพิ่มเข้าทีมเลยไหม'),
@@ -202,11 +206,12 @@ const CHANGELOG_EN: ChangelogEntry[] = [
     summary: 'Spotlight guides, counter ordering, animations everywhere and sharper screenshot name reading',
     sections: [
       { kind: 'new', groups: [
+        ...(PACKS_ON ? [
         g('Pack value checker (new)',
           'A new page, from the home page or the ☰ menu: in-game packs ranked from best to worst value, as a % of the Monthly Key Bundle (= 100%)',
           'Measured in rubies per baht: 1 key chest (60 keys) = 100 rubies · 1 summon ticket = 100 rubies · raid tickets, topaz and extras are shown but not counted · tap a pack to see the math',
           'Enter a budget (baht) to get the pack combo with the most value for it',
-          "Tap + on packs you've already bought so they aren't suggested past their limit · daily/weekly/monthly packs reset on their own at the 07:00 reset"),
+          "Tap + on packs you've already bought so they aren't suggested past their limit · daily/weekly/monthly packs reset on their own at the 07:00 reset")] : []),
         g('Guides (back, rebuilt)',
           'The first time you open a page, the real buttons are highlighted and explained step by step: guild, enemy defenses, team building, war plans and reading stats from a screenshot',
           'Some steps let you try it yourself — double-tap + for the big hero grid, or add a real screenshot — and move on once it works',
@@ -215,7 +220,9 @@ const CHANGELOG_EN: ChangelogEntry[] = [
         g('Counter order',
           'Press and drag a "Counter #" tab to reorder (on mobile, hold a moment before dragging)',
           'Counter #1 wears a crown = try this one first',
-          '"Sort by likes" orders them by 👍 in one tap'),
+          '"Sort by likes" orders them by 👍 in one tap',
+          'In "See all", ◀ ▶ move a team one place and 👑 makes it #1 — reorder while seeing every team at once',
+          "A hands-on guide lets you try dragging — it shows once on a defense with 2+ counters (even if you've seen this page's guide)"),
         g('Stats from screenshot', 'Heroes you saved on this device can reuse their stats, sets and accessories right in this window — no new screenshot', "If the screenshot shows a hero who isn't on the team, a popup asks whether to add them"),
         g('Team-building animations',
           'Heroes pop into slots · moving/swapping heroes or changing formation glides them to their new spot · skill-order badges pop in',

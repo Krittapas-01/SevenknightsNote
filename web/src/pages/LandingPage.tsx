@@ -1,5 +1,6 @@
 import { ArrowUpRight, Eye, EyeOff, Gem, Shield, Swords } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import { PACKS_ON } from '../lib/packs'
 import { Link, useNavigate } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
 import VsArena from '../components/VsArena'
@@ -100,14 +101,14 @@ export default function LandingPage() {
         {err && <p className="mt-3 text-sm text-red-300">{err}</p>}
 
         {/* เครื่องมือ: เช็กความคุ้มค่าแพ็ค */}
-        <Link to="/packs" className="group relative mx-auto mt-6 flex max-w-xl items-center gap-3 rounded-2xl border border-gold/30 bg-black/20 px-4 py-3 text-left transition hover:border-gold hover:bg-gold/5">
+        {PACKS_ON && <Link to="/packs" className="group relative mx-auto mt-6 flex max-w-xl items-center gap-3 rounded-2xl border border-gold/30 bg-black/20 px-4 py-3 text-left transition hover:border-gold hover:bg-gold/5">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold"><Gem className="h-5 w-5" /></span>
           <span className="min-w-0 flex-1">
             <span className="block font-semibold">{tx('เช็กความคุ้มค่าแพ็ค')}</span>
             <span className="block text-xs text-white/55">{L('แพ็คไหนคุ้มสุดตอนนี้ · ใส่งบแล้วแนะนำให้', 'Which packs are worth it right now · budget picks')}</span>
           </span>
           <ArrowUpRight className="h-4 w-4 shrink-0 text-gold transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </Link>
+        </Link>}
       </section>
 
       <section className="arena-showcase relative mt-12 sm:mt-16">

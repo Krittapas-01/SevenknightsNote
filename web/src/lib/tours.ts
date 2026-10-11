@@ -171,6 +171,21 @@ export const TOURS: Tour[] = [
     ],
   },
   {
+    // เรียงลำดับทีมแก้ — ขึ้นแยกจาก target-view (คนที่ดูการสอนหน้านี้ไปก่อนมีฟีเจอร์นี้ก็ได้เห็น)
+    id: 'counter-order',
+    steps: [
+      s('[data-tour="counter-tabs"]', ['เรียงลำดับทีมแก้', 'Reorder counters'],
+        ['#1 (มงกุฎ) = ทีมที่แนะนำให้ใช้ก่อน — ลำดับนี้ทุกคนในกิลด์เห็นเหมือนกัน\nคอม: กดค้างที่แท็บแล้วลากไปวาง · มือถือ: กดค้างครู่หนึ่งก่อนค่อยลาก',
+          '#1 (crown) = the team to try first — everyone in the guild sees this order.\nPC: press a tab and drag it · Mobile: press and hold a moment, then drag.'],
+        { until: () => !!document.querySelector('[data-tour="counter-tabs"][data-reordered]'), tryHint: L('ลองลากแท็บ "ทีมแก้ #2" ไปวางหน้า #1', 'Try it — drag "Counter #2" in front of #1'), wait: 800 }),
+      s('[data-tour="counter-all"]', ['เรียงในหน้าดูทั้งหมดก็ได้', 'Or reorder in "See all"'],
+        ['เห็นทุกทีมพร้อมกัน แล้วกดปุ่มเรียงได้เลย — ลองกดดู', 'See every team at once and reorder with buttons — give it a tap.'], { action: 'click' }),
+      s('[data-tour="all-order"]', ['ปุ่มเรียงลำดับ', 'Order buttons'],
+        ['◀ ▶ = ย้ายซ้าย/ขวาทีละช่อง · 👑 = ขึ้นเป็น #1 ทันที\nแตะที่การ์ด = เปิดทีมนั้น',
+          '◀ ▶ = move one place left/right · 👑 = jump straight to #1\nTap a card to open that team.'], { wait: 1200 }),
+    ],
+  },
+  {
     id: 'plan-edit',
     steps: [
       s('#slot-0', ['ตั้งทีละไม้', 'One slot at a time'],

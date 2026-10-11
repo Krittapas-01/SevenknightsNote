@@ -7,6 +7,9 @@ import { L } from './i18n'
  * - ตั๋วเรด / ของอื่น / โทปาซ: แสดงไว้ แต่ไม่นับ
  * เทียบเป็น % กับแพ็คฐาน (Monthly Key Bundle)
  */
+/** เปิด/ปิดหน้าเช็กความคุ้มค่าแพ็ค (ปิด = ซ่อนหน้า เมนู การ์ดหน้าแรก และบันทึกอัปเดต · หน้าแอดมินยังเตรียมข้อมูลได้) */
+export const PACKS_ON = false
+
 export const CHEST_RUBY = 100
 export const TICKET_RUBY = 100
 export const KEYS_PER_CHEST = 60
