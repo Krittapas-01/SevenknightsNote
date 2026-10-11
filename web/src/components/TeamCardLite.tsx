@@ -49,7 +49,9 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
       </div>
 
       {/* จองความสูงเท่าแถวขวา (สัตว์เลี้ยง + 2 วง) — รูปแบบ 4 ช่องแถวเดียวจะสูงขึ้นเอง และการ์ดในแถวเดียวกันยืดให้เท่ากัน */}
-      <div className="mt-1 flex flex-1 items-center justify-center gap-2" style={{ minHeight: `calc(var(--s) * 3 + ${ROW_GAP * 2 + 22}px)` }}>
+      {/* รูปแบบที่มี 4 ตัวในแถวเดียว (บุก/ป้องกัน) → ย่อช่องอัศวินให้ 4 ตัวพอดีความสูงเดิม (การ์ดทุกใบสูงเท่ากัน ไม่ล้นทับแถวสัตว์เลี้ยงสำรอง) */}
+      <div className="mt-1 flex flex-1 items-center justify-center gap-2" style={{ minHeight: `calc(var(--s) * 3 + ${ROW_GAP * 2 + 22}px)`,
+        ...(Math.max(frontIdx.length, backIdx.length) > 3 ? { '--hs': `calc((var(--s) * 3 + ${22 - ROW_GAP}px) / 4)` } : {}) } as CSSProperties}>
         {/* ฝั่งเรา: [หลัง][หน้า] (หน้าอยู่ติดคอลัมน์สัตว์เลี้ยง เหมือน TeamPanel/ในเกม) · ฝั่งศัตรู: [หน้า][หลัง] */}
         {(variant === 'ally' ? [backIdx, frontIdx] : [frontIdx, backIdx]).map((idx, c) => (
           <div key={c} className="flex flex-col items-center" style={{ gap: ROW_GAP }}>
@@ -104,7 +106,7 @@ function Hero({ id, skills, slot }: { id: string | null; skills: SkillStep[]; sl
     )
   }
   return (
-    <div className="relative" style={{ width: 'var(--s)', height: 'var(--s)', fontSize: 'calc(var(--s) * 0.22)', borderRadius: UNIT_SLOT_RADIUS }}>
+    <div className="relative" style={{ width: 'var(--hs, var(--s))', height: 'var(--hs, var(--s))', fontSize: 'calc(var(--hs, var(--s)) * 0.22)', borderRadius: UNIT_SLOT_RADIUS }}>
       {id ? <UnitCard id={id} small /> : <div className="slot-empty h-full w-full" style={{ borderRadius: UNIT_SLOT_RADIUS }} />}
       {id && badge(1, 'top-0')}
       {id && badge(3, 'top-1/2 -translate-y-1/2')}
