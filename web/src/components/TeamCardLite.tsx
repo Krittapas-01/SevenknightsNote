@@ -34,9 +34,10 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
   const backIdx = Array.from({ length: SLOT_COUNT - team.front }, (_, i) => team.front + i)
   const lit = Math.min(skills.length, MAX_SKILL_QUEUE)
   const hasExtras = team.extras.some(Boolean)
+  const fourCol = Math.max(frontIdx.length, backIdx.length) > 3
 
   return (
-    <div style={{ '--s': unit ?? S, ...(!fluid ? { height: `calc(var(--s) * 3 + ${fixedExtra}px)`, flex: '0 0 auto' } : {}) } as CSSProperties} className={`team-panel panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col px-3 pb-3 pt-2.5 ${className}`}>
+    <div style={{ '--s': unit ?? S, '--s-px': 'var(--s)', ...(!fluid ? { height: `calc(var(--s) * 3 + ${fixedExtra}px)`, flex: '0 0 auto' } : {}) } as CSSProperties} className={`team-panel panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col px-3 pb-3 pt-2.5 ${className}`}>
       <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
         <div className="min-w-0 flex-1 truncate text-center text-sm font-semibold">{title}</div>
       </div>
@@ -49,9 +50,10 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
       </div>
 
       {/* จองความสูงเท่าแถวขวา (สัตว์เลี้ยง + 2 วง) — รูปแบบ 4 ช่องแถวเดียวจะสูงขึ้นเอง และการ์ดในแถวเดียวกันยืดให้เท่ากัน */}
-      {/* รูปแบบที่มี 4 ตัวในแถวเดียว (บุก/ป้องกัน) → ย่อช่องอัศวินให้ 4 ตัวพอดีความสูงเดิม (การ์ดทุกใบสูงเท่ากัน ไม่ล้นทับแถวสัตว์เลี้ยงสำรอง) */}
+      {/* รูปแบบที่มี 4 ตัวในแถวเดียว (บุก/ป้องกัน): ขนาดเต็มถ้าที่พอ · มีสัตว์เลี้ยงสำรองจนที่ไม่พอ → ย่อเท่าที่จำเป็น
+          (วัดจากความสูงพื้นที่จริง cqh) ไม่ให้ล้นทับแถวสัตว์เลี้ยงสำรอง · การ์ดแบบ fluid ไม่ล็อกความสูง ไม่ต้องย่อ */}
       <div className="mt-1 flex flex-1 items-center justify-center gap-2" style={{ minHeight: `calc(var(--s) * 3 + ${ROW_GAP * 2 + 22}px)`,
-        ...(Math.max(frontIdx.length, backIdx.length) > 3 ? { '--hs': `calc((var(--s) * 3 + ${22 - ROW_GAP}px) / 4)` } : {}) } as CSSProperties}>
+        ...(!fluid && fourCol ? { containerType: 'size', '--hs': `min(var(--s-px), calc((100cqh - ${ROW_GAP * 3}px) / 4))` } : {}) } as CSSProperties}>
         {/* ฝั่งเรา: [หลัง][หน้า] (หน้าอยู่ติดคอลัมน์สัตว์เลี้ยง เหมือน TeamPanel/ในเกม) · ฝั่งศัตรู: [หน้า][หลัง] */}
         {(variant === 'ally' ? [backIdx, frontIdx] : [frontIdx, backIdx]).map((idx, c) => (
           <div key={c} className="flex flex-col items-center" style={{ gap: ROW_GAP }}>
@@ -79,7 +81,8 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
         </div>
       </div>
 
-      <div className={`mt-2 flex items-center justify-center gap-1.5 ${hasExtras ? '' : 'invisible'}`} aria-hidden={!hasExtras}>
+      {/* ไม่มีสัตว์เลี้ยงสำรอง: ปกติเว้นที่ไว้ (การ์ดเรียงตรงกัน) · การ์ด 4 ตัวในแถวให้อัศวินใช้ที่ตรงนี้แทน (ขนาดเต็มเหมือนเดิม) */}
+      <div className={`mt-2 items-center justify-center gap-1.5 ${hasExtras ? 'flex' : fourCol ? 'hidden' : 'invisible flex'}`} aria-hidden={!hasExtras}>
         <span className="text-[11px] text-white/45">{tx('สัตว์เลี้ยงสำรอง')}</span>
         {Array.from({ length: EXTRA_COUNT }, (_, i) => team.extras[i] ?? null).map((x, i) => (
           <div key={i} className="aspect-square" style={{ width: 28, fontSize: 8 }}>
