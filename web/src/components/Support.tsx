@@ -4,7 +4,7 @@ import Modal from './Modal'
 import { EN, L } from '../lib/i18n'
 
 /**
- * ช่องทางสนับสนุนค่าเซิร์ฟเวอร์ (ไม่บังคับ · เว็บยังฟรีทุกฟีเจอร์)
+ * ช่องทางสนับสนุนค่าเซิร์ฟเวอร์ (เว็บยังฟรีทุกฟีเจอร์)
  * เปิดจากเมนู ☰ / footer ผ่าน openSupport() — ไม่มีป๊อปอัปเด้งเอง
  */
 const LINKS = {
@@ -39,7 +39,7 @@ export function SupportModal() {
         </p>
         <div className="mt-4 grid gap-3">{EN ? [intl, th] : [th, intl]}</div>
         <p className="mt-4 text-xs text-white/40">
-          {L('ไม่บังคับ ไม่มีฟีเจอร์ล็อก · เว็บแฟนเมด ไม่เกี่ยวข้องกับ Netmarble', 'Optional — nothing is locked · fan-made, not affiliated with Netmarble')}
+          {L('ไม่มีฟีเจอร์ล็อก · เว็บแฟนเมด ไม่เกี่ยวข้องกับ Netmarble', 'Nothing is locked · fan-made, not affiliated with Netmarble')}
         </p>
       </div>
     </Modal>
