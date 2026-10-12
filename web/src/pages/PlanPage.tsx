@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, ChevronDown, ChevronLeft, ImageDown, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, ChevronLeft, Crown, ImageDown, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
 import PageSkeleton from '../components/PageSkeleton'
 import { houseLabel, isMainTag, tagStyle } from '../lib/tags'
 import type { HeroNote, WarSlot } from '../lib/types'
@@ -55,6 +55,10 @@ type Picker =
  * เปิดกลับ = true · แผนกันไม่เกี่ยว · หน้าต่าง "จดลงบ้านศัตรู" หลังบันทึกยังทำงาน (สะสมข้อมูลเข้าคลัง)
  */
 const ATTACK_LIBRARY = false
+/** แผนบุก: เลือก "บ้านที่จะตี" จากบ้านศัตรูที่จดไว้ (ขั้น ①) แล้วเลือกทีมแก้ที่จดไว้ของบ้านนั้นในขั้น ② — เปิดแยกจาก ATTACK_LIBRARY */
+const PICK_TARGET = true
+/** ชุดอัศวินของทีม (ไม่สนตำแหน่ง) ใช้เช็กว่าทีมแก้ที่จดไว้ใส่ในไม้นี้แล้วหรือยัง */
+const teamKey = (t: Team) => (t.slots.filter(Boolean) as string[]).slice().sort().join('|')
 
 const optionFrom = (c: Comp, condition = ''): WarOption => ({
   condition,
@@ -72,6 +76,8 @@ export default function PlanPage() {
   const nav = useNavigate()
   const isNew = pid === 'new'
   const { data, error, canEdit, reload } = useGuild(gid)
+  /** กิลด์มีบ้านศัตรูที่จดไว้ → ขั้น ① เลือกจากที่จดไว้ได้ */
+  const hasLib = PICK_TARGET && (data?.targets.length ?? 0) > 0
   const plan = data?.plans.find((p) => p.id === pid)
   const editBase = useRef<number | null>(null)
 
@@ -155,7 +161,7 @@ export default function PlanPage() {
   const [skillReq, setSkillReq] = useState<{ s: number; o: number; n: number } | null>(null)
   const backdropDown = useRef(false)
   const [exitAsk, setExitAsk] = useState(false)
-  const [wiz, setWiz] = useState<{ s: number; step: 1 | 2 | 3; snap: WarSlot; isNew: boolean; skillOk?: boolean; vsSkillOk?: boolean } | null>(null)
+  const [wiz, setWiz] = useState<{ s: number; step: 1 | 2 | 3; snap: WarSlot; isNew: boolean; skillOk?: boolean; vsSkillOk?: boolean; cpick?: { h: number; v: boolean } } | null>(null)
   useEffect(() => { if (!editing) setWiz(null) }, [editing])
   // หน้าต่างตั้งไม้: เปลี่ยนขั้น = เนื้อหาเลื่อนเข้าตามทิศ
   const wizSlide = useSlideDir(wiz ? wiz.step : 0)
@@ -367,18 +373,12 @@ export default function PlanPage() {
   function pickDefense(d: Defense) {
     if (vsLibrary === null) return
     const s = vsLibrary
-    const addAll = curSlot(s).options.length === 0
-    patchSlot(s, (slot) => ({
-      ...slot,
-      vs: clone(d.team),
-      vsTag: d.type,
-      vsId: d.id,
-      options: addAll ? d.counters.slice(0, MAX_OPTIONS).map((c) => optionFrom(c)) : slot.options,
-    }))
+    // ทีมแก้ไม่ใส่ให้เอง → ไปเลือกจากทีมแก้ที่จดไว้ของบ้านนี้ในขั้น ② (เลือกเองว่าใช้ทีมไหน)
+    patchSlot(s, (slot) => ({ ...slot, vs: clone(d.team), vsTag: d.type, vsId: d.id }))
     setVsLibrary(null)
-    if (addAll && d.counters.length) {
-      setToast(L(`ใส่ทีมแก้ ${Math.min(d.counters.length, MAX_OPTIONS)} ทีมให้แล้ว — ลบทีมที่ไม่ใช้ได้ที่ไอคอนถังขยะ`, `Added ${Math.min(d.counters.length, MAX_OPTIONS)} counters — remove unused ones with the trash icon`))
-      setTimeout(() => setToast(null), 4000)
+    if (d.counters.length) {
+      setToast(L(`บ้านนี้มีทีมแก้ที่จดไว้ ${d.counters.length} ทีม — เลือกได้ในขั้นถัดไป`, `This defense has ${d.counters.length} saved counters — pick one in the next step`))
+      setTimeout(() => setToast(null), 2500)
     }
   }
 
@@ -439,6 +439,8 @@ export default function PlanPage() {
         if (!skillShort(o.team, o.skills)) return null
         const isMain = x.kind === 'attack' && oi === mainIndex(x)
         if (isMain) return null
+        // ทีมแก้ที่ดึงมาจากที่จดไว้ (ไม่ได้จัดเองในแผน) ไม่ต้องถาม — แก้ลำดับสกิลได้ที่หน้าบ้านศัตรู
+        if (x.kind === 'attack' && x.vsId && !o.custom) return null
         return { label: `ไม้ ${si + 1} · ${oi === 0 ? 'บ้านกันหลัก' : `ทีมสำรอง ${oi}`}`, have: o.skills.length, s: si, o: oi }
       })).filter((v): v is { label: string; have: number; s: number; o: number } => !!v)
       if (short.length) return setSkillAsk({ items: short.map((x) => [x.label, x.have]), back: { s: short[0].s, o: short[0].o }, then: () => void save(plan, askSpeed, true) })
@@ -542,7 +544,7 @@ export default function PlanPage() {
     const snap = clone(raw)
     if (step === 2) ensureMain(s)
     // ไม่มีคลัง → เปิดการ์ดบ้านว่างให้จัดเลย (ไม่ต้องกด "จัดบ้านศัตรูเอง")
-    if (!def && !ATTACK_LIBRARY && !raw?.vs) setDraft((d) => ({ ...d, slots: d.slots.map((x, i) => (i === s ? { ...x, vs: emptyTeam() } : x)) }))
+    if (!def && !hasLib && !raw?.vs) setDraft((d) => ({ ...d, slots: d.slots.map((x, i) => (i === s ? { ...x, vs: emptyTeam() } : x)) }))
     setWiz({ s, step, snap, isNew })
   }
   /** ขั้นอุปกรณ์/ค่าความสามารถ: เปิดแถวให้อัศวินทุกตัวในทีมหลัก (เห็นชัดว่ากรอกให้ตัวไหน · แถวที่ว่างไม่ถูกบันทึก) */
@@ -638,6 +640,72 @@ export default function PlanPage() {
     const mainOpt = u.main >= 0 ? u.slot.options[u.main] : null
     const ok2 = !!mainOpt && heroCount(mainOpt.team) > 0 && !!mainOpt.team.pet
     const can = (st: 1 | 2 | 3) => st === 1 || (st === 2 ? ok1 : ok1 && ok2)
+    // ขั้น ② (แผนบุก): บ้านมาจากที่จดไว้ → เลือกจากทีมแก้ที่จดไว้ของบ้านนั้นก่อน · จัดเอง/พรีเซต เป็นทางรอง
+    const hNow = houseOf(raw, w.s)
+    const savedCounters = !def && u.slot.vsId ? data?.targets.find((t) => t.id === u.slot.vsId)?.counters ?? [] : []
+    const hasMain = !!mainOpt && heroCount(mainOpt.team) > 0
+    const cpickOf = w.cpick && w.cpick.h === hNow ? w.cpick.v : null
+    const pickList = savedCounters.length > 0 && (cpickOf ?? !hasMain)
+    const setCpick = (v: boolean) => setWiz((x) => x && { ...x, cpick: { h: hNow, v } })
+    const useCounter = (c: (typeof savedCounters)[number]) => {
+      const k = u.slot.options.findIndex((o) => heroCount(o.team) > 0 && teamKey(o.team) === teamKey(c.team))
+      const opt = optionFrom({ ...c, heroNotes: c.heroNotes ?? [] }, mainOpt?.condition ?? '')
+      if (k >= 0) patchSlot(w.s, (x) => ({ ...x, main: k }))
+      // ทีมหลักเดิมเป็นทีมที่จัดเอง (มีตัวแล้ว) → ไม่ทับ เก็บไว้เป็นสำรอง แล้วให้ทีมที่เลือกขึ้นเป็นหลัก
+      else if (hasMain && mainOpt?.custom && u.slot.options.length < MAX_OPTIONS) patchSlot(w.s, (x) => ({ ...x, options: [...x.options, opt], main: x.options.length }))
+      else patchOption(w.s, u.main, opt)
+      setCpick(false)
+    }
+    const addBackup = (c: (typeof savedCounters)[number]) =>
+      patchSlot(w.s, (x) => ({ ...x, options: [...x.options, optionFrom({ ...c, heroNotes: c.heroNotes ?? [] })].slice(0, MAX_OPTIONS) }))
+    const savedPicker = (
+      <div data-tour="wiz-saved" className="mx-auto w-full max-w-5xl">
+        <p className="text-center text-lg font-semibold text-gold">{L(`ทีมแก้ที่จดไว้ของบ้านนี้ (${savedCounters.length})`, `Saved counters for this defense (${savedCounters.length})`)}</p>
+        <p className="mb-5 mt-1 text-center text-sm text-white/55">{L('แตะการ์ด = ใช้เป็นทีมหลัก · #1 (มงกุฎ) คือทีมที่แนะนำให้ใช้ก่อน', 'Tap a card to use it as the main counter · #1 (crown) is the one to try first')}</p>
+        {/* การ์ดน้อยกว่าแถว = อยู่กลาง */}
+        <div className="flex flex-wrap justify-center gap-4 [&>*]:w-full sm:[&>*]:w-[calc(50%-0.5rem)] lg:[&>*]:w-[calc(33.333%-0.667rem)]">
+          {savedCounters.map((c, i) => {
+            const k = u.slot.options.findIndex((o) => heroCount(o.team) > 0 && teamKey(o.team) === teamKey(c.team))
+            const isMain = k >= 0 && k === u.main
+            const full = u.slot.options.length >= MAX_OPTIONS
+            return (
+              <div key={c.id} className="flex flex-col">
+                <button type="button" onClick={() => useCounter(c)} aria-label={L(`ใช้ทีมแก้ #${i + 1} เป็นทีมหลัก`, `Use counter #${i + 1} as main`)}
+                  className={`rounded-[18px] text-left transition hover:-translate-y-0.5 ${isMain ? 'ring-2 ring-gold' : ''}`}>
+                  <TeamCardLite variant="ally" team={c.team} skills={c.skills} unit="clamp(48px, 13vw, 70px)"
+                    title={<span className="flex items-center justify-center gap-1 text-gold">{i === 0 && <Crown className="h-4 w-4" />}{L(`ทีมแก้ #${i + 1}`, `Counter #${i + 1}`)}</span>} />
+                </button>
+                {c.note && <p className="mt-1.5 line-clamp-2 px-1 text-xs text-white/60">{c.note}</p>}
+                <div className="mt-2 flex gap-2">
+                  <button type="button" onClick={() => useCounter(c)} className={`flex-1 px-3 py-1.5 text-sm ${isMain ? 'pill text-gold' : 'btn-gold'}`}>
+                    {isMain ? L('✓ ทีมหลักอยู่แล้ว', '✓ Main counter') : L('ใช้เป็นทีมหลัก', 'Use as main')}
+                  </button>
+                  <button type="button" disabled={!hasMain || k >= 0 || full} onClick={() => addBackup(c)}
+                    title={!hasMain ? L('เลือกทีมหลักก่อน', 'Pick a main counter first') : undefined}
+                    className="pill shrink-0 px-3 py-1.5 text-sm text-white/75 hover:border-gold disabled:opacity-35">
+                    {k >= 0 && !isMain ? L('สำรองแล้ว', 'Backup ✓') : L('+ สำรอง', '+ Backup')}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        {/* ทางรอง: จัดเอง / พรีเซต (เล็ก ๆ) */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm text-white/55">
+          {hasMain && <button type="button" onClick={() => setCpick(false)} className="pill px-4 py-1.5 text-gold hover:border-gold">{L('กลับไปที่ทีมที่เลือก', 'Back to the chosen team')}</button>}
+          <span>{L('ไม่มีทีมที่ใช่?', 'None fit?')}</span>
+          <button type="button" data-tour="wiz-custom" onClick={() => setCpick(false)} className="underline underline-offset-4 hover:text-gold">{L('จัดทีมแก้เอง', 'Build my own')}</button>
+          <span>·</span>
+          <PresetPickerButton label={tx('ใช้พรีเซตของฉัน')}
+            onPick={(p) => {
+              const opt = { ...optionFrom({ id: p.id, team: p.team, skills: p.skills, note: p.note, heroNotes: p.heroNotes }), custom: true, condition: mainOpt?.condition ?? '' }
+              if (mainOpt) patchOption(w.s, u.main, opt)
+              else patchSlot(w.s, (x) => ({ ...x, options: [opt, ...x.options].slice(0, MAX_OPTIONS), main: 0 }))
+              setCpick(false)
+            }} />
+        </div>
+      </div>
+    )
     const go = (st: 1 | 2 | 3) => {
       if (!can(st)) return
       if (st === 2) ensureMain(w.s)
@@ -648,13 +716,15 @@ export default function PlanPage() {
     // ทุกทางที่ออกจากขั้นทีมแก้/ปิดหน้าต่าง (ถัดไป · แถบขั้น · เสร็จเลย · เสร็จ) ผ่านตรงนี้ · ตอบ "ไม่จอง" แล้วไม่ถามซ้ำในรอบนี้
     const leaveTeam = (then: () => void) => {
       const have = Math.min(mainOpt?.skills.length ?? 0, MAX_SKILL_QUEUE)
-      if (have < MAX_SKILL_QUEUE && !w.skillOk && ok2) setSkillAsk({ items: [[L(`ไม้ ${w.s + 1} · ${def ? 'บ้านกันหลัก' : 'ทีมแก้หลัก'}`, `Slot ${w.s + 1} · ${def ? 'main defense' : 'main counter'}`), have]], back: { s: w.s, o: u.main }, then: () => { setWiz((x) => x && { ...x, skillOk: true }); then() } })
+      const fromSaved = !def && !!u.slot.vsId && !mainOpt?.custom // ทีมแก้ที่ดึงมาจากที่จดไว้ ไม่ต้องถาม
+      if (have < MAX_SKILL_QUEUE && !w.skillOk && ok2 && !fromSaved) setSkillAsk({ items: [[L(`ไม้ ${w.s + 1} · ${def ? 'บ้านกันหลัก' : 'ทีมแก้หลัก'}`, `Slot ${w.s + 1} · ${def ? 'main defense' : 'main counter'}`), have]], back: { s: w.s, o: u.main }, then: () => { setWiz((x) => x && { ...x, skillOk: true }); then() } })
       else then()
     }
     /** ออกจากขั้นบ้านที่จะตี: บ้านตั้งลำดับการใช้สกิลไม่ครบ → ถามก่อน (กดกลับ = เปิดหน้าต่างลำดับการใช้สกิลของบ้าน) */
     const leaveHouse = (then: () => void) => {
       const have = Math.min(raw.vs?.skills?.length ?? 0, MAX_SKILL_QUEUE)
-      if (have < MAX_SKILL_QUEUE && !w.vsSkillOk && ok1)
+      // บ้านที่ดึงมาจากที่จดไว้ไม่ต้องถาม (ส่วนใหญ่ไม่ได้ตั้งลำดับสกิลไว้ · ถามทุกไม้น่ารำคาญ)
+      if (have < MAX_SKILL_QUEUE && !w.vsSkillOk && ok1 && !raw.vsId)
         setSkillAsk({ items: [[L(`ไม้ ${w.s + 1} · บ้านที่จะตี`, `Slot ${w.s + 1} · defense to attack`), have]], back: { s: w.s, o: -1 }, then: () => { setWiz((x) => x && { ...x, vsSkillOk: true }); then() } })
       else then()
     }
@@ -702,7 +772,7 @@ export default function PlanPage() {
             // ทุกอย่างกว้างเท่ากัน + จัดกลาง (ชื่อไม้ · คำอธิบาย · แท็บบ้าน · การ์ดบ้าน) ไม่ให้ซ้ายบ้างกลางบ้าง
             <div className="mx-auto my-auto w-full max-w-[400px] space-y-4 text-center">
               <div className="flex items-center gap-3 text-left">{u.nameInput}</div>
-              <p className="text-sm text-white/55">{ATTACK_LIBRARY ? tx('เลือกบ้านจากที่จดไว้ แล้วทีมแก้ของบ้านนั้นจะถูกใส่เป็นทีมแก้ให้เลย') : tx('จัดทีมบ้านที่จะตี — กดช่อง + เพื่อเลือกตัว แล้วเลือกประเภทบ้าน')}</p>
+              <p className="text-sm text-white/55">{hasLib && !raw.vs ? L('เลือกบ้านจากบ้านศัตรูที่จดไว้ หรือจัดเอง — ทีมแก้ที่จดไว้ของบ้านนั้นเลือกได้ในขั้นถัดไป', 'Pick a saved enemy defense or build one — you can choose its saved counters in the next step') : tx('จัดทีมบ้านที่จะตี — กดช่อง + เพื่อเลือกตัว แล้วเลือกประเภทบ้าน')}</p>
               {/* แท็บบ้าน (เพิ่มบ้านอื่น) โผล่หลังเลือกบ้านแรกแล้ว — ตอนแรกไม่รก */}
               {(raw.vs || (raw.alts?.length ?? 0) > 0) && <div className="flex justify-center [&_.pill]:justify-center [&>div]:justify-center">{u.houseTabs}</div>}
               {raw.vs && heroCount(raw.vs) > 0 && !raw.vs.pet && <p className="text-center text-sm font-semibold text-amber-300">{tx('เลือกสัตว์เลี้ยงของบ้านนี้ก่อน')}</p>}
@@ -710,7 +780,7 @@ export default function PlanPage() {
               <div className="text-left">{u.enemyExtras}</div>
             </div>
           )}
-          {w.step === 2 && (
+          {w.step === 2 && (pickList ? savedPicker : (
             <>
               {/* ตัว (แผนกัน: + สัตว์เลี้ยง) ซ้ำกับไม้อื่น */}
               {mainOpt && (() => {
@@ -746,13 +816,19 @@ export default function PlanPage() {
                       <Library className="h-4 w-4" />{' '}{tx('เลือกจากที่จดไว้')}
                     </button>
                   )}
+                  {savedCounters.length > 0 && (
+                    <button type="button" onClick={() => setCpick(true)}
+                      className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
+                      <Library className="h-4 w-4" />{' '}{L(`ทีมแก้ที่จดไว้ของบ้านนี้ (${savedCounters.length})`, `Saved counters (${savedCounters.length})`)}
+                    </button>
+                  )}
                   <PresetPickerButton label={tx('ใช้พรีเซตของฉัน')}
                     onPick={(p) => patchOption(w.s, u.main, { ...optionFrom({ id: p.id, team: p.team, skills: p.skills, note: p.note, heroNotes: p.heroNotes }), custom: true, condition: mainOpt.condition })} />
                 </div>
               )}
               {u.backups}
             </>
-          )}
+          ))}
           {w.step === 3 && (
             // กว้างพอให้ตารางอุปกรณ์/ค่าความสามารถเป็น 2 คอลัมน์ (อัศวิน+ของ | คำอธิบาย+ค่าความสามารถ) แบบหน้าบ้านศัตรู
             <div className="mx-auto w-full max-w-4xl">
@@ -948,12 +1024,13 @@ export default function PlanPage() {
                       />
                     ) : editing ? (
                       <div className="grid gap-3">
-                        {ATTACK_LIBRARY && <button
+                        {hasLib && <button
+                          data-tour="pick-target"
                           onClick={() => setVsLibrary(s)}
                           className="flex flex-col items-center justify-center gap-1 rounded-[18px] border-2 border-dashed border-red-300/50 py-8 text-red-100/90 hover:border-red-300"
                         >
                           <Library className="h-7 w-7" />{' '}{tx('เลือกจากบ้านศัตรูที่จดไว้')}
-                          <span className="text-xs text-white/50">{tx('ทีมแก้ของบ้านนั้นจะถูกใส่มาให้ด้วย')}</span>
+                          <span className="text-xs text-white/50">{L('เลือกทีมแก้ที่จดไว้ของบ้านนั้นได้ในขั้นถัดไป', 'Its saved counters are ready to pick in the next step')}</span>
                         </button>}
                         <button
                           onClick={() => patchSlot(s, (x) => ({ ...x, vs: emptyTeam() }))}
@@ -986,7 +1063,7 @@ export default function PlanPage() {
                     {!editing && slot.vsNote && <p className="mb-3 whitespace-pre-wrap text-center text-sm text-white/70">{slot.vsNote}</p>}
                     {editing && slot.vs && (
                       <div className="flex justify-center gap-2 text-sm">
-                        {ATTACK_LIBRARY && <button onClick={() => setVsLibrary(s)} className="pill flex items-center gap-1 px-3 py-1 hover:border-gold">
+                        {hasLib && <button onClick={() => setVsLibrary(s)} className="pill flex items-center gap-1 px-3 py-1 hover:border-gold">
                           <Library className="h-4 w-4" />{' '}{tx('เปลี่ยนบ้านจากที่จดไว้')}
                         </button>}
                         <button

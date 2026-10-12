@@ -183,7 +183,7 @@ export default function CompLibrary({ open, targets, guildName, initialTab, onPi
                 <div className="mt-auto flex gap-2 pt-3">
                   {onPickDefense && def ? (
                     <button onClick={() => onPickDefense(def)} className="btn-gold flex-1 px-3 py-1.5 text-sm">
-                      {tx('ตีบ้านนี้')}{' '}{def.counters.length > 0 && L(`(+ทีมแก้ ${def.counters.length})`, `(+${def.counters.length} counters)`)}
+                      {tx('ตีบ้านนี้')}{' '}{def.counters.length > 0 && L(`· มีทีมแก้ ${def.counters.length}`, `· ${def.counters.length} counters`)}
                     </button>
                   ) : (
                     <button onClick={() => onPick(comp)} className="btn-gold flex-1 px-3 py-1.5 text-sm">{tx('ใช้ทีมนี้')}</button>

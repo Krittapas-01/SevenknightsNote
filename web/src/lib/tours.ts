@@ -203,8 +203,8 @@ export const TOURS: Tour[] = [
         ['แผนบุก: ① บ้านที่จะตี › ② ทีมแก้ › ③ อุปกรณ์/ค่าความสามารถ (แผนกันเริ่มที่บ้านกันเลย) — กดข้ามไปมาได้',
           'Attack: ① defense to hit › ② counter › ③ gear/stats (defense plans start at the defense) — jump between steps anytime.'], { wait: 1200 }),
       s('[data-tour="wiz-body"]', ['ทำทีละขั้น', 'Fill it in'],
-        ['กดช่อง + เลือกอัศวิน (แตะ 2 ครั้ง = ตารางจอใหญ่) หรือใช้พรีเซตของฉัน · ขั้นสุดท้ายจดอุปกรณ์รายตัว (อ่านค่าความสามารถจากรูปได้) แล้วกด เสร็จ',
-          'Tap + to pick heroes (double-tap for the big grid) or use your presets · note gear per hero in the last step (the screenshot reader works there), then tap Done.']),
+        ['บ้านที่จะตีเลือกจากบ้านศัตรูที่จดไว้ได้ แล้วขั้นทีมแก้จะให้เลือกจากทีมแก้ที่จดไว้ของบ้านนั้น · หรือกดช่อง + จัดเอง (แตะ 2 ครั้ง = ตารางจอใหญ่) / ใช้พรีเซตของฉัน · ขั้นสุดท้ายจดอุปกรณ์รายตัว แล้วกด เสร็จ',
+          'Pick the defense from your saved enemy defenses, then choose from its saved counters — or tap + to build your own (double-tap for the big grid) / use a preset · note gear per hero in the last step, then tap Done.']),
     ],
   },
 ]
