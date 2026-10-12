@@ -2,8 +2,8 @@ import { Check, ChevronLeft, ChevronRight, ClipboardList, LayoutGrid, Link2, Plu
 import { ImgPriority } from '../components/UnitCard'
 import PageSkeleton from '../components/PageSkeleton'
 import { sortTags, tagColor, tagStyle, tagText } from '../lib/tags'
-import { memo, useDeferredValue, useMemo, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router'
+import { memo, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation, useNavigationType, useParams, useSearchParams } from 'react-router'
 import Modal from '../components/Modal'
 import TeamCardLite from '../components/TeamCardLite'
 import UnitCard from '../components/UnitCard'
@@ -34,10 +34,45 @@ const matches = (t: Target, q: string) =>
 export default function GuildPage() {
   const { gid = '' } = useParams()
   const { data, error, canEdit, realCanEdit, setCanEdit, recheck, reload } = useGuild(gid)
-  const [q, setQ] = useState('')
-  const [tag, setTag] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
+  // ค้นหา/แท็กเก็บใน URL → กดเข้าบ้านแล้วกดย้อนกลับ ยังเป็นตัวกรองเดิม (ไม่เด้งกลับเป็น "ทั้งหมด")
+  const q = params.get('q') ?? ''
+  const tag = params.get('tag')
+  const setParam = (k: 'q' | 'tag', v: string | null) => setParams((p) => {
+    const n = new URLSearchParams(p)
+    if (v) n.set(k, v); else n.delete(k)
+    return n
+  }, { replace: true })
+  const setQ = (v: string) => setParam('q', v)
+  const setTag = (v: string | null) => setParam('tag', v)
+  // ตำแหน่งเลื่อนจอ: จำไว้ตอนออกจากหน้า · กดย้อนกลับมา = เลื่อนกลับไปที่เดิม
+  const loc = useLocation()
+  const navType = useNavigationType()
+  const scrollKey = `7k-note:scroll:${loc.key}`
+  // useLayoutEffect: บันทึกก่อนหน้าใหม่วาด (ถ้ารอทีหลัง หน้าใหม่ที่สั้นกว่าจะทำให้ตำแหน่งถูกตัดไปแล้ว)
+  // จำการ์ดบ้านแรกที่เห็นบนจอ + ระยะจากขอบบน (การ์ดนอกจอยังไม่รู้ความสูงจริง เลยยึดการ์ดแทนตัวเลข scrollY)
+  // อัปเดตตอนเลื่อนจอ/กด (ค่าล่าสุดก่อนออก) แล้วเขียนตอนออกจากหน้า — อ่านตอนออกไม่ได้ เพราะหน้าใหม่/เลื่อนนุ่มขยับไปแล้ว
+  const snap = useRef<{ y: number; id: string; top: number } | null>(null)
+  useEffect(() => {
+    let raf = 0, frozen = false
+    const take = () => {
+      raf = 0
+      if (frozen) return
+      const card = [...document.querySelectorAll<HTMLElement>('a[data-target-card]')].find((el) => el.getBoundingClientRect().bottom > 120)
+      snap.current = { y: window.scrollY, id: card?.dataset.targetCard ?? '', top: card ? card.getBoundingClientRect().top : 0 }
+    }
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(take) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    // กดการ์ดบ้าน = จับค่าทันทีแล้วล็อก (ระหว่างเปลี่ยนหน้า จอจะขยับเอง ไม่ให้ทับค่าที่ถูก)
+    const onDown = (e: PointerEvent) => { frozen = false; take(); if ((e.target as HTMLElement | null)?.closest?.('a[data-target-card]')) frozen = true }
+    document.addEventListener('pointerdown', onDown, true)
+    return () => {
+      window.removeEventListener('scroll', onScroll); document.removeEventListener('pointerdown', onDown, true); cancelAnimationFrame(raf)
+      try { if (snap.current) sessionStorage.setItem(scrollKey, JSON.stringify(snap.current)) } catch { /* ไม่มี storage */ }
+    }
+  }, [scrollKey])
+  const restored = useRef(false)
   const tab = params.get('tab') === 'targets' ? 'targets' : 'plans'
   const tabPill = useSlidePill(tab)
   const tabSlide = useSlideDir(tab === 'plans' ? 0 : 1)
@@ -56,6 +91,24 @@ export default function GuildPage() {
     const last = (t: Target) => Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
     return (data?.targets ?? []).filter((t) => (!dTag || t.tags.includes(dTag)) && (!s || matches(t, s))).sort((a, b) => last(b) - last(a))
   }, [data, dq, dTag])
+
+  useLayoutEffect(() => {
+    if (restored.current || navType !== 'POP' || !data) return
+    restored.current = true
+    let saved: { y: number; id: string; top: number } | null = null
+    try { saved = JSON.parse(sessionStorage.getItem(scrollKey) || 'null') } catch { /* ไม่มี storage */ }
+    if (!saved || saved.y <= 0) return
+    const { y, id, top } = saved
+    // เลื่อนไปที่การ์ดเดิม แล้วแก้ซ้ำอีกไม่กี่เฟรม (ความสูงการ์ดจริงค่อย ๆ รู้หลังวาด)
+    const fix = () => {
+      const el = id ? document.querySelector<HTMLElement>(`a[data-target-card="${CSS.escape(id)}"]`) : null
+      window.scrollTo({ top: el ? window.scrollY + el.getBoundingClientRect().top - top : y, behavior: 'instant' })
+    }
+    fix()
+    let n = 0
+    const again = () => { fix(); if (++n < 6) requestAnimationFrame(again) }
+    requestAnimationFrame(again)
+  }, [navType, data, scrollKey])
 
   if (error) return <NotFound message={error} />
   if (!data) return <PageSkeleton kind="guild" />
@@ -331,7 +384,7 @@ const TargetGrid = memo(function TargetGrid({ list, gid }: { list: Target[]; gid
         const ago = Date.now() - last
         const recent = ago < 24 * 3600_000
         return (
-        <Link key={t.id} ref={renderAhead} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition"
+        <Link key={t.id} ref={renderAhead} data-target-card={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition"
           // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง) · 560px = ความสูงโดยประมาณของการ์ด
           style={{ contentVisibility: 'auto', containIntrinsicWidth: 'none', containIntrinsicHeight: 'auto 480px', ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
           <ImgPriority value={i < 3}>
