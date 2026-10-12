@@ -10,8 +10,19 @@ export const notifyGuildChanged = (gid: string) => window.dispatchEvent(new Cust
  * เช็กประกาศล่าสุดเป็นระยะ (ทุก 60 วิ ตอนแท็บเปิดอยู่ + ทันทีที่กลับมาที่แท็บ)
  * ถ้าประกาศล่าสุดเปลี่ยน → ยิง event ให้หน้าอื่น ๆ โหลดข้อมูลใหม่ด้วย
  */
+const PKEY = (gid: string) => `7knote:pulse:${gid}`
+/** ข้อมูลแถบประกาศล่าสุดที่เคยโหลด (เปิดซ้ำ = โชว์ได้ทันที ไม่ต้องรอ → หน้าไม่กระโดด) */
+function cachedPulse(gid: string | undefined): Pulse | null {
+  if (!gid) return null
+  try { return JSON.parse(localStorage.getItem(PKEY(gid)) || 'null') } catch { return null }
+}
+
 export function usePulse(gid: string | undefined) {
-  const [pulse, setPulse] = useState<Pulse | null>(null)
+  const [pulse, setPulseState] = useState<Pulse | null>(() => cachedPulse(gid))
+  const setPulse = (p: Pulse) => {
+    setPulseState(p)
+    try { localStorage.setItem(PKEY(gid!), JSON.stringify(p)) } catch { /* เต็ม/โหมดส่วนตัว */ }
+  }
   const lastId = useRef<string | null | undefined>(undefined)
   const lastRev = useRef<string | undefined>(undefined)
   const lastAt = useRef(0) // กันเช็กซ้อน (กลับมาที่แท็บ = visibilitychange + focus ยิงพร้อมกัน)
@@ -48,7 +59,7 @@ export function usePulse(gid: string | undefined) {
     lastRev.current = undefined
     lastAt.current = 0
     gone.current = false
-    setPulse(null)
+    setPulseState(cachedPulse(gid))
     check()
     const t = setInterval(() => check(), INTERVAL)
     const onVisible = () => document.visibilityState === 'visible' && check()

@@ -1,4 +1,5 @@
 import { AlertTriangle, Check, ChevronDown, ChevronLeft, ImageDown, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
+import PageSkeleton from '../components/PageSkeleton'
 import { houseLabel, isMainTag, tagStyle } from '../lib/tags'
 import type { HeroNote, WarSlot } from '../lib/types'
 import { hasStats } from '../lib/stats'
@@ -197,7 +198,7 @@ export default function PlanPage() {
   useTour('plan-wizard', live && !!wiz)
 
   if (error) return <NotFound message={error} />
-  if (!data) return <p className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
+  if (!data) return <PageSkeleton kind="plan" />
   if (!isNew && !plan) return <NotFound message="ไม่พบแผนนี้" />
   if (isNew && !canEdit) return <NotFound message="ลิงก์นี้ไม่มีสิทธิ์แก้ไข" />
 

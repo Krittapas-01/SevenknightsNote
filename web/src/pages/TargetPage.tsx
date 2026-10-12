@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, Crown, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, ThumbsUp, Trash2, Undo2, X } from 'lucide-react'
+import PageSkeleton from '../components/PageSkeleton'
 import { isMainTag, tagColor, tagStyle, tagText } from '../lib/tags'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -115,7 +116,7 @@ export default function TargetPage() {
   useTour('counter-order', live && mode === 'view' && !isNew && serverCounters.length > 1 && tourSeen('target-view'))
 
   if (error) return <NotFound message={error} />
-  if (!data) return <p className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
+  if (!data) return <PageSkeleton kind="target" />
   if (!isNew && !target) return <NotFound message="ไม่พบบ้านศัตรูนี้" />
   if (isNew && !canEdit) return <NotFound message="ลิงก์นี้ไม่มีสิทธิ์แก้ไข" />
 

@@ -315,8 +315,9 @@ a.pill:active { transform: scale(.98); }
 /* ---------- สอนใช้ (spotlight tour) ---------- */
 .tour-layer { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
 .tour-dim { position: fixed; inset: 0; background: #050915a6; animation: fade-in 200ms ease-out; }
-.tour-spot { position: fixed; border-radius: 16px; box-shadow: 0 0 0 9999px #050915a6, 0 0 0 2px #f4d58d, 0 0 24px 4px #f4d58d55;
-  transition: top 280ms var(--motion-out), left 280ms var(--motion-out), width 280ms var(--motion-out), height 280ms var(--motion-out); animation: fade-in 200ms ease-out; }
+.tour-spot { position: fixed; top: 0; left: 0; border-radius: 16px; box-shadow: 0 0 0 9999px #050915a6, 0 0 0 2px #f4d58d, 0 0 24px 4px #f4d58d55;
+  /* เลื่อนด้วย transform (ไม่นับเป็น layout shift · ลื่นกว่า) */
+  transition: transform 280ms var(--motion-out), width 280ms var(--motion-out), height 280ms var(--motion-out); animation: fade-in 200ms ease-out; }
 .tour-spot::after { content: ""; position: absolute; inset: -6px; border-radius: 20px; border: 2px solid #f4d58d; opacity: 0; will-change: transform, opacity; animation: tour-ping 1.6s ease-out 300ms infinite; }
 @keyframes tour-ping { 0% { opacity: .8; transform: scale(.96); } 100% { opacity: 0; transform: scale(1.12); } }
 .tour-card { position: fixed; pointer-events: auto; padding: 14px 16px; box-shadow: 0 16px 48px #000a; animation: modal-arrive 260ms var(--motion-out); }

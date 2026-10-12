@@ -36,7 +36,15 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
   }, [])
   useEffect(() => setSeen(readSeen(gid)), [gid])
 
-  if (!pulse) return null
+  // ยังไม่เคยโหลด (เปิดกิลด์นี้ครั้งแรก) → จองที่ไว้ก่อน ไม่ให้เนื้อหาด้านล่างกระโดดตอนแถบโผล่
+  if (!pulse) return (
+    <div aria-hidden className="border-b border-white/10 bg-[var(--surface-2)]/90">
+      <div className="mx-auto flex h-[63px] max-w-6xl items-center gap-3 px-4 sm:h-[37px] lg:h-[30px]">
+        <span className="h-4 w-40 animate-pulse rounded-full bg-white/10" />
+        <span className="hidden h-4 w-24 animate-pulse rounded-full bg-white/10 sm:block" />
+      </div>
+    </div>
+  )
   const a = pulse.latest
   // แผนบุก/แผนกันแยกกัน → โชว์แผนของชนิดวันนี้ (วันจัดบ้าน = แผนกัน · วันอื่น = แผนบุก) ไม่มีค่อยใช้อีกชนิด
   const dayKind = pulse.schedule[dayIndex(now)] === 'defense' ? 'defense' : 'attack'

@@ -1,4 +1,5 @@
 import { Check, ChevronLeft, ChevronRight, ClipboardList, LayoutGrid, Link2, Plus, Search, Shield, Swords } from 'lucide-react'
+import PageSkeleton from '../components/PageSkeleton'
 import { sortTags, tagColor, tagStyle, tagText } from '../lib/tags'
 import { useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
@@ -53,7 +54,7 @@ export default function GuildPage() {
   }, [data, q, tag])
 
   if (error) return <NotFound message={error} />
-  if (!data) return <p className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
+  if (!data) return <PageSkeleton kind="guild" />
 
   async function copy(kind: 'view') {
     const url = `${location.origin}/g/${gid}`

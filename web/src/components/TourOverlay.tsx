@@ -134,7 +134,7 @@ export default function TourOverlay() {
   return createPortal(
     <div className="tour-layer" role="dialog" aria-modal="false" aria-label={step.title}>
       {box
-        ? <div className="tour-spot" style={{ top: box.top - PAD, left: box.left - PAD, width: box.width + PAD * 2, height: box.height + PAD * 2 }} />
+        ? <div className="tour-spot" style={{ transform: `translate(${box.left - PAD}px, ${box.top - PAD}px)`, width: box.width + PAD * 2, height: box.height + PAD * 2 }} />
         : <div className="tour-dim" />}
       <div ref={card} key={`${active.tour.id}-${active.i}`} className="tour-card panel panel-gold" style={{ top: pos.top, left: pos.left, width: W }}>
         <div className="flex items-start gap-2">

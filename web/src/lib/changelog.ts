@@ -77,7 +77,8 @@ const CHANGELOG_TH: ChangelogEntry[] = [
         g('อ่านชื่ออัศวินจากรูป', 'แม่นขึ้นมาก ทั้งชื่อไทยและอังกฤษ (ชื่อไทยอ่านถูกจาก ~70% เป็น ~90%) และเลือกผิดตัวเงียบ ๆ น้อยลงมาก'),
         g('เร็วและลื่นขึ้น',
           'เปิดกิลด์ซ้ำ ถ้าข้อมูลไม่เปลี่ยนจะไม่โหลดใหม่ทั้งหมด · สิ่งที่คนอื่นแก้จะขึ้นภายในราว 1 นาที',
-          'ไฟล์ที่โหลดครั้งแรกเล็กลง และแอนิเมชันไม่กินเครื่องตอนเปิดหน้าทิ้งไว้'),
+          'ไฟล์ที่โหลดครั้งแรกเล็กลง และแอนิเมชันไม่กินเครื่องตอนเปิดหน้าทิ้งไว้',
+          'เปิดหน้ากิลด์/บ้านศัตรู/แผนแล้วหน้าไม่กระโดด: ระหว่างโหลดมีกรอบโครงร่างแทน และแถบประกาศจองที่ไว้ก่อน (มือถือขยับน้อยลงราว 90%)'),
         g('ข้อความสั้นลง', 'ตัดคำแนะนำที่ไม่จำเป็นออก (เช่น ตำแหน่งช่องสัตว์เลี้ยง) และเอาปุ่ม "ใช้ทั้งคอมพ์" ข้างฟอร์มทีมแก้ออก'),
       ] },
       { kind: 'fix', groups: [
@@ -245,7 +246,8 @@ const CHANGELOG_EN: ChangelogEntry[] = [
         g('Look & feel', 'Light mode uses a warm grey palette with cards lighter than the page', 'The VS emblem sits under the team cards instead of covering heroes', 'Skill-order badges are on the left of the hero everywhere'),
         g('Hero names', 'Awakened Eileene and Hayeon are now labeled (Awakened), matching the in-game badge'),
         g('Reading names from screenshots', 'Much more accurate for Thai and English names (Thai ~70% → ~90% correct) and far fewer silent wrong picks'),
-        g('Faster & smoother', "Reopening a guild skips the full reload when nothing changed · edits by others show up within about a minute", 'Smaller first download, and animations no longer cost anything while the page sits idle'),
+        g('Faster & smoother', "Reopening a guild skips the full reload when nothing changed · edits by others show up within about a minute", 'Smaller first download, and animations no longer cost anything while the page sits idle',
+          "Guild, defense and plan pages no longer jump while loading: skeleton placeholders show instead and the announcement bar reserves its space (about 90% less shifting on mobile)"),
         g('Shorter messages', 'Removed unneeded hints (like where the pet box is) and the "use whole comp" button next to the counter form'),
       ] },
       { kind: 'fix', groups: [

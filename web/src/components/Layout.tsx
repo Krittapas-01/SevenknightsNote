@@ -52,7 +52,7 @@ export default function Layout() {
         {gid && <AnnouncementBar key={gid} gid={gid} />}
         {gid && <ViewerBar gid={gid} />}
       </div>
-      <main ref={stage} className="page-stage mx-auto max-w-6xl px-4 py-6 sm:py-8">
+      <main ref={stage} className="page-stage mx-auto min-h-[calc(100dvh-3.5rem)] max-w-6xl px-4 py-6 sm:py-8">
         <Outlet />
       </main>
       <footer className="mx-auto max-w-6xl px-4 pb-8 pt-10 text-xs leading-relaxed text-white/40">
