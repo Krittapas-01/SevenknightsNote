@@ -136,7 +136,9 @@ export default function TourOverlay() {
       {box
         ? <div className="tour-spot" style={{ transform: `translate(${box.left - PAD}px, ${box.top - PAD}px)`, width: box.width + PAD * 2, height: box.height + PAD * 2 }} />
         : <div className="tour-dim" />}
-      <div ref={card} key={`${active.tour.id}-${active.i}`} className="tour-card panel panel-gold" style={{ top: pos.top, left: pos.left, width: W }}>
+      {/* วางตำแหน่งด้วย transform (ไม่นับเป็น layout shift) · กล่องข้างในเล่นแอนิเมชันเข้าแยกกัน ไม่ทับกัน */}
+      <div className="tour-card-pos" style={{ transform: `translate(${pos.left}px, ${pos.top}px)`, width: W }}>
+      <div ref={card} key={`${active.tour.id}-${active.i}`} className="tour-card panel panel-gold">
         <div className="flex items-start gap-2">
           <p className="flex-1 text-xs font-semibold tabular-nums text-gold/80">{L(`สอนใช้ · ${active.i + 1}/${n}`, `Guide · ${active.i + 1}/${n}`)}</p>
           <button type="button" onClick={closeAllTours} aria-label={tx('ปิดการสอน')} className="-mr-1 -mt-1 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white">
@@ -170,6 +172,7 @@ export default function TourOverlay() {
         {active.i === 0 && n > 1 && (
           <button type="button" onClick={closeAllTours} className="mt-2 text-xs text-white/45 underline-offset-2 hover:text-white/70 hover:underline">{tx('ข้ามการสอนทั้งหมด')}</button>
         )}
+      </div>
       </div>
     </div>,
     document.body,

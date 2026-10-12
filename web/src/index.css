@@ -320,7 +320,8 @@ a.pill:active { transform: scale(.98); }
   transition: transform 280ms var(--motion-out), width 280ms var(--motion-out), height 280ms var(--motion-out); animation: fade-in 200ms ease-out; }
 .tour-spot::after { content: ""; position: absolute; inset: -6px; border-radius: 20px; border: 2px solid #f4d58d; opacity: 0; will-change: transform, opacity; animation: tour-ping 1.6s ease-out 300ms infinite; }
 @keyframes tour-ping { 0% { opacity: .8; transform: scale(.96); } 100% { opacity: 0; transform: scale(1.12); } }
-.tour-card { position: fixed; pointer-events: auto; padding: 14px 16px; box-shadow: 0 16px 48px #000a; animation: modal-arrive 260ms var(--motion-out); }
+.tour-card-pos { position: fixed; top: 0; left: 0; pointer-events: none; transition: transform 220ms var(--motion-out); }
+.tour-card { position: relative; pointer-events: auto; padding: 14px 16px; box-shadow: 0 16px 48px #000a; animation: modal-arrive 260ms var(--motion-out); }
 .tour-try { background: #f4d58d1a; animation: tour-try 1.4s ease-in-out infinite; }
 @keyframes tour-try { 50% { box-shadow: 0 0 0 2px #f4d58d66; } }
 html[data-theme="light"] .tour-try { background: #c08a1e1f; }
