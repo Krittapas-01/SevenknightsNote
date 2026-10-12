@@ -12,10 +12,11 @@ import WhatsNew, { useHasUpdate } from './WhatsNew'
 import CoachPanel from './CoachPanel'
 import TourHelpButton from './TourHelpButton'
 import LangButton, { LangSuggest } from './LangButton'
+import { SupportModal, openSupport } from './Support'
 // ชั้นสอนใช้ + เนื้อหาการสอนทั้งหมด โหลดแยก (ไฟล์หลักเล็กลง) — การสอนเริ่มหลังหน้านิ่งอยู่แล้ว
 const TourOverlay = lazy(() => import('./TourOverlay'))
 import { isDemo } from '../lib/demo'
-import { tx } from '../lib/i18n'
+import { tx, L } from '../lib/i18n'
 import { usePageEnter } from '../lib/motion'
 
 export default function Layout() {
@@ -64,10 +65,16 @@ export default function Layout() {
         <div className="mt-2 flex flex-col items-center gap-1.5 text-center sm:flex-row sm:justify-between sm:text-left">
           <p>{tx('ภาพอัศวิน © Netmarble Corp. & Netmarble Nexus Inc. ·')}{' '}<a className="underline underline-offset-4 hover:text-gold" href="https://sena.netmarble.com/en/pcplay" target="_blank" rel="noreferrer">{tx('เว็บไซต์เกมทางการ')}</a></p>
         </div>
+        <p className="mt-3 text-center sm:text-left">
+          <button type="button" data-testid="footer-support" onClick={openSupport} className="text-gold/80 underline-offset-4 hover:text-gold hover:underline">
+            {L('ชอบ 7K Note? ☕ สนับสนุนค่าเซิร์ฟเวอร์', 'Enjoying 7K Note? ☕ Help with server costs')}
+          </button>
+        </p>
         <p className="mt-2 text-center sm:text-left">{tx('ข้อมูลและไอคอนบางส่วนจาก')}{' '}<a className="underline underline-offset-4 hover:text-gold" href="https://7katlas.com" target="_blank" rel="noreferrer">7K Atlas</a>{' '}{tx('· ขอบคุณมากครับ')}</p>
       </footer>
       <ContactFab />
       <LangSuggest />
+      <SupportModal />
       <Suspense fallback={null}><TourOverlay /></Suspense>
       {isDemo(gid) ? <CoachPanel /> : <WhatsNew />}
     </div>
