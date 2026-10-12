@@ -1,4 +1,5 @@
 import { AlertTriangle, Check, ChevronDown, ChevronLeft, Crown, ImageDown, Library, Pencil, Plus, Shield, Swords, Trash2, Wand2, X } from 'lucide-react'
+import { ImgPriority } from '../components/UnitCard'
 import PageSkeleton from '../components/PageSkeleton'
 import { houseLabel, isMainTag, tagStyle } from '../lib/tags'
 import type { HeroNote, WarSlot } from '../lib/types'
@@ -602,8 +603,10 @@ export default function PlanPage() {
         className="group @container flex cursor-pointer flex-col transition hover:-translate-y-0.5">
         {mainOpt && heroCount(mainOpt.team) ? (
           <div style={{ height: CARD_H }}>
+            <ImgPriority value={s < 2}>
             <TeamCardLite variant="ally" team={mainOpt.team} skills={mainOpt.skills} unit={CARD_U}
               title={<span className="text-gold">{name || L(`ไม้ ${s + 1}`, `Slot ${s + 1}`)}</span>} className="h-full group-hover:border-gold/70" />
+            </ImgPriority>
           </div>
         ) : (
           <div style={{ height: CARD_H }} className="panel panel-gold grid w-full place-items-center p-4 text-sm text-white/40">

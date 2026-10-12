@@ -85,7 +85,9 @@ const CHANGELOG_TH: ChangelogEntry[] = [
         g('เร็วและลื่นขึ้น',
           'เปิดกิลด์ซ้ำ ถ้าข้อมูลไม่เปลี่ยนจะไม่โหลดใหม่ทั้งหมด · สิ่งที่คนอื่นแก้จะขึ้นภายในราว 1 นาที',
           'ไฟล์ที่โหลดครั้งแรกเล็กลง และแอนิเมชันไม่กินเครื่องตอนเปิดหน้าทิ้งไว้',
-          'เปิดหน้ากิลด์/บ้านศัตรู/แผนแล้วหน้าไม่กระโดด: ระหว่างโหลดมีกรอบโครงร่างแทน และแถบประกาศจองที่ไว้ก่อน (มือถือขยับน้อยลงราว 90%)'),
+          'เปิดหน้ากิลด์/บ้านศัตรู/แผนแล้วหน้าไม่กระโดด: ระหว่างโหลดมีกรอบโครงร่างแทน และแถบประกาศจองที่ไว้ก่อน (มือถือขยับน้อยลงราว 90%)',
+          'พิมพ์ค้นหา (บ้านศัตรู · อัศวิน · ที่จดไว้) และกดกรองแท็กไม่หน่วงแล้ว — ตัวอักษรขึ้นทันที รายการตามมาทีหลัง (มือถือช้าเร็วขึ้นหลายเท่า)',
+          'รูปอัศวินที่เห็นตอนเปิดหน้าโหลดก่อน หน้าแรก/บ้านศัตรู/กิลด์ขึ้นครบเร็วขึ้น'),
         g('ข้อความสั้นลง', 'ตัดคำแนะนำที่ไม่จำเป็นออก (เช่น ตำแหน่งช่องสัตว์เลี้ยง) และเอาปุ่ม "ใช้ทั้งคอมพ์" ข้างฟอร์มทีมแก้ออก'),
       ] },
       { kind: 'fix', groups: [
@@ -261,7 +263,9 @@ const CHANGELOG_EN: ChangelogEntry[] = [
         g('Hero names', 'Awakened Eileene and Hayeon are now labeled (Awakened), matching the in-game badge'),
         g('Reading names from screenshots', 'Much more accurate for Thai and English names (Thai ~70% → ~90% correct) and far fewer silent wrong picks'),
         g('Faster & smoother', "Reopening a guild skips the full reload when nothing changed · edits by others show up within about a minute", 'Smaller first download, and animations no longer cost anything while the page sits idle',
-          "Guild, defense and plan pages no longer jump while loading: skeleton placeholders show instead and the announcement bar reserves its space (about 90% less shifting on mobile)"),
+          "Guild, defense and plan pages no longer jump while loading: skeleton placeholders show instead and the announcement bar reserves its space (about 90% less shifting on mobile)",
+          'Typing in search (defenses · heroes · saved teams) and tapping tag filters no longer lag — letters appear instantly, results follow (several times faster on slow phones)',
+          'Hero portraits on the first screen load first, so the home, defense and guild pages fill in sooner'),
         g('Shorter messages', 'Removed unneeded hints (like where the pet box is) and the "use whole comp" button next to the counter form'),
       ] },
       { kind: 'fix', groups: [

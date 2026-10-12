@@ -1,7 +1,8 @@
 import { Check, ChevronLeft, ChevronRight, ClipboardList, LayoutGrid, Link2, Plus, Search, Shield, Swords } from 'lucide-react'
+import { ImgPriority } from '../components/UnitCard'
 import PageSkeleton from '../components/PageSkeleton'
 import { sortTags, tagColor, tagStyle, tagText } from '../lib/tags'
-import { useMemo, useRef, useState } from 'react'
+import { memo, useDeferredValue, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import Modal from '../components/Modal'
 import TeamCardLite from '../components/TeamCardLite'
@@ -46,12 +47,15 @@ export default function GuildPage() {
   useTour('guild-viewer', !!data && !realCanEdit && !isDemo(gid))
 
   const allTags = useMemo(() => sortTags([...new Set(data?.targets.flatMap((t) => t.tags) ?? [])]), [data])
+  // ค้นหา/กรองแท็กแบบเลื่อนไปทำทีหลัง: ช่องพิมพ์/ปุ่มแท็กตอบทันที รายการค่อยตามมา (INP)
+  const dq = useDeferredValue(q)
+  const dTag = useDeferredValue(tag)
   const list = useMemo(() => {
-    const s = q.trim().toLowerCase()
+    const s = dq.trim().toLowerCase()
     // แก้ล่าสุดอยู่บนสุด (ตัวบ้านศัตรูหรือทีมแก้ข้างใน — เวลาเดียวกับจุดเขียว)
     const last = (t: Target) => Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
-    return (data?.targets ?? []).filter((t) => (!tag || t.tags.includes(tag)) && (!s || matches(t, s))).sort((a, b) => last(b) - last(a))
-  }, [data, q, tag])
+    return (data?.targets ?? []).filter((t) => (!dTag || t.tags.includes(dTag)) && (!s || matches(t, s))).sort((a, b) => last(b) - last(a))
+  }, [data, dq, dTag])
 
   if (error) return <NotFound message={error} />
   if (!data) return <PageSkeleton kind="guild" />
@@ -168,43 +172,7 @@ export default function GuildPage() {
           </div>
         )
       ) : (
-        <div className="mt-5 grid gap-x-5 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((t) => {
-            // แก้/เพิ่มภายใน 24 ชม. (ตัวบ้านศัตรูหรือทีมแก้ข้างใน) → จุดเขียว ให้คนในกิลรู้ว่ามีการแก้
-            const last = Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
-            const ago = Date.now() - last
-            const recent = ago < 24 * 3600_000
-            return (
-            <Link key={t.id} ref={renderAhead} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition"
-              // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง) · 560px = ความสูงโดยประมาณของการ์ด
-              style={{ contentVisibility: 'auto', containIntrinsicWidth: 'none', containIntrinsicHeight: 'auto 480px', ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
-              <TeamCardLite
-                team={t.team}
-                skills={t.team.skills ?? []}
-                className={`flex-1 group-hover:border-gold ${t.tags[0] ? 'tag-accent' : ''}`}
-                title={
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="flex flex-wrap gap-1">
-                      {t.tags.length ? t.tags.map((x) => (
-                        <span key={x} className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={tagStyle(x)}>{tagText(x)}</span>
-                      )) : <span className="text-white/50">{tx('บ้านศัตรู')}</span>}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2 text-xs font-normal">
-                      {recent && (
-                        <span className="flex items-center gap-1 text-emerald-300/90" title={tx('มีการแก้ใน 24 ชม.')}>
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                          {ago < 3600_000 ? L(`${Math.max(1, Math.floor(ago / 60_000))} นาที`, `${Math.max(1, Math.floor(ago / 60_000))}m`) : L(`${Math.floor(ago / 3600_000)} ชม.`, `${Math.floor(ago / 3600_000)}h`)}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1 text-gold"><Swords className="h-3.5 w-3.5" /> {L(`${t.counters.length} ทีมแก้`, `${t.counters.length} counter${t.counters.length === 1 ? '' : 's'}`)}</span>
-                    </span>
-                  </span>
-                }
-              />
-            </Link>
-            )
-          })}
-        </div>
+        <TargetGrid list={list} gid={gid} />
       )}
         </>
       )}
@@ -352,3 +320,48 @@ function PlanCard({ gid, plan: p, active, usedAt }: { gid: string; plan: Plan; a
     </Link>
   )
 }
+
+/** การ์ดบ้านศัตรูทั้งหมด — แยก + memo: พิมพ์ค้นหา/กดแท็ก แล้วช่องพิมพ์ตอบทันที การ์ดค่อยวาดตามหลัง (ไม่วาดซ้ำถ้ารายการเดิม) */
+const TargetGrid = memo(function TargetGrid({ list, gid }: { list: Target[]; gid: string }) {
+  return (
+    <div className="mt-5 grid gap-x-5 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+      {list.map((t, i) => {
+        // แก้/เพิ่มภายใน 24 ชม. (ตัวบ้านศัตรูหรือทีมแก้ข้างใน) → จุดเขียว ให้คนในกิลรู้ว่ามีการแก้
+        const last = Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
+        const ago = Date.now() - last
+        const recent = ago < 24 * 3600_000
+        return (
+        <Link key={t.id} ref={renderAhead} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition"
+          // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง) · 560px = ความสูงโดยประมาณของการ์ด
+          style={{ contentVisibility: 'auto', containIntrinsicWidth: 'none', containIntrinsicHeight: 'auto 480px', ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
+          <ImgPriority value={i < 3}>
+          <TeamCardLite
+            team={t.team}
+            skills={t.team.skills ?? []}
+            className={`flex-1 group-hover:border-gold ${t.tags[0] ? 'tag-accent' : ''}`}
+            title={
+              <span className="flex items-center justify-between gap-2">
+                <span className="flex flex-wrap gap-1">
+                  {t.tags.length ? t.tags.map((x) => (
+                    <span key={x} className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={tagStyle(x)}>{tagText(x)}</span>
+                  )) : <span className="text-white/50">{tx('บ้านศัตรู')}</span>}
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-xs font-normal">
+                  {recent && (
+                    <span className="flex items-center gap-1 text-emerald-300/90" title={tx('มีการแก้ใน 24 ชม.')}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      {ago < 3600_000 ? L(`${Math.max(1, Math.floor(ago / 60_000))} นาที`, `${Math.max(1, Math.floor(ago / 60_000))}m`) : L(`${Math.floor(ago / 3600_000)} ชม.`, `${Math.floor(ago / 3600_000)}h`)}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 text-gold"><Swords className="h-3.5 w-3.5" /> {L(`${t.counters.length} ทีมแก้`, `${t.counters.length} counter${t.counters.length === 1 ? '' : 's'}`)}</span>
+                </span>
+              </span>
+            }
+          />
+          </ImgPriority>
+        </Link>
+        )
+      })}
+    </div>
+  )
+})

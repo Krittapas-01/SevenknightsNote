@@ -1,6 +1,6 @@
 import { ArrowLeft, Search, Shield, Swords } from 'lucide-react'
 import { houseLabel, tagText } from '../lib/tags'
-import { useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { getUnit, unitLabel, unitBase } from '../data/heroes'
 import type { HeroNote, SkillStep, Target, Team } from '../lib/types'
 import Modal from './Modal'
@@ -87,9 +87,11 @@ export default function CompLibrary({ open, targets, guildName, initialTab, onPi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialTab, focusDefenseId, pickMode])
 
+  // พิมพ์ค้นหา: ช่องพิมพ์ตอบทันที รายการค่อยกรอง+วาดตามหลัง (INP)
+  const dq = useDeferredValue(q)
   const list = useMemo(() => {
     if (!lib) return []
-    const s = q.trim().toLowerCase()
+    const s = dq.trim().toLowerCase()
     // แท็บบ้านกัน: กรองตามประเภทบ้าน · แท็บทีมแก้: กรองตามประเภทของทีมแก้เอง (ไม่ใช่บ้านที่แก้)
     const defs = lib.defenses.filter((d) => type === 'ทั้งหมด' || tab === 'attack' || d.type === type)
     const items =
@@ -97,7 +99,51 @@ export default function CompLibrary({ open, targets, guildName, initialTab, onPi
       tab === 'defense' ? defs.map((d) => ({ comp: d as Comp, vs: null as Defense | null, def: d })) :
       defs.flatMap((d) => d.counters.filter((c) => type === 'ทั้งหมด' || teamType(c.team) === type).map((c) => ({ comp: c, vs: d })))
     return items.filter((it) => !s || teamText(it.comp.team, it.comp.note).toLowerCase().includes(s))
-  }, [lib, q, type, tab, vs])
+  }, [lib, dq, type, tab, vs])
+  // การ์ดวาดใหม่เฉพาะตอนรายการเปลี่ยน (ไม่วาดทุกครั้งที่พิมพ์)
+  const cards = useMemo(() => (
+    <div className="mt-4 grid gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
+      {list.slice(0, limit).map(({ comp, vs: against, def }: { comp: Comp; vs: Defense | null; def?: Defense }) => (
+        <div key={comp.id} className="flex flex-col">
+          <TeamPanel variant={tab === 'defense' && !vs ? 'enemy' : 'ally'} size="sm" team={comp.team} skills={comp.skills} heroNotes={comp.heroNotes} />
+          {against && !vs && (
+            <p className="mt-3 truncate text-xs text-white/55">
+              {tx('แก้บ้าน:')}{' '}{against.team.slots.filter(Boolean).map((id) => unitLabel(id)).join(' · ')}
+            </p>
+          )}
+          {comp.note && <p className="mt-2 line-clamp-2 text-sm text-white/80">{comp.note}</p>}
+          {comp.heroNotes.length > 0 && (
+            <details className="mt-3 rounded-xl border border-gold/15 bg-black/15 p-3">
+              <summary className="cursor-pointer text-sm text-gold">{tx('เครื่องประดับ / เซต / ค่าความสามารถรายตัว')}</summary>
+              <div className="mt-3 space-y-3">
+                {comp.heroNotes.map((note, index) => (
+                  <div key={index}>
+                    <p className="text-sm font-semibold text-gold">{unitLabel(note.hero)}</p>
+                    {note.text && <p className="mt-1 text-xs text-white/75">{note.text}</p>}
+                    <EquipmentLoadout sets={note.sets} rings={note.rings} />
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+          <div className="mt-auto flex gap-2 pt-3">
+            {onPickDefense && def ? (
+              <button onClick={() => onPickDefense(def)} className="btn-gold flex-1 px-3 py-1.5 text-sm">
+                {tx('ตีบ้านนี้')}{' '}{def.counters.length > 0 && L(`· มีทีมแก้ ${def.counters.length}`, `· ${def.counters.length} counters`)}
+              </button>
+            ) : (
+              <button onClick={() => onPick(comp)} className="btn-gold flex-1 px-3 py-1.5 text-sm">{tx('ใช้ทีมนี้')}</button>
+            )}
+            {!onPickDefense && def && def.counters.length > 0 && (
+              <button onClick={() => setVs(def)} className="pill px-3 py-1.5 text-sm hover:border-gold">
+                {tx('ทีมแก้')}{' '}{def.counters.length}
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  ), [list, limit, tab, vs, onPick, onPickDefense])
 
   return (
     <Modal open={open} title={onPickDefense ? tx('เลือกบ้านที่จะตี') : tx('เลือกจากที่จดไว้')} onClose={onClose} wide>
@@ -156,47 +202,7 @@ export default function CompLibrary({ open, targets, guildName, initialTab, onPi
               {tx('กิลด์นี้ยังไม่ได้จดบ้านศัตรู — ไปเพิ่มบ้านศัตรูและทีมแก้ที่แท็บ "บ้านศัตรู" ก่อน แล้วจะมีให้เลือกที่นี่')}
             </p>
           )}
-          <div className="mt-4 grid gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
-            {list.slice(0, limit).map(({ comp, vs: against, def }: { comp: Comp; vs: Defense | null; def?: Defense }) => (
-              <div key={comp.id} className="flex flex-col">
-                <TeamPanel variant={tab === 'defense' && !vs ? 'enemy' : 'ally'} size="sm" team={comp.team} skills={comp.skills} heroNotes={comp.heroNotes} />
-                {against && !vs && (
-                  <p className="mt-3 truncate text-xs text-white/55">
-                    {tx('แก้บ้าน:')}{' '}{against.team.slots.filter(Boolean).map((id) => unitLabel(id)).join(' · ')}
-                  </p>
-                )}
-                {comp.note && <p className="mt-2 line-clamp-2 text-sm text-white/80">{comp.note}</p>}
-                {comp.heroNotes.length > 0 && (
-                  <details className="mt-3 rounded-xl border border-gold/15 bg-black/15 p-3">
-                    <summary className="cursor-pointer text-sm text-gold">{tx('เครื่องประดับ / เซต / ค่าความสามารถรายตัว')}</summary>
-                    <div className="mt-3 space-y-3">
-                      {comp.heroNotes.map((note, index) => (
-                        <div key={index}>
-                          <p className="text-sm font-semibold text-gold">{unitLabel(note.hero)}</p>
-                          {note.text && <p className="mt-1 text-xs text-white/75">{note.text}</p>}
-                          <EquipmentLoadout sets={note.sets} rings={note.rings} />
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
-                <div className="mt-auto flex gap-2 pt-3">
-                  {onPickDefense && def ? (
-                    <button onClick={() => onPickDefense(def)} className="btn-gold flex-1 px-3 py-1.5 text-sm">
-                      {tx('ตีบ้านนี้')}{' '}{def.counters.length > 0 && L(`· มีทีมแก้ ${def.counters.length}`, `· ${def.counters.length} counters`)}
-                    </button>
-                  ) : (
-                    <button onClick={() => onPick(comp)} className="btn-gold flex-1 px-3 py-1.5 text-sm">{tx('ใช้ทีมนี้')}</button>
-                  )}
-                  {!onPickDefense && def && def.counters.length > 0 && (
-                    <button onClick={() => setVs(def)} className="pill px-3 py-1.5 text-sm hover:border-gold">
-                      {tx('ทีมแก้')}{' '}{def.counters.length}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          {cards}
           {list.length > limit && (
             <button onClick={() => setLimit((l) => l + PAGE)} className="pill mx-auto mt-6 block px-6 py-2 text-sm hover:border-gold">
               {tx('แสดงเพิ่ม (')}{list.length - limit})

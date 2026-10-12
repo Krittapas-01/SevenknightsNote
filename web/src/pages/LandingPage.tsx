@@ -1,4 +1,5 @@
 import { ArrowUpRight, Eye, EyeOff, Gem, Shield, Swords } from 'lucide-react'
+import { ImgPriority } from '../components/UnitCard'
 import { useState, type FormEvent } from 'react'
 import { PACKS_ON } from '../lib/packs'
 import { Link, useNavigate } from 'react-router'
@@ -113,10 +114,12 @@ export default function LandingPage() {
 
       <section className="arena-showcase relative mt-12 sm:mt-16">
         <div className="section-divider mb-9"><span>{tx('ตัวอย่างสนามรบ')}</span></div>
+        <ImgPriority value>
         <VsArena
           left={<TeamPanel variant="ally" team={DEMO_ALLY} skills={DEMO_SKILLS} title={<span className="inline-flex items-center gap-2 text-gold"><Shield className="h-4 w-4" />{' '}{tx('ทีมของเรา')}</span>} />}
           right={<TeamPanel variant="enemy" team={DEMO_ENEMY} title={<span className="inline-flex items-center gap-2 text-[#d7c8ed]"><Swords className="h-4 w-4" />{' '}{tx('บ้านศัตรู')}</span>} />}
         />
+        </ImgPriority>
         <p className="mt-7 text-center text-xs text-white/40">{tx('ทีมตัวอย่างสำหรับแสดงหน้าจอ · จัดทีมจริงได้ในกิลด์ของคุณ')}</p>
       </section>
     </div>

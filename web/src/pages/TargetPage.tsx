@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, Crown, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, ThumbsUp, Trash2, Undo2, X } from 'lucide-react'
+import { ImgPriority } from '../components/UnitCard'
 import PageSkeleton from '../components/PageSkeleton'
 import { isMainTag, tagColor, tagStyle, tagText } from '../lib/tags'
 import { useEffect, useRef, useState } from 'react'
@@ -287,6 +288,7 @@ export default function TargetPage() {
 
   // ทีมแก้ (ฝั่งซ้ายของ VS)
   const allyPanel = (
+    <ImgPriority value>
     <TeamPanel
         variant="ally"
         team={leftTeam}
@@ -308,10 +310,12 @@ export default function TargetPage() {
         skillsReq={skillsReq}
         className={isNew ? 'opacity-40' : ''}
       />
+    </ImgPriority>
   )
 
   // บ้านศัตรู (ฝั่งขวาของ VS)
   const enemyPanel = (
+    <ImgPriority value>
     <TeamPanel
         variant="enemy"
         team={rightTeam}
@@ -328,6 +332,7 @@ export default function TargetPage() {
         onMove={(from, to) => setTDraft((d) => ({ ...d, team: teamOps.move(d.team, from, to) }))}
         onSpeed={(s) => setTeam('target', (t) => ({ ...t, speed: s }))}
       />
+    </ImgPriority>
   )
 
   // ลากทั้งคอมพ์บ้านศัตรูมาเป็นจุดเริ่มทีมแก้ (คัดลอก บ้านศัตรูไม่เปลี่ยน · ไม่เอาลำดับสกิล/ความเร็วของศัตรู)
