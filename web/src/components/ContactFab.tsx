@@ -42,7 +42,10 @@ export default function ContactFab() {
       const typing = vv.scale < 1.05 && H - vv.height > 150 && !!document.activeElement?.matches('input, textarea, [contenteditable="true"]')
       const dx = vv.offsetLeft + vv.width - W, dy = vv.offsetTop + vv.height - H
       el.style.visibility = typing ? 'hidden' : ''
-      el.style.transform = !typing && (Math.abs(dx) > 1 || Math.abs(dy) > 1) ? `translate(${dx}px, ${dy}px)` : ''
+      // ขยับตามเฉพาะตอนซูมด้วยนิ้ว · ไม่ซูม = ให้เบราว์เซอร์จัดเอง (แถบที่อยู่ของ Chrome มือถือหด/โผล่ตอนเลื่อน
+      // ทำให้ความสูงจอที่เห็นเปลี่ยน — ถ้าขยับซ้ำอีกชั้น ปุ่มจะเด้งขึ้นลงตามการเลื่อน)
+      const zoomed = vv.scale > 1.01
+      el.style.transform = !typing && zoomed && (Math.abs(dx) > 1 || Math.abs(dy) > 1) ? `translate(${dx}px, ${dy}px)` : ''
     }
     const on = () => { if (!raf) raf = requestAnimationFrame(fit) }
     vv.addEventListener('resize', on); vv.addEventListener('scroll', on); window.addEventListener('scroll', on, { passive: true })
