@@ -338,7 +338,8 @@ function PlanList({ gid, kind, plans, canEdit, activeId, usedAt }: { gid: string
 function PlanCard({ gid, plan: p, active, usedAt }: { gid: string; plan: Plan; active: boolean; usedAt?: number }) {
   const used = p.data.slots.filter((s) => s.options.length)
   return (
-    <Link to={`/g/${gid}/p/${p.id}`} className={`plan-card panel ${active ? 'panel-gold' : ''} block select-none p-5 transition hover:-translate-y-1`}>
+    <Link to={`/g/${gid}/p/${p.id}`} className="plan-card-link block select-none">
+    <div className={`plan-card panel ${active ? 'panel-gold' : ''} h-full p-5`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {active && <span className="mb-1 inline-block rounded-full bg-gold px-2 text-xs font-semibold text-ink">{tx('ใช้อยู่ตอนนี้')}</span>}
@@ -370,6 +371,7 @@ function PlanCard({ gid, plan: p, active, usedAt }: { gid: string; plan: Plan; a
           </li>
         ))}
       </ul>
+    </div>
     </Link>
   )
 }

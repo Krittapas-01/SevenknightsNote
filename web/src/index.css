@@ -245,7 +245,8 @@ h1, h2, h3 { text-wrap: balance; }
 .landing-hero > form { animation: content-arrive 420ms var(--motion-out) 140ms backwards; }
 .guild-banner { animation: content-arrive 320ms var(--motion-out); }
 details[open] > div { animation: fade-in 180ms ease-out; }
-a.plan-card { transition: transform 220ms var(--motion-out), border-color 180ms ease; }
+/* การ์ดแผน: ลิงก์ด้านนอกอยู่กับที่ (พื้นที่ชี้เมาส์ไม่ขยับ) ขยับแค่การ์ดข้างใน — ไม่งั้นชี้ที่ขอบล่างแล้วการ์ดยกขึ้น-ตก-ยกสั่นไม่หยุด */
+.plan-card-link > .plan-card { transition: transform 220ms var(--motion-out), border-color 180ms ease; }
 .btn-gold:not(:disabled):active,
 button.pill:not(:disabled):active,
 a.pill:active { transform: scale(.98); }
@@ -440,8 +441,8 @@ html[data-theme="light"] .vs-embers .ember-r { background: #e0405f; box-shadow: 
   .btn-gold:not(:disabled):hover, a.btn-gold:hover { transform: translateY(-1px); }
   .btn-gold:not(:disabled):hover::after, a.btn-gold:hover::after { animation: gold-sheen 520ms var(--motion-settle); }
   button.pill:not(:disabled):hover, a.pill:hover { border-color: #f4d58d99; }
-  a.plan-card:hover { transform: translateY(-2px); }
-  .btn-gold:not(:disabled):active, a.btn-gold:active, a.plan-card:active { transform: scale(.985); }
+  .plan-card-link:hover > .plan-card { transform: translateY(-2px); }
+  .btn-gold:not(:disabled):active, a.btn-gold:active, .plan-card-link:active > .plan-card { transform: scale(.985); }
 }
 
 @media (prefers-reduced-motion: reduce) {
