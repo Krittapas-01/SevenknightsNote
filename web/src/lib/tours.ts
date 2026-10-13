@@ -71,7 +71,7 @@ export const TOURS: Tour[] = [
       s('[data-onboard="add-target"]', ['จดบ้านศัตรูบ้านแรก', 'Save your first enemy defense'],
         ['เจอบ้านใหม่ก็กดปุ่มนี้ — เข้าไปแล้วจะสอนการจัดทีมทีละขั้น', 'Tap this when you meet a new defense — the team editor tour starts inside.']),
       s('[data-tour="help-button"]', ['ดูการสอนซ้ำ', 'Replay the guide'],
-        ['ทุกหน้าที่มีการสอน กดปุ่ม ? นี้เพื่อดูซ้ำได้ · รีเซ็ตทั้งหมดได้ที่ ตั้งค่า', 'On any page with a guide, tap ? to replay it · reset all guides in Settings.']),
+        ['ทุกหน้าที่มีการสอน กดปุ่ม ? เพื่อดูซ้ำได้ (มือถือที่ล็อกอินแล้ว อยู่ในเมนูรูปโปรไฟล์) · รีเซ็ตทั้งหมดได้ที่ ตั้งค่า', 'On any page with a guide, tap ? to replay it (on a phone while logged in, it\'s in your profile menu) · reset all guides in Settings.']),
     ],
   },
   {

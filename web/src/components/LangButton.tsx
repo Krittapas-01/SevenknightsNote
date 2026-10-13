@@ -33,10 +33,10 @@ export default function LangButton() {
   }
 
   return (
-    <div ref={box} className="relative mr-2">
+    <div ref={box} className="relative mr-1.5">
       <button type="button" data-testid="lang-button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu"
         title="ภาษา / Language" aria-label="ภาษา / Language"
-        className={`flex h-9 shrink-0 items-center gap-1 rounded-lg border px-2 text-sm font-semibold ${open ? 'border-gold text-gold' : 'border-white/20 text-white/80 hover:border-gold hover:text-gold'}`}>
+        className={`flex h-9 min-w-9 shrink-0 items-center justify-center gap-1 rounded-full px-2 text-sm font-semibold ${open ? 'bg-white/10 text-gold' : 'text-white/80 hover:bg-white/10 hover:text-gold'}`}>
         <Globe className="h-5 w-5" />
         <span className="hidden sm:inline">{LANG === 'en' ? 'EN' : 'TH'}</span>
       </button>

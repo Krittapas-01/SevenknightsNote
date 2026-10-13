@@ -29,6 +29,31 @@ export default function ContactFab() {
     return () => { document.removeEventListener('pointerdown', out); document.removeEventListener('keydown', esc) }
   }, [open])
 
+  // ติดมุมขวาล่างของ "จอที่เห็นจริง" (visual viewport) — ซูม/คีย์บอร์ดเพิ่งปิด/เบราว์เซอร์ในแอป (FB, LINE)
+  // บางทีจอที่เห็นเลื่อนแยกจาก layout viewport → ปุ่ม fixed หลุดลงไปเรื่อย ๆ ตอนเลื่อน
+  // คีย์บอร์ดเปิดอยู่ = ซ่อนไว้ก่อน ไม่บังช่องที่พิมพ์
+  useEffect(() => {
+    const vv = window.visualViewport, el = box.current
+    if (!vv || !el) return
+    let raf = 0
+    const fit = () => {
+      raf = 0
+      const W = document.documentElement.clientWidth, H = window.innerHeight
+      const typing = vv.scale < 1.05 && H - vv.height > 150 && !!document.activeElement?.matches('input, textarea, [contenteditable="true"]')
+      const dx = vv.offsetLeft + vv.width - W, dy = vv.offsetTop + vv.height - H
+      el.style.visibility = typing ? 'hidden' : ''
+      el.style.transform = !typing && (Math.abs(dx) > 1 || Math.abs(dy) > 1) ? `translate(${dx}px, ${dy}px)` : ''
+    }
+    const on = () => { if (!raf) raf = requestAnimationFrame(fit) }
+    vv.addEventListener('resize', on); vv.addEventListener('scroll', on); window.addEventListener('scroll', on, { passive: true })
+    document.addEventListener('focusin', on); document.addEventListener('focusout', on)
+    fit()
+    return () => {
+      vv.removeEventListener('resize', on); vv.removeEventListener('scroll', on); window.removeEventListener('scroll', on)
+      document.removeEventListener('focusin', on); document.removeEventListener('focusout', on); cancelAnimationFrame(raf)
+    }
+  }, [])
+
   const copy = () => {
     navigator.clipboard?.writeText(DISCORD).then(() => {
       setCopied(true)
