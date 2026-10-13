@@ -281,6 +281,8 @@ a.pill:active { transform: scale(.98); }
   background: radial-gradient(circle, #dfba7110, transparent 65%);
   box-shadow: inset 0 0 0 22px #0c142520, inset 0 0 0 23px #d9bd7c0b;
   mask-image: linear-gradient(#000, transparent 85%);
+  /* ชั้นในหมุน (สี่เหลี่ยมหมุน = กล่องกว้างขึ้น ~40%) → ตัดให้อยู่ในวง ไม่งั้นมือถือ Android ขยายหน้าให้กว้างกว่าจอ เลื่อนข้างได้ */
+  overflow: hidden;
 }
 /* วงเวทหมุนช้า ๆ (แฉก) + วงในเส้นประหมุนสวน — หมุนที่ชั้นใน หน้ากากจางด้านล่างอยู่กับที่ */
 .arcane-ring::before, .arcane-ring::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
