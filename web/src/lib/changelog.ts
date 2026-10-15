@@ -32,6 +32,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     summary: 'การสอนใช้แบบส่องปุ่มจริง เรียงลำดับทีมแก้ แอนิเมชันทั้งเว็บ และอ่านชื่อจากรูปแม่นขึ้น',
     sections: [
       { kind: 'new', groups: [
+        g('อัศวินใหม่', 'กิยู (สมดุล) และชิโนบุ (เวท) ทั้งร่างปกติและร่าง awake — ชื่อสกิล วันเข้าเกม ค่าโจมตีพื้นฐาน (หน้าบิสกิต) และอ่านชื่อจากรูปได้'),
         ...(PACKS_ON ? [
         g('เช็กความคุ้มค่าแพ็ค (ใหม่)',
           'หน้าใหม่ เข้าได้จากหน้าแรกหรือเมนู ☰: เรียงแพ็คในเกมจากคุ้มสุดไปน้อยสุด เทียบเป็น % กับ Monthly Key Bundle (= 100%)',
@@ -225,6 +226,7 @@ const CHANGELOG_EN: ChangelogEntry[] = [
     summary: 'Spotlight guides, counter ordering, animations everywhere and sharper screenshot name reading',
     sections: [
       { kind: 'new', groups: [
+        g('New heroes', 'Giyu (Universal) and Shinobu (Magic), base and awakened — skill names, release dates, base attack (Biscuit page) and name reading from screenshots'),
         ...(PACKS_ON ? [
         g('Pack value checker (new)',
           'A new page, from the home page or the ☰ menu: in-game packs ranked from best to worst value, as a % of the Monthly Key Bundle (= 100%)',

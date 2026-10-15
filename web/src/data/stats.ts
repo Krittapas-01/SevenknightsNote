@@ -120,7 +120,7 @@ const BASE_ATK: Record<string, [number, number?]> = {
   "Vanessa": [1500],
   "Yeonhee": [1500],
   "Yoongun": [1500, 1712],
-  "Giyu Tomioka": [727, 832],
+  "Giyu Tomioka": [1306, 1457],
   "Shinobu Kocho": [1500, 1712],
   "Tanjiro Kamado": [1500, 1712],
   "Zenitsu Agatsuma": [1500, 1712],
