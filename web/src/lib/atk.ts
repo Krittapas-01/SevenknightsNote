@@ -22,8 +22,9 @@ export function minStartToBeat(c: AtkInput, target: number): number | null {
   if (m <= 0) return null
   const beats = (start: number) => finalAtk({ ...c, start }) > target
   let s = Math.floor(target / m - (preBuff(c) - c.start)) + 1
-  // กันทศนิยมคลาดเคลื่อนตรงขอบ
-  while (beats(s - 1)) s--
-  while (!beats(s)) s++
+  if (!Number.isFinite(s)) return null
+  // กันทศนิยมคลาดเคลื่อนตรงขอบ · จำกัดรอบไว้ เพราะเลขใหญ่มาก (ราว 1e17+) s±1 แล้วค่าไม่เปลี่ยน จะวนไม่จบจนแท็บค้าง
+  for (let k = 0; k < 4 && beats(s - 1); k++) s--
+  for (let k = 0; k < 4 && !beats(s); k++) s++
   return s
 }
