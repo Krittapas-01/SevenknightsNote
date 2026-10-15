@@ -39,9 +39,11 @@ type Props = {
   showName?: boolean
   /** การ์ดเล็ก → ใช้รูปย่อ (เบาเครื่อง) */
   small?: boolean
+  /** ขนาดรูปที่แสดงจริง (CSS sizes) → ให้เบราว์เซอร์เลือกรูปย่อ/รูปเต็มตามความคมของจอเอง */
+  sizes?: string
 }
 
-export default function UnitCard({ id, shape = 'hero', className = '', showName = true, small = false }: Props) {
+export default function UnitCard({ id, shape = 'hero', className = '', showName = true, small = false, sizes }: Props) {
   const [failedImage, setFailedImage] = useState<string | null>(null)
   const priority = useContext(ImgPriority)
   const u = getUnit(id)
@@ -53,6 +55,7 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
   const label = unitBase(u.id)
   // รูปย่อสำหรับการ์ดเล็ก (ถ้ารูปย่อโหลดไม่ได้ ใช้รูปเต็มแทน)
   const src = small && u.thumb && failedImage !== u.thumb ? u.thumb : u.img
+  const srcSet = sizes && !small && u.thumb && u.img && failedImage !== u.thumb ? `${u.thumb} 256w, ${u.img} 512w` : undefined
 
   return (
     <div
@@ -61,7 +64,7 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
       title={unitLabel(u.id)}
     >
       {src && failedImage !== src ? (
-        <img src={src} alt={u.name} className={`absolute inset-0 h-full w-full object-cover ${shape === 'hero' ? 'origin-[50%_24%] scale-[1.6]' : ''}`} draggable={false} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" onError={() => setFailedImage(src)} />
+        <img src={src} srcSet={srcSet} sizes={srcSet ? sizes : undefined} alt={u.name} className={`absolute inset-0 h-full w-full object-cover ${shape === 'hero' ? 'origin-[50%_24%] scale-[1.6]' : ''}`} draggable={false} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" onError={() => setFailedImage(srcSet ? u.thumb! : src)} />
       ) : (
         <div className="unit-monogram absolute inset-0 grid place-items-center pb-[18%] font-bold text-white/90"
           style={{ fontSize: round ? '0.8em' : '1.15em', textShadow: '0 2px 4px rgba(0,0,0,.6)' }}>

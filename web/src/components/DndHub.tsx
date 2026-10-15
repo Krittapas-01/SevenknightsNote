@@ -1,6 +1,6 @@
 import {
   DndContext, DragOverlay, MouseSensor, PointerSensor, TouchSensor, pointerWithin, rectIntersection, useSensor, useSensors,
-  type CollisionDetection, type DragEndEvent, type DragStartEvent,
+  type CollisionDetection, type DragEndEvent, type DragStartEvent, type Modifier,
 } from '@dnd-kit/core'
 import { zoomOverlay } from '../lib/zoom'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -57,10 +57,14 @@ type Hub = {
   setDockTab: (t: 'hero' | 'pet') => void
   /** ขอเปิดตารางอัศวินหน้าใหญ่ (นับครั้ง — HeroDock ฟังค่านี้) */
   gridReq: number
+  /** ตัวที่กำลังลากจากแถบอยู่ (การ์ดในแถบหรี่ลง) */
   openGrid: () => void
 }
 
 const Ctx = createContext<Hub | null>(null)
+// ตัวที่กำลังลากจากแถบ: แยกบริบทไว้ → เริ่ม/จบการลากไม่ทำให้ทุกช่องในหน้าวาดใหม่ (ใช้แค่แถบอัศวิน)
+const DragUnitCtx = createContext<string | null>(null)
+export const useDraggingUnit = () => useContext(DragUnitCtx)
 export const useDndHub = () => useContext(Ctx)
 /** อ่านว่าแถบอัศวินเปิดอยู่ไหม (ใช้ในฟังก์ชัน render ที่เรียก hook ตรง ๆ ไม่ได้) */
 export function DockAware({ children }: { children: (dockOpen: boolean) => ReactNode }) {
@@ -77,10 +81,34 @@ export const refOf = (k: string): SlotRef =>
   k === 'p' ? { kind: 'pet', index: 0 } : { kind: k[0] === 'h' ? 'hero' : 'extra', index: Number(k.slice(2)) }
 export const groupOfKey = (k: string) => (k[0] === 'h' ? 'hero' : 'pet')
 
+/**
+ * การ์ดในแถบอัศวินลากได้ผ่านตัวลากตัวเดียวของทั้งแถบ (id = roster|<kind>|*) — การ์ด 100+ ใบไม่ต้องลงทะเบียนลากทีละใบ
+ * (ลงทะเบียนทีละใบ = ทุกครั้งที่ทีมเปลี่ยน การ์ดทุกใบวาดใหม่หมด → กดใส่ตัวหน่วง) · การ์ดที่ถูกกดจำไว้ตอนกดลง
+ */
+export const rosterPress: { unit: string | null; el: HTMLElement | null; size: number; left: number; top: number; measured: boolean } = { unit: null, el: null, size: 64, left: 0, top: 0, measured: false }
+export function pressRoster(target: EventTarget | null) {
+  const el = (target as HTMLElement | null)?.closest?.('[data-roster-id]') as HTMLElement | null
+  rosterPress.el = el
+  rosterPress.unit = el?.dataset.rosterId ?? null
+  rosterPress.measured = false // วัดตำแหน่งตอนเริ่มลากจริงเท่านั้น (วัดตอนกด = บังคับคำนวณหน้าใหม่ทุกครั้งที่แตะการ์ด)
+}
+function measureRoster() {
+  if (rosterPress.measured) return rosterPress
+  const r = rosterPress.el?.getBoundingClientRect()
+  Object.assign(rosterPress, { size: r?.width ?? 64, left: r?.left ?? 0, top: r?.top ?? 0, measured: true })
+  return rosterPress
+}
+/** ตัวลากของแถบคือทั้งแถบ → การ์ดลอยให้เริ่มที่ตำแหน่งการ์ดที่กด (ไม่ใช่มุมซ้ายของแถบ) */
+const rosterOffset: Modifier = ({ transform, active, activeNodeRect }) => {
+  if (!activeNodeRect || !String(active?.id ?? '').endsWith('|*')) return transform
+  const p = measureRoster()
+  return { ...transform, x: transform.x + p.left - activeNodeRect.left, y: transform.y + p.top - activeNodeRect.top }
+}
+
 /** แยก id ของ dnd-kit */
 export function parseDndId(id: string) {
   const [a, b, ...rest] = id.split('|')
-  if (a === 'roster') return { roster: true as const, kind: b as 'hero' | 'pet', unit: rest.join('|') }
+  if (a === 'roster') { const u = rest.join('|'); return { roster: true as const, kind: b as 'hero' | 'pet', unit: u === '*' ? rosterPress.unit ?? '' : u } }
   return { roster: false as const, panel: a, key: b }
 }
 
@@ -160,7 +188,7 @@ export function DndHub({ children }: { children: ReactNode }) {
   function onDragStart(e: DragStartEvent) {
     const p = parseDndId(String(e.active.id))
     const size = e.active.rect.current.initial?.width ?? 64
-    if (p.roster) return setDrag({ unit: p.unit, shape: p.kind === 'hero' ? 'hero' : 'pet', size })
+    if (p.roster) return p.unit ? setDrag({ unit: p.unit, shape: p.kind === 'hero' ? 'hero' : 'pet', size: measureRoster().size }) : undefined
     const h = panels.current.get(p.panel)
     const unit = h?.valueOf(refOf(p.key))
     if (unit) setDrag({ unit, shape: p.key[0] === 'h' ? 'hero' : p.key === 'p' ? 'pet' : 'round', size })
@@ -218,11 +246,12 @@ export function DndHub({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={hub}>
+      <DragUnitCtx.Provider value={drag?.unit ?? null}>
       <DndContext sensors={sensors} collisionDetection={collision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDrag(null)}>
         {children}
         {createPortal(
           // will-change: การ์ดที่ลากเป็นเลเยอร์แยก วาดครั้งเดียวแล้วเลื่อนอย่างเดียว (ไม่วาดเงา/เอียงใหม่ทุกครั้งที่ขยับเมาส์)
-          <DragOverlay dropAnimation={null} modifiers={[zoomOverlay]} className="will-change-transform">
+          <DragOverlay dropAnimation={null} modifiers={[rosterOffset, zoomOverlay]} className="will-change-transform">
             {drag ? (
               <div
                 className="rotate-3 scale-105 cursor-grabbing drop-shadow-2xl"
@@ -235,6 +264,7 @@ export function DndHub({ children }: { children: ReactNode }) {
           document.body,
         )}
       </DndContext>
+      </DragUnitCtx.Provider>
     </Ctx.Provider>
   )
 }

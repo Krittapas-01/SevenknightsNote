@@ -238,6 +238,10 @@ h1, h2, h3 { text-wrap: balance; }
 .hero-dock { box-shadow: 0 -12px 40px #05091580, inset 0 2px 0 #f4d58d0d; padding-bottom: env(safe-area-inset-bottom); }
 /* Fade the dock as one surface; never move its draggable coordinate space. */
 .hero-dock { animation: fade-in 180ms ease-out; }
+/* แถบที่เตรียมไว้ล่วงหน้า (ยังไม่เปิด): ไม่วาด/กด/โฟกัสข้างใน + เลื่อนกรอบออกนอกจอ */
+.hero-dock-idle { content-visibility: hidden; transform: translateY(100vh); }
+/* แถวการ์ดของแท็บที่ไม่ได้เปิด (อัศวิน/สัตว์เลี้ยง สร้างค้างไว้ทั้งคู่) */
+.roster-group-idle { content-visibility: hidden; position: absolute; left: 0; top: 0; }
 .landing-hero > .eyebrow,
 .landing-hero > .hero-crest { animation: content-arrive 360ms var(--motion-out) backwards; }
 .landing-hero > h1 { animation: content-arrive 420ms var(--motion-out) 60ms backwards; }
@@ -418,18 +422,7 @@ html[data-theme="light"] .vs-embers .ember-r { background: #e0405f; box-shadow: 
   .modal-backdrop, .hero-dock { backdrop-filter: none; }
 }
 
-/* เข้าหน้า (ทุกหน้า): ส่วนต่าง ๆ ของหน้าลอยขึ้นทีละชิ้น
- * ข้ามชิ้นที่ fixed/sticky หรือมีของ fixed อยู่ข้างใน (transform จะทำให้ของ fixed กระโดด)
- * เบราว์เซอร์เก่าที่ไม่รู้จัก :has จะไม่มีแอนิเมชันนี้เฉย ๆ */
-.page-stage > * > :not(.fixed, .sticky, .modal-backdrop, [role="dialog"], [data-bottom-bar], :has(.fixed, .sticky, [data-bottom-bar])) {
-  animation: content-arrive 420ms var(--motion-out) backwards;
-}
-.page-stage > * > :nth-child(2) { animation-delay: 45ms; }
-.page-stage > * > :nth-child(3) { animation-delay: 90ms; }
-.page-stage > * > :nth-child(4) { animation-delay: 135ms; }
-.page-stage > * > :nth-child(5) { animation-delay: 180ms; }
-.page-stage > * > :nth-child(6) { animation-delay: 220ms; }
-.page-stage > * > :nth-child(n+7) { animation-delay: 260ms; }
+/* เข้าหน้า (ทุกหน้า): ส่วนต่าง ๆ ของหน้าลอยขึ้นทีละชิ้น → lib/motion.ts (usePageEnter) ใช้ keyframes เดียวกับ content-arrive */
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes card-arrive { from { opacity: .35; transform: scale(.95); } to { opacity: 1; transform: none; } }
 @keyframes content-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

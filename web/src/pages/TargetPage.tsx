@@ -603,7 +603,7 @@ export default function TargetPage() {
           </div>
         </div>
         {/* แนวนอน เลื่อนซ้าย-ขวาได้ */}
-        <div ref={allStrip} {...allDrag} className="scrollbar-thin -mx-1 flex cursor-grab gap-4 overflow-x-auto px-1 pb-3 select-none active:cursor-grabbing">
+        <div ref={allStrip} {...allDrag} className="scrollbar-thin -mx-1 flex cursor-grab gap-4 overflow-x-auto px-1 pb-3 select-none">
           {counters.map((c, i) => (
             <div key={c.id} role="button" tabIndex={0} onClick={() => { setSel(i); setShowAll(false) }}
               onKeyDown={(e) => e.key === 'Enter' && (setSel(i), setShowAll(false))}

@@ -5,7 +5,11 @@ import { getPrefs, onPrefsChange } from './prefs'
  * จอคอมย่อทั้งเว็บด้วย CSS zoom (index.css: html { zoom }) — ขนาดเท่าซูมเบราว์เซอร์ 80%
  * ตำแหน่งเมาส์เป็นพิกเซลจอจริง แต่ transform/left/top ในหน้าถูกย่อตาม zoom → ลากวางต้องหารกลับ
  */
+// จำค่าไว้ (ตั้งที่ applyUiZoom ที่เดียว) — getComputedStyle บังคับเบราว์เซอร์คำนวณสไตล์ทั้งหน้าทันที
+// ถูกเรียกทุกครั้งที่ทีมเปลี่ยน/ลากการ์ด → เคยกินเวลาเป็นสิบ ms ต่อครั้งบนเครื่องช้า
+let cached: number | null = null
 export function uiZoom() {
+  if (cached !== null) return cached
   if (typeof document === 'undefined') return 1
   const z = parseFloat(getComputedStyle(document.documentElement).zoom || '1')
   return Number.isFinite(z) && z > 0 ? z : 1
@@ -32,12 +36,17 @@ export const zoomOverlay: Modifier = ({ transform, activeNodeRect }) => {
 export function applyUiZoom() {
   const set = () => {
     const el = document.documentElement
-    if (window.innerWidth < 1024) { el.style.removeProperty('zoom'); return }
+    const put = (z: string | null) => {
+      if (z === null) el.style.removeProperty('zoom'); else el.style.setProperty('zoom', z)
+      const n = z === null ? 1 : parseFloat(z)
+      cached = Number.isFinite(n) && n > 0 ? n : 1
+    }
+    if (window.innerWidth < 1024) return put(null)
     // ตั้งค่า → ขนาดหน้าเว็บ (อัตโนมัติ = ดูจากความละเอียดจอ)
     const pref = getPrefs().zoom
-    if (pref !== 'auto') { if (pref === '1') el.style.removeProperty('zoom'); else el.style.setProperty('zoom', pref); return }
+    if (pref !== 'auto') return put(pref === '1' ? null : pref)
     const physical = window.screen.width * window.devicePixelRatio
-    el.style.setProperty('zoom', physical >= 2400 ? '0.85' : '0.8')
+    put(physical >= 2400 ? '0.85' : '0.8')
   }
   set()
   window.addEventListener('resize', set)
