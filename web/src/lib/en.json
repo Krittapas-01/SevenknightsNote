@@ -658,5 +658,6 @@
  "เก็บทีม ลำดับสกิล โน้ต อุปกรณ์ และค่าความสามารถ · ใช้ได้ทุกกิลด์ทุกเครื่อง": "Keeps team, skill queue, notes, gear and stats · works in every guild on every device",
  "เพิ่มอุปกรณ์รายตัว:": "Add per-hero gear:",
  "โน้ต เช่น ทำช้า, ต้องมีอุปกรณ์ดี, แนะนำตัวนี้มากกว่าไคล์": "Note, e.g. slow, needs good gear, prefer this over Kyle",
- "ใส่อุปกรณ์ ค่าความสามารถ และคำอธิบายของแต่ละตัว (แถวละ 1 ตัว) — ข้ามได้ กด \"เสร็จ\" ได้เลย": "Add gear, stats and notes for each hero (one per row) — optional, just tap \"Done\""
+ "ใส่อุปกรณ์ ค่าความสามารถ และคำอธิบายของแต่ละตัว (แถวละ 1 ตัว) — ข้ามได้ กด \"เสร็จ\" ได้เลย": "Add gear, stats and notes for each hero (one per row) — optional, just tap \"Done\"",
+ "เทียบพลังโจมตี": "Attack Compare"
 }

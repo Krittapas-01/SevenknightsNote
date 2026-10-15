@@ -1,4 +1,4 @@
-import { Calculator, Cookie, ExternalLink, Home, Megaphone, MessagesSquare, Settings, Shield, Sparkles, ThumbsUp, X } from 'lucide-react'
+import { Calculator, Cookie, ExternalLink, Home, Megaphone, MessagesSquare, Settings, Shield, Sparkles, Swords, ThumbsUp, X } from 'lucide-react'
 import { useEffect, useState, type ComponentType } from 'react'
 import { NavLink } from 'react-router'
 import { getRecent, refreshRecent } from '../lib/api'
@@ -12,6 +12,7 @@ const NAV: { to: string; label: string; icon: ComponentType<{ className?: string
   { to: '/', label: tx('หน้าแรก'), icon: Home },
   { to: '/biscuit', label: tx('เช็กบัฟบิสกิต'), icon: Cookie },
   { to: '/totalwar', label: tx('คำนวณแต้มเบ็ดเสร็จ'), icon: Calculator },
+  { to: '/atk', label: tx('เทียบพลังโจมตี'), icon: Swords },
   { to: '/favorites', label: tx('พรีเซต & ทีมที่ชอบ'), icon: ThumbsUp },
 ]
 

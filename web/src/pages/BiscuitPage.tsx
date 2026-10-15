@@ -8,6 +8,7 @@ import { FormationDiagram } from '../components/TeamModals'
 import { HEROES, getUnit, unitLabel } from '../data/heroes'
 import { baseAtkOf } from '../data/stats'
 import { SLOT_COUNT } from '../lib/types'
+import { FORMATION_ATK, FRONT_COLS } from '../lib/formation'
 import './BiscuitPage.css'
 import { tx, L, LOCALE } from '../lib/i18n'
 
@@ -17,16 +18,6 @@ const BISCUIT_TARGETS = 2
 const STORE_KEY = '7k-note:biscuit'
 
 type Slot = { id: string | null; base: string; screen: string; extra: string }
-
-// รูปแบบ Lv.40 (จากในเกม): แถวหลังได้ All Attack % · แถวหน้าได้แค่ Defense % (ไม่มีผลกับบัฟบิสกิต)
-const FORMATION_ATK: { front: number; name: string; atk: number }[] = [
-  { front: 2, name: tx('พื้นฐาน'), atk: 14 },
-  { front: 3, name: tx('สมดุล'), atk: 21 },
-  { front: 1, name: tx('บุก'), atk: 10.5 },
-  { front: 4, name: tx('ป้องกัน'), atk: 42 },
-]
-// คอลัมน์ (ซ้าย→ขวา) ที่เป็นแถวหน้า ตามรูปแบบ (เหมือนในเกม/AtlasTeam)
-const FRONT_COLS: Record<number, number[]> = { 1: [2], 2: [1, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4] }
 
 const EMPTY_SLOT: Slot = { id: null, base: '', screen: '', extra: '' }
 // บัฟ % ของทั้งทีมมาจาก "ศักยภาพ" ของสัตว์เลี้ยง: บรรทัด All Attack (%) สูงสุด 4 บรรทัด

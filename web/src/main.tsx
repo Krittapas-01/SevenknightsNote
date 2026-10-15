@@ -12,6 +12,7 @@ const TargetPage = lazy(() => import('./pages/TargetPage'))
 const PlanPage = lazy(() => import('./pages/PlanPage'))
 const BiscuitPage = lazy(() => import('./pages/BiscuitPage'))
 const TotalWarPage = lazy(() => import('./pages/TotalWarPage'))
+const AtkPage = lazy(() => import('./pages/AtkPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage'))
 const GuidePage = lazy(() => import('./pages/GuidePage'))
@@ -37,6 +38,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="g/:gid/p/:pid" element={<Suspense fallback={loading}><PlanPage /></Suspense>} />
           <Route path="biscuit" element={<Suspense fallback={loading}><BiscuitPage /></Suspense>} />
           <Route path="totalwar" element={<Suspense fallback={loading}><TotalWarPage /></Suspense>} />
+          <Route path="atk" element={<Suspense fallback={loading}><AtkPage /></Suspense>} />
           <Route path="admin" element={<Suspense fallback={loading}><AdminPage /></Suspense>} />
           <Route path="favorites" element={<Suspense fallback={loading}><FavoritesPage /></Suspense>} />
           <Route path="guide" element={<Suspense fallback={loading}><GuidePage /></Suspense>} />
