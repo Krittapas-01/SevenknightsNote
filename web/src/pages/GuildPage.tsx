@@ -3,6 +3,7 @@ import { ImgPriority } from '../components/UnitCard'
 import PageSkeleton from '../components/PageSkeleton'
 import { sortTags, tagColor, tagStyle, tagText } from '../lib/tags'
 import { memo, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigationType, useParams, useSearchParams } from 'react-router'
 import Modal from '../components/Modal'
 import TeamCardLite from '../components/TeamCardLite'
@@ -85,12 +86,31 @@ export default function GuildPage() {
   // ค้นหา/กรองแท็กแบบเลื่อนไปทำทีหลัง: ช่องพิมพ์/ปุ่มแท็กตอบทันที รายการค่อยตามมา (INP)
   const dq = useDeferredValue(q)
   const dTag = useDeferredValue(tag)
-  const list = useMemo(() => {
+  const sorted = useMemo(() => {
     const s = dq.trim().toLowerCase()
     // แก้ล่าสุดอยู่บนสุด (ตัวบ้านศัตรูหรือทีมแก้ข้างใน — เวลาเดียวกับจุดเขียว)
     const last = (t: Target) => Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
     return (data?.targets ?? []).filter((t) => (!dTag || t.tags.includes(dTag)) && (!s || matches(t, s))).sort((a, b) => last(b) - last(a))
   }, [data, dq, dTag])
+  // ลำดับการ์ดบนจอไม่สลับเอง: ข้อมูลใหม่มาเบื้องหลัง (มีคนแก้ / โหลดเสร็จทีหลัง) → การ์ดอยู่ที่เดิม เนื้อหาในการ์ดอัปเดต
+  // บ้านใหม่ต่อท้าย · ขึ้นปุ่ม "เรียงใหม่" ให้กดเอง (การ์ดสลับที่เองโดยไม่ได้กด = หน้ากระโดด CLS)
+  // เรียงใหม่ทันทีเมื่อ: เปลี่ยนคำค้น/แท็ก หรือกดปุ่มเรียงใหม่
+  const [resort, setResort] = useState(0)
+  const shown = useRef<{ key: string; ids: string[] } | null>(null)
+  const openedAt = useRef(Date.now())
+  const orderKey = `${dq}|${dTag}|${resort}`
+  const { list, stale } = useMemo(() => {
+    const ids = sorted.map((t) => t.id)
+    const o = shown.current
+    // ช่วงเปิดหน้าแรก ๆ (ข้อมูลในเครื่อง → ข้อมูลจากเซิร์ฟเวอร์ตามมาติด ๆ) ยังเรียงใหม่ได้ ไม่ต้องรอกดปุ่ม
+    if (!o || o.key !== orderKey || !o.ids.length || Date.now() - openedAt.current < 1500) {
+      shown.current = { key: orderKey, ids }
+      return { list: sorted, stale: false }
+    }
+    const pos = new Map(o.ids.map((id, i) => [id, i]))
+    const arranged = [...sorted.filter((t) => pos.has(t.id)).sort((a, b) => pos.get(a.id)! - pos.get(b.id)!), ...sorted.filter((t) => !pos.has(t.id))]
+    return { list: arranged, stale: arranged.some((t, i) => t.id !== ids[i]) }
+  }, [sorted, orderKey])
 
   useLayoutEffect(() => {
     if (restored.current || navType !== 'POP' || !data) return
@@ -225,7 +245,17 @@ export default function GuildPage() {
           </div>
         )
       ) : (
+        <>
         <TargetGrid list={list} gid={gid} />
+        {/* ปุ่มลอย (fixed = ไม่ดันหน้า) · portal: แท็บมีแอนิเมชันเลื่อน (transform) ทำให้ fixed ข้างในเพี้ยน */}
+        {stale && createPortal(
+          <button type="button" data-testid="resort" onClick={() => setResort((n) => n + 1)}
+            className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-full border border-gold/60 bg-[var(--surface-deep)] px-4 py-2 text-sm font-semibold text-gold shadow-lg hover:bg-gold/15">
+            {L('มีการแก้ใหม่ · เรียงล่าสุดขึ้นก่อน', 'New edits · sort latest first')}
+          </button>,
+          document.body,
+        )}
+        </>
       )}
         </>
       )}

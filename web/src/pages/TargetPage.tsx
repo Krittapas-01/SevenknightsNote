@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, Crown, Eraser, LayoutGrid, Library, ListOrde
 import { ImgPriority } from '../components/UnitCard'
 import PageSkeleton from '../components/PageSkeleton'
 import { isMainTag, tagColor, tagStyle, tagText } from '../lib/tags'
-import { useEffect, useRef, useState } from 'react'
+import { startTransition, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import SkillSkipAsk, { skillShort } from '../components/SkillSkipAsk'
 import ConfirmDelete from '../components/ConfirmDelete'
@@ -19,6 +19,7 @@ import { getUnit } from '../data/heroes'
 import { api } from '../lib/api'
 import { MAX_HEROES, addHeroToTeam, changeFormation, compKey, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
+import { notifyGuildChanged } from '../lib/usePulse'
 import NotFound from './NotFound'
 
 /** "เมื่อสักครู่" / "5 นาทีที่แล้ว" / "3 ชม. ที่แล้ว" / "2 วันที่แล้ว" */
@@ -60,7 +61,7 @@ export default function TargetPage() {
   const { gid = '', tid = '' } = useParams()
   const nav = useNavigate()
   const isNew = tid === 'new'
-  const { data, error, canEdit, reload } = useGuild(gid)
+  const { data, error, canEdit, reload, patch } = useGuild(gid)
   const [dropOver, setDropOver] = useState(false)
   const [editMenu, setEditMenu] = useState(false) // ลากคอมพ์เป้าหมายมาวางบนทีมแก้
   const wide = useMediaQuery('(min-width: 1024px)') // จอคอม: ฟอร์มบ้านศัตรูอยู่ข้างคอมพ์
@@ -86,6 +87,8 @@ export default function TargetPage() {
   const counterSlide = useSlideDir(sel)
   const [picker, setPicker] = useState<Picker>(null)
   const [busy, setBusy] = useState(false)
+  const bgSaves = useRef(0) // บันทึกเบื้องหลังที่ยังไม่เสร็จ
+  const [retry, setRetry] = useState<{ msg: string; reopen: () => void } | null>(null) // บันทึกเบื้องหลังไม่ผ่าน
   const [err, setErr] = useState<string | null>(null)
   // เรียงลำดับทีมแก้: กดค้างที่แท็บ ทีมแก้ #n แล้วลาก (#1 = แนะนำให้ใช้ก่อน) · ลากอยู่ = แท็บที่เลือกตามไปด้วย
   const serverCounters = target?.counters ?? []
@@ -130,6 +133,8 @@ export default function TargetPage() {
 
   // ---------- เริ่มแก้ไข ----------
   function editTarget() {
+    if (busy) return // ยังบันทึกรอบก่อนไม่เสร็จ
+    setRetry(null)
     tSkillOk.current = false
     if (!target) return
     setTDraft({ team: clone(target.team), tags: [...target.tags], note: target.note })
@@ -137,6 +142,8 @@ export default function TargetPage() {
     setMode('target')
   }
   function editCounter(isAdd: boolean) {
+    if (busy) return // ยังบันทึกรอบก่อนไม่เสร็จ (ทีมใหม่ยังเป็น id ชั่วคราว)
+    setRetry(null)
     skillOk.current = false
     if (isAdd || !current) setCDraft({ id: null, team: emptyTeam(), skills: [], note: '', heroNotes: [] })
     else setCDraft({ id: current.id, team: clone(current.team), skills: [...current.skills], note: current.note, heroNotes: copyNotes(current.heroNotes) })
@@ -185,8 +192,25 @@ export default function TargetPage() {
       setErr((e as Error).message)
       shakeScreen()
     } finally {
-      setBusy(false)
+      setBusy(bgSaves.current > 0) // ยังมีบันทึกเบื้องหลังค้างอยู่ = ยังล็อกปุ่มไว้
     }
+  }
+  /**
+   * บันทึกแบบหน้าเปลี่ยนทันที: แก้ข้อมูลบนจอ + กลับโหมดดูเลย แล้วค่อยส่งไปเซิร์ฟเวอร์เบื้องหลัง
+   * (เดิมรอเซิร์ฟเวอร์ตอบแล้วหน้าค่อยเปลี่ยน → หน้ากระโดดทีหลังโดยไม่ได้กดอะไร = CLS)
+   * ไม่ผ่าน → ข้อมูลบนจอกลับเป็นก่อนแก้ + ป้ายลอย "บันทึกไม่สำเร็จ · กลับไปแก้" (กดแล้วเปิดหน้าแก้พร้อมงานเดิม)
+   *   ไม่เปิดหน้าแก้เองทันที — หน้าจะกระโดดโดยที่ไม่ได้กดอะไร
+   */
+  function saveInBackground(undo: () => void, fn: () => Promise<unknown>, onFail: () => void) {
+    bgSaves.current++
+    setBusy(true)
+    setErr(null)
+    // สำเร็จ → แจ้งทุกหน้าที่เปิดอยู่ (หน้านี้เอง/หน้ากิลด์ที่ย้อนกลับไป) ให้โหลดของจริงจากเซิร์ฟเวอร์
+    fn().then(() => notifyGuildChanged(gid), (e) => {
+      undo() // ข้อมูลบนจอกลับเป็นก่อนแก้
+      setRetry({ msg: (e as Error).message, reopen: onFail })
+      shakeScreen()
+    }).finally(() => { bgSaves.current--; setBusy(bgSaves.current > 0) })
   }
   // บันทึกสำเร็จ: ป้าย "บันทึกแล้ว" + การ์ดที่เพิ่งบันทึกเรืองทอง (รอหน้ากลับไปโหมดดูก่อน)
   const celebrate = (which: 'ally' | 'enemy') => {
@@ -210,12 +234,16 @@ export default function TargetPage() {
         const t = await api.createTarget(gid, tDraft)
         await reload()
         nav(`/g/${gid}/t/${t.id}`, { replace: true })
-      } else {
-        await api.updateTarget(gid, tid, tDraft)
-        await reload()
+        setMode('view')
+        celebrate('enemy')
+        return
       }
+      // แก้บ้านเดิม: หน้าเปลี่ยนทันที แล้วค่อยบันทึกเบื้องหลัง
+      const draft = { ...tDraft, team: clone(tDraft.team) }
+      const undo = patch((d) => ({ ...d, targets: d.targets.map((t) => (t.id === tid ? { ...t, team: draft.team, tags: draft.tags, note: draft.note, updatedAt: Date.now() } : t)) }))
       setMode('view')
       celebrate('enemy')
+      saveInBackground(undo, () => api.updateTarget(gid, tid, draft), () => { setTDraft(draft); setMode('target') })
     })
   }
   const deleteTarget = () => {
@@ -243,26 +271,34 @@ export default function TargetPage() {
       if (dupC >= 0) throw new Error(L(`ทีมแก้นี้มีอยู่แล้ว (ทีมแก้ #${dupC + 1}) — แก้ที่ทีมเดิมแทน`, `This counter already exists (Counter #${dupC + 1}) — edit that one instead`))
       const body = { team, skills: cDraft.skills, note: cDraft.note, heroNotes: cDraft.heroNotes }
       rememberNotes(cDraft.heroNotes) // จำค่าความสามารถล่าสุดของเครื่องนี้
-      if (cDraft.id) {
-        await api.updateCounter(gid, cDraft.id, body)
-        await reload()
-      } else {
-        await api.createCounter(gid, tid, body)
-        await reload()
-        setSel(counters.length) // ตัวใหม่อยู่ท้ายสุด
-      }
+      // หน้าเปลี่ยนทันที (ทีมแก้ขึ้นจอเลย) แล้วค่อยบันทึกเบื้องหลัง — ทีมใหม่ใช้ id ชั่วคราวจนโหลดข้อมูลจริงกลับมา
+      const draft = { ...cDraft, team: clone(cDraft.team) }
+      const now = Date.now()
+      const editId = cDraft.id
+      const undo = patch((d) => ({ ...d, targets: d.targets.map((t) => (t.id !== tid ? t : {
+        ...t,
+        counters: editId
+          ? t.counters.map((c) => (c.id === editId ? { ...c, ...body, updatedAt: now } : c))
+          : [...t.counters, { id: `tmp-${now}`, targetId: tid, ...body, likes: 0, createdAt: now, updatedAt: now }],
+      })) }))
+      if (!editId) setSel(counters.length) // ตัวใหม่อยู่ท้ายสุด
       setMode('view')
       celebrate('ally')
+      saveInBackground(
+        undo,
+        () => (editId ? api.updateCounter(gid, editId, body) : api.createCounter(gid, tid, body)),
+        () => { setCDraft(draft); setMode('counter') },
+      )
     })
   }
   const deleteCounter = () => {
     if (!cDraft.id) return
-    run(async () => {
-      await api.deleteCounter(gid, cDraft.id!)
-      await reload()
-      setSel(0)
-      setMode('view')
-    })
+    const draft = { ...cDraft }
+    const id = cDraft.id
+    const undo = patch((d) => ({ ...d, targets: d.targets.map((t) => (t.id !== tid ? t : { ...t, counters: t.counters.filter((c) => c.id !== id) })) }))
+    setSel(0)
+    setMode('view')
+    saveInBackground(undo, () => api.deleteCounter(gid, id), () => { setCDraft(draft); setMode('counter') })
   }
 
   function pickComp(c: Comp) {
@@ -470,7 +506,8 @@ export default function TargetPage() {
                 {...reorder.bind(c.id)}
                 ref={(el) => { counterPill.item(i)(el); reorder.bind(c.id).ref(el) }}
                 disabled={mode !== 'view'}
-                onClick={() => setSel(i)}
+                // เปลี่ยนแท็บแบบไม่บล็อกจอ (การ์ดทีมแก้หนัก: รูป/ของ/ค่าความสามารถ) → กดแล้วตอบสนองทันที (INP)
+                onClick={() => startTransition(() => setSel(i))}
                 title={canEdit && counters.length > 1 && mode === 'view' ? tx('กดค้างแล้วลากเพื่อเรียงลำดับ (#1 = แนะนำให้ใช้ก่อน)') : undefined}
                 className={`relative z-10 shrink-0 select-none rounded-full px-4 py-1.5 text-sm transition-[color,background-color,transform,opacity] sm:text-base ${
                   reorder.dragId === c.id ? 'scale-105 cursor-grabbing opacity-80 ring-2 ring-gold/70' : canEdit && counters.length > 1 && mode === 'view' ? 'cursor-grab' : ''
@@ -525,7 +562,7 @@ export default function TargetPage() {
             </button>
           )}
           {counters.length > 1 && (
-            <button data-tour="counter-all" disabled={mode !== 'view'} onClick={() => setShowAll(true)}
+            <button data-tour="counter-all" disabled={mode !== 'view'} onClick={() => startTransition(() => setShowAll(true))}
               className="pill ml-2 flex shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm text-gold hover:bg-white/10 disabled:opacity-40">
               <LayoutGrid className="h-4 w-4" />{' '}{tx('ดูทั้งหมด')}
             </button>
@@ -722,6 +759,14 @@ export default function TargetPage() {
           if (w === 'target') { tSkillOk.current = true; saveTarget() } else { skillOk.current = true; saveCounter() }
         }} />
       {/* ปุ่มแก้ไขลอยมุมล่างขวา (ข้างปุ่มติดต่อ) — กดแล้วเลือกว่าจะแก้อะไร ไม่ต้องเลื่อนลงไปหาในการ์ด */}
+      {retry && createPortal(
+        <div role="alert" data-testid="save-failed" className="fixed inset-x-3 bottom-24 z-50 mx-auto flex max-w-md flex-wrap items-center gap-2 rounded-2xl border border-red-400/50 bg-[var(--alert-bg)] px-4 py-3 text-sm text-red-200 shadow-xl">
+          <span className="min-w-0 flex-1"><b>{tx('บันทึกไม่สำเร็จ')}</b> · {retry.msg}</span>
+          <button type="button" onClick={() => { retry.reopen(); setErr(retry.msg); setRetry(null) }} className="rounded-full bg-red-400/90 px-3 py-1 font-semibold text-ink hover:bg-red-300">{tx('กลับไปแก้')}</button>
+          <button type="button" onClick={() => setRetry(null)} aria-label={tx('ปิด')} className="rounded-full p-1 text-red-200/70 hover:text-white"><X className="h-4 w-4" /></button>
+        </div>,
+        document.body,
+      )}
       {canEdit && !isNew && mode === 'view' && createPortal(
         <div data-noexport className="fixed right-20 z-40 flex flex-col items-end gap-2 sm:right-24" style={{ bottom: 'calc(20px + env(safe-area-inset-bottom))' }}>
           {editMenu && (
@@ -739,9 +784,10 @@ export default function TargetPage() {
               </button>
             </div>
           )}
-          <button type="button" data-tour="edit-fab" onClick={() => setEditMenu((v) => !v)} aria-expanded={editMenu}
-            className="btn-gold flex items-center gap-1.5 px-5 py-3 text-sm font-semibold shadow-[0_6px_24px_rgba(0,0,0,.5)]">
-            {editMenu ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}{' '}{tx('แก้ไข')}
+          {/* บันทึกเบื้องหลังยังไม่เสร็จ → ยังแก้ต่อไม่ได้ (ทีมใหม่ยังไม่มี id จริง) */}
+          <button type="button" data-tour="edit-fab" disabled={busy} onClick={() => setEditMenu((v) => !v)} aria-expanded={editMenu}
+            className="btn-gold flex items-center gap-1.5 px-5 py-3 text-sm font-semibold shadow-[0_6px_24px_rgba(0,0,0,.5)] disabled:opacity-70">
+            {editMenu ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}{' '}{busy ? tx('กำลังบันทึก...') : tx('แก้ไข')}
           </button>
         </div>,
         document.body,

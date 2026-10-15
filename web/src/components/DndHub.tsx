@@ -221,7 +221,8 @@ export function DndHub({ children }: { children: ReactNode }) {
       <DndContext sensors={sensors} collisionDetection={collision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDrag(null)}>
         {children}
         {createPortal(
-          <DragOverlay dropAnimation={null} modifiers={[zoomOverlay]}>
+          // will-change: การ์ดที่ลากเป็นเลเยอร์แยก วาดครั้งเดียวแล้วเลื่อนอย่างเดียว (ไม่วาดเงา/เอียงใหม่ทุกครั้งที่ขยับเมาส์)
+          <DragOverlay dropAnimation={null} modifiers={[zoomOverlay]} className="will-change-transform">
             {drag ? (
               <div
                 className="rotate-3 scale-105 cursor-grabbing drop-shadow-2xl"

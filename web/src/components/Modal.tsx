@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useDeferredValue, useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { tx } from '../lib/i18n'
 
@@ -7,6 +7,8 @@ let scrollLocks = 0
 
 export default function Modal({ open, title, onClose, children, wide }: { open: boolean; title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean }) {
   const surface = useRef<HTMLDivElement>(null)
+  // เปิดหน้าต่าง = กรอบขึ้นทันที แล้วค่อยวาดเนื้อหา (บางหน้าต่างหนัก: การ์ดทีม/รูปเยอะ) → กดปุ่มแล้วไม่ค้าง (INP)
+  const ready = useDeferredValue(open, false)
   // ปิดเมื่อกดและปล่อยบนพื้นหลังเท่านั้น — ลากคลุมข้อความในช่องแล้วเมาส์หลุดออกนอกกรอบจะไม่ปิดหน้าต่าง
   const downOnBackdrop = useRef(false)
   const titleId = useId()
@@ -52,7 +54,7 @@ export default function Modal({ open, title, onClose, children, wide }: { open: 
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="scrollbar-thin overflow-y-auto p-5">{children}</div>
+        <div className="scrollbar-thin overflow-y-auto p-5">{ready ? children : <div aria-busy="true" className="h-32 animate-pulse rounded-xl bg-white/5" />}</div>
       </div>
     </div>
   ,

@@ -127,7 +127,18 @@ export function useGuild(gid: string) {
     return () => window.removeEventListener('7knote:changed', onChanged)
   }, [gid, reload, recheck])
 
+  /** แก้ข้อมูลบนจอทันที (ก่อนเซิร์ฟเวอร์ตอบ) — กดบันทึกแล้วหน้าเปลี่ยนทันที ไม่กระโดดตอนผลกลับมาทีหลัง · ตามด้วย reload() เสมอ */
+  /** คืนฟังก์ชันย้อนกลับ (บันทึกไม่ผ่าน → กลับเป็นข้อมูลก่อนแก้) */
+  const patch = useCallback((fn: (d: GuildData) => GuildData) => {
+    const cur = peek(gid)
+    if (!cur) return () => {}
+    const next = fn(cur)
+    mem.set(gid, next) // หน้าอื่นที่เปิดต่อ (เช่น ย้อนกลับไปหน้ากิลด์) เห็นของใหม่ด้วย — ไม่เขียนลงเครื่องจนกว่าเซิร์ฟเวอร์ยืนยัน
+    setData(next)
+    return () => { if (mem.get(gid) === next) { mem.set(gid, cur); setData(cur) } }
+  }, [gid])
+
   // ตั้งค่า → มุมมองคนดู: ซ่อนปุ่มแก้ทุกหน้า (สิทธิ์จริงยังอยู่ = realCanEdit)
   const viewer = useViewer(gid)
-  return { data, error, canEdit: canEdit && !viewer, realCanEdit: canEdit, setCanEdit, recheck, reload }
+  return { data, error, canEdit: canEdit && !viewer, realCanEdit: canEdit, setCanEdit, recheck, reload, patch }
 }

@@ -1,7 +1,7 @@
 import { useDragScroll } from '../lib/useDragScroll'
 import { useDraggable } from '@dnd-kit/core'
 import { Filter, LayoutGrid, Search, Trash2, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useSlidePill } from '../lib/slide'
 import { MAX_HEROES } from '../lib/types'
 import { HEROES, HERO_TYPES, PETS, TIERS, baseName, matchUnit, tierOf, type HeroType, type Tier, type Unit, unitLabel } from '../data/heroes'
@@ -74,6 +74,11 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
     else if (st.pet && !p.pet && st.heroes < MAX_HEROES) hub.setDockTab('hero')
   }, [hub, st?.heroes, st?.pet, tab])
 
+  // กดการ์ดในแถบ: ฟังก์ชันเดิมทุกครั้ง (ผ่าน ref) → การ์ด 100+ ใบไม่ต้องวาดใหม่ทุกครั้งที่ใส่ตัวในทีม
+  const addRef = useRef<(u: Unit) => void>(() => {})
+  addRef.current = (u: Unit) => hub?.quickAdd(tab, u.id)
+  const onPick = useCallback((u: Unit) => addRef.current(u), [])
+
   if (!hub?.hasPanels) return null
 
   // เปิดเฉพาะตอนแตะช่องในทีม
@@ -83,7 +88,8 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
 
   return (
     <>
-      <div data-tour="hero-dock" className="hero-dock fixed inset-x-0 z-30 border-t border-gold/30 bg-[var(--dock)] backdrop-blur" style={{ bottom, ...(z ? { zIndex: z } : {}) }}>
+      {/* พื้นทึบ (ไม่เบลอ): เบลอพื้นหลังต้องวาดใหม่ทั้งแถบทุกครั้งที่หน้าขยับ → เลื่อน/ลากหน่วง */}
+      <div data-tour="hero-dock" className="hero-dock fixed inset-x-0 z-30 border-t border-gold/30 bg-[var(--dock)]" style={{ bottom, ...(z ? { zIndex: z } : {}) }}>
         {/* ปุ่มเก็บแถบตรงกลางแบบในเกม */}
         <button
           onClick={() => hub.setDockOpen(false)}
@@ -131,7 +137,7 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
           className="no-scrollbar dock-fade mx-auto flex max-w-6xl cursor-grab select-none gap-2 overflow-x-auto px-3 pb-3 pt-2 active:cursor-grabbing"
         >
           {visible.map((u) => (
-            <RosterCard key={u.id} unit={u} kind={tab} onClick={() => add(u)} usedIn={usedIn(u)} />
+            <RosterCard key={u.id} unit={u} kind={tab} onPick={onPick} usedIn={usedIn(u)} />
           ))}
           {visible.length === 0 && <p className="py-6 text-sm text-white/45">{tx('ไม่พบอัศวิน')}</p>}
         </div>
@@ -226,14 +232,14 @@ function UsedBadge({ label }: { label: string }) {
   )
 }
 
-function RosterCard({ unit, kind, onClick, usedIn }: { unit: Unit; kind: 'hero' | 'pet'; onClick: () => void; usedIn?: string }) {
+const RosterCard = memo(function RosterCard({ unit, kind, onPick, usedIn }: { unit: Unit; kind: 'hero' | 'pet'; onPick: (u: Unit) => void; usedIn?: string }) {
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: `roster|${kind}|${unit.id}` })
   return (
     <button
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      onClick={onClick}
+      onClick={() => onPick(unit)}
       data-roster
       draggable={false}
       className={`relative w-[68px] shrink-0 text-[13px] sm:w-[80px] ${isDragging ? 'opacity-30' : usedIn ? 'opacity-55 hover:opacity-90' : 'hover:-translate-y-1'} transition`}
@@ -244,7 +250,7 @@ function RosterCard({ unit, kind, onClick, usedIn }: { unit: Unit; kind: 'hero' 
       {usedIn && <UsedBadge label={usedIn} />}
     </button>
   )
-}
+})
 
 function SearchModal({ open, onClose, onSearch }: { open: boolean; onClose: () => void; onSearch: (q: string) => void }) {
   const [q, setQ] = useState('')
