@@ -14,6 +14,7 @@ const BiscuitPage = lazy(() => import('./pages/BiscuitPage'))
 const TotalWarPage = lazy(() => import('./pages/TotalWarPage'))
 import { PACKS_ON } from './lib/packs'
 const PacksPage = lazy(() => import('./pages/PacksPage'))
+const AtkPage = lazy(() => import('./pages/AtkPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage'))
 const GuidePage = lazy(() => import('./pages/GuidePage'))
@@ -40,6 +41,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="biscuit" element={<Suspense fallback={loading}><BiscuitPage /></Suspense>} />
           <Route path="totalwar" element={<Suspense fallback={loading}><TotalWarPage /></Suspense>} />
           {PACKS_ON && <Route path="packs" element={<Suspense fallback={loading}><PacksPage /></Suspense>} />}
+          <Route path="atk" element={<Suspense fallback={loading}><AtkPage /></Suspense>} />
           <Route path="admin" element={<Suspense fallback={loading}><AdminPage /></Suspense>} />
           <Route path="favorites" element={<Suspense fallback={loading}><FavoritesPage /></Suspense>} />
           <Route path="guide" element={<Suspense fallback={loading}><GuidePage /></Suspense>} />
