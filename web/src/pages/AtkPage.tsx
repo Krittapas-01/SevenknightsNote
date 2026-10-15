@@ -48,7 +48,7 @@ function load(): State {
 }
 
 const num = (v: string) => {
-  const n = Number(v.replace(/,/g, ''))
+  const n = Number(v.replace(/[,\s]/g, '')) // รับ "4,972" และ "4 972"
   return Number.isFinite(n) ? n : 0
 }
 const fmt = (n: number) => n.toLocaleString(LOCALE, { maximumFractionDigits: 2 })
@@ -355,7 +355,9 @@ export default function AtkPage() {
             const diff = need === null ? 0 : need - r.input.start
             return (
               <li key={i} className="rounded-xl bg-white/5 px-3 py-2">
-                {need === null ? (
+                {need !== null && need <= 0 ? (
+                  L(`${r.name} นำ ${other.name} อยู่แล้วแม้ตั้งต้นเป็น 0`, `${r.name} beats ${other.name} even with 0 starting attack`)
+                ) : need === null ? (
                   L(
                     `${r.name} นำ ${other.name} ไม่ได้ เพราะบัฟรวมหักดีบัฟแล้วเหลือ ${fmt(multiplier(r.input) * 100)}%`,
                     `${r.name} can't pass ${other.name}: buffs minus debuff leave ${fmt(multiplier(r.input) * 100)}%`,
