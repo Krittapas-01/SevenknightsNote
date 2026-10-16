@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Eye, EyeOff, KeyRound, LogOut, Trash2 } from 'lucide-react'
+import { AlertTriangle, Check, Eye, EyeOff, KeyRound, LogOut, Settings, Trash2 } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { api, forgetEditKey, forgetRecent, saveEditKey } from '../lib/api'
@@ -90,8 +90,8 @@ export function EditLogin({ gid, onLogin }: { gid: string; onLogin: () => void }
   )
 }
 
-/** คนที่แก้ได้อยู่แล้ว: ตั้งรหัสใหม่ / ออกจากโหมดแก้ไข */
-export function EditSettings({ gid, guildName, onLogout }: { gid: string; guildName: string; onLogout: () => void }) {
+/** เจ้าของกิลด์ (ใช้รหัส): เปลี่ยนชื่อกิลด์ / ตั้งรหัสใหม่ / ออกจากโหมดแก้ไข / ลบกิลด์ */
+export function EditSettings({ gid, guildName, onLogout, onRenamed }: { gid: string; guildName: string; onLogout: () => void; onRenamed?: () => void }) {
   const [open, setOpen] = useState(false)
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
@@ -130,10 +130,11 @@ export function EditSettings({ gid, guildName, onLogout }: { gid: string; guildN
   return (
     <>
       <button data-tour="guild-settings" onClick={() => setOpen(true)} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
-        <KeyRound className="h-4 w-4" />{' '}{tx('รหัสแก้ไข')}
+        <Settings className="h-4 w-4" />{' '}{tx('ตั้งค่ากิลด์')}
       </button>
-      <Modal open={open} title={tx('รหัสแก้ไขกิลด์')} onClose={close}>
-        <form onSubmit={submit} className="space-y-4">
+      <Modal open={open} title={tx('ตั้งค่ากิลด์')} onClose={close}>
+        <RenameGuild gid={gid} guildName={guildName} onRenamed={onRenamed} />
+        <form onSubmit={submit} className="space-y-4 border-t border-white/10 pt-4">
           <p className="text-sm text-white/60">
             {tx('ตั้งรหัสใหม่แล้วบอกเฉพาะคนที่ให้แก้แผนได้ รหัสเดิมและลิงก์แก้ไขแบบเก่าจะใช้ไม่ได้ทันที')}
           </p>
@@ -153,6 +154,48 @@ export function EditSettings({ gid, guildName, onLogout }: { gid: string; guildN
         <DeleteGuild gid={gid} guildName={guildName} />
       </Modal>
     </>
+  )
+}
+
+/** เปลี่ยนชื่อกิลด์ (เจ้าของ) — ลิงก์กิลด์เดิมใช้ได้เหมือนเดิม */
+function RenameGuild({ gid, guildName, onRenamed }: { gid: string; guildName: string; onRenamed?: () => void }) {
+  const [name, setName] = useState(guildName)
+  const [err, setErr] = useState('')
+  const [done, setDone] = useState(false)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => setName(guildName), [guildName])
+  const next = name.trim()
+  const same = next === guildName.trim()
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (!next || same) return
+    setBusy(true)
+    setErr('')
+    setDone(false)
+    try {
+      const r = await api.renameGuild(gid, next)
+      setName(r.name)
+      setDone(true)
+      onRenamed?.()
+    } catch (e) {
+      setErr((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="mb-4 space-y-2">
+      <label className="block">
+        <span className="text-sm text-white/70">{tx('ชื่อกิลด์')}</span>
+        <input value={name} onChange={(e) => { setName(e.target.value); setDone(false); setErr('') }} maxLength={50}
+          className="mt-1 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 outline-none focus:border-gold" />
+      </label>
+      {err && <p className="text-sm text-red-400">{err}</p>}
+      {done && <p className="flex items-center gap-1.5 text-sm text-green-400"><Check className="h-4 w-4" />{' '}{tx('เปลี่ยนชื่อแล้ว · ลิงก์กิลด์ใช้ได้เหมือนเดิม')}</p>}
+      <button disabled={busy || !next || same} className="pill w-full py-2 text-sm hover:border-gold disabled:opacity-50">{busy ? tx('กำลังบันทึก...') : tx('เปลี่ยนชื่อ')}</button>
+    </form>
   )
 }
 

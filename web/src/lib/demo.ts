@@ -100,6 +100,7 @@ export async function demoRequest(path: string, init: RequestInit = {}): Promise
   }
   if (a === 'check') return { canEdit: true }
   if (a === 'password') return { ok: true }
+  if (a === 'name' && method === 'PUT') { d.guild.name = String(body.name ?? '').trim().slice(0, 50) || d.guild.name; save(); return { ok: true, name: d.guild.name } }
 
   let out: unknown = { ok: true }
   if (a === 'targets' && !b && method === 'POST') {

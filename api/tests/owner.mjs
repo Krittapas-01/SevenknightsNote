@@ -57,6 +57,25 @@ try {
   await check('key holder /check: owner', async () => { const r = (await request(path + '/check', { key })).data; assert.equal(r.canEdit, true); assert.equal(r.owner, true) })
   await check('role user cannot change password', async () => assert.equal((await request(path + '/password', { method: 'PUT', token, body: { password: 'hijack-123' } })).status, 403))
   await check('role user cannot change Discord settings', async () => assert.equal((await request(path + '/discord', { method: 'PUT', token, body: { mention: '', serverId: '999999', editRoles: ['888888'] } })).status, 403))
+  await check('role user cannot rename guild', async () => assert.equal((await request(path + '/name', { method: 'PUT', token, body: { name: 'Hijacked' } })).status, 403))
+  await check('rename: empty name rejected', async () => assert.equal((await request(path + '/name', { method: 'PUT', key, body: { name: '   ' } })).status, 400))
+  await check('rename: taken name rejected (case/space-insensitive)', async () => {
+    await request('/api/guild', { method: 'POST', body: { name: 'Other Guild', password: 'other-pass-123' } })
+    assert.equal((await request(path + '/name', { method: 'PUT', key, body: { name: '  other guild ' } })).status, 409)
+  })
+  await check('rename: owner renames, name trimmed + 50 chars, rev bumped', async () => {
+    const before = (await request(path, { key })).data.rev
+    const r = await request(path + '/name', { method: 'PUT', key, body: { name: '  Renamed ' + 'x'.repeat(80) } })
+    assert.equal(r.status, 200); assert.equal(r.data.name.length, 50); assert.ok(r.data.name.startsWith('Renamed '))
+    const after = (await request(path, { key })).data
+    assert.equal(after.guild.name, r.data.name); assert.ok(after.rev > before)
+    const names = (await request('/api/guilds/names?ids=' + g.id)).data
+    assert.equal(names[g.id], r.data.name)
+  })
+  await check('rename: same name (own) allowed', async () => {
+    const cur = (await request(path, { key })).data.guild.name
+    assert.equal((await request(path + '/name', { method: 'PUT', key, body: { name: cur.toUpperCase() } })).status, 200)
+  })
   await check('role user cannot delete guild', async () => assert.equal((await request(path, { method: 'DELETE', token, body: { confirmName: 'Owner Test' } })).status, 403))
   await check('owner key still works after all that', async () => assert.equal((await request(path + '/check', { key })).data.owner, true))
   await check('correct key used many times does not lock itself out', async () => { for (let i = 0; i < 15; i++) assert.equal((await request(path + '/check', { key, ip: '10.0.0.5' })).data.canEdit, true) })

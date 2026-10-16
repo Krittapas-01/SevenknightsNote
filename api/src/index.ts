@@ -466,6 +466,21 @@ app.put('/api/guild/:id/password', async (c) => {
   return c.json({ ok: true })
 })
 
+// เปลี่ยนชื่อกิลด์ (เจ้าของเท่านั้น) · ห้ามซ้ำกับกิลด์อื่นแบบเดียวกับตอนสร้าง
+app.put('/api/guild/:id/name', async (c) => {
+  const gid = c.req.param('id')
+  const auth = await checkOwner(c, gid)
+  if (auth !== 'ok') return deny(c, auth)
+  const body = await c.req.json().catch(() => ({}))
+  const name = str(body.name, 50).trim()
+  if (!name) return c.json({ error: 'กรุณาใส่ชื่อกิลด์' }, 400)
+  const taken = await c.env.DB.prepare('SELECT 1 FROM guilds WHERE lower(trim(name)) = lower(?) AND id <> ? LIMIT 1').bind(name, gid).first()
+  if (taken) return c.json({ error: `มีกิลด์ชื่อ "${name}" อยู่แล้ว ลองใช้ชื่ออื่น` }, 409)
+  const r = await c.env.DB.prepare('UPDATE guilds SET name = ? WHERE id = ?').bind(name, gid).run()
+  if (!r.meta.changes) return c.json({ error: 'not found' }, 404)
+  return c.json({ ok: true, name })
+})
+
 // ---- targets ----
 app.post('/api/guild/:id/targets', async (c) => {
   const gid = c.req.param('id')

@@ -161,7 +161,7 @@ export default function GuildPage() {
           {realCanEdit && !isDemo(gid) && <ViewAsToggle gid={gid} />}
           {realCanEdit
             // ตั้งรหัส/ลบกิลด์/ออกจากโหมดแก้ = ของคนที่ใช้รหัสเท่านั้น (คนที่แก้ได้เพราะยศ Discord ไม่เห็น)
-            ? canEdit && isOwner && <EditSettings gid={gid} guildName={data.guild.name} onLogout={recheck} />
+            ? canEdit && isOwner && <EditSettings gid={gid} guildName={data.guild.name} onLogout={recheck} onRenamed={reload} />
             : <EditLogin gid={gid} onLogin={() => setCanEdit(true)} />}
         </div>
       </div>

@@ -110,6 +110,8 @@ export const api = {
   updateTarget: (gid: string, tid: string, body: { team: Team; tags: string[]; note: string; baseEditedAt?: number }) =>
     req<{ ok: true; editedAt?: number }>(`/api/guild/${gid}/targets/${tid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
   /** ลบทั้งกิลด์ถาวร (ต้องพิมพ์ชื่อกิลด์ยืนยัน) */
+  renameGuild: (gid: string, name: string) =>
+    req<{ ok: true; name: string }>(`/api/guild/${gid}/name`, { method: 'PUT', body: JSON.stringify({ name }), gid }),
   deleteGuild: (gid: string, confirmName: string) => req(`/api/guild/${gid}`, { method: 'DELETE', body: JSON.stringify({ confirmName }), gid }),
   deleteTarget: (gid: string, tid: string) => req(`/api/guild/${gid}/targets/${tid}`, { method: 'DELETE', gid }),
 
