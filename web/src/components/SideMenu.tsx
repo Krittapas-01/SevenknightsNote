@@ -1,11 +1,15 @@
-import { Calculator, Cookie, ExternalLink, Home, Megaphone, MessagesSquare, Settings, Shield, Sparkles, Swords, ThumbsUp, X } from 'lucide-react'
-import { useEffect, useState, type ComponentType } from 'react'
+import { Calculator, Coffee, Cookie, ExternalLink, Gem, Home, Megaphone, MessagesSquare, Settings, Shield, Sparkles, Swords, ThumbsUp, X } from 'lucide-react'
+import { Suspense, lazy, useEffect, useState, type ComponentType } from 'react'
 import { NavLink } from 'react-router'
 import { getRecent, refreshRecent } from '../lib/api'
 import { useHasUpdate } from './WhatsNew'
 import Modal from './Modal'
-import { SettingsBody } from '../pages/SettingsPage'
-import { tx } from '../lib/i18n'
+import { tx, L } from '../lib/i18n'
+import { openSupport } from './Support'
+
+// หน้าต่างตั้งค่าในเมนู โหลดตอนเปิดครั้งแรก (ไม่ต้องอยู่ในไฟล์หลักที่ทุกหน้าโหลด)
+import { PACKS_ON } from '../lib/packs'
+const SettingsBody = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsBody })))
 
 // เมนูหลักของเว็บ เพิ่มหน้า/เครื่องมือใหม่ที่นี่ที่เดียว
 const NAV: { to: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
@@ -13,6 +17,7 @@ const NAV: { to: string; label: string; icon: ComponentType<{ className?: string
   { to: '/biscuit', label: tx('เช็กบัฟบิสกิต'), icon: Cookie },
   { to: '/totalwar', label: tx('คำนวณแต้มเบ็ดเสร็จ'), icon: Calculator },
   { to: '/atk', label: tx('เทียบพลังโจมตี'), icon: Swords },
+  ...(PACKS_ON ? [{ to: '/packs', label: tx('เช็กความคุ้มค่าแพ็ค'), icon: Gem }] : []),
   { to: '/favorites', label: tx('พรีเซต & ทีมที่ชอบ'), icon: ThumbsUp },
 ]
 
@@ -72,6 +77,14 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
             <ExternalLink className="h-4 w-4 shrink-0 text-white/40" />
           </a>
         ))}
+        {/* ช่องทางสนับสนุน → หน้าต่างเลือก EasyDonate / Ko-fi */}
+        <button type="button" data-testid="menu-support" onClick={() => { onClose(); openSupport() }} className={`w-full text-left ${item({ isActive: false })}`}>
+          <Coffee className="h-5 w-5 shrink-0 text-gold" />
+          <span className="min-w-0 flex-1">
+            <span className="block">{L('สนับสนุน 7K Note', 'Support 7K Note')}</span>
+            <span className="block text-xs text-white/45">{L('ช่วยค่าเซิร์ฟเวอร์', 'Help with server costs')}</span>
+          </span>
+        </button>
 
         <hr className="my-3 border-white/10" />
         <p className="mb-1 px-3 text-xs text-white/45">{tx('กิลด์ที่เคยเปิด')}</p>
@@ -95,7 +108,7 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
         </div>
       </nav>
       <Modal open={settings} title={tx('ตั้งค่า')} onClose={() => setSettings(false)}>
-        <SettingsBody onNavigate={() => setSettings(false)} />
+        <Suspense fallback={<p className="py-8 text-center text-white/50">{tx('กำลังโหลด...')}</p>}><SettingsBody onNavigate={() => setSettings(false)} /></Suspense>
       </Modal>
     </div>
   )

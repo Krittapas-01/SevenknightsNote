@@ -34,9 +34,10 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
   const backIdx = Array.from({ length: SLOT_COUNT - team.front }, (_, i) => team.front + i)
   const lit = Math.min(skills.length, MAX_SKILL_QUEUE)
   const hasExtras = team.extras.some(Boolean)
+  const fourCol = Math.max(frontIdx.length, backIdx.length) > 3
 
   return (
-    <div style={{ '--s': unit ?? S, ...(!fluid ? { height: `calc(var(--s) * 3 + ${fixedExtra}px)`, flex: '0 0 auto' } : {}) } as CSSProperties} className={`team-panel panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col px-3 pb-3 pt-2.5 ${className}`}>
+    <div style={{ '--s': unit ?? S, '--s-px': 'var(--s)', ...(!fluid ? { height: `calc(var(--s) * 3 + ${fixedExtra}px)`, flex: '0 0 auto' } : {}) } as CSSProperties} className={`team-panel panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col px-3 pb-3 pt-2.5 ${className}`}>
       <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
         <div className="min-w-0 flex-1 truncate text-center text-sm font-semibold">{title}</div>
       </div>
@@ -49,7 +50,10 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
       </div>
 
       {/* จองความสูงเท่าแถวขวา (สัตว์เลี้ยง + 2 วง) — รูปแบบ 4 ช่องแถวเดียวจะสูงขึ้นเอง และการ์ดในแถวเดียวกันยืดให้เท่ากัน */}
-      <div className="mt-1 flex flex-1 items-center justify-center gap-2" style={{ minHeight: `calc(var(--s) * 3 + ${ROW_GAP * 2 + 22}px)` }}>
+      {/* รูปแบบที่มี 4 ตัวในแถวเดียว (บุก/ป้องกัน): ขนาดเต็มถ้าที่พอ · มีสัตว์เลี้ยงสำรองจนที่ไม่พอ → ย่อเท่าที่จำเป็น
+          (วัดจากความสูงพื้นที่จริง cqh) ไม่ให้ล้นทับแถวสัตว์เลี้ยงสำรอง · การ์ดแบบ fluid ไม่ล็อกความสูง ไม่ต้องย่อ */}
+      <div className="mt-1 flex flex-1 items-center justify-center gap-2" style={{ minHeight: `calc(var(--s) * 3 + ${ROW_GAP * 2 + 22}px)`,
+        ...(!fluid && fourCol ? { containerType: 'size', '--hs': `min(var(--s-px), calc((100cqh - ${ROW_GAP * 3}px) / 4))` } : {}) } as CSSProperties}>
         {/* ฝั่งเรา: [หลัง][หน้า] (หน้าอยู่ติดคอลัมน์สัตว์เลี้ยง เหมือน TeamPanel/ในเกม) · ฝั่งศัตรู: [หน้า][หลัง] */}
         {(variant === 'ally' ? [backIdx, frontIdx] : [frontIdx, backIdx]).map((idx, c) => (
           <div key={c} className="flex flex-col items-center" style={{ gap: ROW_GAP }}>
@@ -77,7 +81,8 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
         </div>
       </div>
 
-      <div className={`mt-2 flex items-center justify-center gap-1.5 ${hasExtras ? '' : 'invisible'}`} aria-hidden={!hasExtras}>
+      {/* ไม่มีสัตว์เลี้ยงสำรอง: ปกติเว้นที่ไว้ (การ์ดเรียงตรงกัน) · การ์ด 4 ตัวในแถวให้อัศวินใช้ที่ตรงนี้แทน (ขนาดเต็มเหมือนเดิม) */}
+      <div className={`mt-2 items-center justify-center gap-1.5 ${hasExtras ? 'flex' : fourCol ? 'hidden' : 'invisible flex'}`} aria-hidden={!hasExtras}>
         <span className="text-[11px] text-white/45">{tx('สัตว์เลี้ยงสำรอง')}</span>
         {Array.from({ length: EXTRA_COUNT }, (_, i) => team.extras[i] ?? null).map((x, i) => (
           <div key={i} className="aspect-square" style={{ width: 28, fontSize: 8 }}>
@@ -96,7 +101,7 @@ function Hero({ id, skills, slot }: { id: string | null; skills: SkillStep[]; sl
     const nums = q.filter((x) => x.skill === skill).map((x) => x.n)
     if (!nums.length) return null
     return (
-      <span className={`pointer-events-none absolute ${pos} -right-1.5 z-10 flex gap-0.5`}>
+      <span className={`pointer-events-none absolute ${pos} -left-1.5 z-10 flex gap-0.5`}>
         {nums.map((n) => (
           <span key={n} className="grid h-[18px] w-[18px] place-items-center rounded-full border border-white/90 text-[11px] font-bold leading-none shadow-[0_1px_3px_rgba(0,0,0,.6)]" style={queueStyle(n)}>{n}</span>
         ))}
@@ -104,7 +109,7 @@ function Hero({ id, skills, slot }: { id: string | null; skills: SkillStep[]; sl
     )
   }
   return (
-    <div className="relative" style={{ width: 'var(--s)', height: 'var(--s)', fontSize: 'calc(var(--s) * 0.22)', borderRadius: UNIT_SLOT_RADIUS }}>
+    <div className="relative" style={{ width: 'var(--hs, var(--s))', height: 'var(--hs, var(--s))', fontSize: 'calc(var(--hs, var(--s)) * 0.22)', borderRadius: UNIT_SLOT_RADIUS }}>
       {id ? <UnitCard id={id} small /> : <div className="slot-empty h-full w-full" style={{ borderRadius: UNIT_SLOT_RADIUS }} />}
       {id && badge(1, 'top-0')}
       {id && badge(3, 'top-1/2 -translate-y-1/2')}

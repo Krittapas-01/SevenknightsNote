@@ -1,5 +1,5 @@
 import { Search, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { HEROES, HEROES_WITH_BASE, HERO_TYPES, PETS, customId, matchUnit, type HeroType } from '../data/heroes'
 import Modal from './Modal'
 import type { SlotKind } from './TeamPanel'
@@ -33,13 +33,36 @@ export default function UnitPicker({ open, kind, index, current, used, full, onP
   const list = kind === 'hero' ? (includeBaseForms ? HEROES_WITH_BASE : HEROES) : PETS
   const title = kind === 'hero' ? tx('เลือกอัศวิน') : kind === 'pet' ? tx('เลือกสัตว์เลี้ยงหลัก') : L(`เลือกสัตว์เลี้ยงเสริม ${index + 1}`, `Pick backup pet ${index + 1}`)
 
+  // พิมพ์ค้นหา/กดประเภท: ช่องพิมพ์ตอบทันที ตารางอัศวินค่อยกรอง+วาดตามหลัง (INP)
+  const dq = useDeferredValue(q)
+  const dType = useDeferredValue(type)
   const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase()
-    return list.filter((u) => (type === 'all' || u.type === type) && matchUnit(u, s))
-  }, [list, q, type])
+    const s = dq.trim().toLowerCase()
+    return list.filter((u) => (dType === 'all' || u.type === dType) && matchUnit(u, s))
+  }, [list, dq, dType])
 
   const exact = list.some((u) => u.name === q.trim())
   const blocked = kind === 'hero' && full && !current
+  // ตารางวาดใหม่เฉพาะตอนผลกรองเปลี่ยน (ไม่วาดทุกครั้งที่พิมพ์)
+  const grid = useMemo(() => (
+      <div className="mt-4 grid grid-cols-4 gap-3 sm:grid-cols-6">
+        {filtered.map((u) => {
+          const taken = used.includes(u.id) && u.id !== current
+          const dis = taken || blocked
+          return (
+            <button
+              key={u.id}
+              type="button"
+              disabled={dis}
+              onClick={() => onPick(u.id)}
+              className={`aspect-square text-[13px] transition ${dis ? 'opacity-30' : 'hover:-translate-y-0.5'} ${u.id === current ? 'rounded-[12px] ring-2 ring-gold ring-offset-2 ring-offset-[#1f2640]' : ''}`}
+            >
+              <UnitCard id={u.id} shape={kind === 'pet' ? 'pet' : kind === 'extra' ? 'round' : 'hero'} small />
+            </button>
+          )
+        })}
+      </div>
+  ), [filtered, used, current, blocked, kind, onPick])
 
   return (
     <Modal open={open} title={title} onClose={onClose}>
@@ -79,23 +102,7 @@ export default function UnitPicker({ open, kind, index, current, used, full, onP
         </div>
       )}
 
-      <div className="mt-4 grid grid-cols-4 gap-3 sm:grid-cols-6">
-        {filtered.map((u) => {
-          const taken = used.includes(u.id) && u.id !== current
-          const dis = taken || blocked
-          return (
-            <button
-              key={u.id}
-              type="button"
-              disabled={dis}
-              onClick={() => onPick(u.id)}
-              className={`aspect-square text-[13px] transition ${dis ? 'opacity-30' : 'hover:-translate-y-0.5'} ${u.id === current ? 'rounded-[12px] ring-2 ring-gold ring-offset-2 ring-offset-[#1f2640]' : ''}`}
-            >
-              <UnitCard id={u.id} shape={kind === 'pet' ? 'pet' : kind === 'extra' ? 'round' : 'hero'} small />
-            </button>
-          )
-        })}
-      </div>
+      {grid}
 
       {allowCustom && q.trim() && !exact && !blocked && (
         <button

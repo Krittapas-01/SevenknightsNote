@@ -195,8 +195,8 @@ export default function BiscuitPage() {
           {slots.map((r, i) => {
             const back = isBack(i)
             return (
-              <div key={i} className={`flex min-w-0 flex-col gap-1.5 ${back ? '' : 'mt-8 sm:mt-12'}`}>
-                <span className={`biscuit-row-label text-center text-[11px] font-semibold ${back ? 'text-[#ff8f9a]' : 'text-[#8fa8ff]'}`}>
+              <div key={i} className={`biscuit-col flex min-w-0 flex-col gap-1.5 ${back ? '' : 'mt-8 sm:mt-12'}`}>
+                <span key={back ? `b${formation.atk}` : 'f'} className={`biscuit-row-label biscuit-flip text-center text-[11px] font-semibold ${back ? 'text-[#ff8f9a]' : 'text-[#8fa8ff]'}`}>
                   {back ? L(`หลัง +${formation.atk}%`, `Back +${formation.atk}%`) : tx('หน้า')}
                 </span>
                 <DragSlot index={i} draggable={!!r.id}>

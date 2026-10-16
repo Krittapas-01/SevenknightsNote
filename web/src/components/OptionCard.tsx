@@ -4,7 +4,7 @@ import { EXPORT_ON, exportPng, waitImages } from '../lib/exportImage'
 import type { HeroStats } from '../lib/stats'
 import { StatsGrid, upsertStats } from './HeroStats'
 import HeroNotesTable from './HeroNotesTable'
-import { useEffect, useRef, useState } from 'react'
+import { startTransition, useEffect, useRef, useState } from 'react'
 import EquipmentLoadout from './EquipmentLoadout'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
@@ -88,7 +88,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
       <div className="mb-4 flex min-h-8 items-center gap-2">
         {attack ? (
           main ? (
-            <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold px-3 py-0.5 text-sm font-semibold text-ink shadow-[0_0_12px_rgba(244,213,141,.5)]">
+            <span className={`${editing ? 'tag-pop ' : ''}flex shrink-0 items-center gap-1 rounded-full bg-gold px-3 py-0.5 text-sm font-semibold text-ink shadow-[0_0_12px_rgba(244,213,141,.5)]`}>
               <Star className="h-3.5 w-3.5 fill-current" />{' '}{tx('ทีมหลัก')}
             </span>
           ) : editing && onMakeMain ? (
@@ -261,7 +261,8 @@ export function TeamGearButton({ team, skills = [], heroNotes, title, label, cla
   if (!heroes.length) return null
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={`flex w-full items-center justify-center gap-2 rounded-xl border border-gold/35 bg-gold/5 px-4 py-3 text-sm font-medium text-gold transition-colors hover:bg-gold/15 focus-visible:outline-2 focus-visible:outline-gold ${className}`}>
+      {/* เปิดแบบ transition: หน้าต่างนี้หนัก (การ์ดทีม + ของ/ค่าความสามารถทุกตัว) → กดแล้วไม่ค้าง (INP) */}
+      <button type="button" onClick={() => startTransition(() => setOpen(true))} className={`flex w-full items-center justify-center gap-2 rounded-xl border border-gold/35 bg-gold/5 px-4 py-3 text-sm font-medium text-gold transition-colors hover:bg-gold/15 focus-visible:outline-2 focus-visible:outline-gold ${className}`}>
         <Users className="h-4 w-4" /> {label ?? tx('ดูรายละเอียดทั้งทีม')} ({heroes.length})
       </button>
       {open && (

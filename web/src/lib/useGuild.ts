@@ -10,6 +10,15 @@ import { useViewer } from './prefs'
 // เก็บในหน่วยความจำ (ระหว่างเปลี่ยนหน้า) + localStorage (เปิดเว็บใหม่) ไม่เกิน 3 กิลด์ล่าสุด
 const mem = new Map<string, GuildData>()
 const editMem = new Map<string, boolean>()
+// เปลี่ยนหน้าภายในกิลด์ (บ้านศัตรู ↔ แผน ↔ หน้ากิลด์) → ถ้าเพิ่งโหลด/เช็กสิทธิ์ไปไม่ถึง 1 นาที ไม่ต้องยิงซ้ำ
+// (ถ้ามีคนแก้ แถบประกาศเช็กเลขเวอร์ชันทุกรอบอยู่แล้ว เจอเปลี่ยน = สั่งโหลดใหม่เอง) · ประหยัดโควตา API
+const FRESH_MS = 60_000
+const loadedAt = new Map<string, number>()
+const checkedAt = new Map<string, number>()
+// กำลังโหลด/เช็กอยู่ (เช่น เปลี่ยนหน้าระหว่างรอ) → หน้าใหม่รอผลเดียวกัน ไม่ยิงซ้ำ
+const loading = new Map<string, Promise<GuildData>>()
+const checking = new Map<string, Promise<unknown>>()
+const isFresh = (m: Map<string, number>, gid: string) => Date.now() - (m.get(gid) ?? 0) < FRESH_MS
 const LS = '7k-note:guild-cache'
 const LS_MAX_GUILDS = 3
 const LS_MAX_CHARS = 1_500_000 // กิลด์ใหญ่มาก ๆ ไม่เก็บลงเครื่อง (กันเต็มโควตา localStorage)
@@ -17,6 +26,7 @@ type Stored = { gid: string; at: number; data: GuildData }[]
 /** ล้างข้อมูลกิลด์ที่เก็บไว้ในเครื่อง (หน้าตั้งค่า) */
 export function clearGuildCache() {
   mem.clear()
+  loadedAt.clear()
   try { localStorage.removeItem(LS) } catch { /* ignore */ }
 }
 
@@ -51,14 +61,25 @@ export function useGuild(gid: string) {
   }, [gid])
 
   const reload = useCallback(async () => {
+    // มีของในเครื่องพร้อมเลขเวอร์ชัน → ถามแค่ว่าเปลี่ยนไหม (เซิร์ฟเวอร์อ่าน 1 แถว) · ไม่เปลี่ยน = ใช้ของเดิม
+    const run = (async () => {
+      const cached = peek(gid)
+      const fresh = await api.getGuild(gid, cached?.rev)
+      const d = fresh ?? cached!
+      if (fresh) store(gid, fresh)
+      loadedAt.set(gid, Date.now())
+      return d
+    })()
+    loading.set(gid, run)
     try {
-      const d = await api.getGuild(gid)
-      store(gid, d)
+      const d = await run
       setData(d)
       setError(null)
       pushRecent({ id: d.guild.id, name: d.guild.name })
     } catch (e) {
       setError((e as Error).message)
+    } finally {
+      if (loading.get(gid) === run) loading.delete(gid)
     }
   }, [gid])
 
@@ -66,14 +87,19 @@ export function useGuild(gid: string) {
   const recheck = useCallback(async () => {
     if (gid === DEMO_ID) return setCanEdit(true) // กิลด์ทดลอง: แก้ได้เสมอ
     if (!getEditKey(gid) && !getSession()) return setCanEdit(false)
+    const run = api.checkEdit(gid)
+    checking.set(gid, run)
     try {
-      const r = await api.checkEdit(gid)
+      const r = await run
+      checkedAt.set(gid, Date.now())
       setCanEdit(r.canEdit)
       // รหัสในเครื่องใช้ไม่ได้แล้ว (หัวกิลด์เปลี่ยนรหัส) → ลบทิ้ง ไม่งั้นทุกครั้งที่เปิดหน้าจะนับเป็นใส่รหัสผิด
       // และอาจทำให้คนอื่นที่ใช้ IP เดียวกัน (เน็ตมือถือ) โดนล็อกไปด้วย
       if (!r.canEdit && !r.locked && getEditKey(gid)) forgetEditKey(gid)
     } catch {
       setCanEdit(false)
+    } finally {
+      if (checking.get(gid) === run) checking.delete(gid)
     }
   }, [gid, setCanEdit])
 
@@ -87,15 +113,32 @@ export function useGuild(gid: string) {
       url.searchParams.delete('key')
       window.history.replaceState(null, '', url.pathname + url.search + url.hash)
     }
-    reload()
+    // เพิ่งโหลดจากหน้าก่อน (ไม่ถึง 1 นาที) และมีข้อมูลในเครื่อง → ใช้ของเดิม ไม่ยิง API ซ้ำ
+    const pending = loading.get(gid)
+    if (pending) pending.then((d) => { setData(d); setError(null) }, (e) => setError((e as Error).message))
+    else if (!(isFresh(loadedAt, gid) && peek(gid))) reload()
     // มีประกาศใหม่/มีคนแก้ (แถบประกาศเจอ) → โหลดข้อมูลหน้านี้ใหม่ด้วย
     const onChanged = (e: Event) => (e as CustomEvent).detail === gid && reload()
     window.addEventListener('7knote:changed', onChanged)
-    recheck()
+    // รหัสจากลิงก์ใหม่ = ต้องเช็กเสมอ · ไม่งั้นเช็กไปไม่ถึง 1 นาที = ใช้ผลเดิม
+    const pendingCheck = checking.get(gid)
+    if (pendingCheck && !key) pendingCheck.finally(() => setCanEditState(editMem.get(gid) ?? false)).catch(() => {})
+    else if (key || !(isFresh(checkedAt, gid) && editMem.has(gid))) recheck()
     return () => window.removeEventListener('7knote:changed', onChanged)
   }, [gid, reload, recheck])
 
+  /** แก้ข้อมูลบนจอทันที (ก่อนเซิร์ฟเวอร์ตอบ) — กดบันทึกแล้วหน้าเปลี่ยนทันที ไม่กระโดดตอนผลกลับมาทีหลัง · ตามด้วย reload() เสมอ */
+  /** คืนฟังก์ชันย้อนกลับ (บันทึกไม่ผ่าน → กลับเป็นข้อมูลก่อนแก้) */
+  const patch = useCallback((fn: (d: GuildData) => GuildData) => {
+    const cur = peek(gid)
+    if (!cur) return () => {}
+    const next = fn(cur)
+    mem.set(gid, next) // หน้าอื่นที่เปิดต่อ (เช่น ย้อนกลับไปหน้ากิลด์) เห็นของใหม่ด้วย — ไม่เขียนลงเครื่องจนกว่าเซิร์ฟเวอร์ยืนยัน
+    setData(next)
+    return () => { if (mem.get(gid) === next) { mem.set(gid, cur); setData(cur) } }
+  }, [gid])
+
   // ตั้งค่า → มุมมองคนดู: ซ่อนปุ่มแก้ทุกหน้า (สิทธิ์จริงยังอยู่ = realCanEdit)
   const viewer = useViewer(gid)
-  return { data, error, canEdit: canEdit && !viewer, realCanEdit: canEdit, setCanEdit, recheck, reload }
+  return { data, error, canEdit: canEdit && !viewer, realCanEdit: canEdit, setCanEdit, recheck, reload, patch }
 }

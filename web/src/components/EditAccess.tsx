@@ -58,7 +58,7 @@ export function EditLogin({ gid, onLogin }: { gid: string; onLogin: () => void }
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
+      <button data-tour="guild-login" onClick={() => setOpen(true)} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
         <KeyRound className="h-4 w-4" />{' '}{tx('ใส่รหัสแก้ไข')}
       </button>
       <Modal open={open} title={tx('เข้าโหมดแก้ไข')} onClose={() => setOpen(false)}>
@@ -129,7 +129,7 @@ export function EditSettings({ gid, guildName, onLogout }: { gid: string; guildN
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
+      <button data-tour="guild-settings" onClick={() => setOpen(true)} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
         <KeyRound className="h-4 w-4" />{' '}{tx('รหัสแก้ไข')}
       </button>
       <Modal open={open} title={tx('รหัสแก้ไขกิลด์')} onClose={close}>

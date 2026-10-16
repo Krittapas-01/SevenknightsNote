@@ -4,15 +4,40 @@
  * 2) รวมพยัญชนะหน้าตาคล้ายกันเป็นตัวเดียว (ก/ภ, ซ/ช, ด/ต/ถ, น/บ, อ/จ, ร/ธ …)
  * 3) เทียบทีละคำ/กลุ่มคำ แบบ edit distance — ยอมผิดได้ ~1 ตัวต่อ 3 ตัวอักษร เลือกตัวที่ใกล้ที่สุด
  */
-const MARKS = /[ัิ-ฺ็-๎\s|"'`“”‘’.,:;!?()[\]{}<>\-_=+*#@%&/\\~^]/g
+const MARKS = /[ัิ-ฺ็-๎๐-๙\s|"'`“”‘’.,:;!?()[\]{}<>\-_=+*#@%&/\\~^]/g
 const SAME: [RegExp, string][] = [
   [/[ภฦ]/g, 'ก'], [/ช/g, 'ซ'], [/[ตถ]/g, 'ด'], [/[บษ]/g, 'น'], [/จ/g, 'อ'], [/ธ/g, 'ร'], [/ำ/g, 'า'],
-  [/[ฌฆ]/g, 'ม'], [/ฏ/g, 'ฎ'], [/ศ/g, 'ส'], [/ฬ/g, 'พ'], [/ญ/g, 'ณ'],
+  [/[ฌฆ]/g, 'ม'], [/ฏ/g, 'ฎ'], [/ศ/g, 'ส'], [/[ฬผฝฟ]/g, 'พ'], [/ญ/g, 'ณ'],
+  // ตัวเลขหน้าตาเหมือนพยัญชนะ (ทดสอบ OCR จริง: ริ → 5, ป → ข)
+  [/5/g, 'ร'], [/ข/g, 'ป'],
 ]
 export function skeleton(x: string) {
   let s = x.toLowerCase().replace(MARKS, '')
   for (const [re, to] of SAME) s = s.replace(re, to)
   return s
+}
+
+/**
+ * คู่ที่ OCR อ่านสลับกันบ่อย แต่รวมเป็นตัวเดียวไม่ได้ (ชื่ออัศวินจะชนกัน) → สลับกันคิดแค่ครึ่งตัว
+ * มาจากการทดสอบ OCR ชื่ออัศวินทุกตัวหลายฟอนต์/ขนาด (โรซี่ → โรธี, เดซี่ → เดย, เมย์ → เบย, ไพร์ → โพร์)
+ * (เทียบหลังรวมพยัญชนะคล้ายแล้ว: ธ → ร, ษ/บ → น)
+ */
+const HALF = new Set(['ซร', 'ซน', 'ซย', 'อร', 'มน', 'ไโ'].flatMap((p) => [p, p[1] + p[0]]))
+const subCost = (x: string, y: string) => (x === y ? 0 : HALF.has(x + y) ? 0.5 : 1)
+
+/** edit distance แบบให้คู่ที่ OCR สลับบ่อยถูกกว่า (ใช้กับชื่อที่ตัดสระแล้ว) */
+function wlev(a: string, b: string) {
+  const d = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    let prev = d[0]
+    d[0] = i
+    for (let j = 1; j <= b.length; j++) {
+      const t = d[j]
+      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + subCost(a[i - 1], b[j - 1]))
+      prev = t
+    }
+  }
+  return d[b.length]
 }
 
 function lev(a: string, b: string) {
@@ -40,32 +65,38 @@ function spans(text: string) {
 }
 
 export type HeroCandidate = { id: string; names: string[] }
-export type HeroMatch = { id: string; dist: number; raw: number; len: number }
+/** span = ท่อนข้อความที่ตรง · name = ชื่อที่ไปตรง (ชื่อไทย/ชื่อเกม/ชื่ออังกฤษ) */
+export type HeroMatch = { id: string; dist: number; raw: number; len: number; span: string; name: string }
 
+/** วรรณยุกต์/การันต์ — OCR ตกหล่นบ่อย ไม่นับตอนเทียบแบบมีสระ */
+const TONES = /[็-์]/g
 const NOISE = /[\s|"'`“”‘’.,:;!?()[\]{}<>\-_=+*#@%&/\\~^]/g
 
 /** ยอมผิดได้กี่ตัว: ชื่อสั้น (≤3 ตัวหลังตัดสระ) ต้องตรงเป๊ะ กันไปตรงกับชื่อสั้นตัวอื่น */
 const allowed = (len: number) => Math.floor((len - 1) / 3)
 
-/** อัศวินที่ชื่อใกล้ข้อความที่สุด (null = ไม่มีตัวไหนใกล้พอ) */
-export function matchHeroName(text: string, cands: HeroCandidate[]): HeroMatch | null {
-  const parts = spans(text).map((x) => ({ k: skeleton(x), raw: x.toLowerCase().replace(NOISE, '') }))
+/** อัศวินที่ชื่อใกล้ข้อความที่สุด (null = ไม่มีตัวไหนใกล้พอ) · slack = ยอมผิดเพิ่มอีกกี่ตัว (ใช้กับรายชื่อสั้น ๆ เช่นตัวในทีม) */
+export function matchHeroName(text: string, cands: HeroCandidate[], slack = 0): HeroMatch | null {
+  const parts = spans(text).map((x) => ({ k: skeleton(x), raw: x.toLowerCase().replace(NOISE, '').replace(TONES, '') }))
   let best: HeroMatch | null = null
   for (const c of cands)
     for (const n of c.names) {
       const k = skeleton(n)
-      const nRaw = n.toLowerCase().replace(NOISE, '')
+      const nRaw = n.toLowerCase().replace(NOISE, '').replace(TONES, '')
       if (!k) continue
       for (const p of parts) {
         // ชื่อ 1 พยัญชนะ (เช่น ลี) ต้องตรงทั้งคำ
         if (k.length < 2 && p.raw !== nRaw) continue
-        const dist = lev(p.k, k)
-        if (dist > allowed(k.length)) continue
+        const dist = wlev(p.k, k)
+        if (dist > allowed(k.length) + slack) continue
         // ตัวตัดสินรอง: เทียบแบบมีสระ (ริน vs รีน่า ตัดสระแล้วใกล้กัน แต่มีสระแล้วต่างกัน)
         const raw = lev(p.raw, nRaw)
         if (!best || dist < best.dist || (dist === best.dist && (raw < best.raw || (raw === best.raw && k.length > best.len))))
-          best = { id: c.id, dist, raw, len: k.length }
+          best = { id: c.id, dist, raw, len: k.length, span: p.raw, name: nRaw }
       }
     }
   return best
 }
+
+/** สระของคำ (ไม่รวมวรรณยุกต์) — ใช้ดูว่า OCR อ่านสระได้ตรงกับชื่อไหน */
+export const vowels = (x: string) => x.replace(/[^ะ-ฺเ-ไ]/g, '')

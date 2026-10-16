@@ -1,3 +1,4 @@
+import type { Pack } from './packs'
 import { getSession } from './auth'
 import type { Announcement, Counter, DayType, GuildData, HeroNote, Plan, PlanData, SkillStep, Target, Team } from './types'
 import { sortTags } from './tags'
@@ -5,6 +6,8 @@ import { DEMO_ID, demoRequest } from './demo'
 
 export type Pulse = {
   guildName: string
+  /** เวอร์ชันข้อมูลกิลด์ (API เก่าไม่มี) — เปลี่ยน = มีคนแก้อะไรสักอย่าง */
+  rev?: string
   latest: Announcement | null
   activePlan: { id: string; title: string } | null
   /** แผนที่ใช้อยู่แยกชนิด (API เก่าไม่มี) */
@@ -91,7 +94,8 @@ export const api = {
   createGuild: (name: string, password: string) =>
     req<{ id: string; name: string; editKey: string }>('/api/guild', { method: 'POST', body: JSON.stringify({ name, password }) }),
   // แท็กหลัก (กายภาพ/เวท/แทงก์) ขึ้นก่อนเสมอ — ข้อมูลเก่าที่ลำดับต่างกันก็เรียงให้ตอนโหลด
-  getGuild: (gid: string) => req<GuildData>(`/api/guild/${gid}`).then((d) => ({ ...d, targets: d.targets.map((t) => ({ ...t, tags: sortTags(t.tags) })) })),
+  /** rev = เวอร์ชันที่มีในเครื่อง → ถ้าบนเซิร์ฟเวอร์ยังเท่าเดิมได้ null (ใช้ของเดิมต่อ ไม่ต้องโหลดทั้งกิลด์) */
+  getGuild: (gid: string, rev?: string) => req<GuildData | { unchanged: true; rev: string }>(`/api/guild/${gid}${rev && gid !== DEMO_ID ? `?rev=${encodeURIComponent(rev)}` : ''}`).then((d) => 'unchanged' in d ? null : ({ ...d, targets: d.targets.map((t) => ({ ...t, tags: sortTags(t.tags) })) })),
   pulse: (gid: string) => req<Pulse>(`/api/guild/${gid}/pulse`),
   checkEdit: (gid: string, key?: string) => req<{ canEdit: boolean; locked?: boolean }>(`/api/guild/${gid}/check`, { gid, key }),
   setPassword: (gid: string, password: string) =>
@@ -110,6 +114,9 @@ export const api = {
   updateCounter: (gid: string, cid: string, body: { team: Team; skills: SkillStep[]; note: string; heroNotes?: HeroNote[] }) =>
     req(`/api/guild/${gid}/counters/${cid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
   deleteCounter: (gid: string, cid: string) => req(`/api/guild/${gid}/counters/${cid}`, { method: 'DELETE', gid }),
+  /** เรียงลำดับทีมแก้ของบ้านศัตรู (ids ครบทุกตัว #1 ก่อน) */
+  orderCounters: (gid: string, tid: string, ids: string[]) =>
+    req<{ ok: true }>(`/api/guild/${gid}/targets/${tid}/counters/order`, { method: 'PUT', body: JSON.stringify({ ids }), gid }),
 
   createPlan: (gid: string, body: { title: string; data: PlanData }) =>
     req<Plan>(`/api/guild/${gid}/plans`, { method: 'POST', body: JSON.stringify(body), gid }),
@@ -142,7 +149,15 @@ export const api = {
   /** แอดมินลบกิลด์ (ต้องพิมพ์ชื่อกิลด์ยืนยัน) */
   adminDeleteGuild: (gid: string, confirmName: string) =>
     req<{ ok: true }>(`/api/admin/guilds/${gid}`, { method: 'DELETE', body: JSON.stringify({ confirmName }) }),
+  /** แพ็คในเกม (หน้าเช็กความคุ้มค่า) — ที่ยังไม่หมดอายุ */
+  packs: () => req<{ packs: Pack[] }>('/api/packs'),
+  /** แอดมิน: แพ็คทั้งหมด (รวมที่หมดอายุ) / เพิ่ม / แก้ / ลบ */
+  adminPacks: () => req<{ packs: Pack[] }>('/api/admin/packs'),
+  adminCreatePack: (p: PackInput) => req<{ id: string }>('/api/admin/packs', { method: 'POST', body: JSON.stringify(p) }),
+  adminUpdatePack: (id: string, p: PackInput) => req<{ ok: true }>(`/api/admin/packs/${id}`, { method: 'PUT', body: JSON.stringify(p) }),
+  adminDeletePack: (id: string) => req<{ ok: true }>(`/api/admin/packs/${id}`, { method: 'DELETE' }),
 }
+export type PackInput = Omit<Pack, 'id' | 'updatedAt'>
 
 export type AdminGuild = {
   id: string; name: string; createdAt: number; lastActive: number

@@ -76,6 +76,21 @@ function cropScaled(src: HTMLCanvasElement, r: { left: number; top: number; widt
   return c
 }
 
+/** ครอปแล้วย่อ/ขยายให้สูง targetH + ขอบขาวรอบ ๆ (ทดสอบแล้ว: ชื่อไทยสูง ~80px มีขอบ อ่านแม่นกว่าขยายใหญ่ชิดขอบ) */
+function cropPadded(src: HTMLCanvasElement, r: { left: number; top: number; width: number; height: number }, targetH = 80, pad = 20) {
+  const scale = Math.max(0.3, Math.min(6, targetH / r.height))
+  const w = Math.round(r.width * scale), h = Math.round(r.height * scale)
+  const c = document.createElement('canvas')
+  c.width = w + pad * 2
+  c.height = h + pad * 2
+  const g = c.getContext('2d')!
+  g.fillStyle = '#fff'
+  g.fillRect(0, 0, c.width, c.height)
+  g.imageSmoothingQuality = 'high'
+  g.drawImage(src, r.left, r.top, r.width, r.height, pad, pad, w, h)
+  return c
+}
+
 /**
  * กรอบหน้าข้อมูลอัศวินในภาพ (ชื่อ → แถวค่าความสามารถสุดท้าย) — ใช้ตัดอัตโนมัติเมื่อเป็นป๊อปอัปเล็กในภาพเต็มจอ
  * (เท่ากับคนครอปเอง แต่ไม่ต้องครอปในมือถือ)
@@ -129,11 +144,25 @@ export async function readImageText(file: Blob, onProgress?: (p: number) => void
     if (byLv) {
       await worker.setParameters({ tessedit_pageseg_mode: '7' as never })
       names.push((await worker.recognize(cropScaled(src, byLv), {}, { text: true })).data.text.trim())
+      // แบบย่อสูง 80px มีขอบ — ชื่ออังกฤษ (เกมตั้งภาษาอังกฤษ) อ่านออกเกือบหมด จากที่แบบขยายใหญ่อ่านว่างไป ~5%
+      names.push((await worker.recognize(cropPadded(src, byLv), {}, { text: true })).data.text.trim())
     }
     const byAtk = nameRect(lines, src.width, src.height)
     if (byAtk) {
       await worker.setParameters({ tessedit_pageseg_mode: '6' as never })
       names.push((await worker.recognize(cropScaled(src, byAtk), {}, { text: true })).data.text.trim())
+    }
+    // 3) อ่านชื่อซ้ำด้วย "ภาษาไทยอย่างเดียว" — อ่านไทย+อังกฤษพร้อมกัน Tesseract ชอบอ่านตัวไทยเป็นตัวอังกฤษหน้าตาคล้าย
+    //    (แรนด์กริด → "usuansa", ริน → "su") · ทดสอบชื่ออัศวินทุกตัว 8 แบบฟอนต์/ขนาด: จับตัวในทีมถูกเพิ่มจาก ~70% → ~90-95%
+    //    (ภาพเกมภาษาอังกฤษใช้ผลจากข้อ 1-2 เหมือนเดิม — ผลที่อ่านได้ทุกรอบรวมกันแล้วค่อยเทียบชื่อ)
+    if (byLv || byAtk) {
+      await worker.reinitialize('tha')
+      await worker.setParameters({ preserve_interword_spaces: '1' })
+      for (const [r, psm] of [[byLv, '7'], [byAtk, '6']] as const) {
+        if (!r) continue
+        await worker.setParameters({ tessedit_pageseg_mode: psm as never })
+        names.push((await worker.recognize(cropPadded(src, r), {}, { text: true })).data.text.trim())
+      }
     }
     return { text: data.text, name: names.filter(Boolean).join('\n') }
   } finally {

@@ -1,7 +1,7 @@
-import { Camera, CircleHelp, ClipboardPaste, Loader2, Plus, X } from 'lucide-react'
+import { Camera, CircleHelp, ClipboardPaste, History, Loader2, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { HEROES, baseName, englishOf, getUnit, unitBase } from '../data/heroes'
-import { matchHeroName, type HeroCandidate } from '../lib/heroMatch'
+import { pickHero } from '../lib/heroPick'
 import { readImageText } from '../lib/ocr'
 import { STATS, fmtStat, hasStats, parseStats, type HeroStats, type StatKey, statLabel } from '../lib/stats'
 import { MAX_HEROES, type HeroNote } from '../lib/types'
@@ -10,6 +10,8 @@ import EquipmentEditor from './EquipmentEditor'
 import UnitCard from './UnitCard'
 import UnitPicker from './UnitPicker'
 import StatsHelp, { helpSeen, markHelpSeen } from './StatsHelp'
+import { tourSeen, useTour } from '../lib/tour'
+import { agoText, recallNote } from '../lib/myStats'
 import { tx, L } from '../lib/i18n'
 
 /** ไอคอนค่าความสามารถแบบในเกม (จาก 7K Atlas) */
@@ -66,56 +68,6 @@ export function upsertStats(notes: HeroNote[], hero: string, stats: HeroStats, e
   return [...notes, patch({ hero, text: '', sets: [], rings: [] })].slice(0, 5)
 }
 
-/** ตัดสระบน/ล่าง/วรรณยุกต์ไทย + ช่องว่าง — OCR มักอ่านพวกนี้เพี้ยน (ซอรัน → ซอร์น) */
-const thaiSkeleton = (x: string) => x.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E\s]/g, '').replace(/ช/g, 'ซ') // ช/ซ OCR สลับกันบ่อย
-
-/** ชื่อในเกมที่ต่างจากชื่อในเว็บ (ชื่อเต็ม/สะกดต่าง) — ใช้หาอัศวินจากภาพเท่านั้น */
-const OCR_ALIASES: Record<string, string[]> = {
-  'ทันจิโร่': ['คามาโดะ'],
-  'เซนอิทสึ': ['อางาซึมะ', 'เซนอิทซึ', 'เซนอิท'],
-}
-
-/** ชื่อที่ใช้จับคู่ของอัศวิน 1 ตัว: ชื่อไทย + ชื่อเต็ม/สะกดในเกม + ชื่ออังกฤษ */
-const candidate = (id: string): HeroCandidate => {
-  const base = baseName(getUnit(id)?.name ?? id)
-  const en = englishOf(id)
-  return { id, names: [base, ...(OCR_ALIASES[base] ?? []), ...(en ? [en] : [])] }
-}
-const ALL_CANDIDATES = HEROES.map((h) => candidate(h.id))
-
-/** ส่วนหัวของภาพ (ก่อนแถวโจมตี) — ชื่ออัศวินอยู่ตรงนี้ ส่วนล่างของภาพมีชื่ออัศวินตัวอื่นในคลังปนอยู่ */
-const header = (text: string) => {
-  const i = text.search(/[กภ]ายภ|เวท|[พผ]ลังโจ|attack/i)
-  return i > 0 ? text.slice(0, i) : text
-}
-
-/**
- * หาชื่ออัศวินในข้อความ (เทียบชื่ออังกฤษ/ไทย เลือกชื่อที่ยาวที่สุดที่เจอ)
- * loose = เทียบชื่อไทยแบบตัดสระ/วรรณยุกต์ (ใช้กับอัศวินในทีม) · ไม่ loose = ต้องตรงเป๊ะ (กันเตือนผิดตัว)
- */
-function detectHero(texts: string[], team: string[], loose = true) {
-  const text = texts.map(header).join('\n')
-  const t = text.toLowerCase()
-  const flat = text.replace(/\s+/g, '')
-  const skel = thaiSkeleton(text)
-  let best: { id: string; len: number } | null = null
-  const hit = (id: string, len: number) => { if (!best || len > best.len) best = { id, len } }
-  for (const id of team) {
-    const en = englishOf(id)?.toLowerCase()
-    if (en && new RegExp(`\\b${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(t)) hit(id, en.length)
-    // ชื่อไทย (ภาพเกมภาษาไทย) — ชื่อสั้นเกินไปข้าม กันไปตรงกับคำอื่นในภาพ
-    const base = baseName(getUnit(id)?.name ?? '')
-    for (const name of [base, ...(OCR_ALIASES[base] ?? [])]) {
-      const th = name.replace(/\s+/g, '')
-      if (th.length >= 3 && flat.includes(th)) hit(id, th.length)
-      else if (loose) {
-        const k = thaiSkeleton(th)
-        if (k.length >= 3 && skel.includes(k)) hit(id, k.length)
-      }
-    }
-  }
-  return (best as { id: string } | null)?.id ?? null
-}
 
 /**
  * ปุ่ม "อ่านค่าความสามารถจากรูป": เลือกรูป / วางรูป (Ctrl+V) → อ่านตัวเลข → ตรวจทาน → ใส่ให้อัศวินในทีม
@@ -144,6 +96,8 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   const [noHero, setNoHero] = useState(false)
   // ภาพเป็นคนละตัว → กดใส่ครั้งแรก = ถามยืนยัน, ครั้งที่สอง = ใส่จริง
   const [confirming, setConfirming] = useState(false)
+  // อ่านรูปแล้วเจออัศวินที่ยังไม่อยู่ในทีม (ทีมยังไม่เต็ม) → เด้งถามว่าจะเพิ่มเข้าทีมไหม
+  const [askAdd, setAskAdd] = useState(false)
   const [picking, setPicking] = useState(false)
   const [help, setHelp] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -154,9 +108,12 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   const openImport = () => {
     setOpen(true)
     setStep('upload')
+    setRecalledAt(null)
     setHero((h) => h || heroes[0])
-    if (!helpSeen()) { setHelp(true); markHelpSeen() }
+    // ครั้งแรก: มีการสอนแบบส่องปุ่ม (lib/tours: stats-import) แล้ว → ไม่ต้องเด้งหน้าวิธีใช้ซ้อน
+    if (!helpSeen() && tourSeen('stats-import')) { setHelp(true); markHelpSeen() }
   }
+  useTour('stats-import', open, 600)
   const nameOf = (id: string) => unitBase(id)
   const mismatch = mismatchId ? nameOf(mismatchId) : null
   const canAdd = !!onAddHero && heroes.length < MAX_HEROES
@@ -175,8 +132,12 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   // เซต/เครื่องประดับ/คำอธิบาย: เปลี่ยนตัว (หรือเปิดหน้าต่าง) = ดึงของเดิมของตัวนั้นมา
   const gear = !!notes
   const [extra, setExtra] = useState<NoteExtra>({ sets: [], rings: [], text: '' })
+  // ใช้ของเดิมที่เครื่องนี้เคยจด: ตั้งตัว + เติมค่าพร้อมกัน (effect ด้านล่างจะไม่ดึงโน้ตเดิมมาทับ)
+  const recallRef = useRef<{ hero: string; extra: NoteExtra } | null>(null)
+  const [recalledAt, setRecalledAt] = useState<number | null>(null)
   useEffect(() => {
     if (!open || !notes) return
+    if (recallRef.current && recallRef.current.hero === hero) { setExtra(recallRef.current.extra); recallRef.current = null; return }
     const n = hero ? findNote(notes, hero) : undefined
     setExtra({ sets: n?.sets ?? [], rings: n?.rings ?? [], text: n?.text ?? '' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,15 +145,34 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   const hasExtra = gear && (extra.sets.length > 0 || extra.rings.length > 0 || extra.text.trim() !== '')
   const canApply = hasStats(stats) || hasExtra
   const extraOut = gear ? extra : undefined
+  /** ตัวในทีมที่เครื่องนี้เคยจดค่าความสามารถ/อุปกรณ์ไว้ (ล่าสุดก่อน) */
+  const savedHeroes = heroes.map((h) => ({ h, saved: recallNote(h) })).filter((x): x is { h: string; saved: NonNullable<ReturnType<typeof recallNote>> } => !!x.saved)
+    .sort((a, b) => b.saved.at - a.saved.at)
+  const savedOfHero = validHero ? recallNote(hero) : null
+  function applySaved(h: string) {
+    const sv = recallNote(h)
+    if (!sv) return
+    const cur = notes ? findNote(notes, h) : undefined
+    const ex: NoteExtra = { sets: sv.note.sets ?? [], rings: sv.note.rings ?? [], text: cur?.text?.trim() ? cur.text : sv.note.text ?? '' }
+    recallRef.current = { hero: h, extra: ex }
+    if (h === hero) { setExtra(ex); recallRef.current = null }
+    setHero(h)
+    setStats({ ...(sv.note.stats ?? {}) })
+    setErr(null); setMismatchId(null); setNoHero(false); setConfirming(false)
+    setRecalledAt(sv.at)
+    setStep('details')
+  }
 
   async function run(file: Blob) {
     setOpen(true)
+    setRecalledAt(null)
     setErr(null)
     setStats({})
     setRaw('')
     setMismatchId(null)
     setNoHero(false)
     setConfirming(false)
+    setAskAdd(false)
     setImg((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(file) })
     setProgress(0)
     try {
@@ -201,22 +181,12 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
       setRaw(name ? `ชื่อ: ${name}\n---\n${text}` : text)
       const s = parseStats(text)
       setStats(s)
-      // 1) บรรทัดชื่อ → เทียบกับชื่ออัศวินทุกตัวแบบยอมเพี้ยน (ในทีมได้ก่อนถ้าใกล้เท่ากัน)
-      // บรรทัดชื่ออ่านพลาด (ครอปไม่โดนชื่อ เช่นภาพแคปจากหน้าจัดทีม) → ลองหาชื่อในบรรทัดก่อนแถวค่าความสามารถของภาพทั้งภาพ
-      // รับเฉพาะที่ตรงเป๊ะเมื่อตัดสระ/วรรณยุกต์ (อารส = อาริส) กันจับคำอื่นผิดเป็นชื่ออัศวิน
-      const head = header(text)
-      const exact = (m: ReturnType<typeof matchHeroName>) => (m && m.dist === 0 ? m : null)
-      const inTeam = (name ? matchHeroName(name, heroes.map(candidate)) : null) ?? exact(matchHeroName(head, heroes.map(candidate)))
-      const anyHero = (name ? matchHeroName(name, ALL_CANDIDATES) : null) ?? exact(matchHeroName(head, ALL_CANDIDATES))
-      const byName = inTeam && (!anyHero || inTeam.dist <= anyHero.dist) ? inTeam.id : null
-      // 2) สำรอง: หาจากข้อความทั้งภาพแบบเดิม
-      const found = byName ?? detectHero([name, text], heroes)
+      const { found, other } = pickHero(name, text, heroes)
       if (found) setHero(found)
       else {
         if (!hero && heroes[0]) setHero(heroes[0])
         // ภาพเป็นอัศวินตัวอื่นที่ไม่ได้อยู่ในคอมพ์ → เตือน (ข้อความทั้งภาพต้องตรงเป๊ะ กันเตือนผิดตัว)
-        const other = anyHero?.id ?? detectHero([text], HEROES.map((h) => h.id), false)
-        if (other) setMismatchId(other)
+        if (other) { setMismatchId(other); if (canAdd) setAskAdd(true) }
         else setNoHero(true)
       }
       if (!hasStats(s)) setErr(tx('อ่านค่าความสามารถไม่เจอ — ใช้ภาพหน้าข้อมูลอัศวินในเกม (ภาษาไทยหรืออังกฤษ) หรือพิมพ์ค่าเองด้านล่าง'))
@@ -245,7 +215,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
 
   return (
     <>
-      <button type="button" onClick={openImport}
+      <button type="button" data-tour="stats-import" onClick={openImport}
         className="mt-2 flex items-center gap-1.5 rounded-full border border-sky-300/50 px-3 py-1 text-sm text-sky-100 hover:bg-sky-400/10">
         <Camera className="h-4 w-4" />{' '}{tx('อ่านค่าความสามารถจากรูป')}
       </button>
@@ -255,11 +225,11 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
       <Modal open={open} title={tx('อ่านค่าความสามารถจากรูป')} onClose={() => setOpen(false)} wide>
         <div className={details ? 'grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]' : 'mx-auto max-w-xl'}>
           <div>
-            <button type="button" onClick={() => setHelp(true)}
+            <button type="button" data-tour="stats-help" onClick={() => setHelp(true)}
               className="mb-2 flex items-center gap-1.5 text-sm text-sky-200/80 hover:text-sky-100">
               <CircleHelp className="h-4 w-4" />{' '}{tx('วิธีใช้ / ต้องแคปหน้าไหน')}
             </button>
-            <button type="button" onClick={() => input.current?.click()}
+            <button type="button" data-tour="stats-drop" onClick={() => input.current?.click()}
               onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
               onDragLeave={() => setDragging(false)}
               onDrop={(e) => {
@@ -292,6 +262,20 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
                   : <>{tx('⚠️ ภาพนี้เป็นค่าความสามารถของ')}{' '}<b>{mismatch}</b>{' '}{tx('ซึ่งไม่ได้อยู่ในคอมพ์นี้ — เช็กว่าใช้รูปถูกตัว ก่อนกดใส่ให้')}{' '}{validHero ? nameOf(hero) : tx('อัศวินในทีม')}</>}
               </p>
             )}
+            {!details && progress === null && savedHeroes.length > 0 && (
+              <div data-tour="stats-recall" className="mt-4 rounded-xl border border-sky-300/25 bg-sky-400/5 p-3">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-sky-100"><History className="h-4 w-4" />{' '}{L('เคยจดไว้ในเครื่องนี้ — ใช้ของเดิมได้เลย ไม่ต้องแคปใหม่', 'Saved on this device — reuse it, no new screenshot needed')}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {savedHeroes.map(({ h, saved }) => (
+                    <button key={h} type="button" onClick={() => applySaved(h)}
+                      className="flex items-center gap-2 rounded-full border border-sky-300/40 py-0.5 pl-0.5 pr-3 text-sm text-sky-50 hover:border-gold hover:text-gold">
+                      <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={h} shape="round" small /></span>
+                      {unitBase(h)}{' '}<span className="text-xs text-white/45">· {agoText(saved.at)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {!details && progress === null && (
               <button type="button" onClick={() => setStep('details')}
                 className="mx-auto mt-4 block text-sm text-white/55 underline-offset-4 hover:text-gold hover:underline">
@@ -307,9 +291,9 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
 
           {details && <div>
             <label className="text-sm text-white/60">{tx('ของอัศวินตัวไหน')}</label>
-            <div className="mt-1 flex flex-wrap gap-2">
+            <div data-tour="stats-hero" className="mt-1 flex flex-wrap gap-2">
               {heroes.map((h) => (
-                <button key={h} type="button" onClick={() => setHero(h)}
+                <button key={h} type="button" onClick={() => { setHero(h); setRecalledAt(null) }}
                   className={`flex items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3 text-sm ${hero === h ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70'}`}>
                   <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={h} shape="round" small /></span>
                   {unitBase(h)}
@@ -329,8 +313,17 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
                 </button>
               )}
             </div>
+            {recalledAt !== null && savedOfHero && (
+              <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-sky-400/10 px-3 py-1.5 text-xs text-sky-100"><History className="h-3.5 w-3.5 shrink-0" />{' '}{L(`เติมจากที่เคยจดไว้ (${agoText(recalledAt)}) — ตรวจแล้วกดใส่ได้เลย`, `Filled from your saved data (${agoText(recalledAt)}) — check, then apply`)}</p>
+            )}
+            {recalledAt === null && savedOfHero && (
+              <button type="button" onClick={() => applySaved(hero)}
+                className="mt-2 flex items-center gap-1 rounded-full border border-sky-300/40 px-2.5 py-0.5 text-xs text-sky-100 hover:bg-sky-400/10">
+                <History className="h-3.5 w-3.5" />{' '}{L(`ใช้ของเดิมของ ${nameOf(hero)} (${agoText(savedOfHero.at)})`, `Use my saved ${nameOf(hero)} (${agoText(savedOfHero.at)})`)}
+              </button>
+            )}
             {canAdd && <p className="mt-1 text-xs text-white/40">{tx('ทีมนี้มี')}{' '}{heroes.length}/{MAX_HEROES}{' '}{tx('ตัว — เพิ่มอัศวินเข้าทีมได้จากตรงนี้')}</p>}
-            <div className="mt-4 grid grid-flow-row-dense grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2">
+            <div data-tour="stats-grid" className="mt-4 grid grid-flow-row-dense grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2">
               {STATS.map((s) => (
                 // มือถือ: คอลัมน์เดียว ชื่อค่าไม่โดนตัด · จอใหญ่: 2 คอลัมน์แบบในเกม
                 <label key={s.key} className={`${LEFT.has(s.key) ? 'sm:col-start-1' : 'sm:col-start-2'} flex items-center justify-between gap-2 rounded-lg bg-black/20 px-2 py-1 text-sm`}>
@@ -361,7 +354,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
           </div>}
         </div>
         {details && <>
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div data-tour="stats-apply" className="mt-5 flex flex-wrap gap-2">
           {/* ภาพเป็นตัวที่ยังไม่อยู่ในทีม และทีมยังไม่ครบ → ปุ่มหลัก = เพิ่มเข้าทีมแล้วใส่ค่าความสามารถในคลิกเดียว */}
           {quickAdd && (
             <button disabled={!canApply || progress !== null}
@@ -394,6 +387,25 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
           {confirming ? tx('ภาพกับตัวที่เลือกไม่ตรงกัน — กดอีกครั้งเพื่อยืนยัน หรือเลือกตัวใหม่ด้านบน') : tx('ตรวจตัวเลขก่อนกดใส่ · ยังไม่บันทึกจนกด "บันทึก" ของหน้านั้น')}
         </p>
         </>}
+      </Modal>
+      <Modal open={askAdd && !!mismatchId} title={L('เพิ่มอัศวินเข้าทีม?', 'Add this hero to the team?')} onClose={() => setAskAdd(false)}>
+        {mismatchId && (
+          <div className="text-center">
+            <div className="mx-auto h-28 w-28"><UnitCard id={mismatchId} /></div>
+            <p className="mt-3 text-sm leading-relaxed text-white/80">
+              {L('ภาพนี้เป็นค่าความสามารถของ', 'This image shows the stats of')}{' '}<b className="text-gold">{mismatch}</b>
+              <br />{L('ซึ่งยังไม่อยู่ในทีม — จะเพิ่มเข้าทีมเลยไหม?', "who isn't on this team yet. Add them now?")}
+            </p>
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row">
+              <button type="button" onClick={() => setAskAdd(false)} className="pill flex-1 px-4 py-2 text-sm text-white/75 hover:border-gold/60">
+                {L('ไม่เพิ่ม', 'Not now')}
+              </button>
+              <button type="button" onClick={() => { addHero(mismatchId); setAskAdd(false) }} className="btn-gold flex flex-1 items-center justify-center gap-1.5 py-2">
+                <Plus className="h-4 w-4" />{' '}{L(`เพิ่ม ${mismatch} เข้าทีม`, `Add ${mismatch}`)}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
       <StatsHelp open={help} onClose={() => setHelp(false)} />
       <UnitPicker open={picking} kind="hero" index={0} current={null} used={heroes} full={!canAdd} allowCustom={false}

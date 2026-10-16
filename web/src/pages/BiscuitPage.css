@@ -33,8 +33,16 @@
   .biscuit-row-label { font-size: 10px; }
 }
 
+/* เปลี่ยนรูปแบบ: ช่องหน้า/หลังเลื่อนขึ้นลงนุ่ม ๆ · ป้ายหน้า/หลังเด้งเปลี่ยน · การ์ดรูปแบบที่เลือกเด้งรับ */
+.biscuit-col { transition: margin-top 420ms var(--motion-out); }
+.biscuit-flip { animation: biscuit-flip 340ms var(--motion-out); }
+.biscuit-formation-active { animation: biscuit-pick 360ms var(--motion-out); }
+@keyframes biscuit-flip { from { opacity: 0; transform: translateY(-5px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes biscuit-pick { 0% { transform: scale(.96); } 60% { transform: scale(1.015); } 100% { transform: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   .biscuit-formation { transition: none; }
+  .biscuit-col { transition: none; }
 }
 
 /* โหมดสว่าง (ตั้งค่า → ธีม) */
@@ -43,20 +51,20 @@ html[data-theme="light"] .biscuit-heading { border-bottom-color: #a0781f33; }
 html[data-theme="light"] .biscuit-eyebrow { color: #8c7a55; }
 html[data-theme="light"] .biscuit-heading h1 { text-shadow: none; }
 html[data-theme="light"] .biscuit-setup,
-html[data-theme="light"] .biscuit-results { background: linear-gradient(150deg, #d6dbe4 0%, #cfd5df 55%, #c8cfda 100%); }
+html[data-theme="light"] .biscuit-results { background: linear-gradient(150deg, #dfdddb 0%, #d9d8d5 55%, #d3d2cf 100%); }
 html[data-theme="light"] .biscuit-section-label { border-bottom-color: #a0781f33; }
-html[data-theme="light"] .biscuit-setup > div:first-child { border-color: #a0781f33; background: linear-gradient(120deg, #c5ccd8aa, #d3d8e1aa); }
-html[data-theme="light"] .biscuit-setup input.pill { border-color: #a0781f55; background: linear-gradient(180deg, #e2e6ed, #d5dae3); color: #1a2238; }
-html[data-theme="light"] .biscuit-formation { border-color: #1a224022; background: linear-gradient(145deg, #dde1e8, #ced4de); box-shadow: inset 0 1px #ffffff66; }
-html[data-theme="light"] .biscuit-formation:hover { border-color: #a0781f88; background: linear-gradient(145deg, #e4e8ee, #d4d9e2); }
+html[data-theme="light"] .biscuit-setup > div:first-child { border-color: #a0781f33; background: linear-gradient(120deg, #d1cfccaa, #dcdad8aa); }
+html[data-theme="light"] .biscuit-setup input.pill { border-color: #a0781f55; background: linear-gradient(180deg, #e9e8e6, #dedcda); color: #2e2a24; }
+html[data-theme="light"] .biscuit-formation { border-color: #322e2822; background: linear-gradient(145deg, #e4e3e1, #d8d7d4); box-shadow: inset 0 1px #ffffff66; }
+html[data-theme="light"] .biscuit-formation:hover { border-color: #a0781f88; background: linear-gradient(145deg, #eae9e8, #dddbd9); }
 html[data-theme="light"] .biscuit-formation-active { background: linear-gradient(145deg, #ecdcb0, #d9cba3); color: #4a3205; box-shadow: inset 0 0 0 1px #a0781f55, 0 0 14px #c9a35a33; }
 html[data-theme="light"] .biscuit-formation-active:hover { background: linear-gradient(145deg, #f1e3bc, #dfd1aa); }
 html[data-theme="light"] .biscuit-formation .text-\[\#ff8f9a\] { color: #855604; }
-html[data-theme="light"] .biscuit-team { border-color: #1a22401a; background: radial-gradient(ellipse at 50% 0%, #ffffff55, transparent 72%), #b9c1cf66; }
-html[data-theme="light"] .biscuit-row-label { background: #e3e7ee; }
+html[data-theme="light"] .biscuit-team { border-color: #322e281a; background: radial-gradient(ellipse at 50% 0%, #ffffff55, transparent 72%), #c7c5c166; }
+html[data-theme="light"] .biscuit-row-label { background: #eae9e7; }
 html[data-theme="light"] .biscuit-row-label.text-\[\#ff8f9a\] { color: #b4232f; }
 html[data-theme="light"] .biscuit-row-label.text-\[\#8fa8ff\] { color: #2f4fb8; }
-html[data-theme="light"] .biscuit-help { border-left-color: #a0781f66; background: #e3e7ee99; }
-html[data-theme="light"] .biscuit-result-row { border-color: #1a22401a; background: linear-gradient(100deg, #dde1e8, #ced4de); box-shadow: inset 0 1px #ffffff66; }
+html[data-theme="light"] .biscuit-help { border-left-color: #a0781f66; background: #eae9e799; }
+html[data-theme="light"] .biscuit-result-row { border-color: #322e281a; background: linear-gradient(100deg, #e4e3e1, #d8d7d4); box-shadow: inset 0 1px #ffffff66; }
 html[data-theme="light"] .biscuit-result-winner { border-color: #a0781f99; background: linear-gradient(100deg, #ecdcb0, #d6d0c0); }
 html[data-theme="light"] .biscuit-result-row .w-16 { color: #4a3205; }

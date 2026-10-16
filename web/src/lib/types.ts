@@ -119,6 +119,8 @@ import { tx, L } from './i18n'
 export type Announcement = { id: string; body: string; planId: string | null; opponent: string; createdAt: number; /** ระบบประกาศเองตอน 07:00 */ auto?: boolean; /** คนประกาศ (ถ้าล็อกอิน Discord) */ author?: { name: string; avatar: string; role?: string } | null }
 
 export type GuildData = {
+  /** เวอร์ชันข้อมูล (ไว้เช็กว่าต้องโหลดใหม่ไหม) */
+  rev?: string
   guild: Guild
   targets: Target[]
   plans: Plan[]

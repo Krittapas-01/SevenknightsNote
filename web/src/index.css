@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* ขนาดช่องอัศวินของการ์ดทีม (TeamCardLite) แบบคำนวณเป็น px ที่ตัวการ์ด — ช่องอัศวินในพื้นที่ที่เป็น size container
+ * จะได้ไม่เอา cqw ไปคิดเทียบกับพื้นที่นั้นใหม่ (ไม่งั้นรูปเล็กลงเอง) */
+@property --s-px { syntax: '<length>'; inherits: true; initial-value: 0px; }
+
 /* Kanit (self-host จาก @fontsource/kanit) — โหลดจากเว็บเราเอง ฟอนต์เลยติดไปกับรูปที่บันทึกได้ */
 @font-face { font-family: 'Kanit'; font-style: normal; font-display: swap; font-weight: 400; src: url('/fonts/kanit-thai-400-normal.woff2') format('woff2'); unicode-range: U+02D7,U+0303,U+0331,U+0E01-0E5B,U+200C-200D,U+25CC; }
 @font-face { font-family: 'Kanit'; font-style: normal; font-display: swap; font-weight: 400; src: url('/fonts/kanit-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
@@ -19,6 +23,9 @@
   --color-ink: #161c2e;
   --color-navy: #232c46;
 }
+
+/* กันหน้าเลื่อนแนวนอนทั้งหน้า: มีอะไรล้นจอนิดเดียว มือถือ Android จะซูมออก/เลื่อนข้างได้ แล้วหัวเว็บ/ปุ่มลอยเพี้ยนไปหมด (clip ไม่ทำให้ sticky พัง) */
+html { overflow-x: clip; }
 
 html,
 body {
@@ -231,6 +238,10 @@ h1, h2, h3 { text-wrap: balance; }
 .hero-dock { box-shadow: 0 -12px 40px #05091580, inset 0 2px 0 #f4d58d0d; padding-bottom: env(safe-area-inset-bottom); }
 /* Fade the dock as one surface; never move its draggable coordinate space. */
 .hero-dock { animation: fade-in 180ms ease-out; }
+/* แถบที่เตรียมไว้ล่วงหน้า (ยังไม่เปิด): ไม่วาด/กด/โฟกัสข้างใน + เลื่อนกรอบออกนอกจอ */
+.hero-dock-idle { content-visibility: hidden; transform: translateY(100vh); }
+/* แถวการ์ดของแท็บที่ไม่ได้เปิด (อัศวิน/สัตว์เลี้ยง สร้างค้างไว้ทั้งคู่) */
+.roster-group-idle { content-visibility: hidden; position: absolute; left: 0; top: 0; }
 .landing-hero > .eyebrow,
 .landing-hero > .hero-crest { animation: content-arrive 360ms var(--motion-out) backwards; }
 .landing-hero > h1 { animation: content-arrive 420ms var(--motion-out) 60ms backwards; }
@@ -238,7 +249,8 @@ h1, h2, h3 { text-wrap: balance; }
 .landing-hero > form { animation: content-arrive 420ms var(--motion-out) 140ms backwards; }
 .guild-banner { animation: content-arrive 320ms var(--motion-out); }
 details[open] > div { animation: fade-in 180ms ease-out; }
-a.plan-card { transition: transform 220ms var(--motion-out), border-color 180ms ease; }
+/* การ์ดแผน: ลิงก์ด้านนอกอยู่กับที่ (พื้นที่ชี้เมาส์ไม่ขยับ) ขยับแค่การ์ดข้างใน — ไม่งั้นชี้ที่ขอบล่างแล้วการ์ดยกขึ้น-ตก-ยกสั่นไม่หยุด */
+.plan-card-link > .plan-card { transition: transform 220ms var(--motion-out), border-color 180ms ease; }
 .btn-gold:not(:disabled):active,
 button.pill:not(:disabled):active,
 a.pill:active { transform: scale(.98); }
@@ -254,7 +266,10 @@ a.pill:active { transform: scale(.98); }
   color: #f4d58d;
 }
 .eyebrow { color: #c9b68d; font-size: 10px; font-weight: 500; letter-spacing: .24em; }
-.gold-title { color: #f4d58d; background: linear-gradient(180deg, #fff1ce 10%, #e3bd70 80%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.gold-title { color: #f4d58d; background: linear-gradient(105deg, transparent 42%, #fffdf3e6 50%, transparent 58%) no-repeat, linear-gradient(180deg, #fff1ce 10%, #e3bd70 80%); background-size: 250% 100%, 100% 100%; background-position: 160% 0, 0 0; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  animation: gold-title-sheen 1.3s ease-in-out 500ms both; }
+/* แสงวาบวิ่งผ่านหัวข้อสีทองครั้งเดียวตอนเปิดหน้า (วนตลอดจะต้องวาดตัวหนังสือใหม่ทุกเฟรม) */
+@keyframes gold-title-sheen { from { background-position: 160% 0, 0 0; } to { background-position: -60% 0, 0 0; } }
 .landing-hero { isolation: isolate; }
 .arcane-ring {
   position: absolute;
@@ -267,12 +282,31 @@ a.pill:active { transform: scale(.98); }
   transform: translateX(-50%);
   border-radius: 50%;
   border: 1px solid #d9bd7c0f;
-  background:
-    repeating-conic-gradient(from 15deg, #e8c9860c 0deg 1deg, transparent 1deg 30deg),
-    radial-gradient(circle, #dfba7110, transparent 65%);
+  background: radial-gradient(circle, #dfba7110, transparent 65%);
   box-shadow: inset 0 0 0 22px #0c142520, inset 0 0 0 23px #d9bd7c0b;
   mask-image: linear-gradient(#000, transparent 85%);
+  /* ชั้นในหมุน (สี่เหลี่ยมหมุน = กล่องกว้างขึ้น ~40%) → ตัดให้อยู่ในวง ไม่งั้นมือถือ Android ขยายหน้าให้กว้างกว่าจอ เลื่อนข้างได้ */
+  overflow: hidden;
 }
+/* วงเวทหมุนช้า ๆ (แฉก) + วงในเส้นประหมุนสวน — หมุนที่ชั้นใน หน้ากากจางด้านล่างอยู่กับที่ */
+.arcane-ring::before, .arcane-ring::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
+.arcane-ring::before { inset: 0; will-change: transform; background: repeating-conic-gradient(from 15deg, #e8c98617 0deg 1deg, transparent 1deg 30deg); animation: arcane-spin 140s linear infinite; }
+.arcane-ring::after { inset: 17%; will-change: transform; border: 1px dashed #d9bd7c33; box-shadow: 0 0 0 9px #d9bd7c08, 0 0 60px #f4d58d0d; animation: arcane-spin 90s linear infinite reverse; }
+@keyframes arcane-spin { to { rotate: 360deg; } }
+/* ละอองทองลอยขึ้นหลังหัวเว็บหน้าแรก */
+.hero-motes { position: absolute; inset: 0 0 auto; height: 520px; z-index: -1; pointer-events: none; overflow: hidden; mask-image: linear-gradient(#000 40%, transparent); }
+.hero-motes span { will-change: transform, opacity; position: absolute; bottom: -10px; width: 4px; height: 4px; border-radius: 50%; background: #ffe7a8; box-shadow: 0 0 10px 3px #f4d58d77; opacity: 0; animation: hero-mote 11s linear infinite; }
+@keyframes hero-mote { 0% { opacity: 0; transform: translate(0, 0); } 12% { opacity: .8; } 80% { opacity: .35; } 100% { opacity: 0; transform: translate(var(--drift, 0px), -500px); } }
+/* ปุ่มไลค์: พลุเล็ก ๆ ตอนกดถูกใจ */
+.like-burst { position: absolute; left: 50%; top: 50%; pointer-events: none; }
+.like-burst i { position: absolute; left: -2px; top: -2px; width: 4px; height: 4px; border-radius: 50%; background: #9fd0ff; box-shadow: 0 0 6px #7dd3fc; animation: like-burst 600ms cubic-bezier(.2, .8, .3, 1) forwards; }
+.like-burst i:nth-child(even) { background: #f4d58d; box-shadow: 0 0 6px #f4d58d; }
+@keyframes like-burst { from { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1.2); } to { opacity: 0; transform: rotate(var(--a)) translateY(-22px) scale(.3); } }
+.like-pop { animation: like-pop 380ms cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes like-pop { 40% { transform: scale(1.35) rotate(-12deg); } }
+/* มงกุฎทีมแก้ #1 */
+.crown-1 { will-change: transform; animation: crown-bob 2.8s ease-in-out infinite; }
+@keyframes crown-bob { 50% { transform: translateY(-1.5px) rotate(-6deg); } }
 .hero-crest {
   position: relative;
   display: grid;
@@ -288,6 +322,63 @@ a.pill:active { transform: scale(.98); }
 .section-divider { display: flex; align-items: center; justify-content: center; gap: 20px; color: #b6a584; font-size: 12px; }
 .section-divider::before, .section-divider::after { content: ""; width: min(20%, 130px); height: 1px; background: linear-gradient(90deg, transparent, #c9a35a66); }
 .section-divider::after { rotate: 180deg; }
+/* ---------- สอนใช้ (spotlight tour) ---------- */
+.tour-layer { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
+.tour-dim { position: fixed; inset: 0; background: #050915a6; animation: fade-in 200ms ease-out; }
+.tour-spot { position: fixed; top: 0; left: 0; border-radius: 16px; box-shadow: 0 0 0 9999px #050915a6, 0 0 0 2px #f4d58d, 0 0 24px 4px #f4d58d55;
+  /* เลื่อนด้วย transform (ไม่นับเป็น layout shift · ลื่นกว่า) */
+  transition: transform 280ms var(--motion-out), width 280ms var(--motion-out), height 280ms var(--motion-out); animation: fade-in 200ms ease-out; }
+.tour-spot::after { content: ""; position: absolute; inset: -6px; border-radius: 20px; border: 2px solid #f4d58d; opacity: 0; will-change: transform, opacity; animation: tour-ping 1.6s ease-out 300ms infinite; }
+@keyframes tour-ping { 0% { opacity: .8; transform: scale(.96); } 100% { opacity: 0; transform: scale(1.12); } }
+.tour-card-pos { position: fixed; top: 0; left: 0; pointer-events: none; transition: transform 220ms var(--motion-out); }
+.tour-card { position: relative; pointer-events: auto; padding: 14px 16px; box-shadow: 0 16px 48px #000a; animation: modal-arrive 260ms var(--motion-out); }
+.tour-try { background: #f4d58d1a; animation: tour-try 1.4s ease-in-out infinite; }
+@keyframes tour-try { 50% { box-shadow: 0 0 0 2px #f4d58d66; } }
+html[data-theme="light"] .tour-try { background: #c08a1e1f; }
+html[data-theme="light"] .tour-dim { background: #1a223f73; }
+html[data-theme="light"] .tour-spot { box-shadow: 0 0 0 9999px #1a223f73, 0 0 0 2px #c08a1e, 0 0 24px 4px #c08a1e55; }
+html[data-theme="light"] .tour-spot::after { border-color: #c08a1e; }
+
+/* ป้ายรอบ Season: เติมทองตามความคืบหน้า + ประกายวิ่งผ่านเบา ๆ */
+.season-round { position: relative; overflow: hidden; isolation: isolate; background: linear-gradient(90deg, #f4d58d33 0 var(--p), transparent var(--p)); }
+.season-round::after { content: ""; position: absolute; inset: 0; z-index: -1; will-change: transform; background: linear-gradient(100deg, transparent 30%, #fff3c94d 50%, transparent 70%); transform: translateX(-120%); animation: season-shine 6s ease-in-out 1.2s infinite; }
+@keyframes season-shine { 0% { transform: translateX(-120%); } 22%, 100% { transform: translateX(120%); } }
+html[data-theme="light"] .season-round { background: linear-gradient(90deg, #c9a35a40 0 var(--p), transparent var(--p)); }
+
+/* ---------- VS: ฉากปะทะตอนเข้า + มีชีวิตตอนอยู่นิ่ง ---------- */
+.vs-mark :is(.vs-haze, .vs-letters, .vs-flare, .vs-slash, .vs-core, .vs-twinkle) { transform-box: fill-box; transform-origin: center; }
+.vs-haze { animation: vs-haze-in 700ms var(--motion-out) both; }
+.vs-haze-r { animation-delay: 80ms; }
+.vs-wave { stroke-dasharray: 1; animation: vs-wave-in 650ms cubic-bezier(.5, 0, .2, 1) 150ms both; }
+.vs-wave-l { --wave-from: 1; }
+.vs-wave-r { --wave-from: -1; }
+.vs-letters { animation: vs-slam 560ms cubic-bezier(.2, 1.4, .4, 1) 420ms both; }
+.vs-slash { animation: vs-slash-in 380ms cubic-bezier(.3, 0, .1, 1) 780ms both; }
+.vs-flare { animation: vs-burst 900ms ease-out 760ms both; }
+.vs-core { animation: vs-burst 700ms ease-out 820ms both; }
+.vs-twinkle { animation: vs-burst 600ms ease-out 1s both; }
+@keyframes vs-haze-in { from { opacity: 0; transform: scale(.6); } }
+@keyframes vs-wave-in { from { stroke-dashoffset: var(--wave-from); opacity: 0; } 30% { opacity: 1; } to { stroke-dashoffset: 0; } }
+@keyframes vs-slam { 0% { opacity: 0; transform: scale(1.9); filter: brightness(2.2); } 55% { opacity: 1; filter: brightness(1.6); } 100% { transform: none; filter: none; } }
+@keyframes vs-slash-in { from { opacity: 0; transform: translate(14%, -18%) scale(.4); } 60% { opacity: 1; } to { transform: none; } }
+@keyframes vs-burst { 0% { opacity: 0; transform: scale(.2); } 35% { opacity: 1; transform: scale(1.35); } 100% { transform: none; } }
+/* ตอนอยู่เฉย ๆ: แสงหายใจ + ดาวระยิบ เป็นชั้น HTML แยก (เลื่อน/จางด้วย GPU ล้วน) — แอนิเมชันวนในตัว SVG ทำให้คำนวณเลย์เอาต์ใหม่ทุกเฟรม */
+.vs-glow { position: absolute; left: 50%; top: 50%; width: 46%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; z-index: 1;
+  background: radial-gradient(circle, #fff3c455, #ffcf5a22 45%, transparent 70%); mix-blend-mode: screen; opacity: 0; will-change: transform, opacity;
+  animation: vs-glow 3.4s ease-in-out 1.8s infinite; }
+@keyframes vs-glow { 0%, 100% { opacity: .35; transform: scale(.9); } 50% { opacity: .9; transform: scale(1.08); } }
+.vs-stars { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.vs-stars i { position: absolute; width: 6px; height: 6px; translate: -50% -50%; opacity: 0; will-change: transform, opacity;
+  background: radial-gradient(circle, #fff7d6 0 30%, transparent 70%); animation: vs-twinkle 2.8s ease-in-out infinite; }
+@keyframes vs-twinkle { 0%, 100% { opacity: 0; transform: scale(.4); } 50% { opacity: .95; transform: scale(1.3); } }
+/* ประกายไฟ */
+.vs-embers { position: absolute; inset: 8% 0; pointer-events: none; overflow: hidden; z-index: -1; }
+.vs-embers span { position: absolute; bottom: 0; width: 4px; height: 4px; border-radius: 50%; opacity: 0; will-change: transform, opacity; animation: vs-ember 5s ease-in infinite; }
+.vs-embers .ember-b { background: #8fc3ff; box-shadow: 0 0 6px 2px #3988ffaa; }
+.vs-embers .ember-r { background: #ff9fb1; box-shadow: 0 0 6px 2px #f13b65aa; }
+@keyframes vs-ember { 0% { opacity: 0; transform: translate(0, 0) scale(.6); } 15% { opacity: .9; } 70% { opacity: .5; } 100% { opacity: 0; transform: translate(var(--drift, 0px), -150px) scale(.2); } }
+html[data-theme="light"] .vs-embers .ember-b { background: #3a7fe0; box-shadow: 0 0 5px 1px #3988ff66; }
+html[data-theme="light"] .vs-embers .ember-r { background: #e0405f; box-shadow: 0 0 5px 1px #f13b6566; }
 .vs-arena { isolation: isolate; }
 .vs-arena::before {
   content: "";
@@ -331,6 +422,7 @@ a.pill:active { transform: scale(.98); }
   .modal-backdrop, .hero-dock { backdrop-filter: none; }
 }
 
+/* เข้าหน้า (ทุกหน้า): ส่วนต่าง ๆ ของหน้าลอยขึ้นทีละชิ้น → lib/motion.ts (usePageEnter) ใช้ keyframes เดียวกับ content-arrive */
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes card-arrive { from { opacity: .35; transform: scale(.95); } to { opacity: 1; transform: none; } }
 @keyframes content-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -344,8 +436,8 @@ a.pill:active { transform: scale(.98); }
   .btn-gold:not(:disabled):hover, a.btn-gold:hover { transform: translateY(-1px); }
   .btn-gold:not(:disabled):hover::after, a.btn-gold:hover::after { animation: gold-sheen 520ms var(--motion-settle); }
   button.pill:not(:disabled):hover, a.pill:hover { border-color: #f4d58d99; }
-  a.plan-card:hover { transform: translateY(-2px); }
-  .btn-gold:not(:disabled):active, a.btn-gold:active, a.plan-card:active { transform: scale(.985); }
+  .plan-card-link:hover > .plan-card { transform: translateY(-2px); }
+  .btn-gold:not(:disabled):active, a.btn-gold:active, .plan-card-link:active > .plan-card { transform: scale(.985); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -403,6 +495,36 @@ body:has(.hero-dock, [data-bottom-bar]) .contact-fab { display: none; }
 @keyframes error-glow { from { box-shadow: 0 0 0 2px #f87171aa, 0 0 22px #ef444466; } to { box-shadow: 0 0 0 0 transparent; } }
 @media (prefers-reduced-motion: reduce) { .error-shake { animation: error-glow 1.2s ease-out; } }
 
+/* เข้าโหมดแก้: ฟอร์มรายละเอียดเลื่อนเข้า */
+.tag-pop { animation: tag-pop 320ms cubic-bezier(.34,1.56,.64,1); }
+@keyframes tag-pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.wiz-backdrop { animation: fade-in 220ms ease-out; }
+.wiz-arrive { animation: modal-arrive 320ms var(--motion-out); }
+.bar-arrive { animation: bar-arrive 360ms var(--motion-out); }
+@keyframes bar-arrive { from { transform: translateY(100%); } to { transform: none; } }
+.pack-bar { transform-origin: left; animation: pack-bar 700ms var(--motion-out) backwards; }
+@keyframes pack-bar { from { transform: scaleX(0); } }
+.edit-arrive { animation: content-arrive 380ms var(--motion-out) 60ms backwards; }
+/* บันทึกสำเร็จ: ป้ายลอย + ประกาย (lib/celebrate.ts) */
+.saved-toast { position: fixed; left: 50%; bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 5rem)); z-index: 95; display: flex; align-items: center; gap: .5rem;
+  padding: .5rem 1.1rem .5rem .55rem; border-radius: 9999px; background: linear-gradient(to bottom, #fff1c9, #e2bf72); color: #1b1407; font-weight: 700; font-size: .95rem;
+  box-shadow: 0 10px 30px #0008, 0 0 0 1px #fff6d9 inset; pointer-events: none; translate: -50% 0; animation: saved-in 420ms cubic-bezier(.34,1.56,.64,1); }
+.saved-toast.out { animation: saved-out 380ms ease-in forwards; }
+.saved-toast-check { position: relative; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 9999px; background: #1b1407; color: #ffe39a; }
+.saved-toast-check svg path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: saved-draw 380ms 160ms ease-out forwards; }
+.saved-toast-check i { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 9999px; background: #ffd45c; opacity: 0;
+  animation: like-burst 620ms 120ms ease-out; }
+@keyframes saved-in { from { opacity: 0; transform: translateY(18px) scale(.8); } to { opacity: 1; transform: none; } }
+@keyframes saved-out { to { opacity: 0; transform: translateY(10px) scale(.95); } }
+@keyframes saved-draw { to { stroke-dashoffset: 0; } }
+/* การ์ดที่เพิ่งบันทึก/แก้: แสงทองกวาดผ่าน 1 ครั้ง (lib/celebrate.ts → flashSaved ใส่ span นี้ชั่วคราว) */
+.just-saved-sweep { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 20; overflow: hidden; }
+.just-saved-sweep::before { content: ""; position: absolute; inset: 0 -60%; will-change: transform;
+  background: linear-gradient(105deg, transparent 38%, #fff3c855 47%, #ffffff70 50%, #fff3c855 53%, transparent 62%);
+  animation: just-saved-sweep 900ms 60ms ease-out both; }
+@keyframes just-saved-sweep { from { transform: translateX(-45%); } to { transform: translateX(45%); } }
+html[data-theme="light"] .saved-toast { box-shadow: 0 10px 26px #4a3a1a44, 0 0 0 1px #fff6d9 inset; }
+
 /* ตั้งค่า → ลดแอนิเมชัน */
 html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
   animation-duration: 0.001ms !important;
@@ -450,25 +572,27 @@ html { scrollbar-width: thin; scrollbar-color: #c9a35a66 transparent; }
   --unit-name: #080d19; /* แถบชื่อใต้รูปอัศวิน */
   --alert-bg: #2a1520;
 }
+/* โหมดสว่าง (แบบ "ชั้นชัด"): พื้นหลังเทาอมฟ้า · การ์ด/กล่องสว่างกว่าพื้นชัด ๆ + เงาบาง ๆ ให้ลอย
+ * ช่องภายในการ์ด (bg-black/xx = "หลุม") เป็นเทาอมฟ้าจาง · ตัวหนังสือรองเข้มพออ่าน · ทองเป็นทองอำพัน */
 :root[data-theme="light"] {
   color-scheme: light;
-  --surface: #c5ccd9;
-  --surface-2: #ced4dfe6;
-  --surface-3: #cbd2dd;
-  --surface-deep: #c8cfdb;
-  --surface-wiz: #cbd2ddf2;
-  --dock: #cbd2ddf2;
-  --backdrop: #141c3266;
-  --announce: #d9c99ee6;
-  --tw-bar: #cdc6dccc;
-  --queue-off: #a9b1c1;
-  --queue-off-line: #7d879b;
-  --unit-name: #222c44;
-  --alert-bg: #e3c9c9;
-  --color-white: #1a2238;
-  --color-black: #d8dde6;
-  --color-gold: #855604;
-  --color-gold-deep: #6e4703;
+  --surface: #efeeed;
+  --surface-2: #f3f2f1f0;
+  --surface-3: #efeeed;
+  --surface-deep: #edecea;
+  --surface-wiz: #f3f2f1f5;
+  --dock: #f3f2f1f5;
+  --backdrop: #27241f66;
+  --announce: #f1e3bcf0;
+  --tw-bar: #e9e8e5e6;
+  --queue-off: #c7c5c1;
+  --queue-off-line: #9d9a95;
+  --unit-name: #38342e;
+  --alert-bg: #f6dcdc;
+  --color-white: #25221d;
+  --color-black: #88847c;
+  --color-gold: #9a5f00;
+  --color-gold-deep: #7a4a00;
   /* ตัวอักษรสีอ่อน (ไว้บนพื้นมืด) → เข้มขึ้นให้อ่านบนพื้นสว่าง */
   --color-red-50: #991b1b; --color-red-100: #991b1b; --color-red-200: #b91c1c; --color-red-300: #b91c1c; --color-red-400: #dc2626;
   --color-sky-100: #075985; --color-sky-200: #075985; --color-sky-300: #0369a1; --color-sky-400: #0284c7;
@@ -479,75 +603,78 @@ html { scrollbar-width: thin; scrollbar-color: #c9a35a66 transparent; }
 /* ของที่วางบนรูป/พื้นมืดเสมอ (การ์ดฮีโร่ ปุ่มทอง) — คงตัวอักษรขาวแบบเดิม */
 :root[data-theme="light"] :is(.unit-card, .skill-queue-face) { --color-white: #ffffff; --color-black: #000000; }
 
-html[data-theme="light"], html[data-theme="light"] body { background-color: #bfc7d4; color: #1a2238; }
+html[data-theme="light"], html[data-theme="light"] body { background-color: #d1cfcc; color: #25221d; }
 html[data-theme="light"] body {
   background:
-    radial-gradient(ellipse 85% 650px at 50% 0%, #d6cdb8, transparent),
-    repeating-linear-gradient(120deg, #2a3a6608 0 1px, transparent 1px 48px),
-    linear-gradient(180deg, #c6cdd9 0%, #bfc7d4 60%, #b7bfcd 100%);
+    radial-gradient(ellipse 85% 650px at 50% 0%, #ddd3bd, transparent),
+    repeating-linear-gradient(120deg, #514a3f08 0 1px, transparent 1px 48px),
+    linear-gradient(180deg, #d7d5d2 0%, #d1cfcc 60%, #cac8c5 100%);
 }
-html[data-theme="light"] ::selection { background: #f4d58d80; color: #1a2238; }
-html[data-theme="light"] :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus { border-color: #c9a35a; }
-html[data-theme="light"] :where(button, a, input[type="checkbox"], input[type="radio"]):focus-visible { outline-color: #c9a35a; }
+html[data-theme="light"] ::selection { background: #f4d58d99; color: #25221d; }
+html[data-theme="light"] :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus { border-color: #c08a1e; }
+html[data-theme="light"] :where(button, a, input[type="checkbox"], input[type="radio"]):focus-visible { outline-color: #c08a1e; }
 
+/* การ์ด: สว่างกว่าพื้น + ขอบชัด + เงาสองชั้น (ใกล้/ไกล) */
 html[data-theme="light"] .panel {
-  border-color: #8292bc55;
-  background: linear-gradient(150deg, #d6dbe4 0%, #cfd5df 50%, #c8cfda 100%);
-  box-shadow: inset 0 0 0 4px #cdd3dd, inset 0 1px 0 #dde1e8, 0 10px 28px #1a22401f;
+  border-color: #c1beb9;
+  background: linear-gradient(160deg, #f5f5f4 0%, #efeeed 100%);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 2px #322e281a, 0 10px 26px #322e2824;
 }
 html[data-theme="light"] .panel-gold {
-  border-color: #c9a35acc;
-  box-shadow: inset 0 0 0 3px #d8d2c2, inset 0 0 0 4px #c9a35a33, 0 10px 28px #1a224014, 0 0 24px #f4d58d22;
+  border-color: #c9a35a;
+  box-shadow: inset 0 1px 0 #ffffff, inset 0 0 0 3px #f6efdd, 0 1px 2px #322e281a, 0 10px 26px #322e2824;
 }
 html[data-theme="light"] .panel-enemy {
-  border-color: #9b8cc8aa;
-  background: linear-gradient(150deg, #d4d0df 0%, #cdc8db 50%, #c6c0d6 100%);
-  box-shadow: inset 0 0 0 3px #cfcadb, inset 0 0 0 4px #9b8cc833, 0 10px 28px #1a224014;
+  border-color: #a99ad0;
+  background: linear-gradient(160deg, #f3f0f8 0%, #e9e4f3 100%);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 2px #322e281a, 0 10px 26px #322e2824;
 }
-html[data-theme="light"] .panel::before, html[data-theme="light"] .panel::after { color: #8a96b5; }
+html[data-theme="light"] .panel::before, html[data-theme="light"] .panel::after { color: #a5a19a; }
 html[data-theme="light"] .panel-gold::before, html[data-theme="light"] .panel-gold::after,
 html[data-theme="light"] .guild-banner::after { color: #d9a93f; text-shadow: 0 0 6px #ffffff, 0 0 10px #f4d58d; }
-html[data-theme="light"] .modal-surface { background: linear-gradient(145deg, #d3d8e1, #cdd3dd); }
-html[data-theme="light"] .modal-backdrop { background-color: #141c3266; }
+html[data-theme="light"] .modal-surface { background: linear-gradient(160deg, #f7f6f5, #f0efee); }
+html[data-theme="light"] .modal-backdrop { background-color: #27241f66; }
+/* ช่องว่างในการ์ดทีม: เส้นประจาง ๆ แทนก้อนทึบ */
 html[data-theme="light"] .slot-empty {
-  border-color: #8292bc4d;
-  background:
-    radial-gradient(circle at center, transparent 29%, #8292bc1a 30% 31%, transparent 32% 40%, #8292bc12 41% 42%, transparent 43%),
-    linear-gradient(135deg, #d8dde680, transparent 50%), #bcc4d1;
-  box-shadow: inset 0 1px 2px #1a22401a;
+  border: 1.5px dashed #b1aea8;
+  background: #e7e6e4b3;
+  box-shadow: none;
 }
-html[data-theme="light"] .round-slot { border-color: #8292bc80; background: radial-gradient(circle at 40% 35%, #d6dbe4, #b3bbca); }
+html[data-theme="light"] .round-slot { border-color: #b1aea8; background: #ebeae8; }
 html[data-theme="light"] .pill {
-  border-color: #c9a35a66;
-  background: linear-gradient(180deg, #d5dae3, #cdd3dd);
-  box-shadow: inset 0 0 0 2px #f1f4f866, 0 1px 2px #1a22401a;
+  border-color: #c9a35a80;
+  background: linear-gradient(180deg, #ffffff, #f3f2f1);
+  box-shadow: 0 1px 2px #322e281f;
 }
 html[data-theme="light"] .orb {
-  border-color: #8292bc66;
-  background: radial-gradient(circle at 40% 35%, #d5dae3, #b1b9c8);
-  box-shadow: inset 0 0 10px #1a22401f;
+  border-color: #b1aea8;
+  background: radial-gradient(circle at 40% 35%, #ffffff, #e5e4e2);
+  box-shadow: inset 0 0 8px #322e2814, 0 1px 2px #322e281a;
 }
-html[data-theme="light"] .hero-dock { box-shadow: 0 -10px 30px #1a22401f, inset 0 2px 0 #c9a35a1a; }
+html[data-theme="light"] .hero-dock { box-shadow: 0 -10px 30px #322e2826, inset 0 2px 0 #c9a35a26; }
 html[data-theme="light"] .guild-banner {
-  border-color: #c9a35a66;
-  background: radial-gradient(ellipse at 95% 0, #f4d58d33, transparent 60%), linear-gradient(120deg, #d5dae3, #cdd3dd 70%);
-  box-shadow: inset 0 0 0 4px #ccd2dc, 0 8px 24px #1a224012;
+  border-color: #c9a35a99;
+  background: radial-gradient(ellipse at 95% 0, #f4d58d40, transparent 60%), linear-gradient(120deg, #f7f6f5, #efeeed 70%);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 2px #322e281a, 0 10px 26px #322e2820;
 }
-html[data-theme="light"] .eyebrow { color: #8c7a55; }
-html[data-theme="light"] .gold-title { color: #a06c0e; background: linear-gradient(180deg, #c99a3c 10%, #7c560c 85%); background-clip: text; -webkit-background-clip: text; }
-html[data-theme="light"] .brand-mark, html[data-theme="light"] .hero-crest { color: #a06c0e; }
-html[data-theme="light"] .hero-crest { background: linear-gradient(140deg, #f4d58d40, #cfd5df); box-shadow: inset 0 0 0 4px #cfd5df, inset 0 0 0 5px #c9a35a40; }
-html[data-theme="light"] .section-divider { color: #8c7a55; }
-html[data-theme="light"] .plan-card li { background: #1a22400a; }
-html[data-theme="light"] .plan-heading { border-bottom-color: #c9a35a40; }
-html[data-theme="light"] .tag-accent { box-shadow: inset 0 3px 0 color-mix(in srgb, var(--tag) 80%, transparent), 0 0 14px color-mix(in srgb, var(--tag) 18%, transparent), 0 8px 22px #1a224014; }
+html[data-theme="light"] .eyebrow { color: #7d6a42; }
+html[data-theme="light"] .gold-title { color: #a8690a; background: linear-gradient(105deg, transparent 42%, #fff6dccc 50%, transparent 58%) no-repeat, linear-gradient(180deg, #d19a36 10%, #8a5400 85%); background-size: 250% 100%, 100% 100%; background-position: 160% 0, 0 0; background-clip: text; -webkit-background-clip: text; }
+html[data-theme="light"] .brand-mark, html[data-theme="light"] .hero-crest { color: #9a5f00; }
+html[data-theme="light"] .hero-crest { background: linear-gradient(140deg, #f4d58d55, #f5f5f4); box-shadow: inset 0 0 0 4px #f5f5f4, inset 0 0 0 5px #c9a35a55; }
+html[data-theme="light"] .section-divider { color: #7d6a42; }
+html[data-theme="light"] .plan-card li { background: #88847c14; }
+html[data-theme="light"] .plan-heading { border-bottom-color: #c9a35a55; }
+html[data-theme="light"] .tag-accent { box-shadow: inset 0 3px 0 color-mix(in srgb, var(--tag) 80%, transparent), 0 0 14px color-mix(in srgb, var(--tag) 18%, transparent), 0 10px 24px #322e2820; }
+/* VS กว้างกว่าคอลัมน์กลาง: ให้ลอดใต้การ์ดซ้าย-ขวา ไม่ทับขอบการ์ด */
+.vs-arena > :not(.vs-mid) { position: relative; z-index: 1; }
 html[data-theme="light"] .vs-arena::before { background: radial-gradient(ellipse at 15% 40%, #3672db14, transparent 50%), radial-gradient(ellipse at 85% 60%, #db456812, transparent 50%); }
 /* วงเวทหน้าแรก: แฉกทอง (conic) บนพื้นสว่างต้องเข้มกว่าโหมดมืด ไม่งั้นมองไม่เห็น */
+html[data-theme="light"] .arcane-ring::before { background: repeating-conic-gradient(from 15deg, #a0781f2e 0deg 1deg, transparent 1deg 30deg); }
+html[data-theme="light"] .arcane-ring::after { border-color: #a0781f40; box-shadow: 0 0 0 9px #a0781f0d; }
+html[data-theme="light"] .hero-motes span { background: #c99a3a; box-shadow: 0 0 6px 1px #c99a3a55; }
 html[data-theme="light"] .arcane-ring {
   border-color: #a0781f33;
-  background:
-    repeating-conic-gradient(from 15deg, #a0781f2e 0deg 1deg, transparent 1deg 30deg),
-    radial-gradient(circle, #c9a35a1f, transparent 65%);
+  background: radial-gradient(circle, #c9a35a1f, transparent 65%);
   box-shadow: inset 0 0 0 22px #ffffff14, inset 0 0 0 23px #a0781f26;
 }
 
@@ -566,22 +693,22 @@ html[data-theme="light"] .keep-dark {
 
 /* ปุ่ม Discord ลอยมุมขวาล่าง */
 html[data-theme="light"] .contact-fab-btn {
-  background: radial-gradient(circle at 35% 30%, #eef1f6, #c3cad7 75%) !important;
+  background: radial-gradient(circle at 35% 30%, #f3f2f1, #d0cecb 75%) !important;
   color: #855604;
   border-color: #a0781f99;
-  box-shadow: 0 8px 22px #1a224033, inset 0 0 0 3px #ffffff80;
+  box-shadow: 0 8px 22px #322e2833, inset 0 0 0 3px #ffffff80;
 }
 html[data-theme="light"] .contact-fab-btn:hover { color: #5e3d02; }
 
 /* การ์ดอัศวิน: พื้นหลังรูปเทาอมฟ้าแทนดำ (รูปยังเด่น ตัวหนังสือชื่อยังขาว) */
 html[data-theme="light"] .unit-card {
-  background: radial-gradient(ellipse at 50% 10%, color-mix(in srgb, var(--unit-color) 40%, transparent), transparent 80%), #4a5672;
-  box-shadow: 0 3px 8px #1a22402e, inset 0 0 0 2px #ffffff26;
+  background: radial-gradient(ellipse at 50% 10%, color-mix(in srgb, var(--unit-color) 40%, transparent), transparent 80%), #635f59;
+  box-shadow: 0 3px 8px #322e282e, inset 0 0 0 2px #ffffff26;
 }
-html[data-theme="light"] .unit-card.skill-queue-portrait { background: radial-gradient(circle at 40% 30%, #b9bfc7, #7d848f 60%, #5c636e); }
-html[data-theme="light"] .skill-queue-face { box-shadow: 0 0 0 1px #69717c66, 0 2px 5px #1a224033; }
+html[data-theme="light"] .unit-card.skill-queue-portrait { background: radial-gradient(circle at 40% 30%, #c2c0be, #888784 60%, #676663); }
+html[data-theme="light"] .skill-queue-face { box-shadow: 0 0 0 1px #75737066, 0 2px 5px #322e2833; }
 
 /* โหมดสว่าง: ป้ายทองทึบ (bg-gold + ตัวหนังสือ text-ink) ใช้ทองอ่อน ไม่ใช่ทองเข้มที่ใช้กับตัวหนังสือ */
 html[data-theme="light"] .bg-gold { background-color: #e2bf72; }
 /* พื้นทับมืด (bg-ink/xx) บนการ์ด → พื้นสว่างโปร่ง */
-html[data-theme="light"] :is(.bg-ink\/80, .bg-ink\/85) { background-color: #eef1f6e6; }
+html[data-theme="light"] :is(.bg-ink\/80, .bg-ink\/85) { background-color: #ffffffe6; }

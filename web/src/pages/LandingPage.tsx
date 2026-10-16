@@ -1,6 +1,8 @@
-import { ArrowUpRight, Eye, EyeOff, Shield, Swords } from 'lucide-react'
+import { ArrowUpRight, Eye, EyeOff, Gem, Shield, Swords } from 'lucide-react'
+import { ImgPriority } from '../components/UnitCard'
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { PACKS_ON } from '../lib/packs'
+import { Link, useNavigate } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
 import VsArena from '../components/VsArena'
 import { api, pushRecent, saveEditKey } from '../lib/api'
@@ -11,6 +13,13 @@ import { tx, L } from '../lib/i18n'
 const DEMO_ALLY: Team = { front: 2, slots: ['ลูดี้ awake', null, 'ยอนฮี', 'เรเชล', null], pet: 'อีรีน', extras: ['เจโอ', null, null, null], speed: 210 }
 const DEMO_ENEMY: Team = { front: 2, slots: ['เดลโลนส์ awake', 'ไอลีน', null, 'วาเนสซา', null], pet: 'ยอนจี', extras: ['ยู', 'โยรัง', 'เจโอ', null], speed: 198 }
 const DEMO_SKILLS = [{ slot: 2, skill: 1 as const }, { slot: 2, skill: 2 as const }, { slot: 3, skill: 1 as const }]
+
+// ละอองทองหลังหัวเว็บ (ตำแหน่ง/จังหวะคงที่)
+const MOTES = [
+  { x: 12, d: 0, t: 11, drift: 20 }, { x: 22, d: 4.5, t: 13, drift: -16 }, { x: 31, d: 8, t: 10, drift: 12 }, { x: 40, d: 2, t: 14, drift: -10 },
+  { x: 47, d: 6.5, t: 12, drift: 18 }, { x: 55, d: 1, t: 11.5, drift: -22 }, { x: 63, d: 9, t: 13.5, drift: 14 }, { x: 71, d: 3.5, t: 10.5, drift: -12 },
+  { x: 80, d: 7, t: 12.5, drift: 16 }, { x: 88, d: 5, t: 14.5, drift: -18 }, { x: 35, d: 11, t: 12, drift: 8 }, { x: 66, d: 12.5, t: 11, drift: -8 },
+]
 
 export default function LandingPage() {
   const nav = useNavigate()
@@ -45,6 +54,9 @@ export default function LandingPage() {
     <div>
       <section className="landing-hero relative mx-auto pt-7 text-center sm:pt-12">
         <div className="arcane-ring" aria-hidden="true" />
+        <div className="hero-motes" aria-hidden="true">
+          {MOTES.map((m, i) => <span key={i} style={{ left: `${m.x}%`, animationDelay: `${m.d}s`, animationDuration: `${m.t}s`, ['--drift' as string]: `${m.drift}px` }} />)}
+        </div>
         <p className="eyebrow relative">SEVEN KNIGHTS RE:BIRTH</p>
         <div className="hero-crest mx-auto mt-6" aria-hidden="true"><Swords className="h-7 w-7" strokeWidth={1.3} /></div>
         <h1 className="relative mt-5 text-[2.65rem] font-extrabold leading-[1.15] sm:text-7xl">
@@ -89,14 +101,25 @@ export default function LandingPage() {
         <p className="relative mt-4 text-xs text-white/45">{tx('ใช้ฟรี · ไม่ต้องสมัคร · พร้อมใช้บนมือถือและคอม')}</p>
         {err && <p className="mt-3 text-sm text-red-300">{err}</p>}
 
+        {/* เครื่องมือ: เช็กความคุ้มค่าแพ็ค */}
+        {PACKS_ON && <Link to="/packs" className="group relative mx-auto mt-6 flex max-w-xl items-center gap-3 rounded-2xl border border-gold/30 bg-black/20 px-4 py-3 text-left transition hover:border-gold hover:bg-gold/5">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold"><Gem className="h-5 w-5" /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">{tx('เช็กความคุ้มค่าแพ็ค')}</span>
+            <span className="block text-xs text-white/55">{L('แพ็คไหนคุ้มสุดตอนนี้ · ใส่งบแล้วแนะนำให้', 'Which packs are worth it right now · budget picks')}</span>
+          </span>
+          <ArrowUpRight className="h-4 w-4 shrink-0 text-gold transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </Link>}
       </section>
 
       <section className="arena-showcase relative mt-12 sm:mt-16">
         <div className="section-divider mb-9"><span>{tx('ตัวอย่างสนามรบ')}</span></div>
+        <ImgPriority value>
         <VsArena
           left={<TeamPanel variant="ally" team={DEMO_ALLY} skills={DEMO_SKILLS} title={<span className="inline-flex items-center gap-2 text-gold"><Shield className="h-4 w-4" />{' '}{tx('ทีมของเรา')}</span>} />}
           right={<TeamPanel variant="enemy" team={DEMO_ENEMY} title={<span className="inline-flex items-center gap-2 text-[#d7c8ed]"><Swords className="h-4 w-4" />{' '}{tx('บ้านศัตรู')}</span>} />}
         />
+        </ImgPriority>
         <p className="mt-7 text-center text-xs text-white/40">{tx('ทีมตัวอย่างสำหรับแสดงหน้าจอ · จัดทีมจริงได้ในกิลด์ของคุณ')}</p>
       </section>
     </div>

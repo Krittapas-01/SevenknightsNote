@@ -6,6 +6,7 @@ import { loginWithDiscord, logout, useAuth } from '../lib/auth'
 import { clearSaved, savedCount } from '../lib/myStats'
 import { setPrefs, usePrefs, type LangPref, type ThemePref, type ZoomPref } from '../lib/prefs'
 import { clearGuildCache } from '../lib/useGuild'
+import { resetTours } from '../lib/tour'
 import { useSlidePill } from '../lib/slide'
 import { DiscordIcon } from '../components/ContactFab'
 import { LANG, L, setLang, tx } from '../lib/i18n'
@@ -78,6 +79,9 @@ export function SettingsBody({ onNavigate }: { onNavigate?: () => void }) {
         </Sub>
         <Sub title={tx('แคชข้อมูลกิลด์')} hint={tx('ข้อมูลที่เก็บไว้ให้เปิดเร็ว · ล้างเมื่อข้อมูลดูค้าง')}>
           <Item label={tx('ข้อมูลกิลด์ล่าสุด 3 กิลด์')} action={tx('ล้างแคช')} onAction={() => { clearGuildCache(); flash(tx('ล้างแคชแล้ว')) }} />
+        </Sub>
+        <Sub title={L('การสอนใช้', 'Guides')} hint={L('สอนเล่นเองตอนเข้าแต่ละหน้าครั้งแรก · ดูซ้ำได้ที่ปุ่ม ? บนหัวเว็บ', 'Plays the first time you open each page · replay with the ? button at the top')}>
+          <Item label={L('สอนใหม่ตั้งแต่ต้น', 'Show all guides again')} action={L('รีเซ็ต', 'Reset')} onAction={() => { resetTours(); flash(L('รีเซ็ตแล้ว — เข้าแต่ละหน้าจะสอนอีกครั้ง', 'Done — each page will show its guide again')) }} />
         </Sub>
       </Section>
 

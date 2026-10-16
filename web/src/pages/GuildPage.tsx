@@ -1,7 +1,10 @@
 import { Check, ChevronLeft, ChevronRight, ClipboardList, LayoutGrid, Link2, Plus, Search, Shield, Swords } from 'lucide-react'
+import { ImgPriority } from '../components/UnitCard'
+import PageSkeleton from '../components/PageSkeleton'
 import { sortTags, tagColor, tagStyle, tagText } from '../lib/tags'
-import { useMemo, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router'
+import { memo, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Link, useLocation, useNavigationType, useParams, useSearchParams } from 'react-router'
 import Modal from '../components/Modal'
 import TeamCardLite from '../components/TeamCardLite'
 import UnitCard from '../components/UnitCard'
@@ -17,6 +20,7 @@ import { renderAhead } from '../lib/renderAhead'
 import HelpLink from '../components/HelpLink'
 import GuildTour from '../components/GuildTour'
 import { isDemo } from '../lib/demo'
+import { useTour } from '../lib/tour'
 import GuildOnboarding from '../components/GuildOnboarding'
 import { markShared, onboardFlags } from '../lib/onboarding'
 import { useSmoothWheel } from '../lib/smoothWheel'
@@ -31,25 +35,103 @@ const matches = (t: Target, q: string) =>
 export default function GuildPage() {
   const { gid = '' } = useParams()
   const { data, error, canEdit, realCanEdit, setCanEdit, recheck, reload } = useGuild(gid)
-  const [q, setQ] = useState('')
-  const [tag, setTag] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
+  // ค้นหา/แท็กเก็บใน URL → กดเข้าบ้านแล้วกดย้อนกลับ ยังเป็นตัวกรองเดิม (ไม่เด้งกลับเป็น "ทั้งหมด")
+  const q = params.get('q') ?? ''
+  const tag = params.get('tag')
+  const setParam = (k: 'q' | 'tag', v: string | null) => setParams((p) => {
+    const n = new URLSearchParams(p)
+    if (v) n.set(k, v); else n.delete(k)
+    return n
+  }, { replace: true })
+  const setQ = (v: string) => setParam('q', v)
+  const setTag = (v: string | null) => setParam('tag', v)
+  // ตำแหน่งเลื่อนจอ: จำไว้ตอนออกจากหน้า · กดย้อนกลับมา = เลื่อนกลับไปที่เดิม
+  const loc = useLocation()
+  const navType = useNavigationType()
+  const scrollKey = `7k-note:scroll:${loc.key}`
+  // useLayoutEffect: บันทึกก่อนหน้าใหม่วาด (ถ้ารอทีหลัง หน้าใหม่ที่สั้นกว่าจะทำให้ตำแหน่งถูกตัดไปแล้ว)
+  // จำการ์ดบ้านแรกที่เห็นบนจอ + ระยะจากขอบบน (การ์ดนอกจอยังไม่รู้ความสูงจริง เลยยึดการ์ดแทนตัวเลข scrollY)
+  // อัปเดตตอนเลื่อนจอ/กด (ค่าล่าสุดก่อนออก) แล้วเขียนตอนออกจากหน้า — อ่านตอนออกไม่ได้ เพราะหน้าใหม่/เลื่อนนุ่มขยับไปแล้ว
+  const snap = useRef<{ y: number; id: string; top: number } | null>(null)
+  useEffect(() => {
+    let raf = 0, frozen = false
+    const take = () => {
+      raf = 0
+      if (frozen) return
+      const card = [...document.querySelectorAll<HTMLElement>('a[data-target-card]')].find((el) => el.getBoundingClientRect().bottom > 120)
+      snap.current = { y: window.scrollY, id: card?.dataset.targetCard ?? '', top: card ? card.getBoundingClientRect().top : 0 }
+    }
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(take) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    // กดการ์ดบ้าน = จับค่าทันทีแล้วล็อก (ระหว่างเปลี่ยนหน้า จอจะขยับเอง ไม่ให้ทับค่าที่ถูก)
+    const onDown = (e: PointerEvent) => { frozen = false; take(); if ((e.target as HTMLElement | null)?.closest?.('a[data-target-card]')) frozen = true }
+    document.addEventListener('pointerdown', onDown, true)
+    return () => {
+      window.removeEventListener('scroll', onScroll); document.removeEventListener('pointerdown', onDown, true); cancelAnimationFrame(raf)
+      try { if (snap.current) sessionStorage.setItem(scrollKey, JSON.stringify(snap.current)) } catch { /* ไม่มี storage */ }
+    }
+  }, [scrollKey])
+  const restored = useRef(false)
   const tab = params.get('tab') === 'targets' ? 'targets' : 'plans'
   const tabPill = useSlidePill(tab)
   const tabSlide = useSlideDir(tab === 'plans' ? 0 : 1)
   useSmoothWheel(tab === 'targets')
+  // สอนใช้: คนแก้ได้ = สอนจัดการกิลด์ · คนดูอย่างเดียว = สอนดูแผน + เข้าแก้ไข
+  useTour('guild-editor', !!data && canEdit && !isDemo(gid))
+  useTour('guild-viewer', !!data && !realCanEdit && !isDemo(gid))
 
   const allTags = useMemo(() => sortTags([...new Set(data?.targets.flatMap((t) => t.tags) ?? [])]), [data])
-  const list = useMemo(() => {
-    const s = q.trim().toLowerCase()
+  // ค้นหา/กรองแท็กแบบเลื่อนไปทำทีหลัง: ช่องพิมพ์/ปุ่มแท็กตอบทันที รายการค่อยตามมา (INP)
+  const dq = useDeferredValue(q)
+  const dTag = useDeferredValue(tag)
+  const sorted = useMemo(() => {
+    const s = dq.trim().toLowerCase()
     // แก้ล่าสุดอยู่บนสุด (ตัวบ้านศัตรูหรือทีมแก้ข้างใน — เวลาเดียวกับจุดเขียว)
     const last = (t: Target) => Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
-    return (data?.targets ?? []).filter((t) => (!tag || t.tags.includes(tag)) && (!s || matches(t, s))).sort((a, b) => last(b) - last(a))
-  }, [data, q, tag])
+    return (data?.targets ?? []).filter((t) => (!dTag || t.tags.includes(dTag)) && (!s || matches(t, s))).sort((a, b) => last(b) - last(a))
+  }, [data, dq, dTag])
+  // ลำดับการ์ดบนจอไม่สลับเอง: ข้อมูลใหม่มาเบื้องหลัง (มีคนแก้ / โหลดเสร็จทีหลัง) → การ์ดอยู่ที่เดิม เนื้อหาในการ์ดอัปเดต
+  // บ้านใหม่ต่อท้าย · ขึ้นปุ่ม "เรียงใหม่" ให้กดเอง (การ์ดสลับที่เองโดยไม่ได้กด = หน้ากระโดด CLS)
+  // เรียงใหม่ทันทีเมื่อ: เปลี่ยนคำค้น/แท็ก หรือกดปุ่มเรียงใหม่
+  const [resort, setResort] = useState(0)
+  const shown = useRef<{ key: string; ids: string[] } | null>(null)
+  const openedAt = useRef(Date.now())
+  const orderKey = `${dq}|${dTag}|${resort}`
+  const { list, stale } = useMemo(() => {
+    const ids = sorted.map((t) => t.id)
+    const o = shown.current
+    // ช่วงเปิดหน้าแรก ๆ (ข้อมูลในเครื่อง → ข้อมูลจากเซิร์ฟเวอร์ตามมาติด ๆ) ยังเรียงใหม่ได้ ไม่ต้องรอกดปุ่ม
+    if (!o || o.key !== orderKey || !o.ids.length || Date.now() - openedAt.current < 1500) {
+      shown.current = { key: orderKey, ids }
+      return { list: sorted, stale: false }
+    }
+    const pos = new Map(o.ids.map((id, i) => [id, i]))
+    const arranged = [...sorted.filter((t) => pos.has(t.id)).sort((a, b) => pos.get(a.id)! - pos.get(b.id)!), ...sorted.filter((t) => !pos.has(t.id))]
+    return { list: arranged, stale: arranged.some((t, i) => t.id !== ids[i]) }
+  }, [sorted, orderKey])
+
+  useLayoutEffect(() => {
+    if (restored.current || navType !== 'POP' || !data) return
+    restored.current = true
+    let saved: { y: number; id: string; top: number } | null = null
+    try { saved = JSON.parse(sessionStorage.getItem(scrollKey) || 'null') } catch { /* ไม่มี storage */ }
+    if (!saved || saved.y <= 0) return
+    const { y, id, top } = saved
+    // เลื่อนไปที่การ์ดเดิม แล้วแก้ซ้ำอีกไม่กี่เฟรม (ความสูงการ์ดจริงค่อย ๆ รู้หลังวาด)
+    const fix = () => {
+      const el = id ? document.querySelector<HTMLElement>(`a[data-target-card="${CSS.escape(id)}"]`) : null
+      window.scrollTo({ top: el ? window.scrollY + el.getBoundingClientRect().top - top : y, behavior: 'instant' })
+    }
+    fix()
+    let n = 0
+    const again = () => { fix(); if (++n < 6) requestAnimationFrame(again) }
+    requestAnimationFrame(again)
+  }, [navType, data, scrollKey])
 
   if (error) return <NotFound message={error} />
-  if (!data) return <p className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
+  if (!data) return <PageSkeleton kind="guild" />
 
   async function copy(kind: 'view') {
     const url = `${location.origin}/g/${gid}`
@@ -88,7 +170,7 @@ export default function GuildPage() {
       {/* แท็บ */}
       <div className="mt-6 flex flex-wrap items-center gap-3">
         {/* แท็บ: พื้นทองวิ่งตามแท็บที่เลือก */}
-        <div ref={tabPill.box} className="pill relative flex p-1">
+        <div ref={tabPill.box} data-tour="guild-tabs" className="pill relative flex p-1">
           <span aria-hidden className="slide-pill" style={tabPill.pill} />
           {([
             ['plans', tx('แผนสงคราม'), ClipboardList],
@@ -96,6 +178,7 @@ export default function GuildPage() {
           ] as const).map(([k, label, Icon]) => (
             <button
               key={k}
+              data-tour={`tab-${k}`}
               ref={tabPill.item(k)}
               onClick={() => setParams(k === 'plans' ? {} : { tab: k }, { replace: true })}
               className={`relative z-10 flex items-center gap-1.5 rounded-full px-4 py-1.5 transition-colors sm:px-5 ${tab === k ? 'font-semibold text-ink' : 'text-white/70 hover:bg-white/10'}`}
@@ -133,7 +216,7 @@ export default function GuildPage() {
         </div>
       ) : (
         <>
-      <div className="mt-5 flex flex-wrap items-center gap-2">
+      <div data-tour="target-search" className="mt-5 flex flex-wrap items-center gap-2">
         <label className="pill flex min-w-60 flex-1 items-center gap-2 px-4 py-2">
           <Search className="h-4 w-4 text-white/50" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tx('ค้นหาชื่ออัศวิน, โน้ต, แท็ก...')} className="w-full bg-transparent outline-none placeholder:text-white/40" />
@@ -162,43 +245,17 @@ export default function GuildPage() {
           </div>
         )
       ) : (
-        <div className="mt-5 grid gap-x-5 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((t) => {
-            // แก้/เพิ่มภายใน 24 ชม. (ตัวบ้านศัตรูหรือทีมแก้ข้างใน) → จุดเขียว ให้คนในกิลรู้ว่ามีการแก้
-            const last = Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
-            const ago = Date.now() - last
-            const recent = ago < 24 * 3600_000
-            return (
-            <Link key={t.id} ref={renderAhead} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition"
-              // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง) · 560px = ความสูงโดยประมาณของการ์ด
-              style={{ contentVisibility: 'auto', containIntrinsicWidth: 'none', containIntrinsicHeight: 'auto 480px', ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
-              <TeamCardLite
-                team={t.team}
-                skills={t.team.skills ?? []}
-                className={`flex-1 group-hover:border-gold ${t.tags[0] ? 'tag-accent' : ''}`}
-                title={
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="flex flex-wrap gap-1">
-                      {t.tags.length ? t.tags.map((x) => (
-                        <span key={x} className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={tagStyle(x)}>{tagText(x)}</span>
-                      )) : <span className="text-white/50">{tx('บ้านศัตรู')}</span>}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2 text-xs font-normal">
-                      {recent && (
-                        <span className="flex items-center gap-1 text-emerald-300/90" title={tx('มีการแก้ใน 24 ชม.')}>
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                          {ago < 3600_000 ? L(`${Math.max(1, Math.floor(ago / 60_000))} นาที`, `${Math.max(1, Math.floor(ago / 60_000))}m`) : L(`${Math.floor(ago / 3600_000)} ชม.`, `${Math.floor(ago / 3600_000)}h`)}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1 text-gold"><Swords className="h-3.5 w-3.5" /> {L(`${t.counters.length} ทีมแก้`, `${t.counters.length} counter${t.counters.length === 1 ? '' : 's'}`)}</span>
-                    </span>
-                  </span>
-                }
-              />
-            </Link>
-            )
-          })}
-        </div>
+        <>
+        <TargetGrid list={list} gid={gid} />
+        {/* ปุ่มลอย (fixed = ไม่ดันหน้า) · portal: แท็บมีแอนิเมชันเลื่อน (transform) ทำให้ fixed ข้างในเพี้ยน */}
+        {stale && createPortal(
+          <button type="button" data-testid="resort" onClick={() => setResort((n) => n + 1)}
+            className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-full border border-gold/60 bg-[var(--surface-deep)] px-4 py-2 text-sm font-semibold text-gold shadow-lg hover:bg-gold/15">
+            {L('มีการแก้ใหม่ · เรียงล่าสุดขึ้นก่อน', 'New edits · sort latest first')}
+          </button>,
+          document.body,
+        )}
+        </>
       )}
         </>
       )}
@@ -311,7 +368,8 @@ function PlanList({ gid, kind, plans, canEdit, activeId, usedAt }: { gid: string
 function PlanCard({ gid, plan: p, active, usedAt }: { gid: string; plan: Plan; active: boolean; usedAt?: number }) {
   const used = p.data.slots.filter((s) => s.options.length)
   return (
-    <Link to={`/g/${gid}/p/${p.id}`} className={`plan-card panel ${active ? 'panel-gold' : ''} block select-none p-5 transition hover:-translate-y-1`}>
+    <Link to={`/g/${gid}/p/${p.id}`} className="plan-card-link block select-none">
+    <div className={`plan-card panel ${active ? 'panel-gold' : ''} h-full p-5`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {active && <span className="mb-1 inline-block rounded-full bg-gold px-2 text-xs font-semibold text-ink">{tx('ใช้อยู่ตอนนี้')}</span>}
@@ -343,6 +401,52 @@ function PlanCard({ gid, plan: p, active, usedAt }: { gid: string; plan: Plan; a
           </li>
         ))}
       </ul>
+    </div>
     </Link>
   )
 }
+
+/** การ์ดบ้านศัตรูทั้งหมด — แยก + memo: พิมพ์ค้นหา/กดแท็ก แล้วช่องพิมพ์ตอบทันที การ์ดค่อยวาดตามหลัง (ไม่วาดซ้ำถ้ารายการเดิม) */
+const TargetGrid = memo(function TargetGrid({ list, gid }: { list: Target[]; gid: string }) {
+  return (
+    <div className="mt-5 grid gap-x-5 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+      {list.map((t, i) => {
+        // แก้/เพิ่มภายใน 24 ชม. (ตัวบ้านศัตรูหรือทีมแก้ข้างใน) → จุดเขียว ให้คนในกิลรู้ว่ามีการแก้
+        const last = Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
+        const ago = Date.now() - last
+        const recent = ago < 24 * 3600_000
+        return (
+        <Link key={t.id} ref={renderAhead} data-target-card={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition"
+          // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง) · 560px = ความสูงโดยประมาณของการ์ด
+          style={{ contentVisibility: 'auto', containIntrinsicWidth: 'none', containIntrinsicHeight: 'auto 480px', ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
+          <ImgPriority value={i < 3}>
+          <TeamCardLite
+            team={t.team}
+            skills={t.team.skills ?? []}
+            className={`flex-1 group-hover:border-gold ${t.tags[0] ? 'tag-accent' : ''}`}
+            title={
+              <span className="flex items-center justify-between gap-2">
+                <span className="flex flex-wrap gap-1">
+                  {t.tags.length ? t.tags.map((x) => (
+                    <span key={x} className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={tagStyle(x)}>{tagText(x)}</span>
+                  )) : <span className="text-white/50">{tx('บ้านศัตรู')}</span>}
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-xs font-normal">
+                  {recent && (
+                    <span className="flex items-center gap-1 text-emerald-300/90" title={tx('มีการแก้ใน 24 ชม.')}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      {ago < 3600_000 ? L(`${Math.max(1, Math.floor(ago / 60_000))} นาที`, `${Math.max(1, Math.floor(ago / 60_000))}m`) : L(`${Math.floor(ago / 3600_000)} ชม.`, `${Math.floor(ago / 3600_000)}h`)}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 text-gold"><Swords className="h-3.5 w-3.5" /> {L(`${t.counters.length} ทีมแก้`, `${t.counters.length} counter${t.counters.length === 1 ? '' : 's'}`)}</span>
+                </span>
+              </span>
+            }
+          />
+          </ImgPriority>
+        </Link>
+        )
+      })}
+    </div>
+  )
+})

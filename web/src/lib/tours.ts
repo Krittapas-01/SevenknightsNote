@@ -1,0 +1,210 @@
+import type { Tour, TourStep } from './tour'
+import { L } from './i18n'
+
+/**
+ * เนื้อหาการสอนใช้แต่ละหน้า (ส่องปุ่มจริงด้วย data-tour / data-onboard)
+ * สอนเฉพาะสิ่งที่อยู่ในหน้านั้น ตอนที่ผู้ใช้เข้ามาถึงจริง — ไม่ยัดทุกอย่างตั้งแต่หน้าแรก
+ */
+const s = (sel: string | undefined, title: [string, string], body: [string, string], extra: Partial<TourStep> = {}): TourStep =>
+  ({ sel, title: L(...title), body: L(...body), ...extra })
+
+// ใช้ร่วมกันระหว่างแก้บ้านศัตรู / แก้ทีมแก้ (ส่องเฉพาะการ์ดที่กำลังแก้)
+const E = '[data-tour-editing]'
+const visibleSel = (sel: string) => [...document.querySelectorAll(sel)].some((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 })
+const teamSteps = (who: [string, string]): TourStep[] => [
+  // ทางลัด: แตะช่องว่าง 2 ครั้ง = ตารางอัศวินจอใหญ่ (ให้ลองทำจริง)
+  s(`${E} [data-slot="hero"][data-empty]`, [`ช่องอัศวินของ${who[0]}`, `${who[1]} hero slots`],
+    ['แตะช่อง + 1 ครั้ง = เลือกช่องนั้น แถบอัศวินจะเด้งขึ้นด้านล่าง\nแตะ 2 ครั้งเร็ว ๆ = เปิดตารางอัศวินทั้งหมดแบบจอใหญ่ เลือกง่ายกว่า',
+      'Tap a + slot once to select it — the hero bar pops up at the bottom.\nDouble-tap it to open the full hero grid on a big screen — much easier to pick.'],
+    { until: () => visibleSel('[data-tour="hero-grid"]'), tryHint: L('ลองแตะช่องที่ส่องอยู่ 2 ครั้งเร็ว ๆ', 'Try it — double-tap the highlighted slot') }),
+  s('[data-app-modal]:has([data-tour="hero-grid"])', ['ตารางอัศวินทั้งหมด', 'Full hero grid'],
+    ['เรียงตามระดับ · มีค้นหาชื่อ / กรองประเภทด้านบน\nแตะตัวไหน = ใส่ช่องที่เลือกไว้ทันที แตะต่อได้เรื่อย ๆ (ใส่ช่องว่างถัดไปให้เอง) · ตัวที่ขึ้น "ในทีม" ใช้ไปแล้ว',
+      'Sorted by tier · search and filter at the top.\nTap a hero to drop it into the selected slot, keep tapping to fill the next empty ones · "In team" means already used.'],
+    { until: () => !visibleSel('[data-tour="hero-grid"]'), tryHint: L('ลองแตะอัศวินสักตัว แล้วปิดหน้าต่างนี้ (✕ หรือแตะนอกกรอบ)', 'Try it — tap a hero, then close this window (✕ or tap outside)'), place: 'bottom', wait: 800 }),
+  s('[data-tour="hero-dock"]', ['แถบอัศวินด้านล่าง', 'Hero bar'],
+    ['แตะอัศวินในแถบ = ใส่ช่องที่เลือกไว้ · ไม่ได้เลือกช่อง = ใส่ช่องว่างถัดไปให้เอง\nลากไปวางในช่องก็ได้ · ปุ่มซ้าย: ดูทั้งหมด / ค้นหา / กรอง · มีแท็บสัตว์เลี้ยง\nปุ่มลูกศรตรงกลางบน = เก็บแถบ',
+      'Tap a hero to fill the selected slot — nothing selected? It goes into the next empty one.\nYou can also drag it onto a slot · left buttons: full grid / search / filter · Pets tab.\nThe arrow on top hides the bar.'], { wait: 1200 }),
+  s(`${E} [data-slot="hero"]:not([data-empty])`, ['ทางลัดกับตัวที่อยู่ในทีม', 'Shortcuts for heroes on the team'],
+    ['แตะอัศวินในทีม 1 ครั้ง = เรืองแสง (เลือกไว้) แล้ว…\n• แตะช่องอื่น = ย้าย / สลับตำแหน่ง\n• แตะตัวในแถบด้านล่าง = เปลี่ยนเป็นตัวนั้น\n• แตะตัวเดิมซ้ำ = เอาออก\nบนคอมลากวางสลับได้เลย · มือถือกดค้างแล้วลาก',
+      'Tap a hero on the team once to select it (it glows), then…\n• tap another slot to move / swap\n• tap a hero in the bar to replace it\n• tap it again to remove it\nOn desktop just drag to swap · on mobile press and hold, then drag.'], { wait: 800 }),
+  s(`${E} [data-tour="team-pet"]`, ['สัตว์เลี้ยง', 'Pet'],
+    ['ทุกทีมต้องมีสัตว์เลี้ยง 1 ตัว (บันทึกไม่ได้ถ้ายังไม่เลือก) · แตะแล้วเลือกจากแท็บสัตว์เลี้ยง',
+      'Every team needs one pet (you can\'t save without it) · tap it and pick from the Pets tab.']),
+  s(`${E} [data-tour="team-formation"]`, ['รูปแบบ', 'Formation'],
+    ['แตะเพื่อเปลี่ยน พื้นฐาน / สมดุล / บุก / ป้องกัน — จำนวนช่องหน้า-หลังเปลี่ยนตาม อัศวินที่ใส่ไว้ไม่หาย',
+      'Tap to switch Basic / Balanced / Attack / Protective — front/back slots change, placed heroes stay.']),
+  s(`${E} [data-tour="team-skills"]`, ['ลำดับการใช้สกิล', 'Skill order'],
+    ['แตะวงนี้ แล้วแตะสกิลตามลำดับที่อยากให้ออก (สูงสุด 3 ครั้ง)\nเลขสีบนรูปอัศวิน = ลำดับ: แดง 1 · เหลือง 2 · เขียว 3',
+      'Tap this, then tap skills in the order they should fire (up to 3).\nColored numbers on portraits show the order: red 1 · yellow 2 · green 3.']),
+  s(`${E} [data-tour="team-speed"]`, ['ความเร็วทีม', 'Team speed'],
+    ['ใส่ความเร็วรวมของทีม (ไม่ใส่ก็ได้) — ใช้เทียบว่าใครได้ออกก่อน', 'Total team speed (optional) — handy to compare who moves first.']),
+  s(`${E} [data-slot="extra"]`, ['สัตว์เลี้ยงสำรอง', 'Backup pets'],
+    ['วงเล็กใต้ทีม = สัตว์เลี้ยงตัวอื่นที่ใช้แทนได้ (ไม่ใส่ก็ได้)', 'Small circles under the team = other pets that also work (optional).'], { wait: 600 }),
+]
+
+export const TOURS: Tour[] = [
+  {
+    id: 'guild-editor',
+    steps: [
+      s(undefined, ['ยินดีต้อนรับสู่กิลด์ของคุณ 👑', 'Welcome to your guild 👑'],
+        ['คุณแก้ไขกิลด์นี้ได้ — ขอพาดูส่วนสำคัญสั้น ๆ ประมาณ 1 นาที\nกดข้ามได้ตลอด และดูซ้ำได้จากปุ่ม ? ด้านบน',
+          'You can edit this guild — here\'s a quick 1-minute tour.\nSkip any time, and replay it from the ? button at the top.']),
+      s('[data-tour="guild-tabs"]', ['สองส่วนหลักของกิลด์', 'The two halves of a guild'],
+        ['แผนสงคราม = แผนบุก/แผนกันที่ทั้งกิลด์ใช้\nบ้านศัตรู = บ้านที่เจอ พร้อมทีมที่ใช้ตีผ่าน (ทีมแก้)',
+          'War plans = attack/defense plans the whole guild follows.\nEnemy defenses = teams you met, with the teams that beat them (counters).']),
+      s('[data-onboard="new-attack"]', ['สร้างแผนบุก', 'Create an attack plan'],
+        ['จัด 5 ไม้ — แต่ละไม้ใส่บ้านที่จะตีกับทีมแก้ แล้วระบบเช็กอัศวินซ้ำข้ามไม้ให้',
+          'Fill 5 slots — each with the defense to hit and its counter; heroes used twice across slots are flagged for you.']),
+      s('[data-onboard="announce"]', ['ประกาศแผนให้ทั้งกิลด์', 'Announce the plan'],
+        ['เลือกแผนที่จะใช้วันนี้ (และกิลด์ที่เจอ) → ทุกคนเห็นแถบประกาศด้านบนทุกหน้า\nต่อ Discord ไว้ ระบบจะโพสต์ให้ด้วย',
+          'Pick today\'s plan (and opponent) → everyone sees it in the bar on every page.\nConnect Discord and it\'s posted there too.']),
+      s('[data-onboard="share"]', ['ส่งลิงก์ให้คนในกิลด์', 'Share with your guild'],
+        ['ลิงก์นี้ดูได้อย่างเดียว ส่งในแชตกิลด์ได้เลย ไม่ต้องสมัคร', 'This link is view-only — post it in guild chat, no sign-up needed.']),
+      s('[data-tour="guild-settings"]', ['ตั้งค่าการแก้ไข', 'Edit settings'],
+        ['เปลี่ยนรหัสแก้ไข / ลิงก์สำหรับคนแก้ / ให้ยศใน Discord แก้ได้ / ลบกิลด์',
+          'Change the edit password, get the editor link, let Discord roles edit, or delete the guild.']),
+      s('[data-tour="tab-targets"]', ['ไปที่บ้านศัตรู', 'Go to enemy defenses'],
+        ['เริ่มจากจดบ้านศัตรูก่อน — กดแท็บนี้', 'Start by saving enemy defenses — tap this tab.'], { action: 'click' }),
+      s('[data-tour="target-search"]', ['ค้นหาบ้านเร็ว ๆ', 'Find a defense fast'],
+        ['พิมพ์ชื่ออัศวินตัวไหนก็ได้ในบ้าน (ไทยหรืออังกฤษ) / โน้ต / แท็ก · หรือแตะแท็กเพื่อกรอง\nบ้านที่แก้ล่าสุดอยู่บนสุด · จุดเขียว = มีการแก้ใน 24 ชม.',
+          'Type any hero in the defense (Thai or English), a note or a tag · or tap a tag to filter.\nMost recently edited first · green dot = changed in the last 24h.'], { wait: 1000 }),
+      s('[data-onboard="add-target"]', ['จดบ้านศัตรูบ้านแรก', 'Save your first enemy defense'],
+        ['เจอบ้านใหม่ก็กดปุ่มนี้ — เข้าไปแล้วจะสอนการจัดทีมทีละขั้น', 'Tap this when you meet a new defense — the team editor tour starts inside.']),
+      s('[data-tour="help-button"]', ['ดูการสอนซ้ำ', 'Replay the guide'],
+        ['ทุกหน้าที่มีการสอน กดปุ่ม ? เพื่อดูซ้ำได้ (มือถือที่ล็อกอินแล้ว อยู่ในเมนูรูปโปรไฟล์) · รีเซ็ตทั้งหมดได้ที่ ตั้งค่า', 'On any page with a guide, tap ? to replay it (on a phone while logged in, it\'s in your profile menu) · reset all guides in Settings.']),
+    ],
+  },
+  {
+    id: 'guild-viewer',
+    steps: [
+      s('[data-tour="guild-tabs"]', ['แผนและบ้านศัตรูของกิลด์', 'Plans and enemy defenses'],
+        ['แผนสงคราม = แผนที่กิลด์ให้ใช้ · บ้านศัตรู = บ้านที่เจอพร้อมทีมที่ตีผ่าน — กดเข้าไปดูรายละเอียดได้',
+          'War plans = what the guild uses · Enemy defenses = teams met and how to beat them — open any to see details.']),
+      s('[data-onboard="announce"]', ['แผนที่ใช้วันนี้', 'Today\'s plan'],
+        ['ดูว่าวันนี้กิลด์ประกาศให้ใช้แผนไหน (แถบประกาศด้านบนก็กดได้)', 'See which plan the guild announced today (the bar at the top is clickable too).'], { wait: 800 }),
+      s('[data-tour="guild-login"]', ['อยากช่วยแก้?', 'Want to edit?'],
+        ['ใส่รหัสแก้ไขของกิลด์ หรือเข้าด้วย Discord (ถ้าหัวกิลด์เปิดให้ยศของคุณแก้ได้)', 'Enter the guild\'s edit password, or sign in with Discord if your role is allowed.']),
+    ],
+  },
+  {
+    id: 'target-view',
+    steps: [
+      s('[data-tour="counter-tabs"]', ['ทีมแก้ของบ้านนี้', 'Counters for this defense'],
+        ['แต่ละแท็บคือทีมที่ใช้ตีบ้านนี้ผ่าน\nกดค้างแล้วลากเพื่อเรียงลำดับ — #1 (มงกุฎ) คือทีมที่แนะนำให้ใช้ก่อน',
+          'Each tab is a team that beat this defense.\nPress and drag to reorder — #1 (crown) is the one to try first.'], { wait: 800 }),
+      s('[data-tour="vs-arena"]', ['ทีมเรา VS บ้านศัตรู', 'Your team VS the defense'],
+        ['แตะอัศวินเพื่อดูอุปกรณ์/ค่าความสามารถที่จดไว้ · เลขสีบนรูป = ลำดับการใช้สกิล',
+          'Tap a hero to see the gear/stats noted · colored numbers = skill order.']),
+      s('[data-tour="counter-head"]', ['ไลค์ & เก็บเป็นพรีเซต', 'Like & save as preset'],
+        ['👍 = บอกว่าทีมนี้ใช้ได้ผล (ล็อกอิน Discord) · ทีมไหนไลค์เยอะ จะมีปุ่ม "เรียงตามไลค์" ขึ้นให้กดทีเดียว\nปุ่มเก็บพรีเซต = เก็บทีมนี้ไว้ใช้เองในบ้านอื่น / แผนอื่น',
+          '👍 = this team works (Discord sign-in) · when likes pile up a "Sort by likes" button appears for one-tap ordering.\nSave as preset = keep this team for yourself to reuse on other defenses/plans.'], { wait: 800 }),
+      s('[data-tour="edit-fab"]', ['แก้ไข', 'Edit'],
+        ['กดปุ่มนี้เพื่อแก้ทีมแก้ เพิ่มทีมแก้ใหม่ หรือแก้บ้านศัตรู — ลองกดดู', 'Edit a counter, add a new one, or edit the defense — give it a tap.'], { action: 'click' }),
+      s('[data-tour="edit-menu"]', ['เลือกสิ่งที่จะแก้', 'Pick what to edit'],
+        ['เลือกเมนูไหนก็ได้ — ตอนแก้ครั้งแรกจะมีสอนการจัดทีมต่อ', 'Pick any — the first time you edit, the team editor tour continues there.'], { wait: 1000 }),
+    ],
+  },
+  {
+    id: 'target-new',
+    steps: [
+      s(undefined, ['จดบ้านศัตรู', 'Save an enemy defense'],
+        ['จัดทีมให้เหมือนบ้านที่เจอในเกม ใส่แท็ก แล้วบันทึก — ขอพาดูทีละส่วน', 'Rebuild the defense you met, tag it, and save — here\'s how, step by step.']),
+      ...teamSteps(['บ้านศัตรู', 'Enemy']),
+      s('[data-tour="tag-editor"]', ['แท็กบ้าน', 'Tags'],
+        ['เลือกประเภท 1 อย่าง (กายภาพ / เวท / แทงก์) + แท็กเสริม เช่น หลังไว — ใช้ค้นหาและจัดแผน',
+          'Pick one type (Physical / Magic / Tank) plus extras like Fast back — used for search and planning.']),
+      s('[data-tour="save-actions"]', ['บันทึก', 'Save'],
+        ['เสร็จแล้วกดบันทึก — จากนั้นเพิ่มทีมแก้ (ทีมที่ใช้ตีบ้านนี้) ต่อได้เลย', 'Save when done — then add counters (teams that beat it).']),
+    ],
+  },
+  {
+    id: 'counter-edit',
+    steps: [
+      s(undefined, ['จดทีมแก้', 'Save a counter'],
+        ['ทีมแก้ = ทีมที่ใช้ตีบ้านนี้ผ่าน จัดทีม ตั้งลำดับสกิล จดอุปกรณ์ แล้วบันทึก', 'A counter is a team that beat this defense: build it, set skill order, note gear, save.']),
+      ...teamSteps(['ทีมแก้', 'Counter']),
+      s('[data-tour="library"]', ['เลือกจากที่จดไว้', 'Pick from saved'],
+        ['ใช้ทีมแก้ที่เคยจดในบ้านอื่นซ้ำได้ ไม่ต้องจัดใหม่ — กดเดียวได้ทั้งทีม ลำดับสกิล และอุปกรณ์\nปุ่มพรีเซตข้าง ๆ = ทีมที่คุณเก็บไว้เอง (ล็อกอิน Discord)',
+          'Reuse a counter saved on another defense — one tap brings the team, skill order and gear.\nThe preset button next to it = teams you saved yourself (Discord sign-in).']),
+      s('[data-tour="stats-import"]', ['อ่านค่าความสามารถจากรูป', 'Read stats from a screenshot'],
+        ['ไม่ต้องพิมพ์ตัวเลขเอง — แคปหน้าข้อมูลอัศวินในเกมแล้วให้เว็บอ่านให้\nตัวที่เคยจดไว้แล้ว กดใช้ของเดิมได้เลยในหน้าต่างนี้ ไม่ต้องแคปใหม่',
+          'No need to type numbers — screenshot the hero info page in game and let the site read it.\nHeroes you noted before can reuse their saved stats and gear right in this window.'],
+        { action: 'click', sub: 'stats-import', tryHint: L('ลองกดเปิดดู — ในหน้าต่างจะสอนต่อ', 'Open it — the guide continues inside') }),
+      s('[data-tour="save-actions"]', ['บันทึก', 'Save'],
+        ['กดบันทึก — ถ้ายังไม่ได้ตั้งลำดับสกิลหรือความเร็ว ระบบจะถามก่อน', 'Save — if skill order or speed is missing, you\'ll be asked first.'], { wait: 60000 }),
+    ],
+  },
+  {
+    // หน้าต่าง "อ่านค่าความสามารถจากรูป" — เปิดครั้งแรกสอนเอง (หรือเป็นการสอนย่อยจากหน้าแก้ทีมแก้)
+    id: 'stats-import',
+    steps: [
+      s('[data-tour="stats-help"]', ['ต้องแคปหน้าไหน', 'Which screen to capture'],
+        ['หน้าข้อมูลอัศวินในเกม ที่มีชื่ออัศวิน + ค่าความสามารถ 2 คอลัมน์ · ตั้งเกมเป็นไทยหรืออังกฤษก็ได้\nไม่ต้องครอป แต่อย่าให้มีอะไรบังชื่อหรือตัวเลข · กดปุ่มนี้ดูรูปตัวอย่างได้',
+          'The hero info screen in game — hero name + the two stat columns · Thai or English both work.\nNo need to crop, just don\'t cover the name or numbers · tap this to see an example.'], { wait: 1500 }),
+      s('[data-tour="stats-recall"]', ['เคยจดไว้แล้ว?', 'Saved before?'],
+        ['ตัวที่เครื่องนี้เคยจดค่าความสามารถ/อุปกรณ์ไว้ จะขึ้นตรงนี้ — แตะชื่อเพื่อเติมของเดิมทั้งค่าความสามารถ เซต และเครื่องประดับ ไม่ต้องแคปใหม่',
+          'Heroes you saved stats/gear for on this device show up here — tap one to fill in stats, sets and accessories without a new screenshot.'], { wait: 400 }),
+      s('[data-tour="stats-drop"]', ['ใส่รูป', 'Add the screenshot'],
+        ['มือถือ: แตะกรอบนี้แล้วเลือกจากคลังรูป\nคอม: แตะเลือกไฟล์ / ลากไฟล์มาวาง / หรือแคป (Win + Shift + S) แล้วกด Ctrl + V วางได้เลย\nรอสักครู่ เว็บจะอ่านชื่อและตัวเลขให้ (ครั้งแรกโหลดตัวอ่านนานหน่อย)',
+          'Phone: tap this box and pick from your photos.\nPC: tap to choose a file / drag it in / or snip (Win + Shift + S) and press Ctrl + V.\nGive it a moment to read the name and numbers (the first time loads the reader).'],
+        { until: () => visibleSel('[data-tour="stats-hero"]'), tryHint: L('ลองใส่รูปดู — ไม่มีรูปกด "ข้ามไปกรอกเอง" ด้านล่างได้', 'Try adding one — no screenshot? Use "skip to fill in" below') }),
+      s('[data-tour="stats-hero"]', ['เช็กว่าถูกตัว', 'Check the hero'],
+        ['เว็บเลือกตัวจากชื่อในรูปให้แล้ว (กรอบสีทอง) · ผิดตัวแตะเปลี่ยนได้\nถ้ารูปเป็นตัวที่ยังไม่อยู่ในทีม จะเด้งถามว่าจะเพิ่มเข้าทีมไหม และมีปุ่มเขียว "เพิ่ม…เข้าทีม"',
+          'The hero is picked from the name in the image (gold outline) · tap another to change it.\nIf the image shows a hero not on the team yet, you\'ll be asked to add them, plus a green "Add … to team" button.'], { wait: 60000 }),
+      s('[data-tour="stats-grid"]', ['ตรวจตัวเลข', 'Check the numbers'],
+        ['เทียบกับในเกม — ช่องไหนอ่านผิดพิมพ์แก้ได้เลย\nด้านล่างใส่เซตอุปกรณ์ เครื่องประดับ และคำอธิบายของตัวนี้ได้ด้วย',
+          'Compare with the game — fix any box that was misread.\nBelow you can also add gear sets, accessories and a note for this hero.'], { wait: 1500 }),
+      s('[data-tour="stats-apply"]', ['ใส่ให้อัศวิน', 'Apply'],
+        ['กดใส่ → ค่าจะไปอยู่ในตารางอัศวินของทีม\nยังไม่ถูกบันทึกจนกด "บันทึก" ของหน้านั้นนะ',
+          'Apply → the values go into the team\'s hero table.\nNothing is saved until you press "Save" on that page.']),
+    ],
+  },
+  {
+    id: 'plan-view',
+    steps: [
+      s('[data-tour="alloc"]', ['จัดสรรอัศวิน', 'Hero allocation'],
+        ['ดูว่าแต่ละไม้ใช้ใครบ้าง — อัศวินที่ใช้ซ้ำหลายไม้จะขึ้นสีแดง', 'See who each slot uses — heroes used in more than one slot turn red.'], { wait: 800 }),
+      s('#slot-0', ['การ์ดไม้', 'Slot cards'],
+        ['ทีมหลักของแต่ละไม้ · แตะการ์ดเพื่อดูรายละเอียด ตัวสำรอง และทีมที่จะตี', 'Main team per slot · tap a card for details, backups and the target.'], { wait: 1000 }),
+      s('[data-tour="plan-edit"]', ['แก้ไขแผน', 'Edit the plan'],
+        ['กดเพื่อเริ่มแก้ — ลองกดดู', 'Tap to start editing — try it.'], { action: 'click' }),
+    ],
+  },
+  {
+    // เรียงลำดับทีมแก้ — ขึ้นแยกจาก target-view (คนที่ดูการสอนหน้านี้ไปก่อนมีฟีเจอร์นี้ก็ได้เห็น)
+    id: 'counter-order',
+    steps: [
+      s('[data-tour="counter-tabs"]', ['เรียงลำดับทีมแก้', 'Reorder counters'],
+        ['#1 (มงกุฎ) = ทีมที่แนะนำให้ใช้ก่อน — ลำดับนี้ทุกคนในกิลด์เห็นเหมือนกัน\nคอม: กดค้างที่แท็บแล้วลากไปวาง · มือถือ: กดค้างครู่หนึ่งก่อนค่อยลาก',
+          '#1 (crown) = the team to try first — everyone in the guild sees this order.\nPC: press a tab and drag it · Mobile: press and hold a moment, then drag.'],
+        { until: () => !!document.querySelector('[data-tour="counter-tabs"][data-reordered]'), tryHint: L('ลองลากแท็บ "ทีมแก้ #2" ไปวางหน้า #1', 'Try it — drag "Counter #2" in front of #1'), wait: 800 }),
+      s('[data-tour="counter-all"]', ['เรียงในหน้าดูทั้งหมดก็ได้', 'Or reorder in "See all"'],
+        ['เห็นทุกทีมพร้อมกัน แล้วกดปุ่มเรียงได้เลย — ลองกดดู', 'See every team at once and reorder with buttons — give it a tap.'], { action: 'click' }),
+      s('[data-tour="all-order"]', ['ปุ่มเรียงลำดับ', 'Order buttons'],
+        ['◀ ▶ = ย้ายซ้าย/ขวาทีละช่อง · 👑 = ขึ้นเป็น #1 ทันที\nแตะที่การ์ด = เปิดทีมนั้น',
+          '◀ ▶ = move one place left/right · 👑 = jump straight to #1\nTap a card to open that team.'], { wait: 1200 }),
+    ],
+  },
+  {
+    id: 'plan-edit',
+    steps: [
+      s('#slot-0', ['ตั้งทีละไม้', 'One slot at a time'],
+        ['แตะการ์ดไม้เพื่อเปิดหน้าต่างตั้งไม้: ① บ้านที่จะตี › ② ทีมแก้ › ③ อุปกรณ์', 'Tap a slot card to open the slot editor: ① target › ② counter › ③ gear.'], { wait: 1200 }),
+      s('[data-tour="alloc"]', ['เช็กอัศวินซ้ำ', 'Check duplicates'],
+        ['แถบนี้บอกตัวซ้ำระหว่างไม้ · มีปุ่มจัดอัตโนมัติเลือกตัวสำรองที่ไม่ชนกันให้', 'Shows heroes clashing across slots · auto-assign picks backups that don\'t clash.'], { wait: 800 }),
+      s('[data-tour="plan-save"]', ['บันทึกแผน', 'Save the plan'],
+        ['เสร็จแล้วกดบันทึกแผน แล้วไปประกาศในหน้ากิลด์ให้ทุกคนใช้', 'Save, then announce it from the guild page so everyone uses it.']),
+    ],
+  },
+  {
+    id: 'plan-wizard',
+    steps: [
+      s('[data-tour="wiz-steps"]', ['3 ขั้นต่อไม้', '3 steps per slot'],
+        ['แผนบุก: ① บ้านที่จะตี › ② ทีมแก้ › ③ อุปกรณ์/ค่าความสามารถ (แผนกันเริ่มที่บ้านกันเลย) — กดข้ามไปมาได้',
+          'Attack: ① defense to hit › ② counter › ③ gear/stats (defense plans start at the defense) — jump between steps anytime.'], { wait: 1200 }),
+      s('[data-tour="wiz-body"]', ['ทำทีละขั้น', 'Fill it in'],
+        ['บ้านที่จะตีเลือกจากบ้านศัตรูที่จดไว้ได้ แล้วขั้นทีมแก้จะให้เลือกจากทีมแก้ที่จดไว้ของบ้านนั้น · หรือกดช่อง + จัดเอง (แตะ 2 ครั้ง = ตารางจอใหญ่) / ใช้พรีเซตของฉัน · ขั้นสุดท้ายจดอุปกรณ์รายตัว แล้วกด เสร็จ',
+          'Pick the defense from your saved enemy defenses, then choose from its saved counters — or tap + to build your own (double-tap for the big grid) / use a preset · note gear per hero in the last step, then tap Done.']),
+    ],
+  },
+]

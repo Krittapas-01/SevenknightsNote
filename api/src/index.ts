@@ -32,6 +32,14 @@ const MAX_ANNOUNCEMENTS = 200
 
 const app = new Hono<{ Bindings: Env }>()
 
+/**
+ * เวอร์ชันข้อมูลกิลด์ที่ส่งให้เว็บ = เลขในฐานข้อมูล + รุ่นรูปแบบข้อมูล + Season
+ * (Season/รูปแบบ JSON เปลี่ยนตอน deploy → เวอร์ชันเปลี่ยนเอง ไม่ค้างของเก่าในเครื่อง)
+ * เปลี่ยนรูปแบบ JSON ของ GET /api/guild/:id เมื่อไหร่ ให้ขยับ GUILD_SHAPE ด้วย
+ */
+const GUILD_SHAPE = 1
+const guildRev = (n: unknown) => `${Number(n) || 0}.${GUILD_SHAPE}.${GAME_SEASON.start}.${GAME_SEASON.end}`
+
 app.use('/api/*', async (c, next) =>
   cors({
     origin: (origin) => (allowedOrigin(origin, c.env) ? origin : null),
@@ -74,6 +82,17 @@ app.use('/api/*', async (c, next) => {
   }
   await next()
 })
+
+// ข้อมูลกิลด์เปลี่ยน (เขียนสำเร็จ) → ขยับเลขเวอร์ชันของกิลด์ ให้เว็บรู้ว่าต้องโหลดใหม่
+// ครอบทุก POST/PUT/DELETE ใต้ /api/guild/:id ที่เดียว จะได้ไม่มี endpoint ไหนลืม (ยกเว้นที่ไม่เปลี่ยนข้อมูลที่หน้าเว็บเห็น)
+const NO_REV = /\/(password|discord\/test)$/
+const bumpRev = async (c: any, next: () => Promise<void>) => {
+  await next()
+  if (c.req.method === 'GET' || c.req.method === 'OPTIONS' || c.res.status >= 300 || NO_REV.test(c.req.path)) return
+  const gid = c.req.param('id')
+  if (gid) await c.env.DB.prepare('UPDATE guilds SET rev = rev + 1 WHERE id = ?').bind(gid).run()
+}
+app.use('/api/guild/:id/*', bumpRev)
 
 // ---------- helpers ----------
 const ALPHABET = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -346,11 +365,16 @@ async function deleteGuildData(env: Env, gid: string) {
 // ข้อมูลทั้งกิลด์ (บ้านศัตรู + ทีมแก้) ในครั้งเดียว
 app.get('/api/guild/:id', async (c) => {
   const id = c.req.param('id')
-  const guild = await c.env.DB.prepare('SELECT id, name, created_at FROM guilds WHERE id = ?').bind(id).first<any>()
+  const guild = await c.env.DB.prepare('SELECT id, name, created_at, rev FROM guilds WHERE id = ?').bind(id).first<any>()
   if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
+  c.header('Cache-Control', 'no-store')
+  // เว็บส่งเวอร์ชันที่มีอยู่มา → ยังเท่าเดิม = ไม่ต้องอ่านทั้งกิลด์ (อ่านแค่แถวกิลด์ 1 แถว)
+  const rev = guildRev(guild.rev)
+  if (c.req.query('rev') === rev) return c.json({ unchanged: true, rev })
   const [t, k, p, a, st, ap, lk] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT * FROM targets WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
-    c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY created_at ASC').bind(id),
+    // ลำดับที่หัวกิลด์เรียงไว้ก่อน (sort) · ยังไม่เคยเรียง/เพิ่มใหม่ = ต่อท้ายตามเวลาที่จด
+    c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY sort IS NULL, sort, created_at ASC').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
     c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(id),
@@ -384,7 +408,7 @@ app.get('/api/guild/:id', async (c) => {
     ...toTarget(r),
     counters: counters.filter((x) => x.targetId === r.id),
   }))
-  return c.json({ guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce, autoText, season, discord })
+  return c.json({ rev, guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce, autoText, season, discord })
 })
 
 // ตรวจว่า key ใช้แก้ไขได้ไหม
@@ -471,6 +495,24 @@ app.post('/api/guild/:id/targets/:tid/counters', async (c) => {
     .run()
   await c.env.DB.prepare('UPDATE targets SET updated_at = ? WHERE id = ?').bind(now, tid).run()
   return c.json(toCounter({ ...row, created_at: now, updated_at: now }), 201)
+})
+
+// เรียงลำดับทีมแก้ของบ้านศัตรู 1 บ้าน: ids = id ทีมแก้ทั้งหมดของบ้านนั้นตามลำดับใหม่ (#1 ก่อน)
+app.put('/api/guild/:id/targets/:tid/counters/order', async (c) => {
+  const gid = c.req.param('id')
+  const tid = c.req.param('tid')
+  const auth = await checkKey(c, gid)
+  if (auth !== 'ok') return deny(c, auth)
+  const body = await c.req.json().catch(() => ({}))
+  const ids = Array.isArray(body.ids) ? body.ids.filter((x: unknown): x is string => typeof x === 'string') : []
+  const { results } = await c.env.DB.prepare('SELECT id FROM counters WHERE target_id = ? AND guild_id = ?').bind(tid, gid).all<{ id: string }>()
+  const have = new Set(results.map((r) => r.id))
+  // ต้องครบทุกตัวและไม่ซ้ำ (กันข้อมูลเก่าในเครื่องที่ยังไม่เห็นทีมแก้ที่คนอื่นเพิ่ม/ลบ)
+  if (ids.length !== have.size || new Set(ids).size !== ids.length || ids.some((x: string) => !have.has(x)))
+    return c.json({ error: 'รายการทีมแก้ไม่ตรงกับข้อมูลล่าสุด ลองรีเฟรชหน้าแล้วเรียงใหม่' }, 409)
+  if (ids.length) await c.env.DB.batch(ids.map((x: string, i: number) =>
+    c.env.DB.prepare('UPDATE counters SET sort = ? WHERE id = ? AND target_id = ? AND guild_id = ?').bind(i, x, tid, gid)))
+  return c.json({ ok: true })
 })
 
 app.put('/api/guild/:id/counters/:cid', async (c) => {
@@ -564,7 +606,7 @@ app.delete('/api/guild/:id/plans/:pid', async (c) => {
 app.get('/api/guild/:id/pulse', async (c) => {
   const gid = c.req.param('id')
   const [g, latest, withPlan, perKind] = await c.env.DB.batch([
-    c.env.DB.prepare('SELECT name FROM guilds WHERE id = ?').bind(gid),
+    c.env.DB.prepare('SELECT name, rev FROM guilds WHERE id = ?').bind(gid),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 1').bind(gid),
     c.env.DB.prepare(
       'SELECT a.plan_id, p.title FROM announcements a JOIN plans p ON p.id = a.plan_id WHERE a.guild_id = ? ORDER BY a.created_at DESC LIMIT 1',
@@ -583,6 +625,7 @@ app.get('/api/guild/:id/pulse', async (c) => {
   c.header('Cache-Control', 'no-store')
   return c.json({
     guildName: guild.name,
+    rev: guildRev(guild.rev),
     latest: a ? toAnnouncement(a) : null,
     activePlan: p ? { id: p.plan_id, title: p.title } : null,
     activePlans: Object.fromEntries((perKind.results as any[]).filter((r) => r.k === 'attack' || r.k === 'defense').map((r) => [r.k, { id: r.plan_id, title: r.title }])),
@@ -1070,6 +1113,75 @@ app.get('/api/admin/stats', async (c) => {
   return c.json({ now, guilds: guilds.results, discordUsers: (users.results[0] as any)?.n ?? 0 })
 })
 
+// ---------- แพ็คในเกม (หน้าเช็กความคุ้มค่าแพ็ค) — ทุกคนอ่านได้ · แอดมินเพิ่ม/แก้/ลบ ----------
+type PackRow = { id: string; name: string; group_name: string; price: number; gems: number; items: string; limit_count: number; limit_period: string; ends_at: number | null; is_base: number; sort: number; updated_at: number }
+const PACK_PERIODS = ['once', 'daily', 'weekly', 'monthly']
+const packOut = (r: PackRow) => {
+  let items: any = {}
+  try { items = JSON.parse(r.items) } catch { /* ข้อมูลเสีย = ว่าง */ }
+  return { id: r.id, name: r.name, group: r.group_name, price: r.price, gems: r.gems, items, limit: r.limit_count, period: r.limit_period, endsAt: r.ends_at, base: !!r.is_base, sort: r.sort, updatedAt: r.updated_at }
+}
+const isAdmin = async (c: any) => {
+  const user = await currentUser(c)
+  const admins = (c.env.ADMIN_DISCORD_IDS || '').split(',').map((x: string) => x.trim()).filter(Boolean)
+  return !!user && admins.includes(user.id)
+}
+const nonNeg = (v: unknown, max = 1e7) => { const n = Math.floor(Number(v) || 0); return Math.min(max, Math.max(0, n)) }
+/** ตรวจ/ทำความสะอาดข้อมูลแพ็คจากหน้าแอดมิน · คืน string = ข้อความ error */
+function cleanPack(b: any): Omit<PackRow, 'id' | 'updated_at'> | string {
+  const name = str(b?.name, 80)
+  if (!name) return 'ใส่ชื่อแพ็ค'
+  const price = Math.round(Number(b?.price) * 100) / 100
+  if (!(price > 0) || price > 100000) return 'ราคาไม่ถูกต้อง'
+  const it = b?.items ?? {}
+  const items = { rubies: nonNeg(it.rubies), chests: nonNeg(it.chests), summon: nonNeg(it.summon), raid: nonNeg(it.raid), other: str(it.other, 120) }
+  const period = PACK_PERIODS.includes(b?.period) ? b.period : 'once'
+  const endsAt = b?.endsAt == null || b.endsAt === '' ? null : Number(b.endsAt)
+  if (endsAt !== null && !Number.isFinite(endsAt)) return 'วันหมดอายุไม่ถูกต้อง'
+  return { name, group_name: str(b?.group, 80), price, gems: nonNeg(b?.gems), items: JSON.stringify(items), limit_count: Math.max(1, nonNeg(b?.limit, 999)), limit_period: period, ends_at: endsAt, is_base: b?.base ? 1 : 0, sort: nonNeg(b?.sort, 9999) }
+}
+
+app.get('/api/packs', async (c) => {
+  const now = Date.now()
+  const r = await c.env.DB.prepare('SELECT * FROM packs WHERE ends_at IS NULL OR ends_at > ? ORDER BY sort, price').bind(now).all<PackRow>()
+  c.header('Cache-Control', 'public, max-age=300')
+  return c.json({ packs: r.results.map(packOut) })
+})
+app.get('/api/admin/packs', async (c) => {
+  c.header('Cache-Control', 'no-store')
+  if (!(await isAdmin(c))) return c.json({ error: 'not found' }, 404)
+  const r = await c.env.DB.prepare('SELECT * FROM packs ORDER BY sort, price').all<PackRow>()
+  return c.json({ packs: r.results.map(packOut) })
+})
+app.post('/api/admin/packs', async (c) => {
+  if (!(await isAdmin(c))) return c.json({ error: 'not found' }, 404)
+  const p = cleanPack(await c.req.json().catch(() => null))
+  if (typeof p === 'string') return c.json({ error: p }, 400)
+  const now = Date.now(), id = randomId(10)
+  const stmts = [c.env.DB.prepare(`INSERT INTO packs (id, name, group_name, price, gems, items, limit_count, limit_period, ends_at, is_base, sort, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(id, p.name, p.group_name, p.price, p.gems, p.items, p.limit_count, p.limit_period, p.ends_at, p.is_base, p.sort, now, now)]
+  if (p.is_base) stmts.unshift(c.env.DB.prepare('UPDATE packs SET is_base = 0')) // เส้นฐานมีได้แพ็คเดียว
+  await c.env.DB.batch(stmts)
+  return c.json({ id })
+})
+app.put('/api/admin/packs/:pid', async (c) => {
+  if (!(await isAdmin(c))) return c.json({ error: 'not found' }, 404)
+  const p = cleanPack(await c.req.json().catch(() => null))
+  if (typeof p === 'string') return c.json({ error: p }, 400)
+  const pid = c.req.param('pid')
+  const stmts = [c.env.DB.prepare(`UPDATE packs SET name = ?, group_name = ?, price = ?, gems = ?, items = ?, limit_count = ?, limit_period = ?, ends_at = ?, is_base = ?, sort = ?, updated_at = ? WHERE id = ?`)
+    .bind(p.name, p.group_name, p.price, p.gems, p.items, p.limit_count, p.limit_period, p.ends_at, p.is_base, p.sort, Date.now(), pid)]
+  if (p.is_base) stmts.unshift(c.env.DB.prepare('UPDATE packs SET is_base = 0 WHERE id <> ? AND EXISTS (SELECT 1 FROM packs WHERE id = ?)').bind(pid, pid))
+  const res = await c.env.DB.batch(stmts)
+  if (!res.at(-1)?.meta.changes) return c.json({ error: 'ไม่พบแพ็ค' }, 404)
+  return c.json({ ok: true })
+})
+app.delete('/api/admin/packs/:pid', async (c) => {
+  if (!(await isAdmin(c))) return c.json({ error: 'not found' }, 404)
+  await c.env.DB.prepare('DELETE FROM packs WHERE id = ?').bind(c.req.param('pid')).run()
+  return c.json({ ok: true })
+})
+
 // ---------- ประกาศอัตโนมัติ 07:00 เวลาไทย (Cron Trigger "0 0 * * *" = 00:00 UTC) ----------
 // เวลาไทย = UTC+7 ตลอด และวันในเกมเริ่ม 07:00 ไทย = 00:00 UTC → "วันในเกม" ตรงกับวันที่ UTC พอดี
 const gameDayIndex = (ts: number) => (new Date(ts).getUTCDay() + 6) % 7 // 0 = จันทร์
@@ -1129,6 +1241,7 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   ).bind(...bodyArgs, now, dayStart).run()
   const posted = ins.meta.changes ?? 0
   if (!posted) return 0
+  await env.DB.prepare('UPDATE guilds SET rev = rev + 1 WHERE id IN (SELECT guild_id FROM announcements WHERE auto = 1 AND created_at = ?)').bind(now).run()
   // 2) เก็บแค่ล่าสุด MAX_ANNOUNCEMENTS อันต่อกิลด์ — query เดียวทุกกิลด์
   await env.DB.prepare(
     `DELETE FROM announcements WHERE id IN (

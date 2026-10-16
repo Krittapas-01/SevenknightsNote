@@ -1,6 +1,8 @@
-import { ChevronLeft, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, ThumbsUp, Trash2, Undo2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Crown, Eraser, LayoutGrid, Library, ListOrdered, Pencil, Plus, ThumbsUp, Trash2, Undo2, X } from 'lucide-react'
+import { ImgPriority } from '../components/UnitCard'
+import PageSkeleton from '../components/PageSkeleton'
 import { isMainTag, tagColor, tagStyle, tagText } from '../lib/tags'
-import { useEffect, useRef, useState } from 'react'
+import { startTransition, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import SkillSkipAsk, { skillShort } from '../components/SkillSkipAsk'
 import ConfirmDelete from '../components/ConfirmDelete'
@@ -17,6 +19,7 @@ import { getUnit } from '../data/heroes'
 import { api } from '../lib/api'
 import { MAX_HEROES, addHeroToTeam, changeFormation, compKey, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
+import { notifyGuildChanged } from '../lib/usePulse'
 import NotFound from './NotFound'
 
 /** "เมื่อสักครู่" / "5 นาทีที่แล้ว" / "3 ชม. ที่แล้ว" / "2 วันที่แล้ว" */
@@ -40,8 +43,12 @@ import HelpLink from '../components/HelpLink'
 import { shakeScreen } from '../lib/shake'
 import { useMediaQuery } from '../lib/useMediaQuery'
 import { useSlideDir, useSlidePill } from '../lib/slide'
+import { useTabReorder } from '../lib/useTabReorder'
 import GuildOnboarding from '../components/GuildOnboarding'
 import { tx, L } from '../lib/i18n'
+import { tourSeen, useTour } from '../lib/tour'
+import { flashSaved, savedToast } from '../lib/celebrate'
+import { isDemo } from '../lib/demo'
 
 const copyNotes = (n?: HeroNote[]) => (n ?? []).map((x) => ({ ...x, sets: [...x.sets], rings: [...x.rings] }))
 
@@ -54,7 +61,7 @@ export default function TargetPage() {
   const { gid = '', tid = '' } = useParams()
   const nav = useNavigate()
   const isNew = tid === 'new'
-  const { data, error, canEdit, reload } = useGuild(gid)
+  const { data, error, canEdit, reload, patch } = useGuild(gid)
   const [dropOver, setDropOver] = useState(false)
   const [editMenu, setEditMenu] = useState(false) // ลากคอมพ์เป้าหมายมาวางบนทีมแก้
   const wide = useMediaQuery('(min-width: 1024px)') // จอคอม: ฟอร์มบ้านศัตรูอยู่ข้างคอมพ์
@@ -80,23 +87,54 @@ export default function TargetPage() {
   const counterSlide = useSlideDir(sel)
   const [picker, setPicker] = useState<Picker>(null)
   const [busy, setBusy] = useState(false)
+  const bgSaves = useRef(0) // บันทึกเบื้องหลังที่ยังไม่เสร็จ
+  const [retry, setRetry] = useState<{ msg: string; reopen: () => void } | null>(null) // บันทึกเบื้องหลังไม่ผ่าน
   const [err, setErr] = useState<string | null>(null)
+  // เรียงลำดับทีมแก้: กดค้างที่แท็บ ทีมแก้ #n แล้วลาก (#1 = แนะนำให้ใช้ก่อน) · ลากอยู่ = แท็บที่เลือกตามไปด้วย
+  const serverCounters = target?.counters ?? []
+  const selId = useRef<string | null>(null)
+  const [reordered, setReordered] = useState(false) // ใช้เช็กขั้น "ลองลากเรียง" ในการสอน
+  const commitOrder = async (ids: string[]) => {
+    try {
+      await api.orderCounters(gid, tid, ids)
+      setReordered(true)
+      await reload()
+    } catch (e) {
+      setErr((e as Error).message)
+      reorder.cancelPreview()
+    }
+  }
+  const reorder = useTabReorder(serverCounters.map((c) => c.id), canEdit && mode === 'view', commitOrder,
+    (ids) => { const i = selId.current ? ids.indexOf(selId.current) : -1; if (i >= 0) setSel(i) })
   const [library, setLibrary] = useState<'target' | 'counter' | null>(null)
 
   useEffect(() => {
     if (isNew && canEdit) setMode('target')
   }, [isNew, canEdit])
+  // สอนใช้ตามสิ่งที่ทำอยู่: ดูทีมแก้ / จดบ้านศัตรูครั้งแรก / จัดทีมแก้ครั้งแรก
+  const live = !!data && canEdit && !isDemo(gid)
+  useTour('target-view', live && mode === 'view' && !isNew && serverCounters.length > 0)
+  useTour('target-new', live && mode === 'target')
+  useTour('counter-edit', live && mode === 'counter')
+  // สอนเรียงทีมแก้ (คนที่เคยดูการสอนหน้านี้ไปแล้วก็ได้เห็น) — เมื่อมีทีมแก้ 2 ทีมขึ้นไป
+  useTour('counter-order', live && mode === 'view' && !isNew && serverCounters.length > 1 && tourSeen('target-view'))
 
   if (error) return <NotFound message={error} />
-  if (!data) return <p className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
+  if (!data) return <PageSkeleton kind="target" />
   if (!isNew && !target) return <NotFound message="ไม่พบบ้านศัตรูนี้" />
   if (isNew && !canEdit) return <NotFound message="ลิงก์นี้ไม่มีสิทธิ์แก้ไข" />
 
-  const counters = target?.counters ?? []
+  const counters = reorder.order.map((id) => serverCounters.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => !!c)
   const current = counters[Math.min(sel, counters.length - 1)]
+  if (!reorder.dragId) selId.current = current?.id ?? null
+  // ไลค์มากก่อน (เท่ากัน = ลำดับเดิม) — ปุ่มลัด "เรียงตามไลค์" โชว์เมื่อมีไลค์และลำดับยังไม่ตรง
+  const byLikes = [...counters].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0)).map((c) => c.id)
+  const canSortByLikes = canEdit && counters.length > 1 && counters.some((c) => c.likes) && byLikes.join('|') !== counters.map((c) => c.id).join('|')
 
   // ---------- เริ่มแก้ไข ----------
   function editTarget() {
+    if (busy) return // ยังบันทึกรอบก่อนไม่เสร็จ
+    setRetry(null)
     tSkillOk.current = false
     if (!target) return
     setTDraft({ team: clone(target.team), tags: [...target.tags], note: target.note })
@@ -104,6 +142,8 @@ export default function TargetPage() {
     setMode('target')
   }
   function editCounter(isAdd: boolean) {
+    if (busy) return // ยังบันทึกรอบก่อนไม่เสร็จ (ทีมใหม่ยังเป็น id ชั่วคราว)
+    setRetry(null)
     skillOk.current = false
     if (isAdd || !current) setCDraft({ id: null, team: emptyTeam(), skills: [], note: '', heroNotes: [] })
     else setCDraft({ id: current.id, team: clone(current.team), skills: [...current.skills], note: current.note, heroNotes: copyNotes(current.heroNotes) })
@@ -152,8 +192,30 @@ export default function TargetPage() {
       setErr((e as Error).message)
       shakeScreen()
     } finally {
-      setBusy(false)
+      setBusy(bgSaves.current > 0) // ยังมีบันทึกเบื้องหลังค้างอยู่ = ยังล็อกปุ่มไว้
     }
+  }
+  /**
+   * บันทึกแบบหน้าเปลี่ยนทันที: แก้ข้อมูลบนจอ + กลับโหมดดูเลย แล้วค่อยส่งไปเซิร์ฟเวอร์เบื้องหลัง
+   * (เดิมรอเซิร์ฟเวอร์ตอบแล้วหน้าค่อยเปลี่ยน → หน้ากระโดดทีหลังโดยไม่ได้กดอะไร = CLS)
+   * ไม่ผ่าน → ข้อมูลบนจอกลับเป็นก่อนแก้ + ป้ายลอย "บันทึกไม่สำเร็จ · กลับไปแก้" (กดแล้วเปิดหน้าแก้พร้อมงานเดิม)
+   *   ไม่เปิดหน้าแก้เองทันที — หน้าจะกระโดดโดยที่ไม่ได้กดอะไร
+   */
+  function saveInBackground(undo: () => void, fn: () => Promise<unknown>, onFail: () => void) {
+    bgSaves.current++
+    setBusy(true)
+    setErr(null)
+    // สำเร็จ → แจ้งทุกหน้าที่เปิดอยู่ (หน้านี้เอง/หน้ากิลด์ที่ย้อนกลับไป) ให้โหลดของจริงจากเซิร์ฟเวอร์
+    fn().then(() => notifyGuildChanged(gid), (e) => {
+      undo() // ข้อมูลบนจอกลับเป็นก่อนแก้
+      setRetry({ msg: (e as Error).message, reopen: onFail })
+      shakeScreen()
+    }).finally(() => { bgSaves.current--; setBusy(bgSaves.current > 0) })
+  }
+  // บันทึกสำเร็จ: ป้าย "บันทึกแล้ว" + การ์ดที่เพิ่งบันทึกเรืองทอง (รอหน้ากลับไปโหมดดูก่อน)
+  const celebrate = (which: 'ally' | 'enemy') => {
+    savedToast()
+    window.setTimeout(() => flashSaved(document.querySelector(`[data-flash="${which}"] > .team-panel`)), 120)
   }
   const saveTarget = () => {
     // บ้านศัตรูตั้งลำดับการใช้สกิลไม่ครบ → ถามก่อน (เช็คหลังมีตัว+สัตว์เลี้ยงแล้ว)
@@ -161,7 +223,7 @@ export default function TargetPage() {
     if (!tSkillOk.current && tDraft.team.pet && skillShort(tDraft.team, tSkills)) { setSkillAsk({ which: 'target', have: tSkills.length }); return }
     return run(async () => {
       if (heroCount(tDraft.team) === 0) throw new Error(tx('ใส่อัศวินอย่างน้อย 1 ตัว'))
-      if (!tDraft.team.pet) throw new Error(tx('เลือกสัตว์เลี้ยงก่อน (ช่องขวาบนของการ์ดทีม)'))
+      if (!tDraft.team.pet) throw new Error(tx('เลือกสัตว์เลี้ยงก่อน'))
       // ทุกบ้านต้องมีประเภทหลัก (ใช้กรอง/สีการ์ด)
       if (!tDraft.tags.some(isMainTag)) throw new Error(tx('เลือกประเภทคอมพ์ก่อน: กายภาพ / เวท / แทงก์'))
       // คอมพ์ซ้ำ (อัศวินชุดเดียวกัน) ห้ามจดซ้ำ — ไปเพิ่มทีมแก้ที่บ้านเดิมแทน
@@ -172,11 +234,16 @@ export default function TargetPage() {
         const t = await api.createTarget(gid, tDraft)
         await reload()
         nav(`/g/${gid}/t/${t.id}`, { replace: true })
-      } else {
-        await api.updateTarget(gid, tid, tDraft)
-        await reload()
+        setMode('view')
+        celebrate('enemy')
+        return
       }
+      // แก้บ้านเดิม: หน้าเปลี่ยนทันที แล้วค่อยบันทึกเบื้องหลัง
+      const draft = { ...tDraft, team: clone(tDraft.team) }
+      const undo = patch((d) => ({ ...d, targets: d.targets.map((t) => (t.id === tid ? { ...t, team: draft.team, tags: draft.tags, note: draft.note, updatedAt: Date.now() } : t)) }))
       setMode('view')
+      celebrate('enemy')
+      saveInBackground(undo, () => api.updateTarget(gid, tid, draft), () => { setTDraft(draft); setMode('target') })
     })
   }
   const deleteTarget = () => {
@@ -189,7 +256,7 @@ export default function TargetPage() {
   // จัดทีมเสร็จ (กดบันทึก) แล้วทุกตัวมีความเร็วโจมตีในค่าความสามารถ → ถามก่อนว่าจะใส่ผลรวมเป็นความเร็วทีมไหม (state speedAsk อยู่ด้านบน)
   const saveCounter = (speed?: number) => {
     // ทุกทีมต้องมีสัตว์เลี้ยง (เช็คก่อนถามความเร็ว)
-    if (heroCount(cDraft.team) > 0 && !cDraft.team.pet) { setErr(tx('เลือกสัตว์เลี้ยงก่อน (ช่องขวาบนของการ์ดทีม)')); shakeScreen(); return }
+    if (heroCount(cDraft.team) > 0 && !cDraft.team.pet) { setErr(tx('เลือกสัตว์เลี้ยงก่อน')); shakeScreen(); return }
     if (!skillOk.current && skillShort(cDraft.team, cDraft.skills)) { setSkillAsk({ which: 'counter', have: cDraft.skills.length }); return }
     if (speed === undefined && heroCount(cDraft.team) > 0) {
       const spd = autoSpeed(cDraft.team, cDraft.heroNotes)
@@ -204,25 +271,34 @@ export default function TargetPage() {
       if (dupC >= 0) throw new Error(L(`ทีมแก้นี้มีอยู่แล้ว (ทีมแก้ #${dupC + 1}) — แก้ที่ทีมเดิมแทน`, `This counter already exists (Counter #${dupC + 1}) — edit that one instead`))
       const body = { team, skills: cDraft.skills, note: cDraft.note, heroNotes: cDraft.heroNotes }
       rememberNotes(cDraft.heroNotes) // จำค่าความสามารถล่าสุดของเครื่องนี้
-      if (cDraft.id) {
-        await api.updateCounter(gid, cDraft.id, body)
-        await reload()
-      } else {
-        await api.createCounter(gid, tid, body)
-        await reload()
-        setSel(counters.length) // ตัวใหม่อยู่ท้ายสุด
-      }
+      // หน้าเปลี่ยนทันที (ทีมแก้ขึ้นจอเลย) แล้วค่อยบันทึกเบื้องหลัง — ทีมใหม่ใช้ id ชั่วคราวจนโหลดข้อมูลจริงกลับมา
+      const draft = { ...cDraft, team: clone(cDraft.team) }
+      const now = Date.now()
+      const editId = cDraft.id
+      const undo = patch((d) => ({ ...d, targets: d.targets.map((t) => (t.id !== tid ? t : {
+        ...t,
+        counters: editId
+          ? t.counters.map((c) => (c.id === editId ? { ...c, ...body, updatedAt: now } : c))
+          : [...t.counters, { id: `tmp-${now}`, targetId: tid, ...body, likes: 0, createdAt: now, updatedAt: now }],
+      })) }))
+      if (!editId) setSel(counters.length) // ตัวใหม่อยู่ท้ายสุด
       setMode('view')
+      celebrate('ally')
+      saveInBackground(
+        undo,
+        () => (editId ? api.updateCounter(gid, editId, body) : api.createCounter(gid, tid, body)),
+        () => { setCDraft(draft); setMode('counter') },
+      )
     })
   }
   const deleteCounter = () => {
     if (!cDraft.id) return
-    run(async () => {
-      await api.deleteCounter(gid, cDraft.id!)
-      await reload()
-      setSel(0)
-      setMode('view')
-    })
+    const draft = { ...cDraft }
+    const id = cDraft.id
+    const undo = patch((d) => ({ ...d, targets: d.targets.map((t) => (t.id !== tid ? t : { ...t, counters: t.counters.filter((c) => c.id !== id) })) }))
+    setSel(0)
+    setMode('view')
+    saveInBackground(undo, () => api.deleteCounter(gid, id), () => { setCDraft(draft); setMode('counter') })
   }
 
   function pickComp(c: Comp) {
@@ -248,6 +324,7 @@ export default function TargetPage() {
 
   // ทีมแก้ (ฝั่งซ้ายของ VS)
   const allyPanel = (
+    <ImgPriority value>
     <TeamPanel
         variant="ally"
         team={leftTeam}
@@ -269,10 +346,12 @@ export default function TargetPage() {
         skillsReq={skillsReq}
         className={isNew ? 'opacity-40' : ''}
       />
+    </ImgPriority>
   )
 
   // บ้านศัตรู (ฝั่งขวาของ VS)
   const enemyPanel = (
+    <ImgPriority value>
     <TeamPanel
         variant="enemy"
         team={rightTeam}
@@ -289,6 +368,7 @@ export default function TargetPage() {
         onMove={(from, to) => setTDraft((d) => ({ ...d, team: teamOps.move(d.team, from, to) }))}
         onSpeed={(s) => setTeam('target', (t) => ({ ...t, speed: s }))}
       />
+    </ImgPriority>
   )
 
   // ลากทั้งคอมพ์บ้านศัตรูมาเป็นจุดเริ่มทีมแก้ (คัดลอก บ้านศัตรูไม่เปลี่ยน · ไม่เอาลำดับสกิล/ความเร็วของศัตรู)
@@ -300,7 +380,7 @@ export default function TargetPage() {
     setCDraft((d) => ({ ...d, team: { ...clone(rightTeam), skills: undefined, speed: 0 }, skills: [] }))
   }
   const allyBlock = (
-    <div key={mode === 'view' ? `v${sel}` : 'edit'} className={`flex h-full flex-col ${mode === 'view' ? counterSlide : ''}`}>
+    <div key={mode === 'view' ? `v${sel}` : 'edit'} className={`flex h-full flex-col ${mode === 'view' ? counterSlide : editingC ? 'edit-arrive' : ''}`}>
       <p className="mb-2 text-center text-lg font-semibold text-gold">{leftTitle}</p>
       <div
         onDragOver={(e) => { if (canCopy && e.dataTransfer.types.includes(TEAM_MIME)) { e.preventDefault(); setDropOver(true) } }}
@@ -308,7 +388,7 @@ export default function TargetPage() {
         onDrop={(e) => { e.preventDefault(); setDropOver(false); if (canCopy && e.dataTransfer.types.includes(TEAM_MIME)) copyTarget() }}
         className={`flex-1 rounded-[20px] transition [&>*]:h-full ${dropOver ? 'ring-2 ring-gold ring-offset-4 ring-offset-[var(--surface-deep)]' : ''}`}
       >
-        <div className="relative [&>*]:h-full">
+        <div data-flash="ally" className="relative [&>*]:h-full">
           {allyPanel}
           {/* ยังไม่มีทีมแก้ → กดตรงกลางการ์ดเพื่อเริ่มจดทีมแก้ */}
           {canEdit && !isNew && mode === 'view' && !current && (
@@ -335,6 +415,7 @@ export default function TargetPage() {
       <div
         draggable={canCopy}
         onDragStart={(e) => { if (!canCopy) return; e.dataTransfer.setData(TEAM_MIME, '1'); e.dataTransfer.effectAllowed = 'copy' }}
+        data-flash="enemy"
         className={`flex-1 [&>*]:h-full ${canCopy ? 'cursor-grab active:cursor-grabbing' : ''}`}
       >
         {enemyPanel}
@@ -344,9 +425,9 @@ export default function TargetPage() {
 
   // ฟอร์มทีมแก้ — จอคอมวางข้างการ์ดทีมแก้ เหมือนฟอร์มบ้านศัตรู
   const counterForm = (
-    <div className="panel panel-gold flex h-full flex-col p-5">
+    <div className="edit-arrive panel panel-gold flex h-full flex-col p-5">
       {!wide && <p className="mb-3 text-sm font-semibold text-gold">{tx('รายละเอียดทีมแก้')}</p>}
-      {/* บ้านศัตรูย่อ ไว้ดูเทียบ + ใช้ทั้งคอมพ์ (แทนการลากตอนกำลังแก้) */}
+      {/* บ้านศัตรูย่อ ไว้ดูเทียบตอนกำลังแก้ */}
       {heroCount(rightTeam) > 0 && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2">
           <span className="shrink-0 text-xs font-semibold text-red-200">{tx('ศัตรู')}</span>
@@ -358,19 +439,13 @@ export default function TargetPage() {
                 : <span key={i} title={u?.name} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-[10px]">{u?.name.slice(0, 3)}</span>
             })}
           </div>
-          {canCopy && (
-            <button type="button" onClick={copyTarget} className="shrink-0 rounded-full border border-gold/50 bg-gold/10 px-2.5 py-1 text-xs font-semibold text-gold hover:bg-gold/20">
-              {tx('ใช้ทั้งคอมพ์')}
-            </button>
-          )}
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={() => setLibrary('counter')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
+        <button data-tour="library" onClick={() => setLibrary('counter')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
           <Library className="h-4 w-4" />{' '}{tx('เลือกจากที่จดไว้')}
         </button>
         <PresetPickerButton onPick={(p) => setCDraft((d) => ({ ...d, team: clone(p.team), skills: [...p.skills], note: d.note || p.note.slice(0, 500), heroNotes: copyNotes(p.heroNotes) }))} />
-        <span className="text-xs text-white/50">{tx('กดวงกลมดาวล่างสุดเพื่อตั้งลำดับการใช้สกิล · กดอัศวิน 2 ครั้งเพื่อเอาออก')}</span>
       </div>
       <textarea
         value={cDraft.note}
@@ -391,14 +466,14 @@ export default function TargetPage() {
 
   // ฟอร์มบ้านศัตรู (คลัง · แท็ก · โน้ต · บันทึก) — จอคอมวางข้างคอมพ์ ไม่ต้องเลื่อนลงไปหา
   const targetForm = (
-    <div className="panel panel-enemy flex h-full flex-col p-5">
+    <div className="edit-arrive panel panel-enemy flex h-full flex-col p-5">
       {!wide && <p className="mb-3 text-sm font-semibold text-red-200">{tx('รายละเอียดบ้านศัตรู')}</p>}
       <div className="mb-4">
         <button onClick={() => setLibrary('target')} className="flex items-center gap-1.5 rounded-full border border-sky-300/60 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/10">
           <Library className="h-4 w-4" />{' '}{tx('เลือกจากที่จดไว้')}
         </button>
       </div>
-      <TagEditor tags={tDraft.tags} onChange={(tags) => setTDraft((d) => ({ ...d, tags }))} />
+      <div data-tour="tag-editor"><TagEditor tags={tDraft.tags} onChange={(tags) => setTDraft((d) => ({ ...d, tags }))} /></div>
       <textarea
         value={tDraft.note}
         onChange={(e) => setTDraft((d) => ({ ...d, note: e.target.value }))}
@@ -423,20 +498,31 @@ export default function TargetPage() {
       {/* แถบเลือกทีมแก้ แบบปุ่มแคปซูลในเกม */}
       {!isNew && (counters.length > 0 || editingC) && (
         <div className="mt-5 flex justify-center">
-          <div ref={counterPill.box} className="scrollbar-thin pill relative flex max-w-full gap-1 overflow-x-auto p-1">
+          <div ref={counterPill.box} data-tour="counter-tabs" data-reordered={reordered || undefined} className="scrollbar-thin pill relative flex max-w-full gap-1 overflow-x-auto p-1">
             <span aria-hidden className="slide-pill" style={counterPill.pill} />
             {counters.map((c, i) => (
               <button
                 key={c.id}
-                ref={counterPill.item(i)}
+                {...reorder.bind(c.id)}
+                ref={(el) => { counterPill.item(i)(el); reorder.bind(c.id).ref(el) }}
                 disabled={mode !== 'view'}
-                onClick={() => setSel(i)}
-                className={`relative z-10 shrink-0 rounded-full px-4 py-1.5 text-sm transition-colors sm:text-base ${
+                // เปลี่ยนแท็บแบบไม่บล็อกจอ (การ์ดทีมแก้หนัก: รูป/ของ/ค่าความสามารถ) → กดแล้วตอบสนองทันที (INP)
+                onClick={() => startTransition(() => setSel(i))}
+                title={canEdit && counters.length > 1 && mode === 'view' ? tx('กดค้างแล้วลากเพื่อเรียงลำดับ (#1 = แนะนำให้ใช้ก่อน)') : undefined}
+                className={`relative z-10 shrink-0 select-none rounded-full px-4 py-1.5 text-sm transition-[color,background-color,transform,opacity] sm:text-base ${
+                  reorder.dragId === c.id ? 'scale-105 cursor-grabbing opacity-80 ring-2 ring-gold/70' : canEdit && counters.length > 1 && mode === 'view' ? 'cursor-grab' : ''
+                } ${
                   i === Math.min(sel, counters.length - 1) && !(editingC && !cDraft.id)
                     ? 'font-semibold text-ink'
                     : 'text-white/70 hover:bg-white/10 disabled:hover:bg-transparent'
                 }`}
               >
+                {i === 0 && counters.length > 1 && (
+                  // ขยับที่ span (HTML) ไม่ใช่ที่ svg — แอนิเมชันบน svg ไม่ได้ใช้ GPU ทำให้หน้าเว็บคำนวณใหม่ทุกเฟรม
+                  <span className="crown-1 -mt-0.5 mr-1 inline-block align-middle" aria-hidden title={tx('ทีมแนะนำ (ใช้ก่อน)')}>
+                    <Crown className={`h-3.5 w-3.5 ${i === Math.min(sel, counters.length - 1) && !(editingC && !cDraft.id) ? 'text-ink' : 'text-gold'}`} fill="currentColor" />
+                  </span>
+                )}
                 {tx('ทีมแก้ #')}{i + 1}
                 {!!c.likes && (
                   <span className={`ml-1.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-px align-middle text-xs font-bold tabular-nums ${
@@ -468,8 +554,15 @@ export default function TargetPage() {
               </button>
             )}
           </div>
+          {canSortByLikes && (
+            <button disabled={mode !== 'view' || busy} onClick={() => void commitOrder(byLikes)}
+              title={tx('เรียงทีมแก้ตามจำนวนไลค์ (มากไปน้อย) · ลากปรับต่อเองได้')}
+              className="pill ml-2 flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-sm text-sky-200 hover:bg-white/10 disabled:opacity-40">
+              <ThumbsUp className="h-4 w-4" />{' '}{tx('เรียงตามไลค์')}
+            </button>
+          )}
           {counters.length > 1 && (
-            <button disabled={mode !== 'view'} onClick={() => setShowAll(true)}
+            <button data-tour="counter-all" disabled={mode !== 'view'} onClick={() => startTransition(() => setShowAll(true))}
               className="pill ml-2 flex shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm text-gold hover:bg-white/10 disabled:opacity-40">
               <LayoutGrid className="h-4 w-4" />{' '}{tx('ดูทั้งหมด')}
             </button>
@@ -510,13 +603,36 @@ export default function TargetPage() {
           </div>
         </div>
         {/* แนวนอน เลื่อนซ้าย-ขวาได้ */}
-        <div ref={allStrip} {...allDrag} className="scrollbar-thin -mx-1 flex cursor-grab gap-4 overflow-x-auto px-1 pb-3 select-none active:cursor-grabbing">
+        <div ref={allStrip} {...allDrag} className="scrollbar-thin -mx-1 flex cursor-grab gap-4 overflow-x-auto px-1 pb-3 select-none">
           {counters.map((c, i) => (
             <div key={c.id} role="button" tabIndex={0} onClick={() => { setSel(i); setShowAll(false) }}
               onKeyDown={(e) => e.key === 'Enter' && (setSel(i), setShowAll(false))}
               className={`flex w-[min(340px,85vw)] shrink-0 cursor-pointer flex-col rounded-2xl border border-white/10 p-3 text-left transition hover:bg-white/5 ${i === Math.min(sel, counters.length - 1) ? 'ring-1 ring-gold/60' : ''}`}>
               <span className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-gold">{tx('ทีมแก้ #')}{i + 1}</span>
+                <span className="flex items-center gap-1 text-sm font-semibold text-gold">{i === 0 && <Crown className="h-4 w-4" />}{tx('ทีมแก้ #')}{i + 1}</span>
+                {canEdit && counters.length > 1 && (
+                  // เรียงลำดับในหน้าดูทั้งหมด: ซ้าย/ขวาทีละช่อง · มงกุฎ = ขึ้นเป็น #1 (แถวนี้ลากเพื่อเลื่อนดูอยู่แล้ว เลยใช้ปุ่มแทนการลาก)
+                  <span data-tour={i === 0 ? 'all-order' : undefined} className="ml-auto flex items-center gap-0.5" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                    {([
+                      [<ChevronLeft key="l" className="h-4 w-4" />, L('ย้ายไปทางซ้าย', 'Move left'), i - 1],
+                      [<ChevronRight key="r" className="h-4 w-4" />, L('ย้ายไปทางขวา', 'Move right'), i + 1],
+                      [<Crown key="c" className="h-4 w-4" />, L('ตั้งเป็น #1', 'Make #1'), 0],
+                    ] as const).map(([icon, label, to]) => (
+                      <button key={label} type="button" title={label} aria-label={label}
+                        disabled={busy || to < 0 || to >= counters.length || to === i}
+                        onClick={() => {
+                          const ids = counters.map((x) => x.id)
+                          const keep = current?.id
+                          ids.splice(i, 1); ids.splice(to, 0, c.id)
+                          // ทีมที่เปิดอยู่ยังเป็นทีมเดิมหลังเรียง
+                          run(async () => { await commitOrder(ids); if (keep) setSel(Math.max(0, ids.indexOf(keep))) })
+                        }}
+                        className="grid h-7 w-7 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-gold disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-white/60">
+                        {icon}
+                      </button>
+                    ))}
+                  </span>
+                )}
                 {canEdit && (
                   // กด 2 ครั้งถึงลบ กันกดพลาด
                   <button type="button" disabled={busy}
@@ -544,7 +660,7 @@ export default function TargetPage() {
         </div>
       </Modal>
 
-      <div className="mt-8">
+      <div className="mt-8" data-tour="vs-arena">
         {editingT && wide ? (
           // จอคอม แก้บ้านศัตรู: คอมพ์ศัตรู + ฟอร์มรายละเอียดอยู่ข้างกัน (ไม่มีทีมแก้/VS มาเกะกะ)
           <div className="flex items-stretch justify-center gap-6">
@@ -557,7 +673,8 @@ export default function TargetPage() {
         ) : editingC && wide ? (
           // จอคอม แก้ทีมแก้: การ์ดทีมแก้ + ฟอร์มรายละเอียดอยู่ข้างกัน
           <div className="flex items-stretch justify-center gap-6">
-            <div className="w-[380px]">{allyBlock}</div>
+            {/* การ์ดทีมไม่ยืดตามฟอร์มขวา (โน้ตรายตัวยาว → การ์ดยาวตาม ทีมไปอยู่กลางจอ) · ติดจอตอนเลื่อนลงไปแก้โน้ต */}
+            <div className="sticky top-[8.5rem] w-[380px] self-start">{allyBlock}</div>
             <div className="flex w-[460px] flex-col">
               <p className="mb-2 text-center text-lg font-semibold text-gold">{tx('รายละเอียดทีมแก้')}</p>
               <div className="flex-1 [&>*]:h-full">{counterForm}</div>
@@ -582,7 +699,7 @@ export default function TargetPage() {
           <div className="grid gap-5 md:grid-cols-2">
             <div key={sel} className={`panel panel-gold p-5 ${counterSlide}`}>
               <div className="flex items-center justify-between">
-                <h3 className="flex items-center gap-2 font-semibold text-gold">
+                <h3 data-tour="counter-head" className="flex items-center gap-2 font-semibold text-gold">
                   {current ? L(`ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}`, `Counter #${Math.min(sel, counters.length - 1) + 1}`) : tx('ทีมแก้')}
                   {current && <LikeButton key={current.id} gid={gid} cid={current.id} count={current.likes ?? 0} onChanged={reload} />}
                   {current && <SavePresetButton team={current.team} skills={current.skills} note={current.note} heroNotes={current.heroNotes} className="font-normal" />}
@@ -642,10 +759,18 @@ export default function TargetPage() {
           if (w === 'target') { tSkillOk.current = true; saveTarget() } else { skillOk.current = true; saveCounter() }
         }} />
       {/* ปุ่มแก้ไขลอยมุมล่างขวา (ข้างปุ่มติดต่อ) — กดแล้วเลือกว่าจะแก้อะไร ไม่ต้องเลื่อนลงไปหาในการ์ด */}
+      {retry && createPortal(
+        <div role="alert" data-testid="save-failed" className="fixed inset-x-3 bottom-24 z-50 mx-auto flex max-w-md flex-wrap items-center gap-2 rounded-2xl border border-red-400/50 bg-[var(--alert-bg)] px-4 py-3 text-sm text-red-200 shadow-xl">
+          <span className="min-w-0 flex-1"><b>{tx('บันทึกไม่สำเร็จ')}</b> · {retry.msg}</span>
+          <button type="button" onClick={() => { retry.reopen(); setErr(retry.msg); setRetry(null) }} className="rounded-full bg-red-400/90 px-3 py-1 font-semibold text-ink hover:bg-red-300">{tx('กลับไปแก้')}</button>
+          <button type="button" onClick={() => setRetry(null)} aria-label={tx('ปิด')} className="rounded-full p-1 text-red-200/70 hover:text-white"><X className="h-4 w-4" /></button>
+        </div>,
+        document.body,
+      )}
       {canEdit && !isNew && mode === 'view' && createPortal(
         <div data-noexport className="fixed right-20 z-40 flex flex-col items-end gap-2 sm:right-24" style={{ bottom: 'calc(20px + env(safe-area-inset-bottom))' }}>
           {editMenu && (
-            <div className="panel panel-gold flex w-56 flex-col p-1.5 text-sm shadow-[0_6px_24px_rgba(0,0,0,.5)]">
+            <div data-tour="edit-menu" className="panel panel-gold flex w-56 flex-col p-1.5 text-sm shadow-[0_6px_24px_rgba(0,0,0,.5)]">
               {current && (
                 <button type="button" onClick={() => { setEditMenu(false); editCounter(false) }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-left hover:bg-white/10">
                   <Pencil className="h-4 w-4 text-gold" />{' '}{tx('แก้ไขทีมแก้ #')}{Math.min(sel, counters.length - 1) + 1}
@@ -659,9 +784,10 @@ export default function TargetPage() {
               </button>
             </div>
           )}
-          <button type="button" onClick={() => setEditMenu((v) => !v)} aria-expanded={editMenu}
-            className="btn-gold flex items-center gap-1.5 px-5 py-3 text-sm font-semibold shadow-[0_6px_24px_rgba(0,0,0,.5)]">
-            {editMenu ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}{' '}{tx('แก้ไข')}
+          {/* บันทึกเบื้องหลังยังไม่เสร็จ → ยังแก้ต่อไม่ได้ (ทีมใหม่ยังไม่มี id จริง) */}
+          <button type="button" data-tour="edit-fab" disabled={busy} onClick={() => setEditMenu((v) => !v)} aria-expanded={editMenu}
+            className="btn-gold flex items-center gap-1.5 px-5 py-3 text-sm font-semibold shadow-[0_6px_24px_rgba(0,0,0,.5)] disabled:opacity-70">
+            {editMenu ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}{' '}{busy ? tx('กำลังบันทึก...') : tx('แก้ไข')}
           </button>
         </div>,
         document.body,
@@ -673,7 +799,7 @@ export default function TargetPage() {
 
 function Actions({ busy, onSave, onCancel, onDelete }: { busy: boolean; onSave: () => void; onCancel: () => void; onDelete?: () => void }) {
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-2">
+    <div data-tour="save-actions" className="mt-4 flex flex-wrap items-center gap-2">
       <button disabled={busy} onClick={onSave} className="btn-gold px-6 py-2">{busy ? tx('กำลังบันทึก...') : tx('บันทึก')}</button>
       <button disabled={busy} onClick={onCancel} className="pill px-5 py-2">{tx('ยกเลิก')}</button>
       {onDelete && (
