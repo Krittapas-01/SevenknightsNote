@@ -66,7 +66,6 @@ export const phaseHelp = (type: DayType) => {
 export const fmtTime = (ts: number) =>
   new Date(ts).toLocaleString(LOCALE, { timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-/** แผนที่ใช้อยู่ = ประกาศล่าสุดที่เลือกแผนไว้ */
 /** แผนที่ใช้อยู่ = ประกาศล่าสุดที่เลือกแผน · ส่ง kind = แยกแผนบุก/แผนกัน (ประกาศแผนบุกไม่ทำให้แผนกันหลุด) */
 export function activePlanId(data: Pick<GuildData, 'announcements' | 'plans'>, kind?: PlanKind) {
   const a = data.announcements.find((x) => x.planId && data.plans.some((p) => p.id === x.planId && (!kind || planKind(p.data) === kind)))

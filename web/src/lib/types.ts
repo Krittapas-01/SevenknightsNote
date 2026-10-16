@@ -220,7 +220,6 @@ export function changeFormation(team: Team, skills: SkillStep[], front: number) 
   return { team: { ...team, front, slots: out }, skills: remap(skills, map) }
 }
 
-/** @deprecated ใช้ changeFormation แทน */
 /** ลากสลับตำแหน่ง: อัศวิน ↔ อัศวิน, สัตว์เลี้ยงหลัก/เสริม ↔ กันเอง */
 export function moveSlot(team: Team, skills: SkillStep[], from: SlotRef, to: SlotRef) {
   const t: Team = { ...team, slots: [...team.slots], extras: Array.from({ length: EXTRA_COUNT }, (_, i) => team.extras[i] ?? null) }

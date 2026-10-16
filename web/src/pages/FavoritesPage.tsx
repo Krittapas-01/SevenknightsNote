@@ -1,4 +1,4 @@
-import { Pencil, ThumbsUp, Trash2 } from 'lucide-react'
+import { Pencil, ThumbsUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import TeamPanel from '../components/TeamPanel'

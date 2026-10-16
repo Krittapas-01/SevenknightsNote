@@ -24,12 +24,11 @@ type Props = {
   /** ขนาดช่องอัศวิน (CSS) เช่น 'min(60px, 25cqw)' ตอนวางในตารางแคบ */
   unit?: string
   /** ล็อกความสูงการ์ด = ช่อง 3 แถว + ส่วนอื่น (px) — ค่าเริ่มต้น = มาตรฐาน (สูงเท่ากันทุกใบ ไม่ว่ารูปแบบแบบไหน) */
-  fixedExtra?: number
   /** ไม่ล็อกความสูง (ยืดตามที่วาง) */
   fluid?: boolean
 }
 
-function TeamCardLite({ team, skills = [], title, className = '', variant = 'enemy', unit, fixedExtra = CARD_EXTRA, fluid = false }: Props) {
+function TeamCardLite({ team, skills = [], title, className = '', variant = 'enemy', unit, fluid = false }: Props) {
   const frontIdx = Array.from({ length: team.front }, (_, i) => i)
   const backIdx = Array.from({ length: SLOT_COUNT - team.front }, (_, i) => team.front + i)
   const lit = Math.min(skills.length, MAX_SKILL_QUEUE)
@@ -37,7 +36,7 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
   const fourCol = Math.max(frontIdx.length, backIdx.length) > 3
 
   return (
-    <div style={{ '--s': unit ?? S, '--s-px': 'var(--s)', ...(!fluid ? { height: `calc(var(--s) * 3 + ${fixedExtra}px)`, flex: '0 0 auto' } : {}) } as CSSProperties} className={`team-panel panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col px-3 pb-3 pt-2.5 ${className}`}>
+    <div style={{ '--s': unit ?? S, '--s-px': 'var(--s)', ...(!fluid ? { height: `calc(var(--s) * 3 + ${CARD_EXTRA}px)`, flex: '0 0 auto' } : {}) } as CSSProperties} className={`team-panel panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col px-3 pb-3 pt-2.5 ${className}`}>
       <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
         <div className="min-w-0 flex-1 truncate text-center text-sm font-semibold">{title}</div>
       </div>

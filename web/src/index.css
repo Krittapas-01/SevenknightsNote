@@ -678,19 +678,6 @@ html[data-theme="light"] .arcane-ring {
   box-shadow: inset 0 0 0 22px #ffffff14, inset 0 0 0 23px #a0781f26;
 }
 
-/* โหมดสว่าง: ชิ้นที่อยากคงพื้นมืดไว้ทั้งก้อน ใส่คลาส keep-dark
- * คืนค่าสีของ Tailwind กลับเป็นชุดโหมดมืด ตัวอักษรข้างในจะได้ขาว/ทองเหมือนเดิม */
-html[data-theme="light"] .keep-dark {
-  --color-white: #ffffff; --color-black: #000000; --color-gold: #f4d58d; --color-gold-deep: #c9a35a;
-  --surface: #161c2e; --surface-2: #1b2236e6; --surface-3: #11162a; --surface-deep: #0c1425;
-  --color-red-50: #fef2f2; --color-red-100: #fee2e2; --color-red-200: #fecaca; --color-red-300: #fca5a5; --color-red-400: #f87171;
-  --color-sky-100: #e0f2fe; --color-sky-200: #bae6fd; --color-sky-300: #7dd3fc; --color-sky-400: #38bdf8;
-  --color-emerald-100: #d1fae5; --color-emerald-200: #a7f3d0; --color-emerald-300: #6ee7b7; --color-emerald-400: #34d399;
-  --color-green-100: #dcfce7; --color-green-300: #86efac; --color-green-400: #4ade80;
-  --color-amber-100: #fef3c7; --color-amber-200: #fde68a; --color-amber-300: #fcd34d; --color-amber-400: #fbbf24;
-  color: #eef1f8;
-}
-
 /* ปุ่ม Discord ลอยมุมขวาล่าง */
 html[data-theme="light"] .contact-fab-btn {
   background: radial-gradient(circle at 35% 30%, #f3f2f1, #d0cecb 75%) !important;

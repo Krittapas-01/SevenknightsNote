@@ -32,7 +32,7 @@ import VsArena from '../components/VsArena'
 import { baseName, getUnit, unitBase, unitLabel } from '../data/heroes'
 import { api } from '../lib/api'
 import {
-  MAX_HEROES, MAX_HOUSES, MAX_OPTIONS, MAX_SKILL_QUEUE, changeFormation, emptyHouse, houseApply, houseView, emptyOption, emptyPlan, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type PlanData, type PlanKind, type WarHouse, type Team, type WarOption, PLAN_KIND_LABEL, planKind, slotLabel } from '../lib/types'
+  MAX_HEROES, MAX_HOUSES, MAX_OPTIONS, MAX_SKILL_QUEUE, emptyHouse, houseApply, houseView, emptyOption, emptyPlan, emptyTeam, heroCount, teamOps, type PlanData, type PlanKind, type WarHouse, type Team, type WarOption, PLAN_KIND_LABEL, planKind, slotLabel } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import { UNSAVED_MSG, useUnsavedGuard } from '../lib/unsaved'
 import { activePlanId } from '../lib/war'
@@ -1356,24 +1356,13 @@ export default function PlanPage() {
           if (editing && s >= visibleSlots) return null
           return slotCard(raw, s)
         })}
-        {editing && visibleSlots < view.slots.length && (true ? (
+        {editing && visibleSlots < view.slots.length && (
           <div className="@container"><button type="button" onClick={() => { setShownSlots(visibleSlots + 1); openWiz(visibleSlots, true) }} style={{ height: CARD_H }}
             className="flex w-full flex-col items-center justify-center gap-1 rounded-[18px] border-2 border-dashed border-white/20 text-white/55 transition hover:border-gold hover:text-gold">
             <Plus className="h-7 w-7" />{' '}{tx('เพิ่มไม้')}{' '}{visibleSlots + 1}
             <span className="text-xs text-white/40">({visibleSlots}/{view.slots.length})</span>
           </button></div>
-        ) : (
-          <button
-            onClick={() => {
-              setShownSlots(visibleSlots + 1)
-              if (planKind(draft) === 'attack') openWiz(visibleSlots, true)
-            }}
-            className="mx-auto flex w-full max-w-md items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gold/40 py-5 font-semibold text-gold transition hover:border-gold hover:bg-gold/5"
-          >
-            <Plus className="h-5 w-5" />{' '}{tx('เพิ่มไม้')}{' '}{visibleSlots + 1}
-            <span className="text-sm font-normal text-white/50">({visibleSlots}/{view.slots.length})</span>
-          </button>
-        ))}
+        )}
         {!editing && view.slots.every((s) => s.options.length === 0) && (
           <div className="panel col-span-full p-10 text-center text-white/60">{tx('แผนนี้ยังไม่มีทีม')}</div>
         )}

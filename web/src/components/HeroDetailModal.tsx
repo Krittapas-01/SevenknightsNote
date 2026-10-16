@@ -34,7 +34,6 @@ export default function HeroDetailModal({ hero, notes, onClose, onSaveStats }: {
       setSaving(tx('บันทึกไม่สำเร็จ: ') + (e as Error).message)
     }
   }
-  const name = getUnit(hero)?.name ?? hero
   const note = noteFor(hero, notes)
   return (
     <Modal open title={tx('รายละเอียดอัศวิน')} onClose={onClose}>

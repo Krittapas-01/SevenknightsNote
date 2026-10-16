@@ -1,6 +1,6 @@
 import { Camera, CircleHelp, ClipboardPaste, History, Loader2, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { HEROES, baseName, englishOf, getUnit, unitBase } from '../data/heroes'
+import { baseName, getUnit, unitBase } from '../data/heroes'
 import { pickHero } from '../lib/heroPick'
 import { readImageText } from '../lib/ocr'
 import { STATS, fmtStat, hasStats, parseStats, type HeroStats, type StatKey, statLabel } from '../lib/stats'

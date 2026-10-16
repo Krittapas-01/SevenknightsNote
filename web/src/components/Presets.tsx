@@ -5,7 +5,7 @@ import TeamPanel from './TeamPanel'
 import { api, type Preset, type PresetInput } from '../lib/api'
 import { loginWithDiscord, useAuth } from '../lib/auth'
 import type { HeroNote, SkillStep, Team } from '../lib/types'
-import { baseName, getUnit, unitBase } from '../data/heroes'
+import { unitBase } from '../data/heroes'
 import { tx } from '../lib/i18n'
 
 const teamName = (t: Team) => t.slots.filter(Boolean).map((id) => unitBase(id)).join(' · ')

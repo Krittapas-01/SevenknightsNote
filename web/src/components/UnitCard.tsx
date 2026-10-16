@@ -6,7 +6,7 @@ import attackRole from '../assets/ui/attack-role.webp'
 import defenseRole from '../assets/ui/defense-role.webp'
 import supportRole from '../assets/ui/support-role.webp'
 import universalRole from '../assets/ui/universal-role.webp'
-import { HERO_TYPES, baseName, getUnit, isAwake, type HeroType, RARE, unitBase, unitLabel } from '../data/heroes'
+import { HERO_TYPES, getUnit, isAwake, type HeroType, RARE, unitBase, unitLabel } from '../data/heroes'
 import { tx } from '../lib/i18n'
 
 /**

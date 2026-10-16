@@ -1,5 +1,5 @@
 /* Compact guild-war UI for the Total War tracker. */
-.total-war-page { --tw-gold: #f4d58d; --tw-gold-deep: #c9a35a; }
+.total-war-page { --tw-gold: #f4d58d; }
 .tw-heading { position: relative; padding: 0 0 1.1rem; border-bottom: 1px solid #f4d58d22; }
 .tw-heading::after { content: ""; position: absolute; bottom: -1px; left: 0; width: 6rem; height: 1px; background: linear-gradient(90deg, var(--tw-gold), transparent); }
 .tw-eyebrow { display: block; margin-bottom: .2rem; color: #f4d58d9c; font-size: .68rem; font-weight: 600; letter-spacing: .24em; }
@@ -70,7 +70,7 @@
 }
 
 /* ================= โหมดสว่าง (ตั้งค่า → ธีม) ================= */
-html[data-theme="light"] .total-war-page { --tw-gold: #855604; --tw-gold-deep: #6e4703; }
+html[data-theme="light"] .total-war-page { --tw-gold: #855604; }
 html[data-theme="light"] .tw-heading { border-bottom-color: #a0781f33; }
 html[data-theme="light"] .tw-heading h1 { text-shadow: none; }
 html[data-theme="light"] .tw-heading p { color: #625e58; }

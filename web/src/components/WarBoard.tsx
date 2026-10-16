@@ -1,4 +1,4 @@
-import { Bot, CalendarDays, ChevronDown, ClipboardList, Megaphone, Settings2, Shield, Swords, Trash2 } from 'lucide-react'
+import { Bot, CalendarDays, ChevronDown, ClipboardList, Megaphone, Settings2, Shield, Swords } from 'lucide-react'
 import { PLAN_KIND_LABEL, planKind } from '../lib/types'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'

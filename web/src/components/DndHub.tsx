@@ -72,11 +72,6 @@ export const useDndHub = () => useContext(Ctx)
 export function DockAware({ children }: { children: (dockOpen: boolean) => ReactNode }) {
   return <>{children(!!useContext(Ctx)?.dockOpen)}</>
 }
-/** ที่ว่างท้ายเนื้อหาเท่าความสูงแถบอัศวิน (เฉพาะตอนแถบเปิด) — เลื่อนดูของล่างสุดได้ ไม่โดนแถบบัง */
-export function DockSpacer() {
-  const hub = useContext(Ctx)
-  return hub?.dockOpen ? <div aria-hidden className="h-56 shrink-0" /> : null
-}
 
 export const keyOf = (r: SlotRef) => (r.kind === 'hero' ? `h:${r.index}` : r.kind === 'pet' ? 'p' : `e:${r.index}`)
 export const refOf = (k: string): SlotRef =>

@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { baseName, getUnit, unitBase } from '../data/heroes'
+import { unitBase } from '../data/heroes'
 import { tx } from '../lib/i18n'
 
 /** ปุ่มเพิ่ม "อุปกรณ์/ค่าความสามารถรายตัว" ให้อัศวินในทีมที่ยังไม่มีแถว */

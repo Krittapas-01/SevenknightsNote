@@ -11,7 +11,7 @@ import UnitCard, { UNIT_SLOT_RADIUS } from './UnitCard'
 import HeroDetailModal from './HeroDetailModal'
 import type { HeroNote } from '../lib/types'
 import type { HeroStats } from '../lib/stats'
-import { getUnit, unitLabel } from '../data/heroes'
+import { unitLabel } from '../data/heroes'
 import { tx, L } from '../lib/i18n'
 import { motionOK, useTeamMotion } from '../lib/teamMotion'
 
