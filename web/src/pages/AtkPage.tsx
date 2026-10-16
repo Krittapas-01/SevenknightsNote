@@ -16,7 +16,9 @@ const MAX_BUFFS = 6
 const PET_LINES = 4
 const NONE: string[] = []
 
-type Buff = { name: string; pct: string }
+// to = ตัวไหนได้บัฟนี้บ้าง [ตัวที่ 1, ตัวที่ 2] (บางบัฟให้เฉพาะบางตัว)
+type Buff = { name: string; pct: string; to: [boolean, boolean] }
+const BOTH: [boolean, boolean] = [true, true]
 // base ใช้ค่าตามอัศวิน (7K Atlas) · ช่อง base ใช้เฉพาะตัวที่ไม่รู้ค่า
 type Char = { id: string | null; start: string; base: string; back: boolean; hit: boolean }
 type State = { pet: string; potential: string[]; front: number; buffs: Buff[]; debuff: Buff; chars: Char[] }
@@ -28,10 +30,10 @@ const DEFAULT_STATE: State = {
   potential: ['13', '18', '18', '11'],
   front: 2,
   buffs: [
-    { name: L('เจโอ', 'Jeo'), pct: '37' },
-    { name: L('ไอลีน', 'Eileene'), pct: '25' },
+    { name: L('เจโอ', 'Jeo'), pct: '37', to: BOTH },
+    { name: L('ไอลีน', 'Eileene'), pct: '25', to: BOTH },
   ],
-  debuff: { name: L('ฮายอน', 'Hayeon'), pct: '22' },
+  debuff: { name: L('ฮายอน', 'Hayeon'), pct: '22', to: BOTH },
   chars: [
     { id: 'เซนอิทสึ awake', start: '4972', base: '', back: false, hit: true },
     { id: 'ไอลีน', start: '4210', base: '', back: false, hit: false },
@@ -44,7 +46,11 @@ function load(): State {
     if (Array.isArray(s?.potential) && Array.isArray(s?.buffs) && Array.isArray(s?.chars) && s.chars.length === 2 && s?.debuff) {
       // รวมกับค่าเริ่มต้นทีละช่อง → ข้อมูลเก่าในเครื่องที่ขาดบางช่อง (เปลี่ยนรูปแบบทีหลัง) ไม่ทำให้หน้าพัง
       const str = (v: unknown, d: string) => (typeof v === 'string' ? v : d)
-      const buff = (b: Partial<Buff> | null | undefined): Buff => ({ name: str(b?.name, ''), pct: str(b?.pct, '') })
+      const buff = (b: Partial<Buff> | null | undefined): Buff => ({
+        name: str(b?.name, ''), pct: str(b?.pct, ''),
+        // ข้อมูลเก่าไม่มี to = ได้ทั้งคู่ (แบบเดิม)
+        to: Array.isArray(b?.to) ? [b.to[0] !== false, b.to[1] !== false] : BOTH,
+      })
       return {
         pet: str(s.pet, DEFAULT_STATE.pet),
         potential: Array.from({ length: PET_LINES }, (_, i) => str(s.potential[i], '')),
@@ -127,7 +133,7 @@ export default function AtkPage() {
       // แผนให้ All Attack % เฉพาะแถวหลัง บวกรวมกับ % ศักยภาพสัตว์เลี้ยง
       basePct: potentialPct + (c.back ? formation.atk : 0),
       pet: num(pet),
-      buffs: buffs.map((b) => num(b.pct)),
+      buffs: buffs.filter((b) => b.to[i]).map((b) => num(b.pct)),
       debuff: c.hit ? num(debuff.pct) : 0,
     }
     const name = c.id ? unitLabel(c.id) : L(`ตัวที่ ${i + 1}`, `Hero ${i + 1}`)
@@ -233,7 +239,7 @@ export default function AtkPage() {
           </div>
           {buffs.length < MAX_BUFFS && (
             <button
-              onClick={() => setState((s) => ({ ...s, buffs: [...s.buffs, { name: '', pct: '' }] }))}
+              onClick={() => setState((s) => ({ ...s, buffs: [...s.buffs, { name: '', pct: '', to: BOTH }] }))}
               className="pill mt-2 flex items-center gap-1 px-3 py-1.5 text-sm hover:border-gold"
             >
               <Plus className="h-4 w-4" /> {L('เพิ่มบัฟ', 'Add buff')}
@@ -312,7 +318,18 @@ export default function AtkPage() {
                   <RowToggle back={c.back} onChange={(back) => setChar(i, { back })} />
                 </div>
               )}
-              <label className="mt-3 flex items-center gap-2 text-sm">
+              {buffs.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+                  <span className="text-white/55">{L('ได้บัฟ', 'Buffed by')}</span>
+                  {buffs.map((bf, j) => (
+                    <label key={j} className="flex items-center gap-1.5">
+                      <input type="checkbox" checked={bf.to[i]} onChange={(e) => setBuff(j, { to: i === 0 ? [e.target.checked, bf.to[1]] : [bf.to[0], e.target.checked] })} className="accent-emerald-400" />
+                      {bf.name.trim() || L(`บัฟ ${j + 1}`, `Buff ${j + 1}`)}
+                    </label>
+                  ))}
+                </div>
+              )}
+              <label className="mt-2 flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={c.hit} onChange={(e) => setChar(i, { hit: e.target.checked })} className="accent-red-400" />
                 {L('โดนลด', 'Debuffed')}
                 {debuff.name.trim() ? ` (${debuff.name.trim()})` : ''}
@@ -329,7 +346,7 @@ export default function AtkPage() {
                   <dd>{fmt(r.pre)}</dd>
                 </div>
                 {buffs.map((bf, j) =>
-                  num(bf.pct) ? (
+                  num(bf.pct) && bf.to[i] ? (
                     <div key={j} className="flex justify-between gap-2 text-white/70">
                       <dt>
                         +{fmt(num(bf.pct))}% {bf.name}
