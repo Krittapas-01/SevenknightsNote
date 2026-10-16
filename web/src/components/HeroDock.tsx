@@ -50,7 +50,7 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
 
   const used = new Set(hub?.usedInFocused() ?? [])
   // ตัวที่ใช้ในไม้อื่นแล้ว → หรี่ + ป้ายไม้ (ยังกดใส่ได้ ถ้าตั้งใจ)
-  const blocked = tab === 'hero' ? hub?.blockedInFocused() ?? {} : {}
+  const blocked = hub?.blockedInFocused() ?? {} // ป้ายนี้มีแค่อัศวิน (แถวอัศวินค้างไว้ตอนอยู่แท็บสัตว์เลี้ยงด้วย)
   const usedIn = (u: Unit) => blocked[baseName(u.name)]
   const heroList = useMemo(
     () => HEROES.filter((u) => matchUnit(u, query) && (!types.length || (u.type && types.includes(u.type))) && (!tiers.length || tiers.includes(tierOf(u.name)!))),
