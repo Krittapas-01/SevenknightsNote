@@ -54,7 +54,7 @@ function Group({ label, items, max, onRemove, onAdd }: {
 }) {
   return (
     <div className="flex items-center gap-1">
-      <span className="mr-0.5 text-[11px] text-white/45">{label}</span>
+      <span className="mr-0.5 whitespace-nowrap text-[11px] text-white/45">{label}</span>
       {items.map((it, i) => (
         <button key={i} type="button" onClick={() => onRemove(i)} title={L(`${it.name} — กดเพื่อเอาออก`, `${it.name} — tap to remove`)}
           className="group relative grid h-10 w-10 place-items-center overflow-hidden rounded-lg border border-gold/30 bg-black/30">
