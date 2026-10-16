@@ -228,3 +228,12 @@ Matched to `portraits.s6` and `portraits.awk` in [Legendary+ metadata](https://7
 | Tanjiro awake.webp | ทันจิโร่ / awakened | [WebP](https://7katlas.com/images/heroes/thumb/L+/AWK/Tex_HeroIcon_401987Big.webp) |
 | Zenitsu.webp | เซนอิทสึ / base | [WebP](https://7katlas.com/images/heroes/thumb/L+/6/Tex_HeroIcon_101996Big.webp) |
 | Zenitsu awake.webp | เซนอิทสึ / awakened | [WebP](https://7katlas.com/images/heroes/thumb/L+/AWK/Tex_HeroIcon_401997Big.webp) |
+
+## Giyu and Shinobu awakening portraits (2026-10-15)
+
+Matched to `portraits.awk` in [Legendary+ metadata](https://7katlas.com/COMBINE/heroes-Lplus.js), using the compressed transparent thumbnail variants. Local 256px copies in `thumb/` use the same artwork.
+
+| Local file | Hero / form | Source |
+| --- | --- | --- |
+| Giyu awake.webp | กิยู / awakened | [WebP](https://7katlas.com/images/heroes/thumb/L+/AWK/Tex_HeroIcon_402017Big.webp) |
+| Shinobu awake.webp | ชิโนบุ / awakened | [WebP](https://7katlas.com/images/heroes/thumb/L+/AWK/Tex_HeroIcon_402007Big.webp) |
