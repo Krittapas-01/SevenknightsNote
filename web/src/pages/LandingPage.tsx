@@ -99,6 +99,7 @@ export default function LandingPage() {
           </button>
         </form>
         <p className="relative mt-4 text-xs text-white/45">{tx('ใช้ฟรี · ไม่ต้องสมัคร · พร้อมใช้บนมือถือและคอม')}</p>
+        <p className="relative mt-1 text-xs text-white/45">{tx('ผู้ดูแลเว็บเข้าดูข้อมูลของทุกกิลด์ได้ · ไม่แชร์ต่อให้ผู้อื่น')}</p>
         {err && <p className="mt-3 text-sm text-red-300">{err}</p>}
 
         {/* เครื่องมือ: เช็กความคุ้มค่าแพ็ค */}
