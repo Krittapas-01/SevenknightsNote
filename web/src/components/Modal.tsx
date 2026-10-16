@@ -39,8 +39,9 @@ export default function Modal({ open, title, onClose, children, wide }: { open: 
 
   if (!open) return null
   // portal ไปที่ body: ถ้าอยู่ใน .panel (มี backdrop-filter) ตำแหน่ง fixed จะเพี้ยน
+  // พื้นหลังมืดเฉย ๆ ไม่เบลอ: เบลอเต็มจอต้องเบลอใหม่ทั้งจอทุกเฟรมที่ในหน้าต่างขยับ (เลื่อน/ชี้การ์ด) → ตารางอัศวินหน้าใหญ่เลื่อนกระตุก
   return createPortal(
-    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4"
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center sm:p-4"
       onPointerDown={(e) => { downOnBackdrop.current = e.target === e.currentTarget }}
       onClick={(e) => { if (e.target === e.currentTarget && downOnBackdrop.current) onClose(); downOnBackdrop.current = false }}>
       <div

@@ -22,7 +22,7 @@ function PracticeInner({ className = '' }: { className?: string }) {
         <Gamepad2 className="h-3.5 w-3.5" /> ลองฝึก
       </button>
       {open && (
-        <div data-noexport role="dialog" aria-label="สนามฝึกจัดทีม" className="fixed inset-0 overflow-y-auto bg-[#0b1120]/95 backdrop-blur-sm" style={{ zIndex: 45 }}>
+        <div data-noexport role="dialog" aria-label="สนามฝึกจัดทีม" className="fixed inset-0 overflow-y-auto bg-[#0b1120]/95" style={{ zIndex: 45 }}>
           <div className="sticky top-0 z-10 border-b border-gold/20 bg-[var(--surface-deep)]/95">
             <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
               <Gamepad2 className="h-5 w-5 text-gold" />

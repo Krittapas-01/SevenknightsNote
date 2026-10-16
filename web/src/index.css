@@ -242,6 +242,12 @@ h1, h2, h3 { text-wrap: balance; }
 .hero-dock-idle { content-visibility: hidden; transform: translateY(100vh); }
 /* แถวการ์ดของแท็บที่ไม่ได้เปิด (อัศวิน/สัตว์เลี้ยง สร้างค้างไว้ทั้งคู่) */
 .roster-group-idle { content-visibility: hidden; position: absolute; left: 0; top: 0; }
+/* ตารางอัศวินหน้าใหญ่ (การ์ด 100+ ใบ): ชี้แล้วแค่ขอบเปลี่ยนสีทันที ไม่ลอย/ไม่มี transition
+   การ์ดลอย = เริ่มแอนิเมชันใหม่ทุกครั้งที่เมาส์ผ่าน → เบราว์เซอร์จัดเลเยอร์ทั้งตารางใหม่ทุกเฟรม (ลากเมาส์ผ่านแล้วกระตุก) */
+.hero-grid .unit-card { transition: none; }
+/* หมวดที่ยังเลื่อนไม่ถึงไม่ต้องวาด → เปิดหน้าต่างเร็วขึ้น
+   content-visibility ตัดภาพที่ล้นกรอบ → padding + margin ลบ ขยายกรอบออกไปให้แสงรอบการ์ด awake ไม่โดนตัด (ตำแหน่งการ์ดเท่าเดิม) */
+.hero-grid-group { content-visibility: auto; contain-intrinsic-block-size: auto 600px; padding: 14px; margin: -14px; }
 .landing-hero > .eyebrow,
 .landing-hero > .hero-crest { animation: content-arrive 360ms var(--motion-out) backwards; }
 .landing-hero > h1 { animation: content-arrive 420ms var(--motion-out) 60ms backwards; }
@@ -418,8 +424,6 @@ html[data-theme="light"] .vs-embers .ember-r { background: #e0405f; box-shadow: 
   .hero-dock .pill { white-space: nowrap; }
   .modal-surface { padding-bottom: env(safe-area-inset-bottom); }
   .modal-surface { animation-name: sheet-arrive; }
-  /* Opaque dimming is cheaper than blurring a scrolling roster on phones. */
-  .modal-backdrop, .hero-dock { backdrop-filter: none; }
 }
 
 /* เข้าหน้า (ทุกหน้า): ส่วนต่าง ๆ ของหน้าลอยขึ้นทีละชิ้น → lib/motion.ts (usePageEnter) ใช้ keyframes เดียวกับ content-arrive */
@@ -433,6 +437,7 @@ html[data-theme="light"] .vs-embers .ember-r { background: #e0405f; box-shadow: 
 
 @media (hover: hover) and (pointer: fine) {
   button:not(:disabled):hover > .unit-card { transform: translateY(-2px); border-color: #fff0c5; }
+  .hero-grid button:not(:disabled):hover > .unit-card { transform: none; }
   .btn-gold:not(:disabled):hover, a.btn-gold:hover { transform: translateY(-1px); }
   .btn-gold:not(:disabled):hover::after, a.btn-gold:hover::after { animation: gold-sheen 520ms var(--motion-settle); }
   button.pill:not(:disabled):hover, a.pill:hover { border-color: #f4d58d99; }
