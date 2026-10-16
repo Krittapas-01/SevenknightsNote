@@ -26,7 +26,7 @@ const GuidePage = lazy(() => import('./pages/GuidePage'))
 const UpdatesPage = lazy(() => import('./pages/UpdatesPage'))
 const PracticePage = lazy(() => import('./pages/PracticePage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
-const loading = <p className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
+const loading = <p data-skeleton className="py-24 text-center text-white/50">{tx('กำลังโหลด...')}</p>
 import NotFound from './pages/NotFound'
 import { tx } from './lib/i18n'
 

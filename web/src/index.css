@@ -234,8 +234,15 @@ h1, h2, h3 { text-wrap: balance; }
   box-shadow: 0 0 0 5px #ffffff03;
 }
 .team-panel button:not(:disabled) > .unit-card { animation: card-arrive 240ms var(--motion-settle); }
-.modal-backdrop { animation: fade-in 160ms ease-out; }
-.modal-surface { background: linear-gradient(145deg, #26344d, #141d30); animation: modal-arrive 280ms var(--motion-out); }
+/* หน้าต่าง (Modal): แอนิเมชันเปิด/ปิดทำด้วย JS (lib/overlayMotion) — รอเฟรมหนักวาดเสร็จก่อนค่อยเริ่ม + มีแอนิเมชันปิด */
+.modal-surface { background: linear-gradient(145deg, #26344d, #141d30); }
+/* keep: หน้าต่างที่ปิดแล้วแต่เก็บเนื้อหาไว้ (ตารางอัศวิน) — ไม่วาดข้างใน + เลื่อนออกนอกจอ (แบบเดียวกับ .hero-dock-idle)
+   200% ของความสูงตัวเอง (เต็มจอ) — ไม่ใช้ vh: จอคอมซูม 80% แล้ว 100vh สั้นกว่าจอจริง */
+.modal-idle { content-visibility: hidden; transform: translateY(200%); }
+/* เนื้อหาหนักยังวาดไม่เสร็จ: ดาวหมุนกลางจอ โผล่หลัง 0.18 วิ (เปิดเร็ว = ไม่เห็นเลย) */
+.modal-wait { font-size: 28px; line-height: 1; color: #f4d58d; text-shadow: 0 0 14px #f4d58daa; opacity: 0; will-change: transform, opacity;
+  animation: fade-in 200ms ease-out 180ms forwards, wait-spin 1.1s linear infinite; }
+@keyframes wait-spin { to { transform: rotate(360deg); } }
 .queue-star { animation: star-twinkle 900ms ease-in-out 2; }
 .hero-dock { box-shadow: 0 -12px 40px #05091580, inset 0 2px 0 #f4d58d0d; padding-bottom: env(safe-area-inset-bottom); }
 /* Fade the dock as one surface; never move its draggable coordinate space. */
@@ -425,15 +432,19 @@ html[data-theme="light"] .vs-embers .ember-r { background: #e0405f; box-shadow: 
   .guild-banner { padding: 22px 18px; }
   .hero-dock .pill { white-space: nowrap; }
   .modal-surface { padding-bottom: env(safe-area-inset-bottom); }
-  .modal-surface { animation-name: sheet-arrive; }
 }
+
+/* แถบโหลดสีทองบนสุด ระหว่างรอหน้าใหม่วาด (components/NavProgress) — ขยับด้วย transform อย่างเดียว */
+.nav-progress { position: fixed; inset: 0 0 auto 0; z-index: 70; height: 3px; pointer-events: none; transform-origin: left center; transform: scaleX(0); opacity: 0;
+  background: linear-gradient(90deg, #c9a35a, #fff1c9 70%, #f4d58d); box-shadow: 0 0 10px #f4d58daa, 0 0 2px #fff1c9; }
+/* ม่านสีพื้นจาง ๆ ทับเนื้อหา (ใต้หัวเว็บ) ระหว่างรอหน้าใหม่ — สีทึบก้อนเดียว ถูกกว่าจางทั้งหน้า (จางทั้งหน้า = วาดหน้าเดิมใหม่ทั้งหน้า) */
+.nav-veil { position: fixed; inset: 0; z-index: 20; pointer-events: none; background: var(--surface-deep); opacity: 0; }
 
 /* เข้าหน้า (ทุกหน้า): ส่วนต่าง ๆ ของหน้าลอยขึ้นทีละชิ้น → lib/motion.ts (usePageEnter) ใช้ keyframes เดียวกับ content-arrive */
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes card-arrive { from { opacity: .35; transform: scale(.95); } to { opacity: 1; transform: none; } }
 @keyframes content-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes modal-arrive { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
-@keyframes sheet-arrive { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 @keyframes star-twinkle { 50% { opacity: .65; } }
 @keyframes gold-sheen { to { transform: translateX(130%); } }
 
@@ -505,7 +516,7 @@ body:has(.hero-dock, [data-bottom-bar]) .contact-fab { display: none; }
 /* เข้าโหมดแก้: ฟอร์มรายละเอียดเลื่อนเข้า */
 .tag-pop { animation: tag-pop 320ms cubic-bezier(.34,1.56,.64,1); }
 @keyframes tag-pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
-.wiz-backdrop { animation: fade-in 220ms ease-out; }
+/* ตัวช่วยตั้งไม้ (.wiz-backdrop) เปิด/ปิดด้วย JS → components/Layer.tsx */
 .wiz-arrive { animation: modal-arrive 320ms var(--motion-out); }
 .bar-arrive { animation: bar-arrive 360ms var(--motion-out); }
 @keyframes bar-arrive { from { transform: translateY(100%); } to { transform: none; } }
@@ -641,6 +652,8 @@ html[data-theme="light"] .panel-gold::before, html[data-theme="light"] .panel-go
 html[data-theme="light"] .guild-banner::after { color: #d9a93f; text-shadow: 0 0 6px #ffffff, 0 0 10px #f4d58d; }
 html[data-theme="light"] .modal-surface { background: linear-gradient(160deg, #f7f6f5, #f0efee); }
 html[data-theme="light"] .modal-backdrop { background-color: #27241f66; }
+html[data-theme="light"] .nav-progress { background: linear-gradient(90deg, #a2783a, #d9b56d 70%, #c9a35a); box-shadow: 0 0 8px #c9a35a88; }
+html[data-theme="light"] .modal-wait { color: #a2783a; text-shadow: 0 0 10px #c9a35a66; }
 /* ช่องว่างในการ์ดทีม: เส้นประจาง ๆ แทนก้อนทึบ */
 html[data-theme="light"] .slot-empty {
   border: 1.5px dashed #b1aea8;

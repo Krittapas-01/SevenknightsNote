@@ -6,7 +6,7 @@ const Box = ({ className = '' }: { className?: string }) => <div className={`pan
 
 export default function PageSkeleton({ kind }: { kind: 'guild' | 'target' | 'plan' }) {
   return (
-    <div role="status" aria-busy="true" data-testid="page-skeleton">
+    <div role="status" aria-busy="true" data-testid="page-skeleton" data-skeleton>
       <span className="sr-only">{tx('กำลังโหลด...')}</span>
       {kind === 'guild' && (
         <div aria-hidden>

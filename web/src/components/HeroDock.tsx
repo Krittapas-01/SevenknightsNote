@@ -183,15 +183,17 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
         </div>
       </div>
 
-      {/* ตารางใหญ่ตรงกลาง */}
-      <Modal open={modal === 'grid'} title={L(`${tab === 'hero' ? 'อัศวิน' : 'สัตว์เลี้ยง'}ทั้งหมด · ใส่ใน ${hub.focusedLabel ?? '—'}`, `All ${tab === 'hero' ? 'heroes' : 'pets'} · adding to ${hub.focusedLabel ?? '—'}`)} onClose={() => setModal(null)} wide>
+      {/* ตารางใหญ่ตรงกลาง — สร้างรอไว้ตั้งแต่แถบเตรียมเสร็จ (keep="prerender") + ปิดแล้วเก็บไว้ → กด "ดูทั้งหมด" แล้วกรอบเด้งขึ้นทันที
+          ไม่ต้องสร้างการ์ด 100+ ใบตอนกด (เดิมจอมืดรอเกือบวิที่ CPU ช้า แล้วหน้าต่างโผล่มาทีเดียว) */}
+      <Modal open={modal === 'grid'} title={L(`${tab === 'hero' ? 'อัศวิน' : 'สัตว์เลี้ยง'}ทั้งหมด · ใส่ใน ${hub.focusedLabel ?? '—'}`, `All ${tab === 'hero' ? 'heroes' : 'pets'} · adding to ${hub.focusedLabel ?? '—'}`)} onClose={() => setModal(null)} wide tall keep="prerender">
         <div className="mb-3 flex gap-2">
           <RoundBtn title={tx('กรองประเภท')} onClick={() => setModal('filter')} active={types.length + tiers.length > 0} hidden={tab !== 'hero'}><Filter className="h-5 w-5" /></RoundBtn>
           <RoundBtn title={tx('ค้นหาชื่อ')} onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
           {query && <span className="self-center text-sm text-white/60">{tx('ค้นหา: “')}{query}”</span>}
         </div>
-        <div ref={gridRef} {...gridScroll} data-tour="hero-grid" className="hero-grid cursor-grab select-none space-y-5">
-          {groups.map((g) => (
+        {/* data-cascade: เปิดแล้วหมวด (tier) ลอยขึ้นทีละหมวด · data-tour เฉพาะตอนเปิด (ปิดอยู่ยังอยู่ในหน้าแบบซ่อน — อย่าให้ตัวสอนใช้เจอ) */}
+        <div ref={gridRef} {...gridScroll} data-cascade data-tour={modal === 'grid' ? 'hero-grid' : undefined} className="hero-grid cursor-grab select-none space-y-5">
+          {groups.map((g, gi) => (
             <section key={g.key}>
               {g.tier && (
                 <div className="mb-2 flex items-center gap-2">
@@ -201,7 +203,9 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
                   <span className="h-px flex-1 bg-white/10" />
                 </div>
               )}
-              <div className="hero-grid-group grid grid-cols-4 gap-2.5 sm:grid-cols-6 lg:grid-cols-10">
+              {/* 2 หมวดแรก (เห็นทันทีที่เปิด) วาดเลย · หมวดถัดไปค่อยวาดตอนเลื่อนถึง (content-visibility: auto)
+                  ถ้าหมวดแรก ๆ รอเบราว์เซอร์เช็กว่าอยู่ในจอก่อน = เปิดแล้วเห็นหัวหมวดว่าง ๆ อีกหลายเฟรมค่อยมีการ์ด */}
+              <div className={`${gi < 2 ? '' : 'hero-grid-group'} grid grid-cols-4 gap-2.5 sm:grid-cols-6 lg:grid-cols-10`}>
                 {g.units.map((u) => (
                   <GridCard key={u.id} unit={u} kind={tab} onPick={onPick} inTeam={used.has(u.id)} usedIn={usedIn(u)} />
                 ))}
