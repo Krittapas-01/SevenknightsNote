@@ -9,11 +9,10 @@
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "seed:pandoara": "node ../scripts/seed-pandoara.mjs && wrangler d1 execute 7k-note --local --file=seed-pandoara.sql",
-    "seed:pandoara:remote": "node ../scripts/seed-pandoara.mjs && wrangler d1 execute 7k-note --remote --file=seed-pandoara.sql -y",
     "db:migrate": "wrangler d1 migrations apply 7k-note --local",
     "db:migrate:remote": "wrangler d1 migrations apply 7k-note --remote",
     "pandoara:heronotes": "node ../scripts/seed-pandoara.mjs && wrangler d1 execute 7k-note --local --file=upgrade-pandoara-heronotes.sql",
-    "pandoara:heronotes:remote": "node ../scripts/seed-pandoara.mjs && wrangler d1 execute 7k-note --remote --file=upgrade-pandoara-heronotes.sql -y"
+    "test": "node tests/audit.mjs && node tests/limits.mjs && node tests/autotext-api.mjs && node tests/cron.mjs && node tests/cron-autotext.mjs"
   },
   "dependencies": {
     "hono": "^4.13.9"
