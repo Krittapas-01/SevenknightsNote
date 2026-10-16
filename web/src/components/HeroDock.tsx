@@ -81,7 +81,7 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
     else if (st.pet && !p.pet && st.heroes < MAX_HEROES) hub.setDockTab('hero')
   }, [hub, st?.heroes, st?.pet, tab])
 
-  // กดการ์ดในแถบ: ฟังก์ชันเดิมทุกครั้ง (ผ่าน ref) → การ์ด 100+ ใบไม่ต้องวาดใหม่ทุกครั้งที่ใส่ตัวในทีม
+  // กดการ์ดในแถบ/ตารางหน้าใหญ่: ฟังก์ชันเดิมทุกครั้ง (ผ่าน ref) → การ์ด 100+ ใบไม่ต้องวาดใหม่ทุกครั้งที่ใส่ตัวในทีม
   const addRef = useRef<(u: Unit) => void>(() => {})
   addRef.current = (u: Unit) => hub?.quickAdd(tab, u.id)
   const onPick = useCallback((u: Unit) => addRef.current(u), [])
@@ -106,8 +106,6 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
   if (!hub || !hasPanels) return null
   // เปิดเฉพาะตอนแตะช่องในทีม (ปิดอยู่ = ซ่อนไว้เฉย ๆ ถ้าเตรียมแล้ว)
   if (!open && !warm) return null
-
-  const add = (u: Unit) => hub.quickAdd(tab, u.id)
 
   return (
     <>
@@ -192,7 +190,7 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
           <RoundBtn title={tx('ค้นหาชื่อ')} onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
           {query && <span className="self-center text-sm text-white/60">{tx('ค้นหา: “')}{query}”</span>}
         </div>
-        <div ref={gridRef} {...gridScroll} data-tour="hero-grid" className="cursor-grab select-none space-y-5">
+        <div ref={gridRef} {...gridScroll} data-tour="hero-grid" className="hero-grid cursor-grab select-none space-y-5">
           {groups.map((g) => (
             <section key={g.key}>
               {g.tier && (
@@ -203,22 +201,10 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
                   <span className="h-px flex-1 bg-white/10" />
                 </div>
               )}
-              <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6 lg:grid-cols-10">
-                {g.units.map((u) => {
-                  const inTeam = used.has(u.id)
-                  return (
-                    <button
-                      key={u.id}
-                      onClick={() => !inTeam && add(u)}
-                      className={`relative aspect-[4/5] text-[13px] transition ${inTeam ? 'opacity-35' : usedIn(u) ? 'opacity-60 hover:opacity-90' : 'hover:-translate-y-0.5'}`}
-                      title={inTeam ? tx('อยู่ในทีมแล้ว') : L(`ใส่ ${unitLabel(u.id)}`, `Add ${unitLabel(u.id)}`)}
-                    >
-                      <UnitCard id={u.id} shape={tab === 'hero' ? 'hero' : 'pet'} small />
-                      {inTeam && <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-[#000]/60 py-0.5 text-center text-xs text-[#fff]">{tx('ในทีม')}</span>}
-                      {!inTeam && usedIn(u) && <UsedBadge label={usedIn(u)!} />}
-                    </button>
-                  )
-                })}
+              <div className="hero-grid-group grid grid-cols-4 gap-2.5 sm:grid-cols-6 lg:grid-cols-10">
+                {g.units.map((u) => (
+                  <GridCard key={u.id} unit={u} kind={tab} onPick={onPick} inTeam={used.has(u.id)} usedIn={usedIn(u)} />
+                ))}
               </div>
             </section>
           ))}
@@ -289,6 +275,23 @@ const RosterCard = memo(function RosterCard({ unit, kind, onPick, usedIn, draggi
       {/* การ์ดกว้าง 68–80px (อัศวินซูมรูป 1.6 เท่า) → จอทั่วไปใช้รูปย่อ 256px พอ ถอด/วาดเร็วกว่ารูปเต็มมาก */}
       <UnitCard id={unit.id} shape={kind === 'hero' ? 'hero' : 'pet'} sizes={kind === 'hero' ? '(min-width: 640px) 128px, 109px' : '(min-width: 640px) 80px, 68px'} />
       {usedIn && <UsedBadge label={usedIn} />}
+    </button>
+  )
+})
+
+/** การ์ดในตารางหน้าใหญ่: memo เหมือนการ์ดในแถบ → ใส่ตัวแล้ววาดใหม่แค่ใบที่เปลี่ยน ไม่ใช่ทั้ง 100+ ใบ
+ *  ไม่มีแอนิเมชันลอยตอนชี้ (ดู .hero-grid ใน index.css) */
+const GridCard = memo(function GridCard({ unit, kind, onPick, inTeam, usedIn }: { unit: Unit; kind: 'hero' | 'pet'; onPick: (u: Unit) => void; inTeam: boolean; usedIn?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => !inTeam && onPick(unit)}
+      className={`relative aspect-[4/5] text-[13px] ${inTeam ? 'opacity-35' : usedIn ? 'opacity-60 hover:opacity-90' : ''}`}
+      title={inTeam ? tx('อยู่ในทีมแล้ว') : L(`ใส่ ${unitLabel(unit.id)}`, `Add ${unitLabel(unit.id)}`)}
+    >
+      <UnitCard id={unit.id} shape={kind === 'hero' ? 'hero' : 'pet'} small />
+      {inTeam && <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-[#000]/60 py-0.5 text-center text-xs text-[#fff]">{tx('ในทีม')}</span>}
+      {!inTeam && usedIn && <UsedBadge label={usedIn} />}
     </button>
   )
 })

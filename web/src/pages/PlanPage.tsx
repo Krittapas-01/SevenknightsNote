@@ -737,7 +737,8 @@ export default function PlanPage() {
       // หน้าต่างกลางจอ (ไม่เต็มจอ) — พื้นหลังมืด ล็อกจนกด เสร็จ/ยกเลิก · pb เผื่อแถบอัศวินด้านล่าง
       // ขนาดหน้าต่างคงที่ทุกขั้น (ไม่ยืด/หดตอนเปลี่ยนขั้น) — เนื้อหาเลื่อนข้างใน
       // กดพื้นหลังนอกกรอบ = ยกเลิก (เหมือนกด "ยกเลิก") — ถ้าแถบอัศวินเปิดอยู่ ครั้งนั้นแค่ปิดแถบ/ยกเลิกช่องที่เลือก
-      <div className="wiz-backdrop fixed inset-0 z-[45] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true"
+      // ไม่เบลอพื้นหลัง (ตารางอัศวินหน้าใหญ่เปิดซ้อนบนนี้ → เบลอเต็มจอใหม่ทุกเฟรมที่เลื่อนตาราง)
+      <div className="wiz-backdrop fixed inset-0 z-[45] flex items-center justify-center bg-black/75 p-3 sm:p-6" role="dialog" aria-modal="true"
         onPointerDown={(e) => { backdropDown.current = e.target === e.currentTarget && !document.querySelector('.hero-dock') }}
         onClick={(e) => {
           if (e.target === e.currentTarget && backdropDown.current) {
