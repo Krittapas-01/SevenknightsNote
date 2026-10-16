@@ -10,6 +10,7 @@ import {
 import { tx, L, LOCALE, EN } from '../lib/i18n'
 
 const STORE_KEY = '7k-note:totalwar'
+const SEASON_KEY = '7k-note:totalwar-season'
 const fmt = (n: number) => n.toLocaleString('en-US')
 const signed = (n: number) => (n > 0 ? `+${fmt(n)}` : fmt(n))
 const pct = (n: number) => `${Number(n.toFixed(2))}%`
@@ -55,10 +56,14 @@ export default function TotalWarPage() {
   const [rate, setRate] = useState('')
   const [target, setTarget] = useState(3)
   const [now, setNow] = useState(Date.now())
-  useEffect(() => { try { localStorage.setItem(STORE_KEY, score) } catch { /* ไม่มี storage ก็ไม่เป็นไร */ } }, [score])
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t) }, [])
 
   const tw = totalWarNow(now)
+  // คะแนนที่จดไว้เป็นของซีซันไหน (ไม่ล้างเอง เพราะยังไม่รู้กติการีเซ็ตในเกม — แค่เตือน + ปุ่มล้าง)
+  const [scoreSeason, setScoreSeason] = useState(() => { try { const v = localStorage.getItem(SEASON_KEY); return v === null ? tw.season : Number(v) } catch { return tw.season } })
+  useEffect(() => { try { localStorage.setItem(STORE_KEY, score); localStorage.setItem(SEASON_KEY, String(scoreSeason)) } catch { /* ไม่มี storage ก็ไม่เป็นไร */ } }, [score, scoreSeason])
+  const editScore = (v: string) => { setScore(v); setScoreSeason(tw.season) }
+  const staleScore = score !== '' && scoreSeason < tw.season
   const s = score === '' ? 0 : Math.max(0, Math.floor(Number(score)) || 0)
   const rankIndex = totalWarRankIndex(s)
   const rank = TOTAL_WAR_RANKS[rankIndex]
@@ -72,7 +77,8 @@ export default function TotalWarPage() {
   const shownRank = totalWarRankIndex(shown)
   const progress = nextRank ? Math.min(1, (s - rank.min) / (nextRank.min - rank.min)) : 1
   const progressAfter = res && nextRank && !res.promoted ? Math.min(1, Math.max(0, (res.next - rank.min) / (nextRank.min - rank.min))) : res?.promoted ? 1 : progress
-  const step = tw.state === 'before' ? 0 : tw.state === 'ended' ? 4 : 1 + TOTAL_WAR_PHASES.findIndex((p) => p.key === tw.phase.key)
+  // พักระหว่างซีซัน (จบซีซันที่แล้ว รอซีซันใหม่) = ขั้นเตรียมซีซัน
+  const step = tw.state === 'before' ? 0 : 1 + TOTAL_WAR_PHASES.findIndex((p) => p.key === tw.phase.key)
   const goal = TOTAL_WAR_RANKS[target]
   const plan = totalWarPlan(s, goal.min, tw.resultsLeft)
 
@@ -90,8 +96,8 @@ export default function TotalWarPage() {
         <div className="tw-countdown-row flex justify-center">
           <span className="tw-countdown rounded-full border px-4 py-1.5 text-sm">
             <span className="tw-countdown-spark" aria-hidden="true">✦</span>
-            <span className="tw-countdown-label">{tw.state === 'running' ? COUNTDOWN[tw.phase.key] : tw.state === 'before' ? tx('ซีซันเริ่มใน') : tx('สรุปซีซัน')}</span>
-            {tw.state !== 'ended' && <span className="tw-countdown-time"><Stopwatch /><b className="tabular-nums">{short(tw.state === 'running' ? tw.phaseLeft : tw.startsIn)}</b></span>}
+            <span className="tw-countdown-label">{tw.state === 'running' ? COUNTDOWN[tw.phase.key] : tw.lastEndedAt ? tx('ซีซันใหม่เริ่มใน') : tx('ซีซันเริ่มใน')}</span>
+            <span className="tw-countdown-time"><Stopwatch /><b className="tabular-nums">{short(tw.state === 'running' ? tw.phaseLeft : tw.startsIn)}</b></span>
           </span>
         </div>
         {/* แถบเฟส (แบบในเกม: ปลายแหลม + เพชร) */}
@@ -127,9 +133,11 @@ export default function TotalWarPage() {
         {/* แถบล่างแบบในเกม */}
         <div className="tw-dashboard mt-4 grid gap-2 sm:grid-cols-[1fr_auto_1.3fr_1fr] sm:items-center sm:gap-3">
           <div className="grid gap-2">
-            <Pill className="tw-stat-pill" label={tx('รอบ')}>{tw.state === 'running' ? tw.round : tw.state === 'ended' ? TOTAL_WAR_ROUNDS : 0}/{TOTAL_WAR_ROUNDS}</Pill>
+            <Pill className="tw-stat-pill" label={tx('รอบ')}>{tw.state === 'running' ? tw.round : 0}/{TOTAL_WAR_ROUNDS}</Pill>
             <Pill className="tw-stat-pill" label={tx('สิ้นสุดซีซัน')}><Clock className="h-4 w-4" />{tw.state === 'running' ? short(tw.seasonEnd - now) : '–'}</Pill>
-            {tw.state !== 'before' && <p className="px-4 text-right text-xs text-white/55">{tw.state === 'running' ? tx('จบ') : tx('จบแล้ว')} {endText(tw.state === 'running' ? tw.seasonEnd : tw.endedAt)}{' '}{tx('น.')}</p>}
+            {tw.state === 'running'
+              ? <p className="px-4 text-right text-xs text-white/55">{tx('จบ')} {endText(tw.seasonEnd)}{' '}{tx('น.')}</p>
+              : <p className="px-4 text-right text-xs text-white/55">{tx('เริ่ม')} {endText(now + tw.startsIn)}{' '}{tx('น.')}</p>}
           </div>
           <div className="hidden flex-col items-center sm:flex">
             <RankEmblem rank={rankIndex} size={52} />
@@ -147,9 +155,18 @@ export default function TotalWarPage() {
               <RankEmblem rank={Math.min(rankIndex + 1, 4)} size={26} />
             </div>
             <Pill className="tw-stat-pill" label={tx('คะแนนปัจจุบัน')}>
-              <input type="number" inputMode="numeric" min={0} value={score} onChange={(e) => setScore(e.target.value)} placeholder="0"
+              <input type="number" inputMode="numeric" min={0} value={score} onChange={(e) => editScore(e.target.value)} placeholder="0"
                 className="tw-number-input [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none w-20 bg-transparent text-right outline-none" />
             </Pill>
+            {staleScore && (
+              <div className="tw-stale flex items-center justify-between gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[11px] text-amber-100">
+                <span>{tx('คะแนนนี้จดไว้ตั้งแต่ซีซันก่อน')}</span>
+                <span className="flex gap-1">
+                  <button type="button" onClick={() => setScoreSeason(tw.season)} className="rounded-full px-2 py-0.5 hover:bg-white/10">{tx('ใช้ต่อ')}</button>
+                  <button type="button" onClick={() => editScore('')} className="rounded-full border border-amber-300/40 px-2 py-0.5 hover:bg-amber-300/20">{tx('ล้าง')}</button>
+                </span>
+              </div>
+            )}
           </div>
           <div className="tw-win-card rounded-2xl border p-2">
             <div className="text-center text-xs font-semibold">{tx('อัตราชนะรอบนี้')}</div>
@@ -163,7 +180,7 @@ export default function TotalWarPage() {
         </div>
         {res && (
           <div className="mt-2 flex justify-center">
-            <button type="button" onClick={() => { setScore(String(res.next)); setRate('') }} className="rounded-full border border-white/15 bg-black/40 px-4 py-1 text-sm text-white/80 hover:border-gold hover:text-gold">
+            <button type="button" onClick={() => { editScore(String(res.next)); setRate('') }} className="rounded-full border border-white/15 bg-black/40 px-4 py-1 text-sm text-white/80 hover:border-gold hover:text-gold">
               {tx('ใช้')}{' '}{fmt(res.next)}{' '}{tx('คิดรอบต่อไป')}
             </button>
           </div>

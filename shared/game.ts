@@ -62,10 +62,13 @@ export const TOTAL_WAR_ROUNDS = 22
 export const TOTAL_WAR_FIGHTS_PER_TEAM = 20
 
 /**
- * เวลาเริ่มซีซันปัจจุบัน (เวลาไทย) = วันศุกร์ 07:00 หลังวันอัปเดตแพทช์ (พฤหัส)
- * แพทช์ 1 ต.ค. 2026 → เริ่ม 2 ต.ค. 07:00 · แพทช์ใหม่มาแล้วแก้บรรทัดนี้แล้ว deploy
+ * ซีซันที่รู้วันแน่นอน (เวลาไทย) = วันศุกร์ 07:00 หลังวันอัปเดตแพทช์ (พฤหัส): แพทช์ 1 ต.ค. 2026 → เริ่ม 2 ต.ค. 07:00
+ * ซีซันถัดไปนับต่อเอง ทุก TOTAL_WAR_CYCLE_DAYS วัน (แพทช์ทุก 2 สัปดาห์) — ไม่ต้องแก้ทุกซีซัน
+ * ถ้าเกมเลื่อน/เปลี่ยนรอบ แก้วันนี้เป็นวันเริ่มซีซันล่าสุดที่รู้แน่ แล้ว deploy
  */
 export const TOTAL_WAR_SEASON_START = '2026-10-02T07:00:00+07:00'
+/** ซีซันเริ่มใหม่ทุกกี่วัน (เล่น 22 รอบ = 11 วัน แล้วพักรอซีซันใหม่) */
+export const TOTAL_WAR_CYCLE_DAYS = 14
 /** 1 รอบ = เตรียมรอบ (จัดทีม) 5 ชม. → ดำเนินการต่อสู้ 6 ชม. → สรุปผลรอบ 1 ชม. (รอบละ 12 ชม. = วันละ 2 รอบ) */
 export const TOTAL_WAR_PHASES = [
   { key: 'prep', name: 'เตรียมรอบ (จัดทีม)', hours: 5 },
@@ -77,24 +80,31 @@ const TW_ROUND_HOURS = TOTAL_WAR_PHASES.reduce((n, p) => n + p.hours, 0)
 /**
  * ตอนนี้ซีซันอยู่รอบไหน/เฟสไหน · round = รอบที่กำลังเล่น (1..22)
  * resultsLeft = จำนวนรอบที่ยังไม่ได้คิดคะแนน (รวมรอบนี้ ถ้ายังไม่สรุปผล) — ใช้วางแผน
+ * season = ลำดับซีซัน (0 = ซีซันที่ตั้งไว้ใน TOTAL_WAR_SEASON_START) · ช่วงพักระหว่างซีซัน = 'before' ของซีซันถัดไป (+ lastEndedAt)
  */
 export function totalWarNow(ts = Date.now(), start = TOTAL_WAR_SEASON_START) {
   const t0 = Date.parse(start)
   const H = 3_600_000
-  if (ts < t0) return { state: 'before' as const, startsIn: t0 - ts, resultsLeft: TOTAL_WAR_ROUNDS }
-  const elapsed = ts - t0
+  const cycle = TOTAL_WAR_CYCLE_DAYS * 24 * H
+  const length = TOTAL_WAR_ROUNDS * TW_ROUND_HOURS * H
+  if (ts < t0) return { state: 'before' as const, season: 0, startsIn: t0 - ts, resultsLeft: TOTAL_WAR_ROUNDS, lastEndedAt: null }
+  const season = Math.floor((ts - t0) / cycle)
+  const s0 = t0 + season * cycle
+  const elapsed = ts - s0
   const roundIdx = Math.floor(elapsed / (TW_ROUND_HOURS * H))
-  if (roundIdx >= TOTAL_WAR_ROUNDS) return { state: 'ended' as const, endedAt: t0 + TOTAL_WAR_ROUNDS * TW_ROUND_HOURS * H, resultsLeft: 0 }
+  // จบ 22 รอบแล้ว → พักรอซีซันใหม่ (นับถอยหลัง + วางแผนของซีซันหน้า)
+  if (roundIdx >= TOTAL_WAR_ROUNDS) return { state: 'before' as const, season: season + 1, startsIn: s0 + cycle - ts, resultsLeft: TOTAL_WAR_ROUNDS, lastEndedAt: s0 + length }
   let inRound = elapsed - roundIdx * TW_ROUND_HOURS * H
   let phaseIdx = 0
   while (inRound >= TOTAL_WAR_PHASES[phaseIdx].hours * H) inRound -= TOTAL_WAR_PHASES[phaseIdx++].hours * H
   const phase = TOTAL_WAR_PHASES[phaseIdx]
   const round = roundIdx + 1
   return {
-    state: 'running' as const, round, phase, phaseLeft: phase.hours * H - inRound,
+    state: 'running' as const, season, round, phase, phaseLeft: phase.hours * H - inRound,
     // ช่วงสรุปผล = รอบนี้เล่นจบแล้ว คะแนนกำลังจะเข้า (นับเป็นรอบที่ยังไม่ได้คิดคะแนน)
     resultsLeft: TOTAL_WAR_ROUNDS - round + 1,
-    seasonEnd: t0 + TOTAL_WAR_ROUNDS * TW_ROUND_HOURS * H,
+    seasonStart: s0,
+    seasonEnd: s0 + length,
   }
 }
 

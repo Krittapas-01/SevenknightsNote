@@ -673,5 +673,10 @@
  "หน้านี้มีปัญหา": "Something went wrong on this page",
  "กดโหลดใหม่เพื่อใช้เวอร์ชันล่าสุด": "Reload to get the latest version",
  "ลองโหลดหน้าใหม่อีกครั้ง ถ้ายังเป็นอยู่ช่วยแจ้งผู้ดูแลด้วย": "Try reloading the page. If it keeps happening, please let the admin know",
- "โหลดหน้าใหม่": "Reload"
+ "โหลดหน้าใหม่": "Reload",
+ "ซีซันใหม่เริ่มใน": "Next season starts in",
+ "เริ่ม": "Starts",
+ "คะแนนนี้จดไว้ตั้งแต่ซีซันก่อน": "This score is from last season",
+ "ใช้ต่อ": "Keep",
+ "ล้าง": "Clear"
 }

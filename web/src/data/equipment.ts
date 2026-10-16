@@ -21,7 +21,17 @@ export const equipmentNames = [
 /** รายชื่อสำหรับเลือก (หน้าแก้ของรายตัว) */
 export const SET_NAMES = Object.keys(SETS)
 const RING_BACK = Object.fromEntries(Object.entries(RING_ALIASES).map(([name, file]) => [file, name]))
+/** ลำดับตามสมุดภาพอุปกรณ์ในเกม (Equipment Codex → Accessories) · ชื่อตามไฟล์รูป */
+const RING_ORDER = [
+  'การคีนชีพ', 'อมตะ', 'แห่งอำนาจ', 'แห่งพลังกายใจ', 'กำแพงเหล็ก', 'แห่งสุขภาพ', 'แห่งการปราบปราม', 'ช่วงชิงปราสาท', 'แห่งการทำลายล้าง',
+  'เลือดนักสู้', 'เวทย์มน', 'กาลเวลา', 'แห่งโอกาส', 'ต้องสาป', 'แห่งความตาย', 'แห่งหายนะ', 'เปล่งประกาย', 'แห่งความหวาดกลัว',
+  'แห่งทุ่งหิมะ', 'เมดูซา', 'แห่งความฝัน', 'หนาม', 'ซาลาแมนเดอร์', 'พิษ', 'ล้างแค้น', 'คุ้มครอง', 'นำโชค',
+  'พิทักษ์', 'แห่งสมาธิ', 'ธรรมชาติ', 'แม่นยำ', 'ต้านทาน',
+].map((n) => `แหวน${n === 'การคีนชีพ' ? 'แห่งการคีนชีพ' : n}`)
+const ringRank = (file: string) => { const i = RING_ORDER.indexOf(file); return i < 0 ? RING_ORDER.length : i }
 export const RING_NAMES = Object.keys(images)
   .filter((name) => name.startsWith('ring-'))
-  .map((name) => RING_BACK[name.slice(5)] ?? name.slice(5))
-  .sort((a, b) => a.localeCompare(b, 'th'))
+  .map((name) => name.slice(5))
+  // แหวนใหม่ที่ยังไม่อยู่ในลำดับ ต่อท้ายเรียงตามตัวอักษร
+  .sort((a, b) => ringRank(a) - ringRank(b) || a.localeCompare(b, 'th'))
+  .map((file) => RING_BACK[file] ?? file)
