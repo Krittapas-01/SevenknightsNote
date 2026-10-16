@@ -292,3 +292,16 @@ Images are stored locally and loaded by the existing skill resolver.
 | เฮฟเว่นเนีย awake | [Tex_Skill_4006706.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4006706.webp) |
 | ทันจิโร่ awake | [Tex_Skill_4019806.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4019806.webp) |
 | เซนอิทสึ awake | [Tex_Skill_4019906.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4019906.webp) |
+
+## Giyu and Shinobu skill icons (2026-10-16)
+
+Matched the existing skill entries to `skills` in [Atlas Legendary+ metadata](https://7katlas.com/COMBINE/heroes-Lplus.js). Each hero has two active icons and one awakening icon. Original 128px transparent WebP files are loaded by the existing skill resolver.
+
+| Hero | Local file / source |
+| --- | --- |
+| กิยู / active | [Tex_Skill_1020102.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1020102.webp) |
+| กิยู / active | [Tex_Skill_1020103.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1020103.webp) |
+| กิยู / awakened | [Tex_Skill_4020106.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4020106.webp) |
+| ชิโนบุ / active | [Tex_Skill_1020002.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1020002.webp) |
+| ชิโนบุ / active | [Tex_Skill_1020003.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1020003.webp) |
+| ชิโนบุ / awakened | [Tex_Skill_4020006.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4020006.webp) |
