@@ -57,35 +57,74 @@ function store(gid: string, data: GuildData) {
   } catch { /* เต็ม/โหมดส่วนตัว — ใช้แค่ในหน่วยความจำ */ }
 }
 
+// สิทธิ์แก้ไขล่าสุดที่เช็กได้ (เก็บในเครื่อง) — เปิดเว็บใหม่ = ขึ้นหน้าแบบคนแก้ทันทีตามผลครั้งก่อน แล้วค่อยเช็กจริงเบื้องหลัง
+// ไม่งั้นทุกครั้งที่เปิด หน้าขึ้นแบบดูอย่างเดียวก่อน แล้วปุ่ม/แถบของคนแก้โผล่ทีหลัง → เนื้อหาทั้งหน้าถูกดันลง (CLS)
+// แค่เรื่องหน้าตา: เซิร์ฟเวอร์เช็กสิทธิ์จริงทุกครั้งที่บันทึก · ไม่มีรหัสในเครื่องและไม่ได้ล็อกอิน = ไม่ใช้ค่าที่จำไว้
+const EDIT_LS = '7k-note:can-edit'
+function readEdits(): Record<string, { owner?: boolean }> {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(EDIT_LS) || '{}')
+    return v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, { owner?: boolean }> : {}
+  } catch { return {} }
+}
+function lastEdit(gid: string) {
+  if (gid === DEMO_ID || (!getEditKey(gid) && !getSession())) return null
+  const v = readEdits()[gid]
+  return v ? { canEdit: true, owner: !!v.owner } : null
+}
+function rememberEdit(gid: string, canEdit: boolean, owner: boolean) {
+  if (gid === DEMO_ID) return
+  const all = readEdits()
+  if (canEdit) all[gid] = { owner }; else if (gid in all) delete all[gid]; else return
+  try { localStorage.setItem(EDIT_LS, JSON.stringify(all)) } catch { /* เต็ม/โหมดส่วนตัว */ }
+}
+
+/** ดึงข้อมูลกิลด์ — มีของในเครื่องพร้อมเลขเวอร์ชัน → ถามแค่ว่าเปลี่ยนไหม (เซิร์ฟเวอร์อ่าน 1 แถว) · ไม่เปลี่ยน = ใช้ของเดิม */
+function fetchGuild(gid: string) {
+  const run = (async () => {
+    const cached = peek(gid)
+    const fresh = await api.getGuild(gid, cached?.rev)
+    const d = fresh ?? cached!
+    if (fresh) store(gid, fresh)
+    loadedAt.set(gid, Date.now())
+    return d
+  })()
+  loading.set(gid, run)
+  const done = () => { if (loading.get(gid) === run) loading.delete(gid) }
+  run.then(done, done)
+  return run
+}
+
+/**
+ * เปิดเว็บมาที่หน้าของกิลด์ → เริ่มดึงข้อมูลตั้งแต่เว็บเริ่มทำงาน (main.tsx) พร้อมกับโหลดโค้ดของหน้านั้น
+ * ไม่ต้องรอโค้ดหน้าโหลด+วาดเสร็จก่อนค่อยยิง (รูปอัศวินบนจอขึ้นเร็วขึ้น — LCP) · หน้าที่เปิดขึ้นมารอผลเดียวกันนี้ ไม่ยิงซ้ำ
+ */
+export function prefetchGuild(gid: string) {
+  if (gid === DEMO_ID || loading.has(gid) || (isFresh(loadedAt, gid) && peek(gid))) return
+  fetchGuild(gid).catch(() => { /* หน้ากิลด์จัดการเอง (ขึ้นไม่พบ/โหลดใหม่ไม่สำเร็จ) */ })
+}
+
 /** โหลดข้อมูลกิลด์ + เช็คสิทธิ์แก้ไข (รับ ?key= จากลิงก์แชร์แล้วเก็บไว้) */
 export function useGuild(gid: string) {
   const [data, setData] = useState<GuildData | null>(() => peek(gid))
   const [error, setError] = useState<string | null>(null)
-  const [canEdit, setCanEditState] = useState(() => editMem.get(gid) ?? false)
-  const [owner, setOwnerState] = useState(() => ownerMem.get(gid) ?? false)
+  const [canEdit, setCanEditState] = useState(() => editMem.get(gid) ?? lastEdit(gid)?.canEdit ?? false)
+  const [owner, setOwnerState] = useState(() => ownerMem.get(gid) ?? lastEdit(gid)?.owner ?? false)
   const setCanEdit = useCallback((v: boolean, isOwner = v) => {
     editMem.set(gid, v); setCanEditState(v)
     ownerMem.set(gid, v && isOwner); setOwnerState(v && isOwner)
+    rememberEdit(gid, v, v && isOwner)
   }, [gid])
 
   // เปลี่ยนกิลด์ในหน้าเดิม → ขึ้นข้อมูลแคชของกิลด์นั้นก่อน
   useEffect(() => {
     setData(peek(gid))
-    setCanEditState(editMem.get(gid) ?? false)
-    setOwnerState(ownerMem.get(gid) ?? false)
+    setCanEditState(editMem.get(gid) ?? lastEdit(gid)?.canEdit ?? false)
+    setOwnerState(ownerMem.get(gid) ?? lastEdit(gid)?.owner ?? false)
   }, [gid])
 
   const reload = useCallback(async () => {
-    // มีของในเครื่องพร้อมเลขเวอร์ชัน → ถามแค่ว่าเปลี่ยนไหม (เซิร์ฟเวอร์อ่าน 1 แถว) · ไม่เปลี่ยน = ใช้ของเดิม
-    const run = (async () => {
-      const cached = peek(gid)
-      const fresh = await api.getGuild(gid, cached?.rev)
-      const d = fresh ?? cached!
-      if (fresh) store(gid, fresh)
-      loadedAt.set(gid, Date.now())
-      return d
-    })()
-    loading.set(gid, run)
+    const run = fetchGuild(gid)
     try {
       const d = await run
       setData(d)
@@ -94,8 +133,6 @@ export function useGuild(gid: string) {
       pushRecent({ id: d.guild.id, name: d.guild.name })
     } catch (e) {
       failed(gid, e)
-    } finally {
-      if (loading.get(gid) === run) loading.delete(gid)
     }
   }, [gid])
   /**
@@ -142,8 +179,9 @@ export function useGuild(gid: string) {
       window.history.replaceState(null, '', url.pathname + url.search + url.hash)
     }
     // เพิ่งโหลดจากหน้าก่อน (ไม่ถึง 1 นาที) และมีข้อมูลในเครื่อง → ใช้ของเดิม ไม่ยิง API ซ้ำ
+    // (รวมที่ main.tsx เริ่มดึงไว้ตอนเปิดเว็บ — prefetchGuild)
     const pending = loading.get(gid)
-    if (pending) pending.then((d) => { setData(d); setError(null) }, (e) => failed(gid, e))
+    if (pending) pending.then((d) => { setData(d); setError(null); pushRecent({ id: d.guild.id, name: d.guild.name }) }, (e) => failed(gid, e))
     else if (!(isFresh(loadedAt, gid) && peek(gid))) reload()
     // มีประกาศใหม่/มีคนแก้ (แถบประกาศเจอ) → โหลดข้อมูลหน้านี้ใหม่ด้วย
     const onChanged = (e: Event) => (e as CustomEvent).detail === gid && reload()

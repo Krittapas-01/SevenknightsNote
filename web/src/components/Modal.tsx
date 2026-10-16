@@ -2,12 +2,12 @@ import { X } from 'lucide-react'
 import { useDeferredValue, useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { tx } from '../lib/i18n'
-
-let scrollLocks = 0
+import { lockScroll } from '../lib/scrollLock'
 
 export default function Modal({ open, title, onClose, children, wide }: { open: boolean; title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean }) {
   const surface = useRef<HTMLDivElement>(null)
-  // เปิดหน้าต่าง = กรอบขึ้นทันที แล้วค่อยวาดเนื้อหา (บางหน้าต่างหนัก: การ์ดทีม/รูปเยอะ) → กดปุ่มแล้วไม่ค้าง (INP)
+  // เปิดหน้าต่าง = พื้นหลังมืดขึ้นทันที แล้วค่อยวาดกรอบพร้อมเนื้อหา (บางหน้าต่างหนัก: การ์ดทีม/รูปเยอะ) → กดปุ่มแล้วไม่ค้าง (INP)
+  // ไม่ขึ้นกรอบเปล่าไปก่อน: กรอบเล็กแล้วยืดเต็มทีหลัง = หน้าต่างกระโดด (CLS — มือถือกรอบชิดล่าง ขอบบนพุ่งขึ้นเกือบครึ่งจอ)
   const ready = useDeferredValue(open, false)
   // ปิดเมื่อกดและปล่อยบนพื้นหลังเท่านั้น — ลากคลุมข้อความในช่องแล้วเมาส์หลุดออกนอกกรอบจะไม่ปิดหน้าต่าง
   const downOnBackdrop = useRef(false)
@@ -25,17 +25,8 @@ export default function Modal({ open, title, onClose, children, wide }: { open: 
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
 
-  // ล็อกการเลื่อนหน้าแบบนับจำนวน — เปิดซ้อนกันหลายหน้าต่าง ปลดล็อกเมื่อปิดครบทุกอัน
-  // (แบบเดิมจำค่า overflow ก่อนหน้า: หน้าต่างซ้อน + render ใหม่ ทำให้จำค่า 'hidden' ไว้ → ปิดแล้วเลื่อนหน้าไม่ได้)
-  useEffect(() => {
-    if (!open) return
-    scrollLocks++
-    document.body.style.overflow = 'hidden'
-    return () => {
-      scrollLocks = Math.max(0, scrollLocks - 1)
-      if (!scrollLocks) document.body.style.overflow = ''
-    }
-  }, [open])
+  // ล็อกการเลื่อนหน้าแบบนับจำนวน — เปิดซ้อนกันหลายหน้าต่าง ปลดล็อกเมื่อปิดครบทุกอัน (lib/scrollLock)
+  useEffect(() => (open ? lockScroll() : undefined), [open])
 
   if (!open) return null
   // portal ไปที่ body: ถ้าอยู่ใน .panel (มี backdrop-filter) ตำแหน่ง fixed จะเพี้ยน
@@ -44,19 +35,21 @@ export default function Modal({ open, title, onClose, children, wide }: { open: 
     <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center sm:p-4"
       onPointerDown={(e) => { downOnBackdrop.current = e.target === e.currentTarget }}
       onClick={(e) => { if (e.target === e.currentTarget && downOnBackdrop.current) onClose(); downOnBackdrop.current = false }}>
-      <div
-        ref={surface} data-app-modal role="dialog" aria-modal="true" aria-labelledby={titleId}
-        className={`modal-surface panel panel-gold flex max-h-[88dvh] w-full ${wide ? 'max-w-6xl' : 'max-w-2xl'} flex-col rounded-b-none sm:rounded-b-[18px]`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
-          <h2 id={titleId} className="text-lg font-semibold text-gold">{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-full p-1.5 hover:bg-white/10" aria-label={tx('ปิด')}>
-            <X className="h-5 w-5" />
-          </button>
+      {ready && (
+        <div
+          ref={surface} data-app-modal role="dialog" aria-modal="true" aria-labelledby={titleId}
+          className={`modal-surface panel panel-gold flex max-h-[88dvh] w-full ${wide ? 'max-w-6xl' : 'max-w-2xl'} flex-col rounded-b-none sm:rounded-b-[18px]`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+            <h2 id={titleId} className="text-lg font-semibold text-gold">{title}</h2>
+            <button type="button" onClick={onClose} className="rounded-full p-1.5 hover:bg-white/10" aria-label={tx('ปิด')}>
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="scrollbar-thin overflow-y-auto p-5">{children}</div>
         </div>
-        <div className="scrollbar-thin overflow-y-auto p-5">{ready ? children : <div aria-busy="true" className="h-32 animate-pulse rounded-xl bg-white/5" />}</div>
-      </div>
+      )}
     </div>
   ,
     document.body,

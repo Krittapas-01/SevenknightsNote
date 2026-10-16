@@ -1,6 +1,7 @@
 import { Gamepad2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import TeamPractice from './TeamPractice'
+import { lockScroll } from '../lib/scrollLock'
 
 /** ปุ่ม "ลองฝึก" — เปิดสนามฝึกซ้อนบนหน้าเดิม (ข้อมูลทดลอง ไม่ยุ่งกับทีมจริง) */
 import { TUTORIAL_ON } from '../lib/onboarding'
@@ -9,11 +10,10 @@ function PracticeInner({ className = '' }: { className?: string }) {
   const [open, setOpen] = useState(false)
   useEffect(() => {
     if (!open) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlock = lockScroll()
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('[data-app-modal]')) setOpen(false) }
     window.addEventListener('keydown', esc)
-    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', esc) }
+    return () => { unlock(); window.removeEventListener('keydown', esc) }
   }, [open])
   return (
     <>
