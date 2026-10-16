@@ -32,8 +32,16 @@ export function clearGuildCache() {
   try { localStorage.removeItem(LS) } catch { /* ignore */ }
 }
 
+// แคชในเครื่องที่รูปแบบไม่ตรง (เวอร์ชันเก่า/ถูกแก้มือ) → ทิ้ง ไม่ให้หน้าพังเป็นจอขาว
+const validGuild = (d: unknown): d is GuildData => {
+  const g = d as GuildData | null
+  return !!g && typeof g === 'object' && !!g.guild && Array.isArray(g.targets) && Array.isArray(g.plans)
+}
 function readStored(): Stored {
-  try { return JSON.parse(localStorage.getItem(LS) || '[]') } catch { return [] }
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(LS) || '[]')
+    return Array.isArray(v) ? (v as Stored).filter((x) => x && typeof x.gid === 'string' && validGuild(x.data)) : []
+  } catch { return [] }
 }
 function peek(gid: string): GuildData | null {
   return mem.get(gid) ?? readStored().find((x) => x.gid === gid)?.data ?? null
@@ -82,13 +90,26 @@ export function useGuild(gid: string) {
       const d = await run
       setData(d)
       setError(null)
+      window.dispatchEvent(new Event('7knote:refresh-ok'))
       pushRecent({ id: d.guild.id, name: d.guild.name })
     } catch (e) {
-      setError((e as Error).message)
+      failed(gid, e)
     } finally {
       if (loading.get(gid) === run) loading.delete(gid)
     }
   }, [gid])
+  /**
+   * โหลดไม่สำเร็จ: มีข้อมูลบนจออยู่แล้ว (เน็ตสะดุด/ออฟไลน์) → คงหน้าเดิมไว้ + ขึ้นป้ายเล็ก "โหลดใหม่ไม่สำเร็จ" (ร่างที่แก้อยู่ไม่หาย)
+   * หน้า "ไม่พบ" เฉพาะตอนยังไม่มีข้อมูลเลย หรือเซิร์ฟเวอร์ตอบว่าไม่มีกิลด์นี้ (404)
+   */
+  const failed = useCallback((id: string, e: unknown) => {
+    const status = (e as { status?: number }).status
+    if (status !== 404 && peek(id)) {
+      window.dispatchEvent(new CustomEvent('7knote:refresh-failed', { detail: id }))
+      return
+    }
+    setError((e as Error).message)
+  }, [])
 
   // เช็คสิทธิ์แก้ไขใหม่ (รหัสในเครื่อง หรือ ยศ Discord)
   const recheck = useCallback(async () => {
@@ -122,7 +143,7 @@ export function useGuild(gid: string) {
     }
     // เพิ่งโหลดจากหน้าก่อน (ไม่ถึง 1 นาที) และมีข้อมูลในเครื่อง → ใช้ของเดิม ไม่ยิง API ซ้ำ
     const pending = loading.get(gid)
-    if (pending) pending.then((d) => { setData(d); setError(null) }, (e) => setError((e as Error).message))
+    if (pending) pending.then((d) => { setData(d); setError(null) }, (e) => failed(gid, e))
     else if (!(isFresh(loadedAt, gid) && peek(gid))) reload()
     // มีประกาศใหม่/มีคนแก้ (แถบประกาศเจอ) → โหลดข้อมูลหน้านี้ใหม่ด้วย
     const onChanged = (e: Event) => (e as CustomEvent).detail === gid && reload()
@@ -132,7 +153,7 @@ export function useGuild(gid: string) {
     if (pendingCheck && !key) pendingCheck.finally(() => { setCanEditState(editMem.get(gid) ?? false); setOwnerState(ownerMem.get(gid) ?? false) }).catch(() => {})
     else if (key || !(isFresh(checkedAt, gid) && editMem.has(gid))) recheck()
     return () => window.removeEventListener('7knote:changed', onChanged)
-  }, [gid, reload, recheck])
+  }, [gid, reload, recheck, failed])
 
   /** แก้ข้อมูลบนจอทันที (ก่อนเซิร์ฟเวอร์ตอบ) — กดบันทึกแล้วหน้าเปลี่ยนทันที ไม่กระโดดตอนผลกลับมาทีหลัง · ตามด้วย reload() เสมอ */
   /** คืนฟังก์ชันย้อนกลับ (บันทึกไม่ผ่าน → กลับเป็นข้อมูลก่อนแก้) */

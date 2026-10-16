@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import './index.css'
 import Layout from './components/Layout'
+import ErrorBoundary from './components/ErrorBoundary'
 import { applyUiZoom } from './lib/zoom'
 import { applyMotion } from './lib/prefs'
 import LandingPage from './pages/LandingPage'
@@ -31,6 +32,7 @@ applyMotion()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <ErrorBoundary>
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
@@ -52,5 +54,6 @@ createRoot(document.getElementById('root')!).render(
         </Route>
       </Routes>
     </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>,
 )

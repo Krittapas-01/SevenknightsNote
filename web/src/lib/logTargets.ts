@@ -81,7 +81,8 @@ export async function syncToLibrary(gid: string, items: SyncItem[]) {
   for (const it of items) {
     const c = it.counter
     try {
-      await api.updateCounter(gid, c.id, { team: c.team, skills: c.skills, note: c.note, heroNotes: it.heroNotes })
+      // ส่งเวอร์ชันที่เห็นไปด้วย: ระหว่างนั้นมีคนแก้ทีมแก้นี้ = ไม่ทับ (ขึ้นในรายการที่ไม่สำเร็จ)
+      await api.updateCounter(gid, c.id, { team: c.team, skills: c.skills, note: c.note, heroNotes: it.heroNotes, baseUpdatedAt: c.updatedAt })
       ok++
     } catch (e) {
       errors.push((e as Error).message)

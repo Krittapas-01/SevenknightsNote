@@ -32,8 +32,9 @@ import VsArena from '../components/VsArena'
 import { baseName, getUnit, unitBase, unitLabel } from '../data/heroes'
 import { api } from '../lib/api'
 import {
-  MAX_HEROES, MAX_HOUSES, MAX_OPTIONS, MAX_SKILL_QUEUE, changeFormation, emptyHouse, houseApply, houseView, emptyOption, emptyPlan, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type PlanData, type PlanKind, type Team, type WarOption, PLAN_KIND_LABEL, planKind, slotLabel } from '../lib/types'
+  MAX_HEROES, MAX_HOUSES, MAX_OPTIONS, MAX_SKILL_QUEUE, changeFormation, emptyHouse, houseApply, houseView, emptyOption, emptyPlan, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type PlanData, type PlanKind, type WarHouse, type Team, type WarOption, PLAN_KIND_LABEL, planKind, slotLabel } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
+import { UNSAVED_MSG, useUnsavedGuard } from '../lib/unsaved'
 import { activePlanId } from '../lib/war'
 import NotFound from './NotFound'
 import { tx, L, LOCALE } from '../lib/i18n'
@@ -81,10 +82,15 @@ export default function PlanPage() {
   const hasLib = PICK_TARGET && (data?.targets.length ?? 0) > 0
   const plan = data?.plans.find((p) => p.id === pid)
   const editBase = useRef<number | null>(null)
+  /** หน้าตาแผนตอนเริ่มแก้ (เทียบว่าแก้อะไรไปแล้วหรือยัง → ถามก่อนออก/ยกเลิก) */
+  const editSnap = useRef('')
 
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState('')
   const [draft, setDraft] = useState<PlanData>(emptyPlan)
+  // แก้แผนแล้วเผลอกดลิงก์/รีเฟรช/ยกเลิก → ถามก่อน (เดิมจัดครบ 5 ไม้แล้วหายหมดเงียบ ๆ)
+  const isDirty = () => editing && JSON.stringify({ title, data: draft }) !== editSnap.current
+  useUnsavedGuard(editing, isDirty)
   const [picker, setPicker] = useState<Picker>(null)
   /** เปิดที่จดไว้ให้ไม้ s (o = ทางเลือกที่จะแทน, null = เพิ่มใหม่) */
   const [library, setLibrary] = useState<{ s: number; o: number | null } | null>(null)
@@ -101,7 +107,7 @@ export default function PlanPage() {
   // ถามหลังบันทึกแผน: จดทีมที่จัดเองลงบ้านศัตรูด้วยไหม
   /** บันทึกแผน: ทีมแก้ที่ค่าความสามารถความเร็วครบทุกตัว → ถามก่อนว่าจะใส่ผลรวมเป็นความเร็วทีมไหม */
   const [speedAsk, setSpeedAsk] = useState<{ items: { s: number; o: number; total: number; cur: number }[]; picked: boolean[] } | null>(null)
-  const [logAsk, setLogAsk] = useState<{ items: LogItem[]; planId: string; body: { title: string; data: PlanData }; picked: boolean[] } | null>(null)
+  const [logAsk, setLogAsk] = useState<{ items: LogItem[]; planId: string; body: { title: string; data: PlanData }; picked: boolean[]; updatedAt: number } | null>(null)
   const [logBusy, setLogBusy] = useState(false)
   // ถามหลังบันทึกแผน: ส่งอุปกรณ์/ค่าความสามารถที่แก้ในแผนกลับไปที่ทีมแก้ในคลังไหม (ถามก่อน "จดลงบ้านศัตรู")
   const [syncAsk, setSyncAsk] = useState<{ items: SyncItem[]; picked: boolean[]; next: (() => void) | null } | null>(null)
@@ -220,6 +226,7 @@ export default function PlanPage() {
     if (isNew && canEdit) {
       setTitle(PLAN_KIND_LABEL[newKind])
       setDraft(emptyPlan(newKind))
+      editSnap.current = JSON.stringify({ title: PLAN_KIND_LABEL[newKind], data: emptyPlan(newKind) })
       setEditing(true)
     }
   }, [isNew, canEdit, newKind])
@@ -278,12 +285,14 @@ export default function PlanPage() {
   // ---------- edit helpers ----------
   function startEdit() {
     editBase.current = plan!.updatedAt // กันแก้ทับกัน (ถ้ามีคนบันทึกไปก่อน API ตอบ 409)
+    editSnap.current = JSON.stringify({ title: plan!.title, data: plan!.data })
     setTitle(plan!.title)
     setDraft(clone(plan!.data))
     setErr(null)
     setEditing(true)
   }
   function cancel() {
+    if (isDirty() && !window.confirm(UNSAVED_MSG())) return
     if (isNew) nav(`/g/${gid}`)
     else setEditing(false)
   }
@@ -304,6 +313,8 @@ export default function PlanPage() {
     setDraft((d) => ({ ...d, slots: d.slots.map((x, i) => (i === s ? { ...x, alts: [...(x.alts ?? []), emptyHouse()] } : x)) }))
     setHouse((m) => ({ ...m, [s]: n + 1 }))
   }
+  /** ช่องของบ้าน 1 บ้านครบ 5 ช่อง (ค่าว่างเติมให้) */
+  const houseOf5 = (x: Partial<WarHouse>): WarHouse => ({ vs: x.vs ?? null, vsTag: x.vsTag ?? '', vsId: x.vsId ?? '', vsTags: x.vsTags ?? [], vsNote: x.vsNote ?? '' })
   const removeHouse = (s: number, h: number) => {
     setDraft((d) => ({
       ...d,
@@ -311,9 +322,10 @@ export default function PlanPage() {
         if (i !== s) return x
         const alts = x.alts ?? []
         if (h === 0) { // ลบบ้านหลัก → บ้านถัดไปขึ้นเป็นหลัก
-          if (!alts.length) return { ...x, vs: null, vsTag: '', vsId: '' }
+          // ย้ายครบทั้ง 5 ช่องของบ้าน (เดิมย้ายแค่ทีม/แท็กหลัก → แท็กกับโน้ตของบ้านเก่าค้างอยู่ผิดบ้าน)
+          if (!alts.length) return { ...x, ...emptyHouse() }
           const [first, ...rest] = alts
-          return { ...x, vs: first.vs ?? null, vsTag: first.vsTag ?? '', vsId: first.vsId ?? '', alts: rest }
+          return { ...x, ...houseOf5(first), alts: rest }
         }
         return { ...x, alts: alts.filter((_, j) => j !== h - 1) }
       }),
@@ -326,9 +338,9 @@ export default function PlanPage() {
       ...d,
       slots: d.slots.map((x, i) => {
         if (i !== s || !x.alts?.[h - 1]) return x
-        const alt = x.alts[h - 1]
-        const old = { vs: x.vs ?? null, vsTag: x.vsTag ?? '', vsId: x.vsId ?? '' }
-        return { ...x, vs: alt.vs ?? null, vsTag: alt.vsTag ?? '', vsId: alt.vsId ?? '', alts: x.alts.map((a, j) => (j === h - 1 ? old : a)) }
+        // สลับบ้านทั้งก้อน (ทีม แท็ก โน้ต) — บ้านหลักเดิมไปอยู่ที่ของบ้านที่เลือก
+        const old = houseOf5(x)
+        return { ...x, ...houseOf5(x.alts[h - 1]), alts: x.alts.map((a, j) => (j === h - 1 ? old : a)) }
       }),
     }))
     setHouse((m) => ({ ...m, [s]: 0 }))
@@ -425,7 +437,8 @@ export default function PlanPage() {
     }
     // ถามแล้ว = ไม่ถามซ้ำ (ทั้งที่จดและไม่จด)
     try {
-      await api.updatePlan(gid, logAsk.planId, { ...logAsk.body, data: markLogged(logAsk.body.data, logAsk.items) })
+      // ส่งเวอร์ชันที่เพิ่งบันทึกไปด้วย: ระหว่างหน้าต่างค้างอยู่ถ้ามีคนแก้แผนนี้ = 409 ไม่ทับของเขา (รอบหน้าค่อยถามใหม่)
+      await api.updatePlan(gid, logAsk.planId, { ...logAsk.body, data: markLogged(logAsk.body.data, logAsk.items), baseUpdatedAt: logAsk.updatedAt })
     } catch { /* ไม่เป็นไร รอบหน้าถามใหม่ */ }
     await reload()
     setLogBusy(false)
@@ -489,22 +502,24 @@ export default function PlanPage() {
       // ทีมที่จัดเองในแผน → เดี๋ยวถามว่าจะจดลงบ้านศัตรูด้วยไหม
       const items = findLogItems(body.data, data?.targets ?? [])
       let planId = pid
+      let updatedAt = 0
       if (isNew) {
         const p = await api.createPlan(gid, body)
         planId = p.id
+        updatedAt = p.updatedAt
         createdId.current = p.id
         await reload()
         nav(`/g/${gid}/p/${p.id}`, { replace: true })
       } else {
         // ไม่รู้ว่าแก้จากเวอร์ชันไหน = ห้ามบันทึกทับ (กันเขียนทับแผนคนอื่นโดยไม่เช็กชนกัน)
         if (editBase.current === null) throw new Error(L('เปิดแผนนี้ใหม่แล้วกดแก้ไขอีกครั้ง', 'Reopen this plan and press Edit again'))
-        await api.updatePlan(gid, pid, { ...body, baseUpdatedAt: editBase.current })
+        updatedAt = (await api.updatePlan(gid, pid, { ...body, baseUpdatedAt: editBase.current })).updatedAt
         await reload()
       }
       setEditing(false)
       savedToast()
       rememberNotes(body.data.slots.flatMap((x) => x.options.flatMap((o) => o.heroNotes ?? []))) // จำค่าความสามารถล่าสุดของเครื่องนี้
-      const askLog = items.length ? () => setLogAsk({ items, planId, body, picked: items.map(() => true) }) : null
+      const askLog = items.length ? () => setLogAsk({ items, planId, body, picked: items.map(() => true), updatedAt }) : null
       const sync = findSyncItems(body.data, data?.targets ?? [], isNew ? undefined : data?.plans.find((p) => p.id === pid)?.data)
       if (sync.length) setSyncAsk({ items: sync, picked: sync.map(() => true), next: askLog })
       else askLog?.()
@@ -824,6 +839,8 @@ export default function PlanPage() {
               })()}
               {mainOpt && heroCount(mainOpt.team) > 0 && !mainOpt.team.pet && <p className="mb-2 text-center text-sm font-semibold text-amber-300">{def ? L('เลือกสัตว์เลี้ยงของบ้านกันก่อน', 'Pick a pet for the defense first') : L('เลือกสัตว์เลี้ยงของทีมแก้ก่อน', 'Pick a pet for the counter first')}</p>}
               <p className="mb-4 text-center text-sm text-white/55">{def ? L('จัดบ้านกันหลัก', 'Build the main defense') : L('จัดทีมแก้หลัก', 'Build the main counter')}{' '}{tx('— กดช่อง + เพื่อเลือกตัว (ดับเบิลคลิก = เปิดหน้าใหญ่) หรือใช้พรีเซต')}</p>
+              {/* แผนกันไม่มีขั้นบ้านที่จะตี → ตั้งชื่อไม้ตรงนี้ (เดิมตั้งชื่อไม้ของแผนกันไม่ได้เลย) */}
+              {def && <div className="mx-auto mb-4 flex w-full max-w-[420px] items-center gap-3 text-left">{u.nameInput}</div>}
               {/* แผนกัน: การ์ดเดียวตรงกลาง (ไม่มีบ้านศัตรู/VS) */}
               {def ? <div className="mx-auto w-full max-w-[420px]">{mainOpt && u.card(mainOpt, u.main, 'panel')}</div> : <VsArena
                 left={mainOpt ? u.card(mainOpt, u.main, 'panel') : <span />}
@@ -1522,7 +1539,8 @@ export default function PlanPage() {
         const b = skillAsk?.back
         setSkillAsk(null)
         if (!b) return
-        if (planKind(draft) === 'attack' && wiz?.s !== b.s) openWiz(b.s)
+        // ทั้งแผนบุกและแผนกันตั้งไม้ในหน้าต่างทีละขั้น → เปิดหน้าต่างของไม้นั้นก่อน (เดิมเปิดเฉพาะแผนบุก → แผนกันกดแล้วไม่เกิดอะไร)
+        if (wiz?.s !== b.s) openWiz(b.s)
         if (b.o === -1) setWiz((x) => x && { ...x, step: 1 }) // บ้านที่จะตี → กลับขั้น 1
         else if (b.o !== mainIndex(draft.slots[b.s])) setExpanded((x) => new Set(x).add(b.s))
         setSkillReq((r) => ({ s: b.s, o: b.o, n: (r?.n ?? 0) + 1 }))

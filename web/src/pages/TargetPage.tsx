@@ -87,7 +87,10 @@ export default function TargetPage() {
   const counterSlide = useSlideDir(sel)
   const [picker, setPicker] = useState<Picker>(null)
   const [busy, setBusy] = useState(false)
-  const bgSaves = useRef(0) // บันทึกเบื้องหลังที่ยังไม่เสร็จ
+  const bgSaves = useRef(0)
+  /** กันแก้ทับกัน: เวอร์ชันของบ้าน/ทีมแก้ตอนเริ่มแก้ */
+  const tBase = useRef<number | undefined>(undefined)
+  const cBase = useRef<number | undefined>(undefined) // บันทึกเบื้องหลังที่ยังไม่เสร็จ
   const [retry, setRetry] = useState<{ msg: string; reopen: () => void } | null>(null) // บันทึกเบื้องหลังไม่ผ่าน
   const [err, setErr] = useState<string | null>(null)
   // เรียงลำดับทีมแก้: กดค้างที่แท็บ ทีมแก้ #n แล้วลาก (#1 = แนะนำให้ใช้ก่อน) · ลากอยู่ = แท็บที่เลือกตามไปด้วย
@@ -138,6 +141,7 @@ export default function TargetPage() {
     tSkillOk.current = false
     if (!target) return
     setTDraft({ team: clone(target.team), tags: [...target.tags], note: target.note })
+    tBase.current = target.editedAt // กันแก้ทับกัน (เริ่มแก้จากเวอร์ชันไหน)
     setErr(null)
     setMode('target')
   }
@@ -147,6 +151,7 @@ export default function TargetPage() {
     skillOk.current = false
     if (isAdd || !current) setCDraft({ id: null, team: emptyTeam(), skills: [], note: '', heroNotes: [] })
     else setCDraft({ id: current.id, team: clone(current.team), skills: [...current.skills], note: current.note, heroNotes: copyNotes(current.heroNotes) })
+    cBase.current = isAdd || !current ? undefined : current.updatedAt
     setErr(null)
     setMode('counter')
   }
@@ -201,12 +206,12 @@ export default function TargetPage() {
    * ไม่ผ่าน → ข้อมูลบนจอกลับเป็นก่อนแก้ + ป้ายลอย "บันทึกไม่สำเร็จ · กลับไปแก้" (กดแล้วเปิดหน้าแก้พร้อมงานเดิม)
    *   ไม่เปิดหน้าแก้เองทันที — หน้าจะกระโดดโดยที่ไม่ได้กดอะไร
    */
-  function saveInBackground(undo: () => void, fn: () => Promise<unknown>, onFail: () => void) {
+  function saveInBackground<R>(undo: () => void, fn: () => Promise<R>, onFail: () => void, onOk?: (r: R) => void) {
     bgSaves.current++
     setBusy(true)
     setErr(null)
     // สำเร็จ → แจ้งทุกหน้าที่เปิดอยู่ (หน้านี้เอง/หน้ากิลด์ที่ย้อนกลับไป) ให้โหลดของจริงจากเซิร์ฟเวอร์
-    fn().then(() => notifyGuildChanged(gid), (e) => {
+    fn().then((r) => { onOk?.(r); notifyGuildChanged(gid) }, (e) => {
       undo() // ข้อมูลบนจอกลับเป็นก่อนแก้
       setRetry({ msg: (e as Error).message, reopen: onFail })
       shakeScreen()
@@ -243,7 +248,10 @@ export default function TargetPage() {
       const undo = patch((d) => ({ ...d, targets: d.targets.map((t) => (t.id === tid ? { ...t, team: draft.team, tags: draft.tags, note: draft.note, updatedAt: Date.now() } : t)) }))
       setMode('view')
       celebrate('enemy')
-      saveInBackground(undo, () => api.updateTarget(gid, tid, draft), () => { setTDraft(draft); setMode('target') })
+      const base = tBase.current
+      saveInBackground(undo, () => api.updateTarget(gid, tid, { ...draft, baseEditedAt: base }), () => { setTDraft(draft); setMode('target') },
+        // เวอร์ชันใหม่ของบ้านนี้ → แก้รอบถัดไปก่อนข้อมูลโหลดกลับมาก็ไม่ชนกับของตัวเอง
+        (r) => { if (r.editedAt) patch((d) => ({ ...d, targets: d.targets.map((t) => (t.id === tid ? { ...t, editedAt: r.editedAt } : t)) })) })
     })
   }
   const deleteTarget = () => {
@@ -284,10 +292,12 @@ export default function TargetPage() {
       if (!editId) setSel(counters.length) // ตัวใหม่อยู่ท้ายสุด
       setMode('view')
       celebrate('ally')
-      saveInBackground(
+      const base = cBase.current
+      saveInBackground<{ updatedAt?: number }>(
         undo,
-        () => (editId ? api.updateCounter(gid, editId, body) : api.createCounter(gid, tid, body)),
+        () => (editId ? api.updateCounter(gid, editId, { ...body, baseUpdatedAt: base }) : api.createCounter(gid, tid, body)),
         () => { setCDraft(draft); setMode('counter') },
+        (r) => { if (editId && r.updatedAt) patch((d) => ({ ...d, targets: d.targets.map((t) => (t.id !== tid ? t : { ...t, counters: t.counters.map((c) => (c.id === editId ? { ...c, updatedAt: r.updatedAt! } : c)) })) })) },
       )
     })
   }

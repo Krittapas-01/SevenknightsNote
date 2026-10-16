@@ -24,7 +24,7 @@ const st = []; for (const f of files) st.push(...(await readFile(root + f, 'utf8
 await sql(st)
 
 // 2026-10-06 = อังคาร = defense (GAME_SCHEDULE[1])
-const ids = ['gA', 'gB', 'gC']
+const ids = ['gA', 'gB', 'gC', 'gD', 'gE']
 const seed = []
 for (const id of ids) {
   seed.push(`INSERT INTO guilds (id,name,edit_hash,created_at) VALUES ('${id}','${id}','x',0)`)
@@ -32,6 +32,12 @@ for (const id of ids) {
 }
 seed.push(`INSERT INTO guild_settings (guild_id,schedule,discord_webhook,auto_text_defense) VALUES ('gA','[]','http://127.0.0.1:${port}/gA','จัดบ้านด่วน! วัน{วัน} ใส่ทีมกันด้วย')`)
 seed.push(`INSERT INTO guild_settings (guild_id,schedule,discord_webhook,auto_text_attack) VALUES ('gB','[]','http://127.0.0.1:${port}/gB','ตีๆ')`)
+// {day} (หน้าตั้งค่าภาษาอังกฤษ) ต้องถูกแทนเหมือน {วัน}
+seed.push(`INSERT INTO guild_settings (guild_id,schedule,auto_text_attack) VALUES ('gD','[]','Attack day ({day}) · {วัน}')`)
+// แผนที่ใช้อยู่ (ประกาศเก่าที่ผูกแผน) ต้องไม่ถูกลบตอนตัดประกาศเหลือ 200
+seed.push(`INSERT INTO plans (id,guild_id,title,data,created_at,updated_at) VALUES ('pE','gE','Plan E','{"kind":"attack","slots":[]}',1,1)`)
+seed.push(`INSERT INTO announcements (id,guild_id,body,plan_id,created_at) VALUES ('aEplan','gE','use E','pE',1)`)
+for (let i = 0; i < 205; i++) seed.push(`INSERT INTO announcements (id,guild_id,body,created_at) VALUES ('aE${i}','gE','x',${10 + i})`)
 await sql(seed)
 const r = await (await fetch(new URL('/__cron?now=' + Date.parse('2026-10-06T00:00:30Z'), url))).json()
 await new Promise((ok) => setTimeout(ok, 300))
@@ -49,5 +55,10 @@ const [rows2] = await sql(["SELECT guild_id, body FROM announcements WHERE auto 
 console.log('wed', JSON.stringify(rows2))
 assert.equal(rows2.find((x) => x.guild_id === 'gB').body, 'ตีๆ')
 assert.equal(rows2.find((x) => x.guild_id === 'gA').body, 'วันนี้ (พุธ) วันตี · ช่วงตี 07:00–00:00')
+assert.equal(rows2.find((x) => x.guild_id === 'gD').body, 'Attack day (พุธ) · พุธ')
+const [keep] = await sql(["SELECT COUNT(*) AS n, SUM(id = 'aEplan') AS plan FROM announcements WHERE guild_id = 'gE'"])
+console.log('gE', JSON.stringify(keep))
+assert.equal(keep[0].plan, 1) // ประกาศที่ผูกแผนยังอยู่
+assert.ok(keep[0].n <= 201)
 console.log('AUTO TEXT CRON OK')
 await mf.dispose(); srv.close()

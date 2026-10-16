@@ -1,12 +1,14 @@
 import { Menu } from 'lucide-react'
 import { Suspense, lazy, useCallback, useRef, useState } from 'react'
-import { Link, Outlet, useMatch } from 'react-router'
+import { Link, Outlet, useLocation, useMatch } from 'react-router'
 import Account from './Account'
 import AnnouncementBar from './AnnouncementBar'
 import TopStrip from './TopStrip'
 import HeaderClock from './HeaderClock'
 import SideMenu from './SideMenu'
 import ContactFab from './ContactFab'
+import RefreshFailed from './RefreshFailed'
+import ErrorBoundary from './ErrorBoundary'
 import { ViewerBar } from './ViewAsToggle'
 import WhatsNew, { useHasUpdate } from './WhatsNew'
 import CoachPanel from './CoachPanel'
@@ -27,6 +29,7 @@ export default function Layout() {
   const closeMenu = useCallback(() => setMenuOpen(false), [])
   const hasUpdate = useHasUpdate()
   const stage = useRef<HTMLElement>(null)
+  const loc = useLocation()
   usePageEnter(stage)
   return (
     <div className="min-h-dvh">
@@ -55,7 +58,8 @@ export default function Layout() {
         {gid && <ViewerBar gid={gid} />}
       </div>
       <main ref={stage} className="page-stage mx-auto min-h-[calc(100dvh-3.5rem)] max-w-6xl px-4 py-6 sm:py-8">
-        <Outlet />
+        {/* หน้าไหนพัง → กล่องให้โหลดใหม่ (หัวเว็บ/เมนูยังใช้ได้) · เปลี่ยนหน้าแล้วลองใหม่เอง */}
+        <ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary>
       </main>
       <footer className="mx-auto max-w-6xl px-4 pb-8 pt-10 text-xs leading-relaxed text-white/40">
         <p className="mb-4 text-center text-gold/65" aria-hidden="true">— ✦ —</p>
@@ -74,6 +78,7 @@ export default function Layout() {
         <p className="mt-2 text-center sm:text-left">{tx('ข้อมูลและไอคอนบางส่วนจาก')}{' '}<a className="underline underline-offset-4 hover:text-gold" href="https://7katlas.com" target="_blank" rel="noreferrer">7K Atlas</a>{' '}{tx('· ขอบคุณมากครับ')}</p>
       </footer>
       <ContactFab />
+      <RefreshFailed />
       <LangSuggest />
       <SupportModal />
       <Suspense fallback={null}><TourOverlay /></Suspense>

@@ -666,5 +666,12 @@
  "เรียงทีมแก้ตามจำนวนไลค์ (มากไปน้อย) · ลากปรับต่อเองได้": "Sort counters by likes (most first) · drag to fine-tune",
  "เช็กความคุ้มค่าแพ็ค": "Pack value checker",
  "กลับไปแก้": "Back to editing",
- "เทียบพลังโจมตี": "Attack Compare"
+ "เทียบพลังโจมตี": "Attack Compare",
+ "โหลดข้อมูลล่าสุดไม่สำเร็จ — ข้อมูลบนจออาจไม่ใช่ล่าสุด": "Couldn't load the latest data — what you see may be out of date",
+ "ลองใหม่": "Try again",
+ "เว็บมีเวอร์ชันใหม่": "A new version is available",
+ "หน้านี้มีปัญหา": "Something went wrong on this page",
+ "กดโหลดใหม่เพื่อใช้เวอร์ชันล่าสุด": "Reload to get the latest version",
+ "ลองโหลดหน้าใหม่อีกครั้ง ถ้ายังเป็นอยู่ช่วยแจ้งผู้ดูแลด้วย": "Try reloading the page. If it keeps happening, please let the admin know",
+ "โหลดหน้าใหม่": "Reload"
 }

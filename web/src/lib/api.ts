@@ -23,9 +23,12 @@ const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/
 const KEYS = '7knote:keys'
 const RECENT = '7knote:recent'
 
+// ข้อมูลในเครื่องที่รูปแบบไม่ตรง (เวอร์ชันเก่า/ถูกแก้มือ) → ใช้ค่าเริ่มต้น ไม่ให้ทั้งเว็บพังเป็นจอขาว
 function readJson<T>(k: string, fallback: T): T {
   try {
-    return JSON.parse(localStorage.getItem(k) ?? '') as T
+    const v: unknown = JSON.parse(localStorage.getItem(k) ?? '')
+    const ok = Array.isArray(fallback) ? Array.isArray(v) : !!v && typeof v === 'object' && !Array.isArray(v)
+    return ok ? (v as T) : fallback
   } catch {
     return fallback
   }
@@ -103,16 +106,18 @@ export const api = {
 
   createTarget: (gid: string, body: { team: Team; tags: string[]; note: string }) =>
     req<Target>(`/api/guild/${gid}/targets`, { method: 'POST', body: JSON.stringify(body), gid }),
-  updateTarget: (gid: string, tid: string, body: { team: Team; tags: string[]; note: string }) =>
-    req(`/api/guild/${gid}/targets/${tid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
+  /** baseEditedAt = editedAt ตอนเริ่มแก้ → มีคนบันทึกไปก่อน = 409 */
+  updateTarget: (gid: string, tid: string, body: { team: Team; tags: string[]; note: string; baseEditedAt?: number }) =>
+    req<{ ok: true; editedAt?: number }>(`/api/guild/${gid}/targets/${tid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
   /** ลบทั้งกิลด์ถาวร (ต้องพิมพ์ชื่อกิลด์ยืนยัน) */
   deleteGuild: (gid: string, confirmName: string) => req(`/api/guild/${gid}`, { method: 'DELETE', body: JSON.stringify({ confirmName }), gid }),
   deleteTarget: (gid: string, tid: string) => req(`/api/guild/${gid}/targets/${tid}`, { method: 'DELETE', gid }),
 
   createCounter: (gid: string, tid: string, body: { team: Team; skills: SkillStep[]; note: string; heroNotes?: HeroNote[] }) =>
     req<Counter>(`/api/guild/${gid}/targets/${tid}/counters`, { method: 'POST', body: JSON.stringify(body), gid }),
-  updateCounter: (gid: string, cid: string, body: { team: Team; skills: SkillStep[]; note: string; heroNotes?: HeroNote[] }) =>
-    req(`/api/guild/${gid}/counters/${cid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
+  /** baseUpdatedAt = updatedAt ของทีมแก้ตอนเริ่มแก้ → มีคนบันทึกไปก่อน = 409 */
+  updateCounter: (gid: string, cid: string, body: { team: Team; skills: SkillStep[]; note: string; heroNotes?: HeroNote[]; baseUpdatedAt?: number }) =>
+    req<{ ok: true; updatedAt?: number }>(`/api/guild/${gid}/counters/${cid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
   deleteCounter: (gid: string, cid: string) => req(`/api/guild/${gid}/counters/${cid}`, { method: 'DELETE', gid }),
   /** เรียงลำดับทีมแก้ของบ้านศัตรู (ids ครบทุกตัว #1 ก่อน) */
   orderCounters: (gid: string, tid: string, ids: string[]) =>
@@ -121,7 +126,7 @@ export const api = {
   createPlan: (gid: string, body: { title: string; data: PlanData }) =>
     req<Plan>(`/api/guild/${gid}/plans`, { method: 'POST', body: JSON.stringify(body), gid }),
   updatePlan: (gid: string, pid: string, body: { title: string; data: PlanData; baseUpdatedAt?: number }) =>
-    req(`/api/guild/${gid}/plans/${pid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
+    req<{ ok: true; updatedAt: number }>(`/api/guild/${gid}/plans/${pid}`, { method: 'PUT', body: JSON.stringify(body), gid }),
   deletePlan: (gid: string, pid: string) => req(`/api/guild/${gid}/plans/${pid}`, { method: 'DELETE', gid }),
 
   announce: (gid: string, body: { body: string; planId: string | null; opponent: string }) =>

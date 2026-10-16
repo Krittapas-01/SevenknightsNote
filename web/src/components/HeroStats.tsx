@@ -62,7 +62,9 @@ const findNote = (notes: HeroNote[], hero: string) => notes.find((n) => sameHero
 
 /** ใส่ค่าความสามารถ (+ อุปกรณ์/คำอธิบาย) ลงโน้ตของอัศวินตัวนั้น (ไม่มีแถว = สร้างใหม่) · ค่าความสามารถว่าง = คงของเดิม */
 export function upsertStats(notes: HeroNote[], hero: string, stats: HeroStats, extra?: NoteExtra): HeroNote[] {
-  const patch = (n: HeroNote): HeroNote => ({ ...n, ...(hasStats(stats) ? { stats } : {}), ...(extra ?? {}) })
+  // รวมกับค่าเดิม (ช่องที่ไม่ได้ใส่/อ่านไม่ได้ = คงค่าเดิม) — เดิมแทนทั้งก้อน: พิมพ์แค่ความเร็วแล้วอีก 14 ค่าหาย
+  const defined = Object.fromEntries(Object.entries(stats).filter(([, v]) => v !== undefined && !(typeof v === 'number' && Number.isNaN(v)))) as HeroStats
+  const patch = (n: HeroNote): HeroNote => ({ ...n, ...(hasStats(stats) ? { stats: { ...(n.stats ?? {}), ...defined } } : {}), ...(extra ?? {}) })
   const i = notes.findIndex((n) => sameHero(n.hero, hero))
   if (i >= 0) return notes.map((n, j) => (j === i ? patch(n) : n))
   return [...notes, patch({ hero, text: '', sets: [], rings: [] })].slice(0, 5)
@@ -105,11 +107,17 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   const [step, setStep] = useState<'upload' | 'details'>('upload')
   const details = step === 'details'
   // เปิดหน้าต่างครั้งแรก (เบราว์เซอร์นี้) → โชว์วิธีใช้ให้เอง
+  /** ค่าในช่องมาจากการอ่านรูปรอบนี้ (ไม่ใช่ค่าเดิมของตัวนั้น) → เปลี่ยนตัวแล้วไม่ดึงค่าเดิมมาทับ */
+  const fromImage = useRef(false)
   const openImport = () => {
+    // เปิดรอบใหม่ = เริ่มสะอาด (เดิม: ภาพ/ค่า/คำเตือนของรอบก่อนค้าง → เลือกตัวอื่นแล้วได้ค่าของตัวก่อนไป)
+    fromImage.current = false
+    setImg((old) => { if (old) URL.revokeObjectURL(old); return null })
+    setStats({}); setRaw(''); setErr(null); setMismatchId(null); setNoHero(false); setConfirming(false); setAskAdd(false)
     setOpen(true)
     setStep('upload')
     setRecalledAt(null)
-    setHero((h) => h || heroes[0])
+    setHero((h) => (h && heroes.includes(h) ? h : heroes[0] ?? ''))
     // ครั้งแรก: มีการสอนแบบส่องปุ่ม (lib/tours: stats-import) แล้ว → ไม่ต้องเด้งหน้าวิธีใช้ซ้อน
     if (!helpSeen() && tourSeen('stats-import')) { setHelp(true); markHelpSeen() }
   }
@@ -140,6 +148,8 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
     if (recallRef.current && recallRef.current.hero === hero) { setExtra(recallRef.current.extra); recallRef.current = null; return }
     const n = hero ? findNote(notes, hero) : undefined
     setExtra({ sets: n?.sets ?? [], rings: n?.rings ?? [], text: n?.text ?? '' })
+    // กรอกเอง/แก้ของเดิม (ไม่ได้อ่านจากรูป) → ช่องค่าความสามารถขึ้นค่าเดิมของตัวนั้นให้แก้ต่อ
+    if (!fromImage.current) setStats({ ...(n?.stats ?? {}) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hero, open])
   const hasExtra = gear && (extra.sets.length > 0 || extra.rings.length > 0 || extra.text.trim() !== '')
@@ -155,6 +165,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
     const cur = notes ? findNote(notes, h) : undefined
     const ex: NoteExtra = { sets: sv.note.sets ?? [], rings: sv.note.rings ?? [], text: cur?.text?.trim() ? cur.text : sv.note.text ?? '' }
     recallRef.current = { hero: h, extra: ex }
+    fromImage.current = true // ค่ามาจากที่เคยจด → effect ไม่ดึงค่าในโน้ตมาทับ
     if (h === hero) { setExtra(ex); recallRef.current = null }
     setHero(h)
     setStats({ ...(sv.note.stats ?? {}) })
@@ -164,6 +175,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   }
 
   async function run(file: Blob) {
+    fromImage.current = true
     setOpen(true)
     setRecalledAt(null)
     setErr(null)
@@ -359,8 +371,11 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
           {quickAdd && (
             <button disabled={!canApply || progress !== null}
               onClick={() => {
-                if (onAddWithStats) onAddWithStats(mismatchId!, stats, extraOut)
-                else { addHero(mismatchId!); onApply(mismatchId!, stats, extraOut) }
+                // อุปกรณ์/คำอธิบายในฟอร์มเป็นของตัวที่เลือกอยู่ → ตัวใหม่ใช้ของตัวเอง (ถ้าเคยมี) ไม่เอาของอีกตัวไปใส่
+                const own = notes ? findNote(notes, mismatchId!) : undefined
+                const ex = gear ? { sets: own?.sets ?? [], rings: own?.rings ?? [], text: own?.text ?? '' } : undefined
+                if (onAddWithStats) onAddWithStats(mismatchId!, stats, ex)
+                else { addHero(mismatchId!); onApply(mismatchId!, stats, ex) }
                 setOpen(false)
               }}
               className="btn-gold flex flex-1 items-center justify-center gap-1.5 py-2 font-semibold">

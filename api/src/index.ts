@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { currentSeason } from '../../shared/season'
-import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT, bossRevivalDay, fillBoss, DAY_NAMES, DAY_PLACEHOLDER, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay } from '../../shared/game'
+import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT, bossRevivalDay, fillBoss, DAY_NAMES, DAY_PLACEHOLDER, DAY_PLACEHOLDER_EN, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay } from '../../shared/game'
 
 type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string; /** Discord user ID ที่เข้าหน้า /admin ได้ (คั่นด้วย ,) */ ADMIN_DISCORD_IDS?: string }
 
@@ -28,6 +28,14 @@ const WAR_SLOTS = 5
 const MAX_OPTIONS = 8
 const MAX_PLANS = 50
 const MAX_ANNOUNCEMENTS = 200
+const CONFLICT_MSG = 'มีคนบันทึกทีมนี้ไปก่อนระหว่างที่คุณแก้ — กดกลับไปแก้ แล้วคัดลอกส่วนที่แก้ไว้ ยกเลิก แล้วเปิดแก้ใหม่เพื่อดูของล่าสุด'
+/**
+ * ประกาศที่ห้ามลบตอนตัดให้เหลือ MAX_ANNOUNCEMENTS: ประกาศล่าสุดที่ผูกแผนของแต่ละชนิด (บุก/กัน) ของแต่ละกิลด์
+ * = "แผนที่ใช้อยู่" — ไม่งั้นประกาศอัตโนมัติ 07:00 ดันจนเกิน 200 แล้วแผนที่ใช้อยู่หายเอง
+ */
+const KEEP_ACTIVE_PLAN_ANNOUNCEMENTS = `SELECT id FROM (SELECT a.id, ROW_NUMBER() OVER (
+    PARTITION BY a.guild_id, COALESCE(json_extract(p.data, '$.kind'), json_extract(p.data, '$.slots[0].kind')) ORDER BY a.created_at DESC) AS rn
+  FROM announcements a JOIN plans p ON p.id = a.plan_id) WHERE rn = 1`
 // ตารางสงคราม / Season / เวลาเฟส / ข้อความประกาศเริ่มต้น — กติกาเกม เหมือนทุกกิลด์ อยู่ที่ shared/game.ts ที่เดียว
 
 const app = new Hono<{ Bindings: Env }>()
@@ -315,6 +323,7 @@ const toTarget = (r: any) => ({
   note: r.note,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
+  editedAt: r.edited_at ?? 0,
 })
 const toCounter = (r: any) => ({
   id: r.id,
@@ -483,11 +492,17 @@ app.put('/api/guild/:id/targets/:tid', async (c) => {
   const team = parseTeam(body.team)
   if (!team) return c.json({ error: 'ข้อมูลทีมไม่ถูกต้อง' }, 400)
   const now = Date.now()
-  const res = await c.env.DB.prepare('UPDATE targets SET team = ?, tags = ?, note = ?, updated_at = ? WHERE id = ? AND guild_id = ?')
-    .bind(JSON.stringify(team), JSON.stringify(parseTags(body.tags)), str(body.note, 500), now, c.req.param('tid'), gid)
+  // กันแก้ทับกัน: baseEditedAt = edited_at ตอนเริ่มแก้ → ระหว่างนั้นมีคนบันทึกไปก่อน = 409 (ไม่ส่งมา = ไม่เช็ก แบบเดิม)
+  const base = Number.isFinite(body.baseEditedAt) ? Number(body.baseEditedAt) : null
+  const res = await c.env.DB.prepare(`UPDATE targets SET team = ?, tags = ?, note = ?, updated_at = ?, edited_at = ? WHERE id = ? AND guild_id = ?${base !== null ? ' AND edited_at = ?' : ''}`)
+    .bind(JSON.stringify(team), JSON.stringify(parseTags(body.tags)), str(body.note, 500), now, now, c.req.param('tid'), gid, ...(base !== null ? [base] : []))
     .run()
-  if (!res.meta.changes) return c.json({ error: 'ไม่พบทีม' }, 404)
-  return c.json({ ok: true })
+  if (!res.meta.changes) {
+    if (base !== null && (await c.env.DB.prepare('SELECT 1 FROM targets WHERE id = ? AND guild_id = ?').bind(c.req.param('tid'), gid).first()))
+      return c.json({ error: CONFLICT_MSG }, 409)
+    return c.json({ error: 'ไม่พบทีม' }, 404)
+  }
+  return c.json({ ok: true, editedAt: now })
 })
 
 app.delete('/api/guild/:id/targets/:tid', async (c) => {
@@ -550,17 +565,26 @@ app.put('/api/guild/:id/counters/:cid', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const team = parseTeam(body.team)
   if (!team) return c.json({ error: 'ข้อมูลทีมไม่ถูกต้อง' }, 400)
+  // กันแก้ทับกัน: baseUpdatedAt = updated_at ของทีมแก้ตอนเริ่มแก้ (ไม่ส่งมา = ไม่เช็ก แบบเดิม)
+  const base = Number.isFinite(body.baseUpdatedAt) ? Number(body.baseUpdatedAt) : null
+  const now = Date.now()
+  const guard = base !== null ? ' AND updated_at = ?' : ''
+  const tail = [c.req.param('cid'), gid, ...(base !== null ? [base] : [])]
   // heroNotes ไม่ได้ส่งมา = ไม่แตะของเดิม
   const res = Array.isArray(body.heroNotes)
-    ? await c.env.DB.prepare('UPDATE counters SET team = ?, skills = ?, note = ?, hero_notes = ?, updated_at = ? WHERE id = ? AND guild_id = ?')
-        .bind(JSON.stringify(team), JSON.stringify(parseSkills(body.skills, team)), str(body.note, 500), JSON.stringify(parseHeroNotes(body.heroNotes)), Date.now(), c.req.param('cid'), gid)
+    ? await c.env.DB.prepare(`UPDATE counters SET team = ?, skills = ?, note = ?, hero_notes = ?, updated_at = ? WHERE id = ? AND guild_id = ?${guard}`)
+        .bind(JSON.stringify(team), JSON.stringify(parseSkills(body.skills, team)), str(body.note, 500), JSON.stringify(parseHeroNotes(body.heroNotes)), now, ...tail)
         .run()
-    : await c.env.DB.prepare('UPDATE counters SET team = ?, skills = ?, note = ?, updated_at = ? WHERE id = ? AND guild_id = ?')
-        .bind(JSON.stringify(team), JSON.stringify(parseSkills(body.skills, team)), str(body.note, 500), Date.now(), c.req.param('cid'), gid)
+    : await c.env.DB.prepare(`UPDATE counters SET team = ?, skills = ?, note = ?, updated_at = ? WHERE id = ? AND guild_id = ?${guard}`)
+        .bind(JSON.stringify(team), JSON.stringify(parseSkills(body.skills, team)), str(body.note, 500), now, ...tail)
         .run()
-  if (!res.meta.changes) return c.json({ error: 'ไม่พบทีม' }, 404)
+  if (!res.meta.changes) {
+    if (base !== null && (await c.env.DB.prepare('SELECT 1 FROM counters WHERE id = ? AND guild_id = ?').bind(c.req.param('cid'), gid).first()))
+      return c.json({ error: CONFLICT_MSG }, 409)
+    return c.json({ error: 'ไม่พบทีม' }, 404)
+  }
   await touchTargetOf(c.env, c.req.param('cid'), gid)
-  return c.json({ ok: true })
+  return c.json({ ok: true, updatedAt: now })
 })
 
 /** แก้/ลบทีมแก้ = บ้านศัตรูนั้นมีการแก้ → ขึ้นบนสุดในหน้ากิลด์ (เรียงตาม targets.updated_at) */
@@ -684,7 +708,8 @@ app.post('/api/guild/:id/announcements', async (c) => {
       .bind(id, gid, text, planId, opponent, now, author?.name ?? '', author?.avatar ?? '', author?.role ?? ''),
     // เก็บแค่ล่าสุด MAX_ANNOUNCEMENTS อัน
     c.env.DB.prepare(
-      'DELETE FROM announcements WHERE guild_id = ? AND id NOT IN (SELECT id FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?)',
+      `DELETE FROM announcements WHERE guild_id = ? AND id NOT IN (SELECT id FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?)
+         AND id NOT IN (${KEEP_ACTIVE_PLAN_ANNOUNCEMENTS})`,
     ).bind(gid, gid, MAX_ANNOUNCEMENTS),
   ])
   c.executionCtx.waitUntil(notifyDiscord(c.env, gid, { body: text, planId, opponent, author }).catch((e) => console.error('discord', e)))
@@ -1256,8 +1281,9 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   const type = GAME_SCHEDULE[today] ?? 'rest'
   const col = (type === 'attack' || type === 'defense') && body === fillDay(defaultAutoText(type), DAY_NAMES[today])
     ? (type === 'attack' ? 's.auto_text_attack' : 's.auto_text_defense') : null
-  const bodySql = col ? `CASE WHEN COALESCE(${col}, '') <> '' THEN replace(${col}, ?, ?) ELSE ? END` : '?'
-  const bodyArgs = col ? [DAY_PLACEHOLDER, DAY_NAMES[today], body] : [body]
+  // แทนได้ทั้ง {วัน} และ {day} (หน้าตั้งค่าภาษาอังกฤษบอกให้พิมพ์ {day} และ preview ก็แทนทั้งคู่ — ต้องตรงกับ fillDay)
+  const bodySql = col ? `CASE WHEN COALESCE(${col}, '') <> '' THEN replace(replace(${col}, ?, ?), ?, ?) ELSE ? END` : '?'
+  const bodyArgs = col ? [DAY_PLACEHOLDER, DAY_NAMES[today], DAY_PLACEHOLDER_EN, DAY_NAMES[today], body] : [body]
   // 1) ใส่ประกาศให้ทุกกิลด์ที่เปิดไว้ + เคยใช้ประกาศ + วันนี้ยังไม่มีประกาศ (รันซ้ำก็ไม่ซ้ำ) — query เดียว
   const ins = await env.DB.prepare(
     `INSERT INTO announcements (id, guild_id, body, plan_id, opponent, created_at, auto)
@@ -1273,7 +1299,8 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   // 2) เก็บแค่ล่าสุด MAX_ANNOUNCEMENTS อันต่อกิลด์ — query เดียวทุกกิลด์
   await env.DB.prepare(
     `DELETE FROM announcements WHERE id IN (
-       SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY guild_id ORDER BY created_at DESC) AS rn FROM announcements) WHERE rn > ?)`,
+       SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY guild_id ORDER BY created_at DESC) AS rn FROM announcements) WHERE rn > ?)
+       AND id NOT IN (${KEEP_ACTIVE_PLAN_ANNOUNCEMENTS})`,
   ).bind(MAX_ANNOUNCEMENTS).run()
   // 3) กิลด์ที่เพิ่งได้ประกาศ + ต่อ Discord ไว้ — query เดียว แล้วส่ง webhook
   const { results } = await env.DB.prepare(

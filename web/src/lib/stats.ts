@@ -33,9 +33,11 @@ const ROW_PAIRS: [StatKey, StatKey][] = [
   ['atk', 'hit'], ['def', 'resist'], ['hp', 'dtr'], ['spd', 'amp'], ['critRate', 'crush'], ['critDmg', 'resil'], ['weak', 'rejuv'],
 ]
 
-/** O→0, l/I/|→1 เฉพาะในก้อนตัวเลข */
-const toNum = (raw: string) => {
-  const n = Number(raw.replace(/[Oo]/g, '0').replace(/[lI|]/g, '1').replace(/[,\s]/g, ''))
+/** O→0, l/I/|→1 เฉพาะในก้อนตัวเลข · % ที่ใช้จุลภาคเป็นทศนิยม (12,5%) → 12.5 */
+const toNum = (raw: string, pct = false) => {
+  let t = raw.replace(/[Oo]/g, '0').replace(/[lI|]/g, '1')
+  t = pct && /^\d+,\d{1,2}$/.test(t) ? t.replace(',', '.') : t.replace(/[,\s]/g, '')
+  const n = Number(t)
   return Number.isFinite(n) ? n : undefined
 }
 
@@ -46,12 +48,17 @@ export function parseStats(text: string): HeroStats {
   const rest: Partial<Record<StatKey, string>> = {} // ข้อความที่เหลือในบรรทัดหลังค่าคอลัมน์ซ้าย
   for (const s of STATS) {
     // เลขติดกันไม่มีช่องว่าง (มีจุลภาคหลักพันได้) — กันไอคอนคอลัมน์ขวาที่ OCR อ่านเป็นเลขมาต่อท้าย
-    const num = '([\\dO]{1,3}(?:,[\\dO]{3})+|[\\dOlI]+(?:\\.\\d+)?)\\s*(%?)'
-    const m = t.match(new RegExp(`(?:${s.en.source})[^\\d\\n%]{0,6}${num}`, 'i'))
-      ?? t.match(new RegExp(`(?:${s.thRe.source})[^\\d\\n%]{0,16}${num}`))
+    // l/I = เลข 1 ที่ OCR อ่านผิด (Attack l,389 = 1,389) → ช่องคั่นระหว่างชื่อกับเลขเป็นแบบสั้นสุดก่อน (?) ไม่กินตัว l/I ไป
+    // ต้องมีเลขจริงอย่างน้อย 1 ตัว (กัน I/l เดี่ยว ๆ) · ค่า % รับจุลภาคทศนิยมแบบยุโรป (12,5%) ก่อนแบบอื่น
+    const D = '[\\dOlI]'
+    const dec = s.pct ? `${D}*\\d${D}*,\\d{1,2}(?=\\s*%)|` : ''
+    // ไม่มีเลขจริงเลยแต่ตามด้วย % (lOO% = 100%) ก็รับ
+    const num = `(${dec}${D}{1,3}(?:,${D}{3})+|${D}*\\d${D}*(?:\\.\\d+)?|${D}{2,}(?=\\s*%))\\s*(%?)`
+    const m = t.match(new RegExp(`(?:${s.en.source})[^\\d\\n%]{0,6}?${num}`, 'i'))
+      ?? t.match(new RegExp(`(?:${s.thRe.source})[^\\d\\n%]{0,16}?${num}`))
     if (!m) continue
     // ค่าความสามารถที่ไม่ใช่ % เป็นจำนวนเต็มเสมอ — OCR ชอบอ่านจุลภาคหลักพันเป็นจุด (9,318 → 9.318)
-    const v = toNum(s.pct ? m[1] : m[1].replace(/\./g, ''))
+    const v = toNum(s.pct ? m[1] : m[1].replace(/\./g, ''), s.pct)
     if (v === undefined) continue
     out[s.key] = v
     const end = (m.index ?? 0) + m[0].length

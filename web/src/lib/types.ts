@@ -46,6 +46,8 @@ export type Target = {
   counters: Counter[]
   createdAt: number
   updatedAt: number
+  /** เวลาที่แก้ตัวบ้านเอง (ทีม/แท็ก/โน้ต) ใช้กันแก้ทับกัน · ข้อมูลเก่าไม่มี */
+  editedAt?: number
 }
 
 export type Guild = { id: string; name: string; createdAt: number }

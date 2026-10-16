@@ -71,6 +71,28 @@ try {
     assert.equal((await request(path + '/check', { key: 'bad-x', ip: '2001:db8:1:2:ffff::1' })).data.locked, true)
     assert.equal((await request(path + '/check', { key, ip: '2001:db8:9:9::1' })).data.canEdit, true) // คนละ /64 ไม่โดน
   })
+  // M11: แก้ทับกัน
+  const t = (await request(path + '/targets', { method: 'POST', key, body: { team, tags: ['เวท'] } })).data
+  const ct = (await request(path + '/targets/' + t.id + '/counters', { method: 'POST', key, body: { team } })).data
+  await check('target edit with current base works and returns new version', async () => {
+    const g0 = (await request(path)).data.targets.find((x) => x.id === t.id)
+    const r = await request(path + '/targets/' + t.id, { method: 'PUT', key, body: { team, tags: ['เวท'], note: 'A', baseEditedAt: g0.editedAt } })
+    assert.equal(r.status, 200); assert.ok(r.data.editedAt > 0)
+    // อีกคนแก้จากเวอร์ชันเก่า → 409 ไม่ทับ
+    const r2 = await request(path + '/targets/' + t.id, { method: 'PUT', key, body: { team, tags: ['เวท'], note: 'B', baseEditedAt: g0.editedAt } })
+    assert.equal(r2.status, 409)
+    assert.equal((await request(path)).data.targets.find((x) => x.id === t.id).note, 'A')
+  })
+  await check('editing a counter does not conflict with target edits', async () => {
+    const g1 = (await request(path)).data.targets.find((x) => x.id === t.id)
+    assert.equal((await request(path + '/counters/' + ct.id, { method: 'PUT', key, body: { team, note: 'c1', baseUpdatedAt: ct.updatedAt } })).status, 200)
+    assert.equal((await request(path + '/targets/' + t.id, { method: 'PUT', key, body: { team, tags: ['เวท'], note: 'A2', baseEditedAt: g1.editedAt } })).status, 200)
+  })
+  await check('counter edit from stale version → 409', async () => {
+    const r = await request(path + '/counters/' + ct.id, { method: 'PUT', key, body: { team, note: 'stale', baseUpdatedAt: ct.updatedAt } })
+    assert.equal(r.status, 409)
+  })
+  await check('no base = old behaviour (always saves)', async () => assert.equal((await request(path + '/counters/' + ct.id, { method: 'PUT', key, body: { team, note: 'x' } })).status, 200))
   console.log(JSON.stringify({ passed, failures }))
 } finally { await mf.dispose() }
 process.exitCode = failures ? 1 : 0
