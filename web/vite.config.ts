@@ -1,9 +1,26 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+/**
+ * API อยู่คนละโดเมนกับเว็บ (workers.dev) → ให้เบราว์เซอร์ต่อสาย (DNS + TLS) ไว้ตั้งแต่อ่าน HTML
+ * ไม่งั้นต้องรอโค้ดโหลดเสร็จแล้วค่อยเริ่มต่อสาย ก่อนดึงข้อมูลกิลด์ได้ (ช้ากว่าเดิมหลายร้อย ms บนมือถือ)
+ * crossorigin: เรียก API แบบไม่ส่งคุกกี้ (fetch ปกติ) ต้องใช้สายแบบเดียวกัน
+ */
+function apiPreconnect(): Plugin {
+  let origin = ''
+  return {
+    name: 'api-preconnect',
+    // VITE_API_URL จาก .env.production (deploy.ps1 เขียนให้) · ตอน dev ไม่มี (ใช้ proxy /api) → ไม่ใส่
+    configResolved(config) {
+      try { origin = config.env.VITE_API_URL ? new URL(config.env.VITE_API_URL).origin : '' } catch { origin = '' }
+    },
+    transformIndexHtml: () => (origin ? [{ tag: 'link', attrs: { rel: 'preconnect', href: origin, crossorigin: '' }, injectTo: 'head' }] : []),
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), apiPreconnect()],
   build: {
     rollupOptions: {
       output: {

@@ -40,6 +40,8 @@ export function applyUiZoom() {
       if (z === null) el.style.removeProperty('zoom'); else el.style.setProperty('zoom', z)
       const n = z === null ? 1 : parseFloat(z)
       cached = Number.isFinite(n) && n > 0 ? n : 1
+      // หน่วย vh/svh ในหน้าถูกย่อตาม zoom ด้วย → CSS หารค่านี้กลับเมื่อต้องการ "เต็มจอจริง" (เช่น ความสูงขั้นต่ำของ <main>)
+      el.style.setProperty('--ui-zoom', String(cached))
     }
     if (window.innerWidth < 1024) return put(null)
     // ตั้งค่า → ขนาดหน้าเว็บ (อัตโนมัติ = ดูจากความละเอียดจอ)

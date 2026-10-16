@@ -34,6 +34,7 @@ import { api } from '../lib/api'
 import {
   MAX_HEROES, MAX_HOUSES, MAX_OPTIONS, MAX_SKILL_QUEUE, emptyHouse, houseApply, houseView, emptyOption, emptyPlan, emptyTeam, heroCount, teamOps, type PlanData, type PlanKind, type WarHouse, type Team, type WarOption, PLAN_KIND_LABEL, planKind, slotLabel } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
+import { lockScroll } from '../lib/scrollLock'
 import { UNSAVED_MSG, useUnsavedGuard } from '../lib/unsaved'
 import { activePlanId } from '../lib/war'
 import NotFound from './NotFound'
@@ -190,12 +191,7 @@ export default function PlanPage() {
     if (m.h !== h) { m.dir = h > m.h ? 'slide-in-r' : 'slide-in-l'; m.h = h }
     return m.dir
   }
-  useEffect(() => {
-    if (!wiz) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [wiz])
+  useEffect(() => (wiz ? lockScroll() : undefined), [wiz])
 
   // เปิดแผนอื่น (เช่น กดชื่อแผนในแถบประกาศ) ระหว่างแก้: React ใช้หน้าเดิมซ้ำ → ล้างร่างทิ้ง
   // ไม่งั้นร่างของแผนเดิมค้างบนจอ แล้วกดบันทึก/ลบ = ไปทับ/ลบแผนใหม่ที่เพิ่งเปิด (ยกเว้นตอนเพิ่งสร้างแผนใหม่แล้วเปลี่ยน URL เป็น id จริง)

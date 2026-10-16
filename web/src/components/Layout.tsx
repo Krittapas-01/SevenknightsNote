@@ -1,6 +1,6 @@
 import { Menu } from 'lucide-react'
-import { Suspense, lazy, useCallback, useRef, useState } from 'react'
-import { Link, Outlet, useLocation, useMatch } from 'react-router'
+import { Suspense, lazy, useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { Link, Outlet, useLocation, useMatch, useNavigationType } from 'react-router'
 import Account from './Account'
 import AnnouncementBar from './AnnouncementBar'
 import TopStrip from './TopStrip'
@@ -30,7 +30,14 @@ export default function Layout() {
   const hasUpdate = useHasUpdate()
   const stage = useRef<HTMLElement>(null)
   const loc = useLocation()
+  const navType = useNavigationType()
   usePageEnter(stage)
+  // กดลิงก์ไปหน้าใหม่ (PUSH) → เริ่มที่บนสุดของหน้าใหม่ · กดย้อนกลับ (POP) ให้หน้านั้นคืนตำแหน่งเอง (เช่น หน้ากิลด์)
+  // ไม่งั้นหน้าใหม่เปิดที่ตำแหน่งเลื่อนเดิมของหน้าก่อน: หน้าใหม่สั้นกว่า = ถูกตัดไปท้ายหน้า แล้ว footer/เนื้อหาเด้งขึ้นมากลางจอ (CLS)
+  // useLayoutEffect = เลื่อนก่อนหน้าใหม่วาดเฟรมแรก
+  useLayoutEffect(() => {
+    if (navType === 'PUSH') window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [loc.pathname]) // เฉพาะตอนเปลี่ยนหน้า (เปลี่ยนแค่ ?tab= ในหน้าเดิมไม่เลื่อน)
   return (
     <div className="min-h-dvh">
       <header data-sticky-top className="site-header @container sticky top-0 z-40 border-b border-gold/15 bg-[var(--surface-deep)]/95 backdrop-blur">
@@ -57,7 +64,9 @@ export default function Layout() {
         {gid && <AnnouncementBar key={gid} gid={gid} />}
         {gid && <ViewerBar gid={gid} />}
       </div>
-      <main ref={stage} className="page-stage mx-auto min-h-[calc(100dvh-3.5rem)] max-w-6xl px-4 py-6 sm:py-8">
+      {/* สูงอย่างน้อยเต็มจอ → footer อยู่ใต้ขอบจอเสมอ (ระหว่างโหลด/หน้าสั้น footer ไม่โผล่มาแล้วโดนดันลง = CLS)
+          หาร --ui-zoom: จอคอมย่อทั้งเว็บด้วย zoom → 100svh ถูกย่อตามไปด้วย (lib/zoom) · svh = ไม่ยืด/หดตามแถบที่อยู่ของมือถือตอนเลื่อน */}
+      <main ref={stage} className="page-stage mx-auto min-h-[calc(100svh/var(--ui-zoom,1)-3.5rem)] max-w-6xl px-4 py-6 sm:py-8">
         {/* หน้าไหนพัง → กล่องให้โหลดใหม่ (หัวเว็บ/เมนูยังใช้ได้) · เปลี่ยนหน้าแล้วลองใหม่เอง */}
         <ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary>
       </main>

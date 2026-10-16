@@ -37,9 +37,11 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
   useEffect(() => setSeen(readSeen(gid)), [gid])
 
   // ยังไม่เคยโหลด (เปิดกิลด์นี้ครั้งแรก) → จองที่ไว้ก่อน ไม่ให้เนื้อหาด้านล่างกระโดดตอนแถบโผล่
+  // จอ sm ขึ้นไป แถบจริงมีแถวเดียว = py-2 + บรรทัด text-sm = 2.25rem (h-9) ทุกขนาดจอ
+  // (เดิมจอคอมตั้ง 30px ตามที่วัดได้บนจอที่ย่อ 80% — ของจริง 36px → เนื้อหาโดนดันลงตอนแถบโผล่)
   if (!pulse) return (
     <div aria-hidden className="border-b border-white/10 bg-[var(--surface-2)]/90">
-      <div className="mx-auto flex h-[63px] max-w-6xl items-center gap-3 px-4 sm:h-[37px] lg:h-[30px]">
+      <div className="mx-auto flex h-[63px] max-w-6xl items-center gap-3 px-4 sm:h-9">
         <span className="h-4 w-40 animate-pulse rounded-full bg-white/10" />
         <span className="hidden h-4 w-24 animate-pulse rounded-full bg-white/10 sm:block" />
       </div>

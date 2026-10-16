@@ -9,7 +9,8 @@ import { openSupport } from './Support'
 
 // หน้าต่างตั้งค่าในเมนู โหลดตอนเปิดครั้งแรก (ไม่ต้องอยู่ในไฟล์หลักที่ทุกหน้าโหลด)
 import { PACKS_ON } from '../lib/packs'
-const SettingsBody = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsBody })))
+const loadSettings = () => import('../pages/SettingsPage')
+const SettingsBody = lazy(() => loadSettings().then((m) => ({ default: m.SettingsBody })))
 
 // เมนูหลักของเว็บ เพิ่มหน้า/เครื่องมือใหม่ที่นี่ที่เดียว
 const NAV: { to: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
@@ -41,6 +42,8 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
   const hasUpdate = useHasUpdate()
   useEffect(() => {
     if (!open) return
+    // เปิดเมนู = โหลดโค้ดหน้าต่างตั้งค่ารอไว้ → กด "ตั้งค่า" แล้วขึ้นครบทันที (ไม่ขึ้น "กำลังโหลด..." แล้วหน้าต่างยืดทีหลัง)
+    loadSettings().catch(() => {})
     setRecent(getRecent())
     refreshRecent().then(setRecent).catch(() => {}) // ชื่อล่าสุด + ตัดกิลด์ที่ถูกลบ
   }, [open])
