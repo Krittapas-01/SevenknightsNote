@@ -10,6 +10,8 @@ import { useViewer } from './prefs'
 // เก็บในหน่วยความจำ (ระหว่างเปลี่ยนหน้า) + localStorage (เปิดเว็บใหม่) ไม่เกิน 3 กิลด์ล่าสุด
 const mem = new Map<string, GuildData>()
 const editMem = new Map<string, boolean>()
+/** เจ้าของ = ใช้รหัสแก้ไข (ตั้งรหัสใหม่/ลบกิลด์/ตั้งค่า Discord ได้) · แก้ได้เพราะยศ Discord = ไม่ใช่เจ้าของ */
+const ownerMem = new Map<string, boolean>()
 // เปลี่ยนหน้าภายในกิลด์ (บ้านศัตรู ↔ แผน ↔ หน้ากิลด์) → ถ้าเพิ่งโหลด/เช็กสิทธิ์ไปไม่ถึง 1 นาที ไม่ต้องยิงซ้ำ
 // (ถ้ามีคนแก้ แถบประกาศเช็กเลขเวอร์ชันทุกรอบอยู่แล้ว เจอเปลี่ยน = สั่งโหลดใหม่เอง) · ประหยัดโควตา API
 const FRESH_MS = 60_000
@@ -52,12 +54,17 @@ export function useGuild(gid: string) {
   const [data, setData] = useState<GuildData | null>(() => peek(gid))
   const [error, setError] = useState<string | null>(null)
   const [canEdit, setCanEditState] = useState(() => editMem.get(gid) ?? false)
-  const setCanEdit = useCallback((v: boolean) => { editMem.set(gid, v); setCanEditState(v) }, [gid])
+  const [owner, setOwnerState] = useState(() => ownerMem.get(gid) ?? false)
+  const setCanEdit = useCallback((v: boolean, isOwner = v) => {
+    editMem.set(gid, v); setCanEditState(v)
+    ownerMem.set(gid, v && isOwner); setOwnerState(v && isOwner)
+  }, [gid])
 
   // เปลี่ยนกิลด์ในหน้าเดิม → ขึ้นข้อมูลแคชของกิลด์นั้นก่อน
   useEffect(() => {
     setData(peek(gid))
     setCanEditState(editMem.get(gid) ?? false)
+    setOwnerState(ownerMem.get(gid) ?? false)
   }, [gid])
 
   const reload = useCallback(async () => {
@@ -92,7 +99,7 @@ export function useGuild(gid: string) {
     try {
       const r = await run
       checkedAt.set(gid, Date.now())
-      setCanEdit(r.canEdit)
+      setCanEdit(r.canEdit, r.owner ?? r.canEdit) // API เก่าที่ยังไม่ส่ง owner = ถือว่าเจ้าของ (เหมือนเดิม)
       // รหัสในเครื่องใช้ไม่ได้แล้ว (หัวกิลด์เปลี่ยนรหัส) → ลบทิ้ง ไม่งั้นทุกครั้งที่เปิดหน้าจะนับเป็นใส่รหัสผิด
       // และอาจทำให้คนอื่นที่ใช้ IP เดียวกัน (เน็ตมือถือ) โดนล็อกไปด้วย
       if (!r.canEdit && !r.locked && getEditKey(gid)) forgetEditKey(gid)
@@ -122,7 +129,7 @@ export function useGuild(gid: string) {
     window.addEventListener('7knote:changed', onChanged)
     // รหัสจากลิงก์ใหม่ = ต้องเช็กเสมอ · ไม่งั้นเช็กไปไม่ถึง 1 นาที = ใช้ผลเดิม
     const pendingCheck = checking.get(gid)
-    if (pendingCheck && !key) pendingCheck.finally(() => setCanEditState(editMem.get(gid) ?? false)).catch(() => {})
+    if (pendingCheck && !key) pendingCheck.finally(() => { setCanEditState(editMem.get(gid) ?? false); setOwnerState(ownerMem.get(gid) ?? false) }).catch(() => {})
     else if (key || !(isFresh(checkedAt, gid) && editMem.has(gid))) recheck()
     return () => window.removeEventListener('7knote:changed', onChanged)
   }, [gid, reload, recheck])
@@ -140,5 +147,5 @@ export function useGuild(gid: string) {
 
   // ตั้งค่า → มุมมองคนดู: ซ่อนปุ่มแก้ทุกหน้า (สิทธิ์จริงยังอยู่ = realCanEdit)
   const viewer = useViewer(gid)
-  return { data, error, canEdit: canEdit && !viewer, realCanEdit: canEdit, setCanEdit, recheck, reload, patch }
+  return { data, error, canEdit: canEdit && !viewer, realCanEdit: canEdit, isOwner: owner && !viewer, setCanEdit, recheck, reload, patch }
 }

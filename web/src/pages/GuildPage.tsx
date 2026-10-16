@@ -34,7 +34,7 @@ const matches = (t: Target, q: string) =>
 
 export default function GuildPage() {
   const { gid = '' } = useParams()
-  const { data, error, canEdit, realCanEdit, setCanEdit, recheck, reload } = useGuild(gid)
+  const { data, error, canEdit, realCanEdit, isOwner, setCanEdit, recheck, reload } = useGuild(gid)
   const [copied, setCopied] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
   // ค้นหา/แท็กเก็บใน URL → กดเข้าบ้านแล้วกดย้อนกลับ ยังเป็นตัวกรองเดิม (ไม่เด้งกลับเป็น "ทั้งหมด")
@@ -160,12 +160,13 @@ export default function GuildPage() {
           {/* คนที่แก้ได้: สลับมุมมองคนแก้/คนดู */}
           {realCanEdit && !isDemo(gid) && <ViewAsToggle gid={gid} />}
           {realCanEdit
-            ? canEdit && <EditSettings gid={gid} guildName={data.guild.name} onLogout={recheck} />
+            // ตั้งรหัส/ลบกิลด์/ออกจากโหมดแก้ = ของคนที่ใช้รหัสเท่านั้น (คนที่แก้ได้เพราะยศ Discord ไม่เห็น)
+            ? canEdit && isOwner && <EditSettings gid={gid} guildName={data.guild.name} onLogout={recheck} />
             : <EditLogin gid={gid} onLogin={() => setCanEdit(true)} />}
         </div>
       </div>
 
-      <WarBoard gid={gid} data={data} canEdit={canEdit} reload={reload} />
+      <WarBoard gid={gid} data={data} canEdit={canEdit} isOwner={isOwner} reload={reload} />
 
       {/* แท็บ */}
       <div className="mt-6 flex flex-wrap items-center gap-3">

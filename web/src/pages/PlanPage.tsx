@@ -191,6 +191,31 @@ export default function PlanPage() {
     return () => { document.body.style.overflow = prev }
   }, [wiz])
 
+  // เปิดแผนอื่น (เช่น กดชื่อแผนในแถบประกาศ) ระหว่างแก้: React ใช้หน้าเดิมซ้ำ → ล้างร่างทิ้ง
+  // ไม่งั้นร่างของแผนเดิมค้างบนจอ แล้วกดบันทึก/ลบ = ไปทับ/ลบแผนใหม่ที่เพิ่งเปิด (ยกเว้นตอนเพิ่งสร้างแผนใหม่แล้วเปลี่ยน URL เป็น id จริง)
+  const prevPid = useRef(pid)
+  const createdId = useRef<string | null>(null)
+  useEffect(() => {
+    const from = prevPid.current
+    if (from === pid) return
+    prevPid.current = pid
+    if (from === 'new' && createdId.current === pid) return
+    editBase.current = null
+    setEditing(false)
+    setWiz(null)
+    setErr(null)
+    setPicker(null)
+    setLibrary(null)
+    setVsLibrary(null)
+    setHouse({})
+    setExpanded(new Set())
+    setSpeedAsk(null)
+    setLogAsk(null)
+    setSyncAsk(null)
+    setSkillAsk(null)
+    setExitAsk(false)
+    setDelAsk(null)
+  }, [pid])
   useEffect(() => {
     if (isNew && canEdit) {
       setTitle(PLAN_KIND_LABEL[newKind])
@@ -467,10 +492,13 @@ export default function PlanPage() {
       if (isNew) {
         const p = await api.createPlan(gid, body)
         planId = p.id
+        createdId.current = p.id
         await reload()
         nav(`/g/${gid}/p/${p.id}`, { replace: true })
       } else {
-        await api.updatePlan(gid, pid, { ...body, baseUpdatedAt: editBase.current ?? undefined })
+        // ไม่รู้ว่าแก้จากเวอร์ชันไหน = ห้ามบันทึกทับ (กันเขียนทับแผนคนอื่นโดยไม่เช็กชนกัน)
+        if (editBase.current === null) throw new Error(L('เปิดแผนนี้ใหม่แล้วกดแก้ไขอีกครั้ง', 'Reopen this plan and press Edit again'))
+        await api.updatePlan(gid, pid, { ...body, baseUpdatedAt: editBase.current })
         await reload()
       }
       setEditing(false)

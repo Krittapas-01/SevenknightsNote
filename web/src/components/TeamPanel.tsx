@@ -6,7 +6,7 @@ import {
   EXTRA_COUNT, MAX_SKILL_QUEUE, SLOT_COUNT, formationLabel, formationName, nextEmpty, type SkillStep, type SlotRef, type Team,
 } from '../lib/types'
 import { FormationModal, SkillQueueModal } from './TeamModals'
-import { groupOfKey, keyOf, parseDndId, refOf, useDndHub } from './DndHub'
+import { groupOfKey, keyOf, refOf, useDndHub } from './DndHub'
 import UnitCard, { UNIT_SLOT_RADIUS } from './UnitCard'
 import HeroDetailModal from './HeroDetailModal'
 import type { HeroNote } from '../lib/types'
@@ -416,16 +416,9 @@ export default function TeamPanel({
 function DnDSlot({ id, enabled, filled, selected, round, kind, children }: { id: string; enabled: boolean; filled: boolean; selected: boolean; round: boolean; kind: SlotKind; children: ReactNode }) {
   const drag = useDraggable({ id, disabled: !enabled || !filled })
   const drop = useDroppable({ id, disabled: !enabled })
-  let canDrop = false
-  if (drop.isOver && drop.active) {
-    const from = parseDndId(String(drop.active.id))
-    const to = parseDndId(id)
-    if (!to.roster) {
-      canDrop = from.roster
-        ? (from.kind === 'hero') === (groupOfKey(to.key) === 'hero')
-        : from.key !== to.key || from.panel !== to.panel ? groupOfKey(from.key) === groupOfKey(to.key) : false
-    }
-  }
+  const hub = useDndHub()
+  // วงทอง = ปล่อยตรงนี้แล้วเกิดผลจริง (กติกาเดียวกับตอนปล่อยใน DndHub เช่น ทีมครบ 3 ตัวแล้ววางช่องว่างไม่ได้)
+  const canDrop = !!(drop.isOver && drop.active && hub?.canDrop(String(drop.active.id), id))
   return (
     <div data-slot={kind} data-empty={filled ? undefined : ''}
       ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el) }}

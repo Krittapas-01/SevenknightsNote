@@ -15,10 +15,10 @@ import Modal from './Modal'
 import { tx, L, LOCALE, EN } from '../lib/i18n'
 import ConfirmDelete from './ConfirmDelete'
 
-type Props = { gid: string; data: GuildData; canEdit: boolean; reload: () => Promise<void> }
+type Props = { gid: string; data: GuildData; canEdit: boolean; isOwner?: boolean; reload: () => Promise<void> }
 
 /** แถบบนสุดของหน้ากิลด์: วันนี้วันอะไร + แผนที่ใช้ + ประกาศล่าสุด */
-export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Props) {
+export default function WarBoard({ gid, data, canEdit, isOwner = canEdit, reload: reloadData }: Props) {
   // โหลดใหม่ + บอกแถบประกาศให้อัปเดตทันที
   const reload = async () => {
     await reloadData()
@@ -68,7 +68,8 @@ export default function WarBoard({ gid, data, canEdit, reload: reloadData }: Pro
               <button onClick={() => setEditSchedule(true)} title={tx('แก้ตารางสงคราม')} className="ml-1 rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white">
                 <Settings2 className="h-4 w-4" />
               </button>
-              <DiscordSettings gid={gid} discord={data.discord} reload={reload} />
+              {/* ตั้งค่า Discord (เซิร์ฟเวอร์/ยศที่แก้ได้/webhook) = เจ้าของเท่านั้น ไม่งั้นคนที่ได้สิทธิ์จากยศชี้ไปเซิร์ฟเวอร์ตัวเองได้ */}
+              {isOwner && <DiscordSettings gid={gid} discord={data.discord} reload={reload} />}
             </>
           )}
         </div>

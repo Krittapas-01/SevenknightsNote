@@ -5,7 +5,7 @@ import {
 import { zoomOverlay } from '../lib/zoom'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import type { SlotRef } from '../lib/types'
+import { MAX_HEROES, type SlotRef } from '../lib/types'
 import UnitCard from './UnitCard'
 
 /**
@@ -40,6 +40,8 @@ export type PanelHandlers = {
 
 type Hub = {
   register: (id: string, h: PanelHandlers) => () => void
+  /** วางของที่ลากอยู่ (active id) ลงช่อง (over id) แล้วเกิดผลจริงไหม — ใช้ทั้งตอนปล่อยและวงทองตอนลากผ่าน */
+  canDrop: (activeId: string, overId: string) => boolean
   focused: string | null
   setFocused: (id: string) => void
   quickAdd: (kind: 'hero' | 'pet', unitId: string) => string | null
@@ -195,6 +197,38 @@ export function DndHub({ children }: { children: ReactNode }) {
     setFocused(p.panel)
   }
 
+  /**
+   * ลากข้ามการ์ดทีม = สลับตัว 2 ช่อง → ต้องสำเร็จทั้งสองฝั่ง ไม่งั้นตัวหาย
+   * - ช่องปลายทางว่าง + ทีมปลายทางมีอัศวินครบแล้ว → วางไม่ได้ (เดิม: ปลายทางไม่รับ แต่ต้นทางถูกล้าง = อัศวินหาย)
+   * - ตัวที่ลากมีอยู่ในทีมปลายทางแล้ว / ตัวที่สลับกลับมีอยู่ในทีมต้นทางแล้ว → ซ้ำ ไม่ทำ
+   */
+  const swapOk = (source: PanelHandlers, target: PanelHandlers, fromKey: string, toKey: string) => {
+    const a = source.valueOf(refOf(fromKey))
+    const b = target.valueOf(refOf(toKey))
+    if (!a) return false
+    if (target.used().includes(a) || (b && source.used().includes(b))) return false
+    if (groupOfKey(toKey) === 'hero' && !b && target.status().heroes >= MAX_HEROES) return false
+    return true
+  }
+  const canDrop = useCallback((activeId: string, overId: string) => {
+    const from = parseDndId(activeId)
+    const to = parseDndId(overId)
+    if (to.roster) return false
+    const target = panels.current.get(to.panel)
+    if (!target) return false
+    if (from.roster) {
+      if ((from.kind === 'hero') !== (groupOfKey(to.key) === 'hero')) return false
+      // ช่องว่าง + ทีมครบแล้ว (และไม่ใช่ตัวที่อยู่ในทีมอยู่แล้ว) = วางไม่ได้
+      if (from.kind === 'hero' && !target.valueOf(refOf(to.key)) && !target.used().includes(from.unit) && target.status().heroes >= MAX_HEROES) return false
+      return true
+    }
+    if (groupOfKey(from.key) !== groupOfKey(to.key)) return false
+    if (from.panel === to.panel) return from.key !== to.key
+    const source = panels.current.get(from.panel)
+    if (!source || !source.group || source.group !== target.group) return false
+    return swapOk(source, target, from.key, to.key)
+  }, [])
+
   function onDragEnd(e: DragEndEvent) {
     setDrag(null)
     if (!e.over) return
@@ -213,9 +247,9 @@ export function DndHub({ children }: { children: ReactNode }) {
       // ลากข้ามการ์ดทีม (ฝั่งเดียวกัน) = สลับตัวระหว่างสองช่อง
       const source = panels.current.get(from.panel)
       if (!source || !source.group || source.group !== target.group) return
+      if (!swapOk(source, target, from.key, to.key)) return
       const a = source.valueOf(refOf(from.key))
       const b = target.valueOf(refOf(to.key))
-      if (!a) return
       target.onDropUnit?.(refOf(to.key), a)
       source.onDropUnit?.(refOf(from.key), b)
       setFocused(to.panel)
@@ -225,6 +259,7 @@ export function DndHub({ children }: { children: ReactNode }) {
   const hub = useMemo<Hub>(
     () => ({
       register,
+      canDrop,
       focused,
       setFocused,
       quickAdd,
@@ -241,7 +276,7 @@ export function DndHub({ children }: { children: ReactNode }) {
       openGrid,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [register, focused, quickAdd, panels.current.size, dockOpen, dockTab, gridReq, openGrid],
+    [register, canDrop, focused, quickAdd, panels.current.size, dockOpen, dockTab, gridReq, openGrid],
   )
 
   return (

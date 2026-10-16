@@ -245,7 +245,12 @@ const MAX_FAILS = 10
 const CREATE_PER_HOUR = 5
 const LOCK_MS = 15 * 60 * 1000
 
-async function checkKey(c: any, guildId: string): Promise<'ok' | 'notfound' | 'forbidden' | 'locked'> {
+/**
+ * สิทธิ์แก้ไขกิลด์: รหัสแก้ไข (เจ้าของ/คนที่ได้ลิงก์) หรือ ล็อกอิน Discord + มียศที่กิลด์ตั้งให้แก้ได้
+ * ownerOnly = ต้องใช้รหัสแก้ไขเท่านั้น (ตั้งรหัสใหม่ · ลบกิลด์ · ตั้งค่า Discord) — คนที่ได้สิทธิ์จากยศทำไม่ได้
+ * กันเดารหัส: จองสิทธิ์ลอง (นับ +1) ก่อนเทียบรหัสในคำสั่งเดียว → ยิงพร้อมกันหลายครั้งก็ลองได้ไม่เกิน MAX_FAILS · ถูก = คืนสิทธิ์ลองนั้น
+ */
+async function checkAuth(c: any, guildId: string, ownerOnly = false): Promise<'key' | 'role' | 'notfound' | 'forbidden' | 'locked'> {
   // client ส่งแบบ encodeURIComponent (header ใส่ภาษาไทยตรง ๆ ไม่ได้) — คีย์สุ่มแบบเดิมไม่เปลี่ยนค่า
   const raw = c.req.header('X-Edit-Key') || ''
   let key = raw
@@ -254,26 +259,48 @@ async function checkKey(c: any, guildId: string): Promise<'ok' | 'notfound' | 'f
     'SELECT g.edit_hash, s.discord_guild_id, s.discord_edit_roles FROM guilds g LEFT JOIN guild_settings s ON s.guild_id = g.id WHERE g.id = ?',
   ).bind(guildId).first()
   if (!row) return 'notfound'
-  // ล็อกอิน Discord อยู่ + มียศที่กิลด์นี้ตั้งให้แก้ได้ → ผ่าน (ใช้คู่กับรหัสแก้ไข)
-  const editRoles: string[] = JSON.parse(row.discord_edit_roles || '[]')
-  if (row.discord_guild_id && editRoles.length) {
-    const user = await currentUser(c)
-    if (user) {
-      const m = await memberOf(c.env, user, row.discord_guild_id)
-      if (m.roles.some((r) => editRoles.includes(r))) return 'ok'
+  let locked = false
+  if (key) {
+    const k = `${guildId}:${ipBucket(c.req.header('CF-Connecting-IP') || 'local')}`
+    const now = Date.now()
+    const tries = await c.env.DB.prepare(
+      'INSERT INTO auth_fails (k, count, since) VALUES (?, 1, ?) ON CONFLICT(k) DO UPDATE SET count = CASE WHEN ? - since < ? THEN count + 1 ELSE 1 END, since = CASE WHEN ? - since < ? THEN since ELSE ? END RETURNING count',
+    ).bind(k, now, now, LOCK_MS, now, LOCK_MS, now).first()
+    if ((tries?.count ?? 0) > MAX_FAILS) locked = true
+    else if ((await sha256(key)) === row.edit_hash) {
+      await c.env.DB.prepare('UPDATE auth_fails SET count = MAX(count - 1, 0) WHERE k = ?').bind(k).run()
+      return 'key'
     }
   }
-  if (!key) return 'forbidden'
-  const k = `${guildId}:${c.req.header('CF-Connecting-IP') || 'local'}`
-  const now = Date.now()
-  const fail = await c.env.DB.prepare('SELECT count, since FROM auth_fails WHERE k = ?').bind(k).first()
-  const fresh = fail && now - fail.since < LOCK_MS
-  if (fresh && fail.count >= MAX_FAILS) return 'locked'
-  if ((await sha256(key)) === row.edit_hash) return 'ok'
-  await c.env.DB.prepare(
-    'INSERT INTO auth_fails (k, count, since) VALUES (?, 1, ?) ON CONFLICT(k) DO UPDATE SET count = CASE WHEN ? - since < ? THEN count + 1 ELSE 1 END, since = CASE WHEN ? - since < ? THEN since ELSE ? END',
-  ).bind(k, now, now, LOCK_MS, now, LOCK_MS, now).run()
-  return 'forbidden'
+  if (!ownerOnly) {
+    // ล็อกอิน Discord อยู่ + มียศที่กิลด์นี้ตั้งให้แก้ได้ → ผ่าน (เรียก Discord ไม่ได้ = ถือว่าไม่มียศ ไม่ใช่ error ทั้งคำขอ)
+    const editRoles: string[] = JSON.parse(row.discord_edit_roles || '[]')
+    if (row.discord_guild_id && editRoles.length) {
+      try {
+        const user = await currentUser(c)
+        if (user) {
+          const m = await memberOf(c.env, user, row.discord_guild_id)
+          if (m.roles.some((r) => editRoles.includes(r))) return 'role'
+        }
+      } catch { /* Discord ล่ม/เน็ตสะดุด */ }
+    }
+  }
+  return locked ? 'locked' : 'forbidden'
+}
+/** IPv6: นับรวมทั้ง /64 (คนเดียวเปลี่ยนที่อยู่ในบล็อกตัวเองได้เป็นล้าน) */
+function ipBucket(ip: string) {
+  if (!ip.includes(':')) return ip
+  return ip.split(':').slice(0, 4).join(':') + '::/64'
+}
+/** แก้ข้อมูลทั่วไป (ทีม/แผน/ประกาศ) — รหัสหรือยศ Discord ก็ได้ */
+async function checkKey(c: any, guildId: string): Promise<'ok' | 'notfound' | 'forbidden' | 'locked'> {
+  const r = await checkAuth(c, guildId)
+  return r === 'key' || r === 'role' ? 'ok' : r
+}
+/** เรื่องของเจ้าของกิลด์ — ต้องใช้รหัสแก้ไขเท่านั้น */
+async function checkOwner(c: any, guildId: string): Promise<'ok' | 'notfound' | 'forbidden' | 'locked'> {
+  const r = await checkAuth(c, guildId, true)
+  return r === 'key' ? 'ok' : r === 'role' ? 'forbidden' : r
 }
 function deny(c: any, r: string) {
   if (r === 'notfound') return c.json({ error: 'ไม่พบกิลด์' }, 404)
@@ -343,7 +370,7 @@ app.get('/api/guilds/names', async (c) => {
 // ลบกิลด์ทั้งหมด (ถาวร) — ต้องมีสิทธิ์แก้ไข และส่งชื่อกิลด์มายืนยันให้ตรง
 app.delete('/api/guild/:id', async (c) => {
   const gid = c.req.param('id')
-  const auth = await checkKey(c, gid)
+  const auth = await checkOwner(c, gid)
   if (auth !== 'ok') return deny(c, auth)
   const body = await c.req.json().catch(() => ({}))
   const g = await c.env.DB.prepare('SELECT name FROM guilds WHERE id = ?').bind(gid).first<{ name: string }>()
@@ -413,14 +440,15 @@ app.get('/api/guild/:id', async (c) => {
 
 // ตรวจว่า key ใช้แก้ไขได้ไหม
 app.get('/api/guild/:id/check', async (c) => {
-  const r = await checkKey(c, c.req.param('id'))
-  return c.json({ canEdit: r === 'ok', locked: r === 'locked' })
+  const r = await checkAuth(c, c.req.param('id'))
+  // owner = ใช้รหัสแก้ไข (เห็นปุ่มตั้งรหัส/ลบกิลด์/ตั้งค่า Discord) · สิทธิ์จากยศ Discord แก้ได้แต่ไม่ใช่เจ้าของ
+  return c.json({ canEdit: r === 'key' || r === 'role', owner: r === 'key', locked: r === 'locked' })
 })
 
 // ตั้งรหัสแก้ไขใหม่ (ต้องมีรหัสเดิม) → รหัส/ลิงก์แก้ไขเดิมใช้ไม่ได้อีก
 app.put('/api/guild/:id/password', async (c) => {
   const gid = c.req.param('id')
-  const auth = await checkKey(c, gid)
+  const auth = await checkOwner(c, gid)
   if (auth !== 'ok') return deny(c, auth)
   const body = await c.req.json().catch(() => ({}))
   const password = typeof body.password === 'string' ? body.password.trim() : ''
@@ -685,7 +713,7 @@ const MENTION_RE = /^(?:|everyone|here|\d{5,25})$/
 
 app.put('/api/guild/:id/discord', async (c) => {
   const gid = c.req.param('id')
-  const auth = await checkKey(c, gid)
+  const auth = await checkOwner(c, gid)
   if (auth !== 'ok') return deny(c, auth)
   const body = await c.req.json().catch(() => ({}))
   const mention = typeof body.mention === 'string' ? body.mention.trim().replace(/^<@&(\d+)>$/, '$1').replace(/^@/, '') : ''
