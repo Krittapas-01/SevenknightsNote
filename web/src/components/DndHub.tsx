@@ -122,7 +122,32 @@ class RosterMouseSensor extends PointerSensor {
   }]
 }
 
+/**
+ * ตำแหน่งนิ้ว/เมาส์จริงล่าสุด (พิกัดจอ) — ใช้หาช่องใต้นิ้วเอง
+ * จอคอมย่อทั้งเว็บด้วย CSS zoom (lib/zoom.ts) → ถ้าหน้าต่างเลื่อนระหว่างลาก (ลากใกล้ขอบแล้วเลื่อนเอง / หมุนล้อเมาส์)
+ * dnd-kit คำนวณตำแหน่งช่อง/เมาส์คลาดไปตามระยะเลื่อน × zoom → วงทองและที่วางจริงกลายเป็นช่องข้าง ๆ
+ * แก้: เทียบตำแหน่งเมาส์จริงกับตำแหน่งช่องบนจอจริง (getBoundingClientRect) ณ ตอนนั้น — ช่องในหน้ามีแค่หลักสิบ
+ */
+const lastPointer = { x: 0, y: 0, at: 0 }
+if (typeof window !== 'undefined') {
+  const track = (x: number, y: number) => { lastPointer.x = x; lastPointer.y = y; lastPointer.at = Date.now() }
+  window.addEventListener('pointermove', (e) => track(e.clientX, e.clientY), { capture: true, passive: true })
+  window.addEventListener('touchmove', (e) => { const t = e.touches[0]; if (t) track(t.clientX, t.clientY) }, { capture: true, passive: true })
+}
+const underPointer: CollisionDetection = ({ droppableContainers }) => {
+  if (Date.now() - lastPointer.at > 1500) return []
+  const { x, y } = lastPointer
+  for (const c of droppableContainers) {
+    if (c.disabled) continue
+    const r = c.node.current?.getBoundingClientRect()
+    if (r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return [{ id: c.id, data: { droppableContainer: c, value: 0 } }]
+  }
+  return []
+}
+
 const collision: CollisionDetection = (args) => {
+  const real = underPointer(args)
+  if (real.length) return real
   const hit = pointerWithin(args)
   return hit.length ? hit : rectIntersection(args)
 }
