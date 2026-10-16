@@ -33,6 +33,9 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     sections: [
       { kind: 'new', groups: [
         g('อัศวินใหม่', 'กิยู (สมดุล) และชิโนบุ (เวท) ทั้งร่างปกติและร่าง awake — ชื่อสกิล วันเข้าเกม ค่าโจมตีพื้นฐาน (หน้าบิสกิต) และอ่านชื่อจากรูปได้'),
+        g('เทียบพลังโจมตี (ใหม่)',
+          'หน้าใหม่ในเมนู ☰: ใส่สัตว์เลี้ยง รูปแบบ บัฟทั้งทีม และดีบัฟลดโจมตีของฝั่งตรงข้าม (เช่น ฮายอน) แล้วดูว่าอัศวิน 2 ตัวใครโจมตีจริงสูงกว่า',
+          'บอกว่าต้องดันตั้งต้นอีกเท่าไรถึงจะนำ · base ของอัศวินใส่ให้เอง · เลือกตัวเดียวกันทั้ง 2 ช่องได้ (เทียบของคนละชุด) · ค่าที่ใส่จำไว้ในเครื่อง'),
         ...(PACKS_ON ? [
         g('เช็กความคุ้มค่าแพ็ค (ใหม่)',
           'หน้าใหม่ เข้าได้จากหน้าแรกหรือเมนู ☰: เรียงแพ็คในเกมจากคุ้มสุดไปน้อยสุด เทียบเป็น % กับ Monthly Key Bundle (= 100%)',
@@ -232,6 +235,9 @@ const CHANGELOG_EN: ChangelogEntry[] = [
     sections: [
       { kind: 'new', groups: [
         g('New heroes', 'Giyu (Universal) and Shinobu (Magic), base and awakened — skill names, release dates, base attack (Biscuit page) and name reading from screenshots'),
+        g('Attack Compare (new)',
+          'New page in the ☰ menu: enter your pet, formation, team buffs and the enemy attack debuff (e.g. Hayeon) to see which of two heroes really hits harder',
+          'Shows how much more starting attack one needs to pass the other · hero base attack is filled in for you · you can pick the same hero twice to compare gear · your inputs are remembered on this device'),
         ...(PACKS_ON ? [
         g('Pack value checker (new)',
           'A new page, from the home page or the ☰ menu: in-game packs ranked from best to worst value, as a % of the Monthly Key Bundle (= 100%)',

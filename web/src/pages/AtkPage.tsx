@@ -14,6 +14,7 @@ const STORE_KEY = '7k-note:atk'
 const MAX_BUFFS = 6
 // ศักยภาพสัตว์เลี้ยง: บรรทัด All Attack (%) สูงสุด 4 บรรทัด รวมกันเป็น % ของ base ที่ทั้งทีมได้
 const PET_LINES = 4
+const NONE: string[] = []
 
 type Buff = { name: string; pct: string }
 // base ใช้ค่าตามอัศวิน (7K Atlas) · ช่อง base ใช้เฉพาะตัวที่ไม่รู้ค่า
@@ -40,22 +41,50 @@ const DEFAULT_STATE: State = {
 function load(): State {
   try {
     const s = JSON.parse(localStorage.getItem(STORE_KEY) ?? '')
-    if (Array.isArray(s?.potential) && Array.isArray(s?.buffs) && s?.chars?.length === 2 && s?.debuff) return { ...DEFAULT_STATE, ...s }
+    if (Array.isArray(s?.potential) && Array.isArray(s?.buffs) && Array.isArray(s?.chars) && s.chars.length === 2 && s?.debuff) {
+      // รวมกับค่าเริ่มต้นทีละช่อง → ข้อมูลเก่าในเครื่องที่ขาดบางช่อง (เปลี่ยนรูปแบบทีหลัง) ไม่ทำให้หน้าพัง
+      const str = (v: unknown, d: string) => (typeof v === 'string' ? v : d)
+      const buff = (b: Partial<Buff> | null | undefined): Buff => ({ name: str(b?.name, ''), pct: str(b?.pct, '') })
+      return {
+        pet: str(s.pet, DEFAULT_STATE.pet),
+        potential: Array.from({ length: PET_LINES }, (_, i) => str(s.potential[i], '')),
+        front: typeof s.front === 'number' ? s.front : DEFAULT_STATE.front,
+        buffs: s.buffs.slice(0, MAX_BUFFS).map(buff),
+        debuff: buff(s.debuff),
+        chars: s.chars.map((c: Partial<Char> | null, i: number) => ({
+          ...DEFAULT_STATE.chars[i],
+          id: typeof c?.id === 'string' ? c.id : null,
+          start: str(c?.start, ''),
+          base: str(c?.base, ''),
+          back: !!c?.back,
+          hit: !!c?.hit,
+        })),
+      }
+    }
   } catch {
     /* ใช้ค่าเริ่มต้น */
   }
   return DEFAULT_STATE
 }
 
+// รับ "4972", "4,972", "4 972", "12.5" · คอมมาต้องเป็นตัวคั่นหลักพันจริง ("4.972,5" แบบยุโรป = อ่านไม่ได้)
+const parse = (v: string) => {
+  const t = v.replace(/\s/g, '')
+  if (t.includes(',') && !/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)) return NaN
+  return Number(t.replace(/,/g, ''))
+}
 const num = (v: string) => {
-  const n = Number(v.replace(/[,\s]/g, '')) // รับ "4,972" และ "4 972"
+  const n = parse(v)
   return Number.isFinite(n) ? n : 0
 }
+// พิมพ์รูปแบบที่อ่านไม่ได้ (เช่น "4.972,5") → กรอบแดง แทนที่จะนับเป็น 0 เงียบ ๆ
+const bad = (v: string) => v.trim() !== '' && !Number.isFinite(parse(v))
 const fmt = (n: number) => n.toLocaleString(LOCALE, { maximumFractionDigits: 2 })
 // ฮายอนลดแค่สายโจมตีกับสายเวท → เลือกอัศวินแล้วติ๊ก "โดนลด" ให้ตามประเภท (แก้เองได้)
 const debuffedType = (id: string) => ['attack', 'magic'].includes(getUnit(id)?.type ?? '')
 
 const INPUT = 'pill min-w-0 px-2 py-1.5 text-center tabular-nums outline-none focus:border-gold'
+const numInput = (v: string) => `${INPUT} ${bad(v) ? '!border-red-400' : ''}`
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -131,7 +160,8 @@ export default function AtkPage() {
               onChange={(e) => setState((s) => ({ ...s, pet: e.target.value }))}
               inputMode="decimal"
               aria-label={L('All Attack ของสัตว์เลี้ยง', 'Pet All Attack')}
-              className={`${INPUT} w-20`}
+              aria-invalid={bad(pet) || undefined}
+              className={`${numInput(pet)} w-20`}
             />
             <span className="ml-0 text-white/70 sm:ml-3">{L('ศักยภาพ All Attack (%)', 'Potential All Attack (%)')}</span>
             {Array.from({ length: PET_LINES }, (_, i) => (
@@ -146,7 +176,8 @@ export default function AtkPage() {
                 }
                 inputMode="decimal"
                 aria-label={L(`ศักยภาพบรรทัดที่ ${i + 1}`, `Potential line ${i + 1}`)}
-                className={`${INPUT} w-14`}
+                aria-invalid={bad(potential[i] ?? '') || undefined}
+                className={`${numInput(potential[i] ?? '')} w-14`}
               />
             ))}
             <span className="text-white/70">
@@ -187,7 +218,8 @@ export default function AtkPage() {
                   inputMode="decimal"
                   placeholder="+%"
                   aria-label={L(`บัฟที่ ${i + 1} %`, `Buff ${i + 1} %`)}
-                  className={INPUT}
+                  aria-invalid={bad(bf.pct) || undefined}
+                  className={numInput(bf.pct)}
                 />
                 <button
                   onClick={() => setState((s) => ({ ...s, buffs: s.buffs.filter((_, j) => j !== i) }))}
@@ -224,7 +256,8 @@ export default function AtkPage() {
               inputMode="decimal"
               placeholder="−%"
               aria-label={L('ลดโจมตี %', 'Attack down %')}
-              className={INPUT}
+              aria-invalid={bad(debuff.pct) || undefined}
+              className={numInput(debuff.pct)}
             />
           </div>
         </Section>
@@ -260,12 +293,12 @@ export default function AtkPage() {
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <label className="flex min-w-0 flex-col gap-1 text-xs text-white/55">
                   {L('ตั้งต้น', 'Starting attack')}
-                  <input value={c.start} onChange={(e) => setChar(i, { start: e.target.value })} inputMode="decimal" className={`${INPUT} text-base text-white`} />
+                  <input value={c.start} onChange={(e) => setChar(i, { start: e.target.value })} inputMode="decimal" aria-invalid={bad(c.start) || undefined} className={`${numInput(c.start)} text-base text-white`} />
                 </label>
                 {r.known === null ? (
                   <label className="flex min-w-0 flex-col gap-1 text-xs text-white/55">
                     base
-                    <input value={c.base} onChange={(e) => setChar(i, { base: e.target.value })} inputMode="decimal" className={`${INPUT} text-base text-white`} />
+                    <input value={c.base} onChange={(e) => setChar(i, { base: e.target.value })} inputMode="decimal" aria-invalid={bad(c.base) || undefined} className={`${numInput(c.base)} text-base text-white`} />
                   </label>
                 ) : (
                   <div className="flex min-w-0 flex-col gap-1 text-xs text-white/55">
@@ -328,7 +361,7 @@ export default function AtkPage() {
         kind="hero"
         index={picking ?? 0}
         current={picking !== null ? chars[picking].id : null}
-        used={chars.map((c) => c.id).filter(Boolean) as string[]}
+        used={NONE} // เลือกตัวเดียวกันทั้ง 2 ช่องได้ (เทียบของ/ตั้งต้นคนละแบบ)
         full={false}
         allowCustom={false}
         includeBaseForms
