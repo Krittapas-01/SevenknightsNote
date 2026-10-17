@@ -1,7 +1,7 @@
 import { Camera, CheckCircle2, ClipboardPaste, ImageUp, Save } from 'lucide-react'
 import example from '../assets/help/stats-example.webp'
 import Modal from './Modal'
-import { tx } from '../lib/i18n'
+import { L, tx } from '../lib/i18n'
 
 const SEEN_KEY = '7kn-stats-help-seen'
 /** เคยเห็นวิธีใช้แล้วหรือยัง (เบราว์เซอร์นี้) — เปิดให้อัตโนมัติแค่ครั้งแรก */
@@ -31,8 +31,9 @@ const STEPS = [
   },
   {
     icon: Save,
-    title: tx('กด "ใส่ค่าความสามารถ" แล้วกดบันทึกของหน้านั้น'),
-    body: tx('ค่าความสามารถจะยังไม่ถูกบันทึกจนกดปุ่ม "บันทึก" ของทีม/แผนที่กำลังแก้'),
+    title: L('กดใส่ทีละตัว แล้วกดบันทึกของหน้านั้น', 'Apply each hero, then save that page'),
+    body: L('กดใส่แล้วหน้าต่างไม่ปิด ลงรูปตัวถัดไปต่อได้เลย (เลือกหลายรูปพร้อมกันก็ได้ เว็บอ่านให้ทีละตัว) · ครบแล้วกด "เสร็จ" · ค่าความสามารถจะยังไม่ถูกบันทึกจนกดปุ่ม "บันทึก" ของทีม/แผนที่กำลังแก้',
+      'After you apply, the window stays open for the next screenshot (you can pick several at once; they are read one by one) · press "Done" when finished · stats aren\'t saved until you press "Save" on the team/plan you\'re editing'),
   },
 ]
 
