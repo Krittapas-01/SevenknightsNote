@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { tx } from '../lib/i18n'
 import { lockScroll } from '../lib/scrollLock'
 import { afterPaint, fadeIn, ghostable, motionOK, popIn, popOut, rise } from '../lib/overlayMotion'
+import { prewarm } from '../lib/prewarm'
 
 type Props = {
   open: boolean
@@ -44,9 +45,10 @@ export default function Modal({ open, title, onClose, children, wide, tall, keep
   const show = open || closing
 
   // ระหว่างเล่นแอนิเมชันปิด ยังโชว์หัวเรื่อง/เนื้อหาชุดสุดท้ายตอนเปิด (ข้างนอกมักล้างข้อมูลไปแล้ว เช่น setEdit(null))
+  // keep ที่ปิดเสร็จแล้ว (ซ่อนรออยู่) ใช้เนื้อหาล่าสุดเสมอ — ไม่งั้นของที่เปลี่ยนตอนซ่อน (ใส่ตัวในทีม/ตัวกรอง) ไปค้างวาดใหม่ทั้งก้อนตอนกดเปิด
   const last = useRef({ title, children })
   if (open) last.current = { title, children }
-  const view = open ? { title, children } : last.current
+  const view = open || (keep && !closing) ? { title, children } : last.current
 
   // กรอบ/เนื้อหาขึ้นแล้วหรือยัง (ค้างไว้จนปิดเสร็จ · keep = เนื้อหาค้างไว้ตลอด)
   const [frameUp, setFrameUp] = useState(false)
@@ -96,10 +98,19 @@ export default function Modal({ open, title, onClose, children, wide, tall, keep
     if (!el || !motionOK()) return undefined
     el.style.contentVisibility = 'hidden'
     el.scrollTop = 0 // keep: เปิดใหม่เริ่มจากบนสุดเหมือนเดิม (ตั้งตอนซ่อน = ไม่ต้องคำนวณตำแหน่งการ์ดทั้งตารางก่อน)
-    return afterPaint(() => {
+    // [data-later] (หมวดล่าง ๆ ของตารางอัศวิน) ยังรอคิวลอยขึ้น มองไม่เห็นอยู่ดี → วาดเฟรมถัดไป
+    // เฟรมเปิดจะได้วาดแค่ส่วนบน (เดิมวาดการ์ดทั้งตารางในเฟรมเดียว จอค้างนานขึ้นเกือบเท่าตัว)
+    let later: HTMLElement[] = []
+    const reveal = () => { for (const l of later) l.style.removeProperty('content-visibility'); later = [] }
+    let cancelLater: (() => void) | undefined
+    const cancel = afterPaint(() => {
+      later = Array.from(el.querySelectorAll<HTMLElement>('[data-later]'))
+      for (const l of later) l.style.contentVisibility = 'hidden'
       el.style.contentVisibility = ''
       rise(el, 0, 70)
+      cancelLater = afterPaint(reveal)
     }, frames)
+    return () => { cancel(); cancelLater?.(); reveal() }
   }
   useLayoutEffect(() => {
     bodyShown.current = false
@@ -130,6 +141,24 @@ export default function Modal({ open, title, onClose, children, wide, tall, keep
     // เปิดกลับระหว่างกำลังปิด / ปิดเสร็จ (keep: ซ่อนรอไว้) → ล้างแอนิเมชัน (fill: forwards) ให้กลับเป็นปกติ
     return () => { for (const a of anims) a.cancel() }
   }, [closing])
+
+  // keep="prerender" ที่ซ่อนรออยู่: เตรียมเนื้อหา (คำนวณสไตล์/ตำแหน่ง) ไว้ตอนเครื่องว่าง → กดเปิดแล้วเหลือแค่วาดภาพ (lib/prewarm)
+  // เนื้อหาเปลี่ยนตอนซ่อนอยู่ (ตัวกรอง/สลับแท็บ/ใส่ตัวในทีม) → เตรียมเฉพาะชิ้นใหม่
+  const warmSeen = useRef(new WeakSet<Element>())
+  useLayoutEffect(() => {
+    const bd = backdrop.current
+    const el = body.current
+    if (keep !== 'prerender' || !idle || !bodyUp || !bd || !el) return
+    let stop = prewarm(bd, el, warmSeen.current)
+    let queued = false
+    const mo = new MutationObserver(() => {
+      if (queued) return
+      queued = true
+      queueMicrotask(() => { queued = false; stop(); stop = prewarm(bd, el, warmSeen.current) })
+    })
+    mo.observe(el, { childList: true, subtree: true })
+    return () => { mo.disconnect(); stop() }
+  }, [keep, idle, bodyUp])
 
   // ข้างนอกถอดหน้าต่างทิ้งทั้งก้อนตอนเปิดอยู่ ({x && <Modal open />}) → เล่นแอนิเมชันปิดด้วยเงาที่โคลนไว้
   const live = useRef(false)
