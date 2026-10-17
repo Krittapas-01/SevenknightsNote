@@ -1,11 +1,12 @@
 import { Calculator, Coffee, Cookie, ExternalLink, Gem, Home, Megaphone, MessagesSquare, Settings, Shield, Sparkles, Swords, ThumbsUp, X } from 'lucide-react'
-import { Suspense, lazy, useEffect, useState, type ComponentType } from 'react'
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState, type ComponentType } from 'react'
 import { NavLink } from 'react-router'
 import { getRecent, refreshRecent } from '../lib/api'
 import { useHasUpdate } from './WhatsNew'
 import Modal from './Modal'
 import { tx, L } from '../lib/i18n'
 import { openSupport } from './Support'
+import { slideItems } from '../lib/overlayMotion'
 
 // หน้าต่างตั้งค่าในเมนู โหลดตอนเปิดครั้งแรก (ไม่ต้องอยู่ในไฟล์หลักที่ทุกหน้าโหลด)
 import { PACKS_ON } from '../lib/packs'
@@ -47,14 +48,19 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
     setRecent(getRecent())
     refreshRecent().then(setRecent).catch(() => {}) // ชื่อล่าสุด + ตัดกิลด์ที่ถูกลบ
   }, [open])
+  // เปิดเมนู → รายการไล่เลื่อนเข้าทีละอัน (ก่อนวาดเฟรมแรก ไม่มีแวบเห็นของนิ่ง ๆ ก่อน)
+  const nav = useRef<HTMLElement>(null)
+  useLayoutEffect(() => { if (open && nav.current) slideItems(nav.current) }, [open])
   const item = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-lg px-3 py-2 ${isActive ? 'bg-white/10 text-gold' : 'text-white/85 hover:bg-white/5'}`
 
   return (
     <div className={`fixed inset-0 z-50 ${open ? '' : 'pointer-events-none'}`} aria-hidden={!open}>
-      <div onClick={onClose} className={`absolute inset-0 bg-[var(--backdrop)] transition-opacity ${open ? 'opacity-100' : 'opacity-0'}`} />
+      <div onClick={onClose} className={`absolute inset-0 bg-[var(--backdrop)] transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`} />
+      {/* เปิด: พุ่งออกเร็วแล้วค่อย ๆ หยุด · ปิด: ค่อย ๆ เร่งหายไป */}
       <nav
-        className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-white/10 bg-[var(--surface-3)] p-4 shadow-2xl transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        ref={nav}
+        className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-white/10 bg-[var(--surface-3)] p-4 shadow-2xl transition-transform ${open ? 'translate-x-0 duration-300 ease-[cubic-bezier(.16,1,.3,1)]' : '-translate-x-full duration-200 ease-in'}`}
       >
         <div className="mb-4 flex items-center justify-between">
           <span className="flex items-center gap-2 text-lg font-bold">
