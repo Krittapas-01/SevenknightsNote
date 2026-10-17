@@ -62,6 +62,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
         g('เครื่องประดับ', 'หน้าเลือกเครื่องประดับเรียงแหวนตามลำดับในสมุดภาพของเกม'),
         g('ความเป็นส่วนตัว', 'ผู้ดูแลเว็บเข้าดูข้อมูลของทุกกิลด์ได้ (รวมกิลด์ที่สร้างไว้แล้ว) และจะไม่แชร์ต่อให้ผู้อื่น · มีข้อความนี้ใต้ปุ่มสร้างกิลด์ด้วย'),
         g('หัวเว็บมือถือโล่งขึ้น', 'กดรูปโปรไฟล์ → เมนู พรีเซต & ทีมที่ชอบ / ดูการสอนหน้านี้ / ออกจากระบบ (ปุ่ม ? กับปุ่มออกจากระบบย้ายเข้าไปในนี้)', 'ปุ่ม ? / 🌐 ไม่มีกรอบ · จอแคบหรือตั้งตัวอักษรใหญ่ ชื่อเว็บย่อเองไม่ให้ล้น · ยังไม่ล็อกอิน ปุ่มเข้าสู่ระบบเหลือโลโก้ Discord'),
+        g('แท็บทีมแก้', { text: 'ทีมแก้ที่เพิ่มใน 24 ชม. มีป้าย "ใหม่" ส่วนทีมที่ถูกแก้ใน 24 ชม. มีจุดเขียว (เดิมทีมที่เพิ่งเพิ่มไม่มีอะไรบอก)', guide: 'targets' }),
       ] },
       { kind: 'fix', groups: [
         g(undefined,
@@ -304,6 +305,7 @@ const CHANGELOG_EN: ChangelogEntry[] = [
         g('Accessories', 'The accessory picker lists rings in the in-game codex order'),
         g('Privacy', 'The site admin can view every guild\'s data (including guilds created before) and never shares it with anyone else; this note is now under the Create guild button too'),
         g('Cleaner phone header', 'Tap your profile picture → menu with Presets & favorites / page guide / Log out (the ? and log-out buttons moved in here)', 'Borderless ? / 🌐 buttons · the site name shortens itself on narrow screens or large text so nothing overflows · logged out, the sign-in button is just the Discord logo'),
+        g('Counter tabs', { text: 'Counters added in the last 24h get a "New" badge, and counters edited in the last 24h get a green dot (newly added ones used to show nothing)', guide: 'targets' }),
       ] },
       { kind: 'fix', groups: [
         g(undefined,
