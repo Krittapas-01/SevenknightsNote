@@ -202,8 +202,8 @@ h1, h2, h3 { text-wrap: balance; }
   width: 21%;
   min-width: 13px;
   aspect-ratio: 1;
-  display: grid;
-  place-items: center;
+  /* block ไม่ใช่ grid: รูปเต็มกรอบอยู่แล้ว หน้าตาเหมือนเดิม แต่คำนวณตำแหน่งเร็วกว่า (การ์ดเป็นร้อยใบในตารางอัศวิน) */
+  display: block;
   border: 1px solid color-mix(in srgb, var(--role-tone), #f4dfb4 45%);
   border-radius: 3px;
   background: linear-gradient(145deg, color-mix(in srgb, var(--role-tone), white 24%), var(--role-tone) 48%, color-mix(in srgb, var(--role-tone), black 38%));
@@ -211,6 +211,7 @@ h1, h2, h3 { text-wrap: balance; }
   pointer-events: none;
 }
 .unit-role-badge img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -239,6 +240,8 @@ h1, h2, h3 { text-wrap: balance; }
 /* keep: หน้าต่างที่ปิดแล้วแต่เก็บเนื้อหาไว้ (ตารางอัศวิน) — ไม่วาดข้างใน + เลื่อนออกนอกจอ (แบบเดียวกับ .hero-dock-idle)
    200% ของความสูงตัวเอง (เต็มจอ) — ไม่ใช้ vh: จอคอมซูม 80% แล้ว 100vh สั้นกว่าจอจริง */
 .modal-idle { content-visibility: hidden; transform: translateY(200%); }
+/* ช่วงเตรียมตอนเครื่องว่าง (lib/prewarm): ยังอยู่นอกจอ (ไม่วาดภาพ) แต่ให้เบราว์เซอร์คำนวณสไตล์/ตำแหน่งไว้ก่อน — ซ่อนกลับแล้วยังจำผลไว้ */
+.modal-idle[data-warming] { content-visibility: visible; }
 /* เนื้อหาหนักยังวาดไม่เสร็จ: ดาวหมุนกลางจอ โผล่หลัง 0.18 วิ (เปิดเร็ว = ไม่เห็นเลย) */
 .modal-wait { font-size: 28px; line-height: 1; color: #f4d58d; text-shadow: 0 0 14px #f4d58daa; opacity: 0; will-change: transform, opacity;
   animation: fade-in 200ms ease-out 180ms forwards, wait-spin 1.1s linear infinite; }
@@ -257,6 +260,8 @@ h1, h2, h3 { text-wrap: balance; }
 /* หมวดที่ยังเลื่อนไม่ถึงไม่ต้องวาด → เปิดหน้าต่างเร็วขึ้น
    content-visibility ตัดภาพที่ล้นกรอบ → padding + margin ลบ ขยายกรอบออกไปให้แสงรอบการ์ด awake ไม่โดนตัด (ตำแหน่งการ์ดเท่าเดิม) */
 .hero-grid-group { content-visibility: auto; contain-intrinsic-block-size: auto 600px; padding: 14px; margin: -14px; }
+/* ตอนเตรียมล่วงหน้า หมวดที่อยู่นอกจอก็ต้องคำนวณด้วย (ไม่งั้นเปิดแล้วต้องคำนวณหมวดพวกนี้ตอนกดอยู่ดี) */
+.modal-idle[data-warming] .hero-grid-group { content-visibility: visible; }
 .landing-hero > .eyebrow,
 .landing-hero > .hero-crest { animation: content-arrive 360ms var(--motion-out) backwards; }
 .landing-hero > h1 { animation: content-arrive 420ms var(--motion-out) 60ms backwards; }
