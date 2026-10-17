@@ -155,8 +155,8 @@ export const TOURS: Tour[] = [
         ['เทียบกับในเกม — ช่องไหนอ่านผิดพิมพ์แก้ได้เลย\nด้านล่างใส่เซตอุปกรณ์ เครื่องประดับ และคำอธิบายของตัวนี้ได้ด้วย',
           'Compare with the game — fix any box that was misread.\nBelow you can also add gear sets, accessories and a note for this hero.'], { wait: 1500 }),
       s('[data-tour="stats-apply"]', ['ใส่ให้อัศวิน', 'Apply'],
-        ['กดใส่ → ค่าจะไปอยู่ในตารางอัศวินของทีม\nยังไม่ถูกบันทึกจนกด "บันทึก" ของหน้านั้นนะ',
-          'Apply → the values go into the team\'s hero table.\nNothing is saved until you press "Save" on that page.']),
+        ['กดใส่ → ค่าจะไปอยู่ในตารางอัศวินของทีม\nหน้าต่างไม่ปิด ลงรูปตัวถัดไปต่อได้เลย (เลือกหลายรูปพร้อมกันก็ได้) · ครบแล้วกด "เสร็จ"\nยังไม่ถูกบันทึกจนกด "บันทึก" ของหน้านั้นนะ',
+          'Apply → the values go into the team\'s hero table.\nThe window stays open, so add the next screenshot right away (or pick several at once) · press "Done" when finished.\nNothing is saved until you press "Save" on that page.']),
     ],
   },
   {

@@ -37,12 +37,13 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
       <AddHeroNote team={team} have={notes.map((n) => n.hero)} onAdd={(hero) => onChange?.([...notes, { hero, text: '', sets: [], rings: [] }].slice(0, 5))} />
     </div>
   )
-  if (!notes.length) return addRow || null
+  if (!notes.length && !addRow) return null
   return (
     <>
-    {/* ปุ่มอ่านค่าความสามารถจากรูป / เพิ่มของรายตัว อยู่บนตาราง (เห็นก่อน ไม่ต้องเลื่อนลงไปหา) */}
-    {addRow && <div className="mb-2">{addRow}</div>}
-    <div className="@container overflow-hidden rounded-2xl border border-white/10">
+    {/* ปุ่มอ่านค่าความสามารถจากรูป / เพิ่มของรายตัว อยู่บนตาราง (เห็นก่อน ไม่ต้องเลื่อนลงไปหา)
+        อยู่ตำแหน่งเดิมเสมอทั้งตอนมี/ไม่มีแถว — เดิมแถวแรกโผล่แล้วปุ่มถูกสร้างใหม่ หน้าต่างอ่านรูปที่เปิดอยู่ปิดเอง (ใส่ต่อตัวถัดไปไม่ได้) */}
+    {addRow && <div className={notes.length ? 'mb-2' : undefined}>{addRow}</div>}
+    {notes.length > 0 && <div className="@container overflow-hidden rounded-2xl border border-white/10">
       {/* กว้างตามกล่องที่วาง (container query) — การ์ดแคบในแผนเรียงซ้อน · หน้าบ้านศัตรูเป็น 2 คอลัมน์ */}
       <div className="hidden grid-cols-[minmax(0,17rem)_1fr] bg-white/5 text-sm font-semibold text-white/70 @xl:grid">
         <div className="border-r border-white/10 px-4 py-2 text-center">{tx('อัศวิน')}</div>
@@ -101,7 +102,7 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
           </div>
         </div>
       ))}
-    </div>
+    </div>}
     </>
   )
 }
