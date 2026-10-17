@@ -15,7 +15,8 @@ for f in sorted(src.iterdir()):
     if f.suffix.lower() not in ('.png', '.jpg', '.jpeg', '.webp') or not f.is_file():
         continue
     t = out / (f.stem + '.webp')
-    if t.exists() and t.stat().st_mtime >= f.stat().st_mtime:
+    # ไฟล์ว่าง (0 ไบต์ — เคยเซฟพัง) = ทำใหม่เสมอ ไม่ว่าเวลาไฟล์จะใหม่กว่า
+    if t.exists() and t.stat().st_size > 0 and t.stat().st_mtime >= f.stat().st_mtime:
         continue
     im = Image.open(f).convert('RGBA')
     im.thumbnail((SIZE, SIZE), Image.LANCZOS)

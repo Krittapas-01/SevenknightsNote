@@ -329,7 +329,7 @@ export default function TeamPanel({
               title={tx('สัตว์เลี้ยง')}
             >
               {team.pet ? (
-                <span data-mp={`hero:pet:${team.pet}`} className="block h-full w-full"><UnitCard id={team.pet} shape="pet" small={isSm} /></span>
+                <span data-mp={`hero:pet:${team.pet}`} className="block h-full w-full"><UnitCard id={team.pet} shape="pet" small={isSm} sizes={isSm ? undefined : MD_PET_SIZES} /></span>
               ) : (
                 <div data-mp="empty:pet" className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
                   <PawPrint className="absolute h-[55%] w-[55%] text-white/15" />
@@ -433,6 +433,11 @@ function DnDSlot({ id, enabled, filled, selected, round, kind, children }: { id:
   )
 }
 
+// ทีมขนาดกลาง (md): ช่อง clamp(58px, 17vw, 84px) · รูปอัศวินขยาย 1.6 เท่าในช่อง → บอกขนาดจริงให้เบราว์เซอร์เลือกรูปเอง
+// จอคอม/จอธรรมดาได้รูปย่อ 256px (คมพอ ไฟล์เล็กกว่าครึ่ง) · มือถือจอคมมากได้รูปเต็ม 512px เหมือนเดิม
+const MD_HERO_SIZES = '(min-width: 495px) 135px, 27vw'
+const MD_PET_SIZES = '(min-width: 495px) 84px, 17vw'
+
 function HeroSlot({ id, editable, inspectable, onClick, queue, side, small, slotIndex }: {
   id: string | null
   /** ลำดับช่อง (คีย์แอนิเมชันของช่องว่าง) */
@@ -467,7 +472,7 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side, small, slot
         style={{ borderRadius: UNIT_SLOT_RADIUS }}
         className="block h-full w-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">
         {id ? (
-          <UnitCard id={id} small={small} />
+          <UnitCard id={id} small={small} sizes={small ? undefined : MD_HERO_SIZES} />
         ) : (
           <div data-mp={`empty:${slotIndex}`} className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
             {editable && <Plus className="h-[45%] w-[45%] text-white drop-shadow" strokeWidth={3} />}

@@ -6,7 +6,7 @@ import { memo, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, us
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigationType, useParams, useSearchParams } from 'react-router'
 import Modal from '../components/Modal'
-import TeamCardLite from '../components/TeamCardLite'
+import TeamCardLite, { CARD_HEIGHT } from '../components/TeamCardLite'
 import UnitCard from '../components/UnitCard'
 import WarBoard from '../components/WarBoard'
 import ViewAsToggle from '../components/ViewAsToggle'
@@ -418,8 +418,9 @@ const TargetGrid = memo(function TargetGrid({ list, gid }: { list: Target[]; gid
         const recent = ago < 24 * 3600_000
         return (
         <Link key={t.id} ref={renderAhead} data-target-card={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition"
-          // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง) · 560px = ความสูงโดยประมาณของการ์ด
-          style={{ contentVisibility: 'auto', containIntrinsicWidth: 'none', containIntrinsicHeight: 'auto 480px', ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
+          // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง)
+          // จองความสูง = ความสูงจริงของการ์ด (CARD_HEIGHT ล็อกไว้ทุกใบ) → วาดตอนเลื่อนถึงแล้วการ์ดไม่ยืด/หด ไม่ดันการ์ดใบอื่น
+          style={{ contentVisibility: 'auto', containIntrinsicWidth: 'none', containIntrinsicHeight: `auto ${CARD_HEIGHT}`, ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
           <ImgPriority value={i < 3}>
           <TeamCardLite
             team={t.team}

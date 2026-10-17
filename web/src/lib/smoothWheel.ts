@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 import { usePrefs } from './prefs'
+import { isScrollLocked } from './scrollLock'
 
 /**
  * เลื่อนด้วยลูกกลิ้งเมาส์ให้นุ่มแบบ touchpad (ใช้ในหน้าที่การ์ดเยอะ)
@@ -9,7 +10,8 @@ import { usePrefs } from './prefs'
 export function useSmoothWheel(enabled = true) {
   // ตั้งค่า → ปิดเลื่อนนุ่มได้
   enabled = usePrefs().smoothScroll && enabled
-  useEffect(() => {
+  // useLayoutEffect: ออกจากหน้า = หยุดไหลทันทีตอนเปลี่ยนหน้า (ก่อน Layout เลื่อนหน้าใหม่ขึ้นบนสุด) ไม่ให้เฟรมที่ค้างอยู่เลื่อนกลับลงไป
+  useLayoutEffect(() => {
     if (!enabled || typeof window === 'undefined') return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
@@ -39,6 +41,11 @@ export function useSmoothWheel(enabled = true) {
 
     const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.shiftKey || e.deltaX) return // zoom / เลื่อนแนวนอน
+      // เปิดหน้าต่างอยู่ (ล็อกเลื่อนหน้า) → ไม่ยุ่ง: ให้เบราว์เซอร์เลื่อนในหน้าต่างเอง หน้าหลังอยู่นิ่ง
+      if (isScrollLocked()) {
+        if (raf) { cancelAnimationFrame(raf); raf = 0 }
+        return
+      }
       const dy = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY
       // ลูกกลิ้งเมาส์: wheelDelta เป็นจำนวนเท่าของ 120 เสมอ · touchpad: ค่าเศษ ๆ ไม่แน่นอน
       const wd = (e as WheelEvent & { wheelDeltaY?: number }).wheelDeltaY
