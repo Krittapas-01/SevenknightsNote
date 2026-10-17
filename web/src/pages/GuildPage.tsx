@@ -16,7 +16,6 @@ import { getUnit, englishOf, unitBase } from '../data/heroes'
 import { EditLogin, EditSettings } from '../components/EditAccess'
 import { PLAN_KIND_LABEL, planKind, type Plan, type PlanKind, type Target, type Team, slotLabel } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
-import { renderAhead } from '../lib/renderAhead'
 import HelpLink from '../components/HelpLink'
 import GuildTour from '../components/GuildTour'
 import { isDemo } from '../lib/demo'
@@ -24,6 +23,8 @@ import { useTour } from '../lib/tour'
 import GuildOnboarding from '../components/GuildOnboarding'
 import { markShared, onboardFlags } from '../lib/onboarding'
 import { useSmoothWheel } from '../lib/smoothWheel'
+import { useMountLater } from '../lib/mountLater'
+import { uiZoom } from '../lib/zoom'
 import NotFound from './NotFound'
 import { tx, L, LOCALE } from '../lib/i18n'
 
@@ -54,14 +55,19 @@ export default function GuildPage() {
   // useLayoutEffect: บันทึกก่อนหน้าใหม่วาด (ถ้ารอทีหลัง หน้าใหม่ที่สั้นกว่าจะทำให้ตำแหน่งถูกตัดไปแล้ว)
   // จำการ์ดบ้านแรกที่เห็นบนจอ + ระยะจากขอบบน (การ์ดนอกจอยังไม่รู้ความสูงจริง เลยยึดการ์ดแทนตัวเลข scrollY)
   // อัปเดตตอนเลื่อนจอ/กด (ค่าล่าสุดก่อนออก) แล้วเขียนตอนออกจากหน้า — อ่านตอนออกไม่ได้ เพราะหน้าใหม่/เลื่อนนุ่มขยับไปแล้ว
+  // วัดที่ช่องการ์ด ([data-target-cell] ขนาดล็อก) ไม่ใช่ตัวการ์ดข้างใน — วัดการ์ดที่อยู่นอกจอ = บังคับเบราว์เซอร์วาดการ์ดใบนั้นทันที (เคยกินเกือบ 0.3 วิตอนย้อนกลับ)
+  // ทำทุกเฟรมที่เลื่อน → ต้องถูก: รายการช่องแบบ live (ไม่ querySelectorAll ทั้งหน้าทุกเฟรม) + ค้นแบบแบ่งครึ่ง (ช่องเรียงบนลงล่างตามแถว)
   const snap = useRef<{ y: number; id: string; top: number } | null>(null)
   useEffect(() => {
     let raf = 0, frozen = false
+    const cells = document.getElementsByClassName('target-cell') as HTMLCollectionOf<HTMLElement>
     const take = () => {
       raf = 0
       if (frozen) return
-      const card = [...document.querySelectorAll<HTMLElement>('a[data-target-card]')].find((el) => el.getBoundingClientRect().bottom > 120)
-      snap.current = { y: window.scrollY, id: card?.dataset.targetCard ?? '', top: card ? card.getBoundingClientRect().top : 0 }
+      let lo = 0, hi = cells.length
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (cells[mid].getBoundingClientRect().bottom > 120) hi = mid; else lo = mid + 1 }
+      const card = cells[lo]
+      snap.current = { y: window.scrollY, id: card?.dataset.targetCell ?? '', top: card ? card.getBoundingClientRect().top : 0 }
     }
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(take) }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -74,6 +80,8 @@ export default function GuildPage() {
     }
   }, [scrollKey])
   const restored = useRef(false)
+  // กดย้อนกลับมา: การ์ดที่เคยดูอยู่ (สร้างการ์ดรอบ ๆ ใบนี้ก่อน ใบอื่นทยอยตามมา)
+  const [anchor] = useState(() => navType === 'POP' ? readSnap(scrollKey)?.id ?? null : null)
   const tab = params.get('tab') === 'targets' ? 'targets' : 'plans'
   const tabPill = useSlidePill(tab)
   const tabSlide = useSlideDir(tab === 'plans' ? 0 : 1)
@@ -115,14 +123,13 @@ export default function GuildPage() {
   useLayoutEffect(() => {
     if (restored.current || navType !== 'POP' || !data) return
     restored.current = true
-    let saved: { y: number; id: string; top: number } | null = null
-    try { saved = JSON.parse(sessionStorage.getItem(scrollKey) || 'null') } catch { /* ไม่มี storage */ }
+    const saved = readSnap(scrollKey)
     if (!saved || saved.y <= 0) return
     const { y, id, top } = saved
-    // เลื่อนไปที่การ์ดเดิม แล้วแก้ซ้ำอีกไม่กี่เฟรม (ความสูงการ์ดจริงค่อย ๆ รู้หลังวาด)
+    // เลื่อนไปที่การ์ดเดิม แล้วแก้ซ้ำอีกไม่กี่เฟรม (ส่วนบนของหน้าอาจสูงขึ้นหลังวาด)
     const fix = () => {
-      const el = id ? document.querySelector<HTMLElement>(`a[data-target-card="${CSS.escape(id)}"]`) : null
-      window.scrollTo({ top: el ? window.scrollY + el.getBoundingClientRect().top - top : y, behavior: 'instant' })
+      const el = id ? document.querySelector<HTMLElement>(`[data-target-cell="${CSS.escape(id)}"]`) : null
+      window.scrollTo({ top: el ? window.scrollY + el.getBoundingClientRect().top - rising(el) - top : y, behavior: 'instant' })
     }
     fix()
     let n = 0
@@ -247,7 +254,7 @@ export default function GuildPage() {
         )
       ) : (
         <>
-        <TargetGrid list={list} gid={gid} />
+        <TargetGrid list={list} gid={gid} anchor={anchor} />
         {/* ปุ่มลอย (fixed = ไม่ดันหน้า) · portal: แท็บมีแอนิเมชันเลื่อน (transform) ทำให้ fixed ข้างในเพี้ยน */}
         {stale && createPortal(
           <button type="button" data-testid="resort" onClick={() => setResort((n) => n + 1)}
@@ -407,48 +414,102 @@ function PlanCard({ gid, plan: p, active, usedAt }: { gid: string; plan: Plan; a
   )
 }
 
+/** ตำแหน่งที่จำไว้ตอนออกจากหน้า (ดู snap ใน GuildPage) */
+function readSnap(key: string): { y: number; id: string; top: number } | null {
+  try { return JSON.parse(sessionStorage.getItem(key) || 'null') } catch { return null } // ไม่มี storage
+}
+
+/**
+ * ระยะที่ el ยังลอยต่ำกว่าที่จริงอยู่ (พิกเซลบนจอ) จากแอนิเมชันเข้าหน้า (lib/motion: ส่วนของหน้าลอยขึ้นมาจบที่ transform: none)
+ * กดย้อนกลับแล้วคืนตำแหน่งระหว่างที่ยังลอย ต้องไม่นับระยะนี้ — ไม่งั้นลอยจบแล้วการ์ดเลื่อนขึ้นจากที่เดิม (~14px)
+ * ใช้แค่ตอนคืนตำแหน่ง (ไม่กี่เฟรม) · ดูเฉพาะตัวที่มีแอนิเมชันอยู่ · transform ในหน้าถูกย่อตาม zoom ของจอคอม → คูณ uiZoom()
+ */
+function rising(el: Element): number {
+  let dy = 0
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    if (!p.getAnimations().length) continue
+    const t = getComputedStyle(p).transform
+    if (t && t !== 'none') dy += new DOMMatrixReadOnly(t).m42
+  }
+  return dy * uiZoom()
+}
+
+/**
+ * ช่วงการ์ดที่สร้างทันทีตอนเปิดหน้า [เริ่ม, จบ) = เท่าที่เห็นบนจอแรก + เผื่อ 1 แถว (กดย้อนกลับ = รอบ ๆ การ์ดที่เคยดูอยู่)
+ * ใบอื่นเป็นช่องเปล่าขนาดเท่าการ์ดไปก่อน แล้วทยอยสร้างตามมา (useMountLater)
+ * ไม่ใช้ matchMedia (บังคับเบราว์เซอร์คำนวณสไตล์กลางการวาด) — คอลัมน์ตาม sm:/lg: ของตาราง
+ */
+function eagerRange(list: Target[], anchor: string | null): [number, number] {
+  const vw = window.innerWidth
+  const cols = vw >= 1024 ? 3 : vw >= 640 ? 2 : 1
+  const rowH = 3 * Math.min(68, Math.max(54, vw * 0.15)) + 229 // การ์ด (CARD_HEIGHT) + ช่องว่างระหว่างแถว
+  const rows = Math.ceil(window.innerHeight / uiZoom() / rowH) + 1
+  const at = anchor ? list.findIndex((t) => t.id === anchor) : -1
+  const start = at > 0 ? Math.max(0, (Math.floor(at / cols) - 1) * cols) : 0
+  return [start, start + (rows + 1) * cols]
+}
+
 /** การ์ดบ้านศัตรูทั้งหมด — แยก + memo: พิมพ์ค้นหา/กดแท็ก แล้วช่องพิมพ์ตอบทันที การ์ดค่อยวาดตามหลัง (ไม่วาดซ้ำถ้ารายการเดิม) */
-const TargetGrid = memo(function TargetGrid({ list, gid }: { list: Target[]; gid: string }) {
+const TargetGrid = memo(function TargetGrid({ list, gid, anchor }: { list: Target[]; gid: string; anchor: string | null }) {
+  const [from, to] = eagerRange(list, anchor)
   return (
     <div className="mt-5 grid gap-x-5 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-      {list.map((t, i) => {
-        // แก้/เพิ่มภายใน 24 ชม. (ตัวบ้านศัตรูหรือทีมแก้ข้างใน) → จุดเขียว ให้คนในกิลรู้ว่ามีการแก้
-        const last = Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
-        const ago = Date.now() - last
-        const recent = ago < 24 * 3600_000
-        return (
-        <Link key={t.id} ref={renderAhead} data-target-card={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex min-w-0 flex-col transition"
-          // การ์ดที่ยังไม่อยู่บนจอ: เบราว์เซอร์ข้ามการวาด (กิลด์ที่มีคอมพ์เยอะจะไม่ค้าง)
-          // จองความสูง = ความสูงจริงของการ์ด (CARD_HEIGHT ล็อกไว้ทุกใบ) → วาดตอนเลื่อนถึงแล้วการ์ดไม่ยืด/หด ไม่ดันการ์ดใบอื่น
-          style={{ contentVisibility: 'auto', containIntrinsicWidth: 'none', containIntrinsicHeight: `auto ${CARD_HEIGHT}`, ...(t.tags[0] ? { '--tag': tagColor(t.tags[0]) } : {}) } as React.CSSProperties}>
-          <ImgPriority value={i < 3}>
-          <TeamCardLite
-            team={t.team}
-            skills={t.team.skills ?? []}
-            className={`flex-1 group-hover:border-gold ${t.tags[0] ? 'tag-accent' : ''}`}
-            title={
-              <span className="flex items-center justify-between gap-2">
-                <span className="flex flex-wrap gap-1">
-                  {t.tags.length ? t.tags.map((x) => (
-                    <span key={x} className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={tagStyle(x)}>{tagText(x)}</span>
-                  )) : <span className="text-white/50">{tx('บ้านศัตรู')}</span>}
-                </span>
-                <span className="flex shrink-0 items-center gap-2 text-xs font-normal">
-                  {recent && (
-                    <span className="flex items-center gap-1 text-emerald-300/90" title={tx('มีการแก้ใน 24 ชม.')}>
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                      {ago < 3600_000 ? L(`${Math.max(1, Math.floor(ago / 60_000))} นาที`, `${Math.max(1, Math.floor(ago / 60_000))}m`) : L(`${Math.floor(ago / 3600_000)} ชม.`, `${Math.floor(ago / 3600_000)}h`)}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1 text-gold"><Swords className="h-3.5 w-3.5" /> {L(`${t.counters.length} ทีมแก้`, `${t.counters.length} counter${t.counters.length === 1 ? '' : 's'}`)}</span>
-                </span>
-              </span>
-            }
-          />
-          </ImgPriority>
-        </Link>
-        )
-      })}
+      {list.map((t, i) => <TargetCell key={t.id} t={t} gid={gid} priority={i < 3} eager={i >= from && i < to} />)}
     </div>
   )
 })
+
+/**
+ * ช่องการ์ดบ้าน 1 ใบ (.target-cell ใน index.css): ขนาดล็อก + การ์ดนอกจอไม่วาด
+ * ล็อกขนาด (contain: size) = เลื่อนถึงการ์ดใหม่ เบราว์เซอร์วาดแค่ใบนั้น ไม่ต้องวัดการ์ดทั้งตารางใหม่ (เคยค้างหลายวินาทีตอนเปิดหน้า)
+ * กล่องขยายเกินการ์ด (padding + margin ติดลบ) ให้เงา/✦ ไม่โดนตัด · ความสูง = การ์ด (CARD_HEIGHT) + ส่วนที่ขยาย
+ * eager = สร้างการ์ดทันที · ไม่งั้นเป็นช่องเปล่าจนกว่าจะเลื่อนเข้าใกล้จอหรือเครื่องว่าง (useMountLater)
+ */
+const TargetCell = memo(function TargetCell({ t, gid, priority, eager }: { t: Target; gid: string; priority: boolean; eager: boolean }) {
+  const [cell, on] = useMountLater<HTMLDivElement>(eager)
+  return (
+    <div ref={cell} data-target-cell={t.id} className="target-cell" style={{ height: `calc(${CARD_HEIGHT} + ${CELL_BLEED}px)` }}>
+      {on && <TargetCard t={t} gid={gid} priority={priority} />}
+    </div>
+  )
+})
+
+function TargetCard({ t, gid, priority }: { t: Target; gid: string; priority: boolean }) {
+  // แก้/เพิ่มภายใน 24 ชม. (ตัวบ้านศัตรูหรือทีมแก้ข้างใน) → จุดเขียว ให้คนในกิลรู้ว่ามีการแก้
+  const last = Math.max(t.updatedAt, ...t.counters.map((c) => c.updatedAt))
+  const ago = Date.now() - last
+  const recent = ago < 24 * 3600_000
+  return (
+    <Link data-target-card={t.id} to={`/g/${gid}/t/${t.id}`} className="group flex h-full min-w-0 flex-col"
+      style={t.tags[0] ? { '--tag': tagColor(t.tags[0]) } as React.CSSProperties : undefined}>
+      <ImgPriority value={priority}>
+      <TeamCardLite
+        team={t.team}
+        skills={t.team.skills ?? []}
+        className={`flex-1 group-hover:border-gold ${t.tags[0] ? 'tag-accent' : ''}`}
+        title={
+          <span className="flex items-center justify-between gap-2">
+            <span className="flex flex-wrap gap-1">
+              {t.tags.length ? t.tags.map((x) => (
+                <span key={x} className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={tagStyle(x)}>{tagText(x)}</span>
+              )) : <span className="text-white/50">{tx('บ้านศัตรู')}</span>}
+            </span>
+            <span className="flex shrink-0 items-center gap-2 text-xs font-normal">
+              {recent && (
+                <span className="flex items-center gap-1 text-emerald-300/90" title={tx('มีการแก้ใน 24 ชม.')}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  {ago < 3600_000 ? L(`${Math.max(1, Math.floor(ago / 60_000))} นาที`, `${Math.max(1, Math.floor(ago / 60_000))}m`) : L(`${Math.floor(ago / 3600_000)} ชม.`, `${Math.floor(ago / 3600_000)}h`)}
+                </span>
+              )}
+              <span className="flex items-center gap-1 text-gold"><Swords className="h-3.5 w-3.5" /> {L(`${t.counters.length} ทีมแก้`, `${t.counters.length} counter${t.counters.length === 1 ? '' : 's'}`)}</span>
+            </span>
+          </span>
+        }
+      />
+      </ImgPriority>
+    </Link>
+  )
+}
+
+/** ส่วนที่ช่องการ์ดขยายเกินตัวการ์ด (บน 16 + ล่าง 40 — ต้องตรงกับ padding ของ .target-cell) */
+const CELL_BLEED = 56

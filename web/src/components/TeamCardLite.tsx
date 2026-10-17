@@ -75,7 +75,7 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
             <span className="absolute -bottom-1.5 rounded-full bg-black/70 px-1.5 text-[10px] leading-4 text-white/85">{formationName(team.front)}</span>
           </div>
           <div title={skills.length ? L(`ตั้งลำดับการใช้สกิล ${skills.length} ครั้ง`, `Skill queue set ${skills.length} times`) : tx('ตั้งลำดับการใช้สกิล')} className="orb relative mt-4 grid place-items-center" style={{ width: 'var(--s)', height: 'var(--s)' }}>
-            <QueueStars lit={lit} />
+            <QueueStars lit={lit} still />
           </div>
         </div>
       </div>

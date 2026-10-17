@@ -18,6 +18,8 @@ export function useSmoothWheel(enabled = true) {
     let target = window.scrollY
     let current = target
     let raf = 0
+    /** เลื่อนได้ลึกสุดเท่าไหร่ (อ่านตอนเริ่มหมุนแต่ละชุด — อ่านทุกครั้งที่หมุน = บังคับคำนวณหน้าใหม่) */
+    let max = 0
     /** เจอ touchpad ล่าสุดเมื่อไหร่ (ปล่อยทั้งชุดต่อเนื่องให้เบราว์เซอร์) */
     let touchpadAt = -1e9
 
@@ -57,10 +59,12 @@ export function useSmoothWheel(enabled = true) {
         if (raf) { cancelAnimationFrame(raf); raf = 0 }
         return
       }
-      if (inScrollable(e.target as Element)) return
+      // กำลังไหลอยู่ = หมุนต่อเนื่องชุดเดิม → เลื่อนหน้าต่อ ไม่ต้องเช็กกล่องใต้เมาส์ใหม่ (แบบเดียวกับที่เบราว์เซอร์ล็อกเป้าหมายตลอดการหมุน)
+      // เช็กทุกครั้ง = getComputedStyle ไล่ทุกชั้นทุกครั้งที่หมุน กินเวลาตอนการ์ดกำลังวาด
+      if (!raf && inScrollable(e.target as Element)) return
       e.preventDefault()
-      if (!raf) target = current = window.scrollY // เริ่มใหม่จากตำแหน่งจริง (เผื่อลาก scrollbar/กดคีย์บอร์ดมา)
-      target = Math.max(0, Math.min(maxY(), target + dy))
+      if (!raf) { target = current = window.scrollY; max = maxY() } // เริ่มใหม่จากตำแหน่งจริง (เผื่อลาก scrollbar/กดคีย์บอร์ดมา)
+      target = Math.max(0, Math.min(max, target + dy))
       if (!raf) raf = requestAnimationFrame(step)
     }
 
