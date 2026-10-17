@@ -7,10 +7,13 @@ import { MAX_HEROES } from '../lib/types'
 import { HEROES, HERO_TYPES, PETS, TIERS, baseName, matchUnit, tierOf, type HeroType, type Tier, type Unit, unitLabel } from '../data/heroes'
 import { pressRoster, useDndHub, useDraggingUnit } from './DndHub'
 import Modal from './Modal'
+import { loadImages } from '../lib/prewarm'
 import UnitCard from './UnitCard'
 import { tx, L } from '../lib/i18n'
 
 const HISTORY = '7knote:search-history'
+/** การ์ดในตารางหน้าใหญ่ที่เห็นทันทีตอนเปิด (คอม 10 คอลัมน์ ~5 แถว · มือถือน้อยกว่า) → ถอดรหัสรูปไว้ก่อน */
+const FIRST_SCREEN = 60
 const readHistory = (): string[] => {
   try { return JSON.parse(localStorage.getItem(HISTORY) ?? '[]') } catch { return [] }
 }
@@ -103,6 +106,11 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
   // เก็บแถบ = ปิดหน้าต่างของแถบด้วย (เดิมแถบหายทั้งก้อน)
   useEffect(() => { if (!open) setModal(null) }, [open])
 
+  // เปิดแถบแล้ว (กำลังจัดทีม) → ทยอยสั่งโหลดรูปการ์ดในตารางหน้าใหญ่ (ที่สร้างรอไว้) ตอนเครื่องว่าง + ถอดรหัสรูปจอแรกไว้ (lib/prewarm)
+  // เดิมรูปเป็น lazy: กด "ดูทั้งหมด" แล้วค่อยเริ่มโหลด → การ์ดว่าง ๆ แล้วรูปทยอยโผล่อีกเกือบวิ
+  // ไม่โหลดตั้งแต่เข้าหน้า: คนที่แค่ดูทีมไม่ต้องเสียเน็ตรูปเป็นร้อยใบ
+  useEffect(() => (open ? loadImages(gridRef.current, FIRST_SCREEN) : undefined), [open, groups])
+
   if (!hub || !hasPanels) return null
   // เปิดเฉพาะตอนแตะช่องในทีม (ปิดอยู่ = ซ่อนไว้เฉย ๆ ถ้าเตรียมแล้ว)
   if (!open && !warm) return null
@@ -183,15 +191,17 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
         </div>
       </div>
 
-      {/* ตารางใหญ่ตรงกลาง */}
-      <Modal open={modal === 'grid'} title={L(`${tab === 'hero' ? 'อัศวิน' : 'สัตว์เลี้ยง'}ทั้งหมด · ใส่ใน ${hub.focusedLabel ?? '—'}`, `All ${tab === 'hero' ? 'heroes' : 'pets'} · adding to ${hub.focusedLabel ?? '—'}`)} onClose={() => setModal(null)} wide>
+      {/* ตารางใหญ่ตรงกลาง — สร้างรอไว้ตั้งแต่แถบเตรียมเสร็จ (keep="prerender") + ปิดแล้วเก็บไว้ → กด "ดูทั้งหมด" แล้วกรอบเด้งขึ้นทันที
+          ไม่ต้องสร้างการ์ด 100+ ใบตอนกด (เดิมจอมืดรอเกือบวิที่ CPU ช้า แล้วหน้าต่างโผล่มาทีเดียว) */}
+      <Modal open={modal === 'grid'} title={L(`${tab === 'hero' ? 'อัศวิน' : 'สัตว์เลี้ยง'}ทั้งหมด · ใส่ใน ${hub.focusedLabel ?? '—'}`, `All ${tab === 'hero' ? 'heroes' : 'pets'} · adding to ${hub.focusedLabel ?? '—'}`)} onClose={() => setModal(null)} wide tall keep="prerender">
         <div className="mb-3 flex gap-2">
           <RoundBtn title={tx('กรองประเภท')} onClick={() => setModal('filter')} active={types.length + tiers.length > 0} hidden={tab !== 'hero'}><Filter className="h-5 w-5" /></RoundBtn>
           <RoundBtn title={tx('ค้นหาชื่อ')} onClick={() => setModal('search')} active={!!query}><Search className="h-5 w-5" /></RoundBtn>
           {query && <span className="self-center text-sm text-white/60">{tx('ค้นหา: “')}{query}”</span>}
         </div>
-        <div ref={gridRef} {...gridScroll} data-tour="hero-grid" className="hero-grid cursor-grab select-none space-y-5">
-          {groups.map((g) => (
+        {/* data-cascade: เปิดแล้วหมวด (tier) ลอยขึ้นทีละหมวด · data-tour เฉพาะตอนเปิด (ปิดอยู่ยังอยู่ในหน้าแบบซ่อน — อย่าให้ตัวสอนใช้เจอ) */}
+        <div ref={gridRef} {...gridScroll} data-cascade data-tour={modal === 'grid' ? 'hero-grid' : undefined} className="hero-grid cursor-grab select-none space-y-5">
+          {groups.map((g, gi) => (
             <section key={g.key}>
               {g.tier && (
                 <div className="mb-2 flex items-center gap-2">
@@ -201,7 +211,10 @@ export default function HeroDock({ bottom = 0, z }: { bottom?: number; z?: numbe
                   <span className="h-px flex-1 bg-white/10" />
                 </div>
               )}
-              <div className="hero-grid-group grid grid-cols-4 gap-2.5 sm:grid-cols-6 lg:grid-cols-10">
+              {/* 2 หมวดแรก (เห็นทันทีที่เปิด) วาดเลย · หมวดถัดไปค่อยวาดตอนเลื่อนถึง (content-visibility: auto)
+                  ถ้าหมวดแรก ๆ รอเบราว์เซอร์เช็กว่าอยู่ในจอก่อน = เปิดแล้วเห็นหัวหมวดว่าง ๆ อีกหลายเฟรมค่อยมีการ์ด
+                  data-later: ตอนกดเปิด หมวดถัดไปวาดหลังเฟรมแรก (ยังรอคิวลอยขึ้นอยู่ ดู Modal) */}
+              <div data-later={gi < 2 ? undefined : ''} className={`${gi < 2 ? '' : 'hero-grid-group'} grid grid-cols-4 gap-2.5 sm:grid-cols-6 lg:grid-cols-10`}>
                 {g.units.map((u) => (
                   <GridCard key={u.id} unit={u} kind={tab} onPick={onPick} inTeam={used.has(u.id)} usedIn={usedIn(u)} />
                 ))}
@@ -285,6 +298,7 @@ const GridCard = memo(function GridCard({ unit, kind, onPick, inTeam, usedIn }: 
   return (
     <button
       type="button"
+      data-warm // Modal เตรียมไว้ตอนเครื่องว่างทีละไม่กี่ใบ (lib/prewarm)
       onClick={() => !inTeam && onPick(unit)}
       className={`relative aspect-[4/5] text-[13px] ${inTeam ? 'opacity-35' : usedIn ? 'opacity-60 hover:opacity-90' : ''}`}
       title={inTeam ? tx('อยู่ในทีมแล้ว') : L(`ใส่ ${unitLabel(unit.id)}`, `Add ${unitLabel(unit.id)}`)}

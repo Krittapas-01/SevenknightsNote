@@ -37,9 +37,13 @@ export default function TourOverlay() {
     if (!step.sel) { setReady(true); return }
     const sel = step.sel
     const until = performance.now() + (step.wait ?? 1500)
-    let raf = 0
+    let raf = 0, timer = 0
     let el: Element | null = null
+    // ช่วงที่ของบนจอกำลังขยับ (เพิ่งเริ่มขั้น / เลื่อนจอ / ย่อขยายจอ) = วัดตำแหน่งทุกเฟรม ไม่งั้นวัดห่าง ๆ
+    // (วัดทุกเฟรมตลอดเวลา = บังคับเบราว์เซอร์คำนวณหน้าใหม่ทุกเฟรม เครื่องช้าเคยค้างทั้งหน้าระหว่างมีการสอน)
+    let hotUntil = performance.now() + 1200
     const measure = () => {
+      raf = 0
       if (!el || !el.isConnected) el = find(sel)
       if (el) {
         // จอคอมย่อทั้งเว็บด้วย zoom → ตำแหน่งจริงต้องหารกลับเป็นพิกเซลของหน้า
@@ -47,8 +51,18 @@ export default function TourOverlay() {
         const r = { top: q.top / z, left: q.left / z, width: q.width / z, height: q.height / z }
         setBox((b) => (b && Math.abs(b.top - r.top) < 0.5 && Math.abs(b.left - r.left) < 0.5 && b.width === r.width && b.height === r.height ? b : { top: r.top, left: r.left, width: r.width, height: r.height }))
       }
-      raf = requestAnimationFrame(measure)
+      if (performance.now() < hotUntil) raf = requestAnimationFrame(measure)
+      else timer = window.setTimeout(() => { timer = 0; raf = requestAnimationFrame(measure) }, 250)
     }
+    const wake = () => {
+      hotUntil = performance.now() + 600
+      if (timer) { clearTimeout(timer); timer = 0 }
+      if (!raf && el) raf = requestAnimationFrame(measure)
+    }
+    window.addEventListener('scroll', wake, { capture: true, passive: true })
+    window.addEventListener('resize', wake)
+    window.addEventListener('pointerup', wake, true)
+    window.addEventListener('keyup', wake, true)
     const look = () => {
       el = find(sel)
       if (el) {
@@ -68,7 +82,13 @@ export default function TourOverlay() {
       else goStep(active.i + 1)
     }
     look()
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf); clearTimeout(timer)
+      window.removeEventListener('scroll', wake, { capture: true })
+      window.removeEventListener('resize', wake)
+      window.removeEventListener('pointerup', wake, true)
+      window.removeEventListener('keyup', wake, true)
+    }
   }, [active, step])
 
   // ขั้น "ลองกดเอง": กดสิ่งที่ส่องแล้วไปขั้นต่อไป

@@ -14,6 +14,7 @@ import TeamPanel from '../components/TeamPanel'
 import { DndHub, DockAware, HideWhileDock, useListTarget } from '../components/DndHub'
 import { findLogItems, findSyncItems, logToTargets, markLogged, syncToLibrary, type LogItem, type SyncItem } from '../lib/logTargets'
 import Modal from '../components/Modal'
+import Layer from '../components/Layer'
 import TagEditor from '../components/TagEditor'
 import { PresetPickerButton } from '../components/Presets'
 import { rememberNotes } from '../lib/myStats'
@@ -168,6 +169,7 @@ export default function PlanPage() {
   /** เปิดหน้าต่างลำดับการใช้สกิลของทีม (ไม้ s ทีม o) — n เปลี่ยน = สั่งเปิด */
   const [skillReq, setSkillReq] = useState<{ s: number; o: number; n: number } | null>(null)
   const backdropDown = useRef(false)
+  const wizLayer = useRef<HTMLDivElement>(null)
   const [exitAsk, setExitAsk] = useState(false)
   const [wiz, setWiz] = useState<{ s: number; step: 1 | 2 | 3; snap: WarSlot; isNew: boolean; skillOk?: boolean; vsSkillOk?: boolean; cpick?: { h: number; v: boolean } } | null>(null)
   useEffect(() => { if (!editing) setWiz(null) }, [editing])
@@ -777,7 +779,8 @@ export default function PlanPage() {
       // ขนาดหน้าต่างคงที่ทุกขั้น (ไม่ยืด/หดตอนเปลี่ยนขั้น) — เนื้อหาเลื่อนข้างใน
       // กดพื้นหลังนอกกรอบ = ยกเลิก (เหมือนกด "ยกเลิก") — ถ้าแถบอัศวินเปิดอยู่ ครั้งนั้นแค่ปิดแถบ/ยกเลิกช่องที่เลือก
       // ไม่เบลอพื้นหลัง (ตารางอัศวินหน้าใหญ่เปิดซ้อนบนนี้ → เบลอเต็มจอใหม่ทุกเฟรมที่เลื่อนตาราง)
-      <div className="wiz-backdrop fixed inset-0 z-[45] flex items-center justify-center bg-black/75 p-3 sm:p-6" role="dialog" aria-modal="true"
+      // เปิด = เด้งขึ้นกลางจอ · เสร็จ/ยกเลิก = ย่อจางหาย (components/Layer)
+      <div ref={wizLayer} className="wiz-backdrop fixed inset-0 z-[45] flex items-center justify-center bg-black/75 p-3 sm:p-6" role="dialog" aria-modal="true"
         onPointerDown={(e) => { backdropDown.current = e.target === e.currentTarget && !document.querySelector('.hero-dock') }}
         onClick={(e) => {
           if (e.target === e.currentTarget && backdropDown.current) {
@@ -789,7 +792,7 @@ export default function PlanPage() {
         }}>
         <DockAware>{(dockOpen) => (
         // แถบอัศวินเปิด → หดหน้าต่างให้อยู่เหนือแถบ (ปุ่มล่างไม่โดนบัง)
-        <div className={`wiz-arrive panel panel-gold flex max-h-[920px] w-full max-w-6xl flex-col ${dockOpen ? 'mb-auto h-[calc(100dvh-15rem)]' : 'h-[calc(100dvh-1.5rem)] sm:h-[calc(100dvh-3rem)]'}`}>
+        <div className={`panel panel-gold flex max-h-[920px] w-full max-w-6xl flex-col ${dockOpen ? 'mb-auto h-[calc(100dvh-15rem)]' : 'h-[calc(100dvh-1.5rem)] sm:h-[calc(100dvh-3rem)]'}`}>
         <div className="shrink-0 rounded-t-[18px] border-b border-white/10 bg-[var(--surface-wiz)]/95">
           <div className="flex flex-wrap items-center gap-3 px-4 py-3">
             <span className="btn-gold rounded-lg px-3 py-1 text-sm">{tx('ไม้')}{' '}{w.s + 1}</span>
@@ -1512,7 +1515,7 @@ export default function PlanPage() {
         onPick={pick}
         onClose={() => setPicker(null)}
       />
-      {editing && wiz && renderWizard(wiz)}
+      <Layer layer={wizLayer}>{editing && wiz ? renderWizard(wiz) : null}</Layer>
       <Modal open={exitAsk} title={tx('ออกจากการตั้งไม้นี้?')} onClose={() => setExitAsk(false)}>
         <p className="text-white/80">{tx('สิ่งที่แก้ในไม้นี้จะหายไป')}{wiz?.isNew ? tx(' และไม้นี้จะถูกเอาออก') : tx(' (กลับเป็นแบบก่อนเปิด)')}</p>
         <div className="mt-5 flex gap-2">

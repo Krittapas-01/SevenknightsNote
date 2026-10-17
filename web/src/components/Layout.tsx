@@ -20,6 +20,8 @@ const TourOverlay = lazy(() => import('./TourOverlay'))
 import { isDemo } from '../lib/demo'
 import { tx, L } from '../lib/i18n'
 import { usePageEnter } from '../lib/motion'
+import { navCommitted } from '../lib/navProgress'
+import NavProgress from './NavProgress'
 
 export default function Layout() {
   // อยู่ในหน้าของกิลด์ไหน → โชว์แถบประกาศของกิลด์นั้นทุกหน้า
@@ -37,9 +39,12 @@ export default function Layout() {
   // useLayoutEffect = เลื่อนก่อนหน้าใหม่วาดเฟรมแรก
   useLayoutEffect(() => {
     if (navType === 'PUSH') window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    navCommitted(loc.pathname) // หน้าใหม่วาดแล้ว → แถบโหลดสีทองวิ่งจนสุด (NavProgress)
   }, [loc.pathname]) // เฉพาะตอนเปลี่ยนหน้า (เปลี่ยนแค่ ?tab= ในหน้าเดิมไม่เลื่อน)
   return (
     <div className="min-h-dvh">
+      {/* กดไปหน้าใหม่แล้วหน้าใหม่ยังวาดไม่เสร็จ → แถบทองบนสุด + ม่านจาง ๆ ทับหน้าเดิม */}
+      <NavProgress />
       <header data-sticky-top className="site-header @container sticky top-0 z-40 border-b border-gold/15 bg-[var(--surface-deep)]/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-3 sm:px-4">
           <button onClick={() => setMenuOpen(true)} aria-label={tx('เปิดเมนู')} className="relative -ml-1 mr-2 grid h-9 w-9 shrink-0 sm:mr-3 place-items-center rounded-lg border border-white/20 text-white/80 hover:border-gold hover:text-gold">

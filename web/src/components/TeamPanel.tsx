@@ -525,30 +525,39 @@ export function FormationStars({ front }: { front: number }) {
   )
 }
 
-/** ดาว 3 ดวงแบบในเกม: สว่างตามจำนวนสกิลที่ตั้งลำดับไว้ */
-export function QueueStars({ lit }: { lit: number }) {
+/** ดาว 3 ดวงแบบในเกม: สว่างตามจำนวนสกิลที่ตั้งลำดับไว้ · still = ไม่กระพริบ (การ์ดในรายการยาว) */
+export function QueueStars({ lit, still = false }: { lit: number; still?: boolean }) {
   // ตำแหน่งวัดจากภาพในเกม (วงกลม 100x100)
   const pos = [[30, 52], [57, 33], [61, 64]]
-  const star = STAR
+  const star = (i: number) => {
+    const on = i < lit
+    return (
+      <path
+        key={i}
+        transform={`translate(${pos[i][0]} ${pos[i][1]})`}
+        d={STAR}
+        fill={on ? '#ffd45c' : 'var(--queue-off)'}
+        stroke={on ? '#fff6d0' : 'var(--queue-off-line)'}
+        strokeWidth="1.2"
+        style={on ? { filter: 'drop-shadow(0 0 5px rgba(255,205,80,.95))' } : undefined}
+      />
+    )
+  }
+  const twinkle = !still && lit > 0
   return (
-    <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
-      {/* เส้นวงในบาง ๆ แบบในเกม */}
-      <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="1" strokeDasharray="30 6 2 6" />
-      {pos.map(([x, y], i) => {
-        const on = i < lit
-        return (
-          <path
-            key={i}
-            className={on ? 'queue-star' : undefined}
-            transform={`translate(${x} ${y})`}
-            d={star}
-            fill={on ? '#ffd45c' : 'var(--queue-off)'}
-            stroke={on ? '#fff6d0' : 'var(--queue-off-line)'}
-            strokeWidth="1.2"
-            style={on ? { filter: 'drop-shadow(0 0 5px rgba(255,205,80,.95))', animationDelay: `${i * 180}ms` } : undefined}
-          />
-        )
-      })}
-    </svg>
+    <>
+      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
+        {/* เส้นวงในบาง ๆ แบบในเกม */}
+        <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="1" strokeDasharray="30 6 2 6" />
+        {pos.map((_, i) => (!twinkle || i >= lit) && star(i))}
+      </svg>
+      {/* ดาวที่สว่างกระพริบตอนโผล่: แยกเป็น svg ดวงละอัน แล้วให้ svg ชั้นนอกจางเข้าออก (การ์ดจอทำให้)
+          — ถ้าทำกับดาวข้างใน svg เบราว์เซอร์ต้องวาดใหม่ทุกเฟรม */}
+      {twinkle && pos.map((_, i) => i < lit && (
+        <svg key={i} viewBox="0 0 100 100" className="queue-star pointer-events-none absolute inset-0 h-full w-full" style={{ animationDelay: `${i * 180}ms` }}>
+          {star(i)}
+        </svg>
+      ))}
+    </>
   )
 }
