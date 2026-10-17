@@ -24,6 +24,15 @@
   --color-navy: #232c46;
 }
 
+/* group-hover: แบบเดิมของ Tailwind คือ .x:is(:where(.group):hover *) — มี * อยู่ในตัวเลือก
+   Chrome เลยคำนวณสไตล์ "ทั้งกล่อง" ใหม่ทุกครั้งที่เมาส์เข้า/ออก (การ์ดบ้าน 1 ใบ ≈ 100 ชิ้น · หมุนลูกกลิ้งเลื่อนผ่านการ์ดก็โดนทุกใบ)
+   แบบนี้ = :where(.group):hover .x → คำนวณใหม่เฉพาะชิ้นที่มีคลาสนั้น · ผลและความแรง (specificity) เท่าเดิม */
+@custom-variant group-hover {
+  @media (hover: hover) {
+    :where(.group):hover & { @slot; }
+  }
+}
+
 /* กันหน้าเลื่อนแนวนอนทั้งหน้า: มีอะไรล้นจอนิดเดียว มือถือ Android จะซูมออก/เลื่อนข้างได้ แล้วหัวเว็บ/ปุ่มลอยเพี้ยนไปหมด (clip ไม่ทำให้ sticky พัง) */
 html { overflow-x: clip; }
 /* จองที่แถบเลื่อนไว้ตลอด (จอคอม): หน้าสั้น↔ยาว หรือเปิดหน้าต่าง (ล็อกเลื่อน) แล้วแถบเลื่อนโผล่/หาย ทั้งหน้าจะไม่ขยับซ้าย-ขวา */
@@ -485,6 +494,13 @@ html[data-theme="light"] .vs-embers .ember-r { background: #e0405f; box-shadow: 
   box-shadow: none;
 }
 .unit-card.skill-queue-portrait::after { display: none; }
+
+/* ช่องการ์ดบ้านศัตรูหน้ากิลด์ (GuildPage TargetCell)
+   content-visibility: auto = การ์ดนอกจอไม่วาด · contain: size = ขนาดล็อก (ความสูงตั้งใน TSX)
+   → เลื่อนถึงการ์ดใหม่ วาดแค่ใบนั้น ตารางไม่ต้องวัดการ์ดใบอื่นใหม่ (ไม่ล็อก = ยิ่งการ์ดเยอะยิ่งช้าแบบทวีคูณ)
+   content-visibility ตัดทุกอย่างที่ล้นกล่อง → ขยายกล่องออก (padding) แล้วดึงกลับ (margin ติดลบ) ให้เงา/✦ อยู่ในกล่อง
+   ด้านข้าง 16px = เท่าขอบหน้า (px-4) ไม่ล้นจอ · ล่าง 40 + บน 16 = CELL_BLEED ใน GuildPage */
+.target-cell { content-visibility: auto; contain: size layout style; padding: 16px 16px 40px; margin: -16px -16px -40px; }
 
 /* การ์ดบ้าน: ขอบ + แสงตามสีแท็กแรก (เวทย์ฟ้า / กายภาพแดง / ถึกส้ม) แยกทีมง่ายขึ้น */
 .tag-accent {
