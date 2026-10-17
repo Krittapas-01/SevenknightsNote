@@ -129,7 +129,7 @@ export default function GuildPage() {
     // เลื่อนไปที่การ์ดเดิม แล้วแก้ซ้ำอีกไม่กี่เฟรม (ส่วนบนของหน้าอาจสูงขึ้นหลังวาด)
     const fix = () => {
       const el = id ? document.querySelector<HTMLElement>(`[data-target-cell="${CSS.escape(id)}"]`) : null
-      window.scrollTo({ top: el ? window.scrollY + el.getBoundingClientRect().top - top : y, behavior: 'instant' })
+      window.scrollTo({ top: el ? window.scrollY + el.getBoundingClientRect().top - rising(el) - top : y, behavior: 'instant' })
     }
     fix()
     let n = 0
@@ -417,6 +417,21 @@ function PlanCard({ gid, plan: p, active, usedAt }: { gid: string; plan: Plan; a
 /** ตำแหน่งที่จำไว้ตอนออกจากหน้า (ดู snap ใน GuildPage) */
 function readSnap(key: string): { y: number; id: string; top: number } | null {
   try { return JSON.parse(sessionStorage.getItem(key) || 'null') } catch { return null } // ไม่มี storage
+}
+
+/**
+ * ระยะที่ el ยังลอยต่ำกว่าที่จริงอยู่ (พิกเซลบนจอ) จากแอนิเมชันเข้าหน้า (lib/motion: ส่วนของหน้าลอยขึ้นมาจบที่ transform: none)
+ * กดย้อนกลับแล้วคืนตำแหน่งระหว่างที่ยังลอย ต้องไม่นับระยะนี้ — ไม่งั้นลอยจบแล้วการ์ดเลื่อนขึ้นจากที่เดิม (~14px)
+ * ใช้แค่ตอนคืนตำแหน่ง (ไม่กี่เฟรม) · ดูเฉพาะตัวที่มีแอนิเมชันอยู่ · transform ในหน้าถูกย่อตาม zoom ของจอคอม → คูณ uiZoom()
+ */
+function rising(el: Element): number {
+  let dy = 0
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    if (!p.getAnimations().length) continue
+    const t = getComputedStyle(p).transform
+    if (t && t !== 'none') dy += new DOMMatrixReadOnly(t).m42
+  }
+  return dy * uiZoom()
 }
 
 /**
