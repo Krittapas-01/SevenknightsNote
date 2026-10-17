@@ -541,8 +541,12 @@ export default function TargetPage() {
                     <ThumbsUp className="h-3 w-3" fill="currentColor" />{c.likes}
                   </span>
                 )}
-                {/* แก้ภายใน 24 ชม. → จุดเล็ก ๆ ให้คนในกิลรู้ว่ามีการแก้ */}
-                {c.updatedAt > c.createdAt && Date.now() - c.updatedAt < RECENT_MS && (
+                {/* เพิ่มภายใน 24 ชม. → ป้าย "ใหม่" · แก้ภายใน 24 ชม. → จุดเขียว (คนในกิลด์รู้ว่าทีมไหนเพิ่งมา / ทีมไหนเพิ่งเปลี่ยน) */}
+                {Date.now() - c.createdAt < RECENT_MS ? (
+                  <span title={L(`เพิ่มเมื่อ ${edited(c.createdAt)}`, `Added ${edited(c.createdAt)}`)} className={`ml-1.5 inline-block rounded-full px-1.5 py-px align-middle text-xs font-bold ${
+                    i === Math.min(sel, counters.length - 1) && !(editingC && !cDraft.id) ? 'bg-ink/85 text-emerald-300' : 'bg-emerald-400/20 text-emerald-300'
+                  }`}>{tx('ใหม่')}</span>
+                ) : c.updatedAt > c.createdAt && Date.now() - c.updatedAt < RECENT_MS && (
                   <span title={L(`แก้ล่าสุด ${edited(c.updatedAt)}`, `Edited ${edited(c.updatedAt)}`)} className="ml-1.5 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full bg-emerald-400 align-middle" />
                 )}
               </button>
