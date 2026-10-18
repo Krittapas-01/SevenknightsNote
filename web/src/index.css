@@ -117,6 +117,12 @@ h1, h2, h3 { text-wrap: balance; }
     linear-gradient(135deg, #b5c9ec09, transparent 50%), #101a2b80;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.25);
 }
+/* ทีมครบ 3 ตัว: ช่องว่างที่เหลือเป็นสีแดงเข้ม + ขีดเฉียง (แบบในเกม) */
+.slot-empty.slot-blocked {
+  border-color: #d0707e2e;
+  background: linear-gradient(160deg, #5c2635a6, #36172299);
+  color: #e8a7b24d;
+}
 
 .round-slot {
   border-radius: 9999px;
@@ -717,6 +723,7 @@ html[data-theme="light"] .slot-empty {
   background: #e7e6e4b3;
   box-shadow: none;
 }
+html[data-theme="light"] .slot-empty.slot-blocked { border: 1.5px solid #dcb0b5; background: #f0dfe0; color: #b0606b73; }
 html[data-theme="light"] .round-slot { border-color: #b1aea8; background: #ebeae8; }
 html[data-theme="light"] .slot-sparks { color: #e9b13f; text-shadow: 0 0 5px #fff3cf; }
 html[data-theme="light"] .pill {

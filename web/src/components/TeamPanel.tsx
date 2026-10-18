@@ -3,7 +3,7 @@ import { queueStyle } from '../lib/queue'
 import { Footprints, PawPrint, Plus, RotateCcw } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
-  EXTRA_COUNT, MAX_SKILL_QUEUE, SLOT_COUNT, formationLabel, formationName, nextEmpty, type SkillStep, type SlotRef, type Team,
+  EXTRA_COUNT, MAX_HEROES, MAX_SKILL_QUEUE, SLOT_COUNT, formationLabel, formationName, heroCount, nextEmpty, type SkillStep, type SlotRef, type Team,
 } from '../lib/types'
 import { FormationModal, SkillQueueModal } from './TeamModals'
 import { groupOfKey, keyOf, refOf, useDndHub } from './DndHub'
@@ -61,6 +61,8 @@ export default function TeamPanel({
   const hub = useDndHub()
   const panelId = useId().replace(/[:|]/g, '')
   const active = !!editable
+  // ทีมครบ 3 ตัว (ตอนแก้): ช่องว่างที่เหลือขึ้นขีดแดงแบบในเกม — ยังย้ายตัวในทีมลงช่องนี้ได้ แค่เพิ่มตัวใหม่ไม่ได้
+  const full = active && heroCount(team) >= MAX_HEROES
   const [detailHero, setDetailHero] = useState<string | null>(null)
   const [modal, setModal] = useState<'formation' | 'skills' | null>(null)
   useEffect(() => { if (skillsReq) setModal('skills') }, [skillsReq])
@@ -81,9 +83,9 @@ export default function TeamPanel({
   // ตำแหน่งเปลี่ยน (เปลี่ยนรูปแบบ/ลากย้าย) → ยกเลิกการเลือก
   const layoutKey = `${team.front}|${team.slots.join(',')}|${team.pet}|${team.extras.join(',')}`
   useEffect(() => setSelected(null), [layoutKey])
-  // ช่องที่รอไว้ถูกใส่แล้ว / ไม่ได้เลือกทีมนี้แล้ว → ล้าง
+  // ช่องที่รอไว้ถูกใส่แล้ว / กลายเป็นช่องขีดแดง (ทีมครบ) / ไม่ได้เลือกทีมนี้แล้ว → ล้าง
   useEffect(() => {
-    if (pending && valueOf(pending)) setPending(null)
+    if (pending && (valueOf(pending) || (full && pending.kind === 'hero'))) setPending(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutKey])
   useEffect(() => {
@@ -152,6 +154,15 @@ export default function TeamPanel({
   function clickSlot(r: SlotRef) {
     if (!active) return
     hub?.setFocused(panelId)
+    // ช่องขีดแดง (ทีมครบ) ใส่ตัวเพิ่มไม่ได้ → ช่องสั่นบอก ไม่เรืองแสงรอรับตัว (เลือกอัศวินในทีมไว้ = ย้ายลงช่องนี้ได้ตามปกติ)
+    if (full && r.kind === 'hero' && !valueOf(r) && !(selected && groupOfKey(selected) === 'hero')) {
+      setSelected(null)
+      setPending(null)
+      lastClick.current = null
+      const el = rootRef.current?.querySelector(`[data-mp="empty:${r.index}:full"]`)
+      if (el && motionOK()) el.animate([{ transform: 'none' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(-2px)' }, { transform: 'none' }], { duration: 300, easing: 'ease-out' })
+      return
+    }
     const now = Date.now()
     const dbl = !!hub && !valueOf(r) && lastClick.current?.k === keyOf(r) && now - lastClick.current.t < 400
     lastClick.current = { k: keyOf(r), t: now }
@@ -306,6 +317,7 @@ export default function TeamPanel({
                     onClick={() => active ? clickSlot(r) : setDetailHero(team.slots[i])}
                     queue={queueOf(i)}
                     slotIndex={i}
+                    blocked={full}
                     side="left" // ป้ายลำดับสกิลอยู่ซ้ายเสมอ ทั้งทีมเราและทีมศัตรู
                     small={isSm}
                   />
@@ -438,10 +450,12 @@ function DnDSlot({ id, enabled, filled, selected, round, kind, children }: { id:
 const MD_HERO_SIZES = '(min-width: 495px) 135px, 27vw'
 const MD_PET_SIZES = '(min-width: 495px) 84px, 17vw'
 
-function HeroSlot({ id, editable, inspectable, onClick, queue, side, small, slotIndex }: {
+function HeroSlot({ id, editable, inspectable, onClick, queue, side, small, slotIndex, blocked }: {
   id: string | null
   /** ลำดับช่อง (คีย์แอนิเมชันของช่องว่าง) */
   slotIndex?: number
+  /** ทีมครบแล้ว → ช่องว่างเป็นช่องขีดแดง (เพิ่มตัวไม่ได้) */
+  blocked?: boolean
   editable: boolean
   inspectable?: boolean
   onClick: () => void
@@ -474,8 +488,10 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side, small, slot
         {id ? (
           <UnitCard id={id} small={small} sizes={small ? undefined : MD_HERO_SIZES} />
         ) : (
-          <div data-mp={`empty:${slotIndex}`} className="slot-empty grid h-full w-full place-items-center" style={{ borderRadius: UNIT_SLOT_RADIUS }}>
-            {editable && <Plus className="h-[45%] w-[45%] text-white drop-shadow" strokeWidth={3} />}
+          // คีย์ต่างกันตอนขีดแดง → ทีมครบ/ไม่ครบ ช่องว่างค่อย ๆ เปลี่ยนหน้าตา (เด้งแบบช่องว่าง)
+          <div data-mp={`empty:${slotIndex}${blocked ? ':full' : ''}`} className={`slot-empty ${blocked ? 'slot-blocked' : ''} grid h-full w-full place-items-center`} style={{ borderRadius: UNIT_SLOT_RADIUS }}
+            title={blocked ? tx('ทีมมีอัศวินครบ 3 ตัวแล้ว เอาตัวเดิมออกก่อนถึงจะเพิ่มได้') : undefined}>
+            {blocked ? <BlockedMark /> : editable && <Plus className="h-[45%] w-[45%] text-white drop-shadow" strokeWidth={3} />}
           </div>
         )}
       </button>
@@ -484,6 +500,17 @@ function HeroSlot({ id, editable, inspectable, onClick, queue, side, small, slot
       {id && awake.length > 0 && badge(awake, `top-1/2 -translate-y-1/2 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, tx('สกิลอเวค'))}
       {id && bottom.length > 0 && badge(bottom, `bottom-0 ${side === 'left' ? '-left-1.5' : '-right-1.5'}`, tx('สกิลล่าง'))}
     </div>
+  )
+}
+
+/** ขีดเฉียงในช่องที่ใส่ตัวเพิ่มไม่ได้ (แบบในเกม) — สีตาม currentColor ของ .slot-blocked */
+function BlockedMark() {
+  return (
+    <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden="true">
+      <path d="M15 85 85 15" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="15" cy="85" r="3.5" fill="currentColor" />
+      <circle cx="85" cy="15" r="3.5" fill="currentColor" />
+    </svg>
   )
 }
 
