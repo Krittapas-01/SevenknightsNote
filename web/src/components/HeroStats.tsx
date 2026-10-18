@@ -190,7 +190,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
     try {
       // name = บรรทัดชื่ออัศวินที่ครอปมาอ่านแยก (แม่นกว่าอ่านจากทั้งภาพ)
       const { text, name } = await readImageText(file, setProgress)
-      setRaw(name ? `ชื่อ: ${name}\n---\n${text}` : text)
+      setRaw(name ? `${L('ชื่อ', 'Name')}: ${name}\n---\n${text}` : text)
       const s = parseStats(text)
       setStats(s)
       const { found, other } = pickHero(name, text, heroes)

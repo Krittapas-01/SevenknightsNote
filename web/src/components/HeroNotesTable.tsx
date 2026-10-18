@@ -4,7 +4,7 @@ import { hasStats } from '../lib/stats'
 import { StatsGrid, StatsImport, upsertStats, type NoteExtra } from './HeroStats'
 import type { HeroStats } from '../lib/stats'
 import { unitBase } from '../data/heroes'
-import { ringImage, setIcon, setImages } from '../data/equipment'
+import { ringImage, ringLabel, setIcon, setImages, setLabel } from '../data/equipment'
 import type { HeroNote } from '../lib/types'
 import UnitCard from './UnitCard'
 import EquipmentEditor from './EquipmentEditor'
@@ -63,8 +63,8 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
               </div>
             ) : (
               <div className="min-w-0 space-y-1.5">
-                <Slots label={tx('เซต')} items={n.sets.map((s) => ({ name: `ชุด${s}`, src: setIcon(s) ?? setImages(s)[0] }))} />
-                <Slots label={tx('เครื่องประดับ')} items={n.rings.map((r) => ({ name: r, src: ringImage(r) }))} />
+                <Slots label={tx('เซต')} items={n.sets.map((s) => ({ name: setLabel(s), src: setIcon(s) ?? setImages(s)[0] }))} />
+                <Slots label={tx('เครื่องประดับ')} items={n.rings.map((r) => ({ name: ringLabel(r), src: ringImage(r) }))} />
               </div>
             )}
           </div>

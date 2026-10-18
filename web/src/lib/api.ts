@@ -3,6 +3,7 @@ import { getSession } from './auth'
 import type { Announcement, Counter, DayType, GuildData, HeroNote, Plan, PlanData, SkillStep, Target, Team } from './types'
 import { sortTags } from './tags'
 import { DEMO_ID, demoRequest } from './demo'
+import { EN, tx } from './i18n'
 
 export type Pulse = {
   guildName: string
@@ -74,10 +75,68 @@ export function pushRecent(r: Recent) {
   writeJson(RECENT, [r, ...getRecent().filter((x) => x.id !== r.id)].slice(0, 8))
 }
 
+// ---------- ข้อความ error จาก API (API ตอบเป็นภาษาไทยเสมอ → หน้าเว็บภาษาอังกฤษแปลตรงนี้) ----------
+const API_ERROR_EN: Record<string, string> = {
+  'ข้อมูล JSON ไม่ถูกต้อง': 'Invalid JSON data',
+  'ข้อมูลต้องเป็น JSON object': 'Data must be a JSON object',
+  'ไม่พบกิลด์': 'Guild not found',
+  'ไม่มีสิทธิ์แก้ไข': "You don't have edit access",
+  'กรุณาใส่ชื่อกิลด์': 'Please enter a guild name',
+  'สร้างกิลด์บ่อยเกินไป ลองใหม่ในอีก 1 ชั่วโมง': 'Too many guilds created — try again in 1 hour',
+  'รหัสต้องยาว 6–64 ตัวอักษร': 'The password must be 6–64 characters',
+  'ชื่อกิลด์ที่พิมพ์ยืนยันไม่ตรง': "The guild name you typed doesn't match",
+  'ข้อมูลทีมไม่ถูกต้อง': 'Invalid team data',
+  'จำนวนบ้านศัตรูเต็มแล้ว': 'The enemy defense list is full',
+  'ไม่พบทีม': 'Team not found',
+  'ไม่พบบ้านศัตรู': 'Enemy defense not found',
+  'จำนวนทีมแก้เต็มแล้ว': 'This defense has the maximum number of counters',
+  'รายการทีมแก้ไม่ตรงกับข้อมูลล่าสุด ลองรีเฟรชหน้าแล้วเรียงใหม่': "The counter list doesn't match the latest data — refresh the page and reorder again",
+  'ข้อมูลแผนไม่ถูกต้อง': 'Invalid plan data',
+  'จำนวนแผนเต็มแล้ว ลบแผนเก่าก่อน': 'The plan list is full — delete an old plan first',
+  'มีคนบันทึกแผนนี้ไปก่อนระหว่างที่คุณแก้ — กดยกเลิก แล้วเปิดแก้ใหม่เพื่อดูของล่าสุด (คัดลอกส่วนที่แก้ไว้ก่อน)':
+    'Someone saved this plan while you were editing — tap Cancel, then edit again to see the latest version (copy your changes first)',
+  'มีคนบันทึกทีมนี้ไปก่อนระหว่างที่คุณแก้ — กดกลับไปแก้ แล้วคัดลอกส่วนที่แก้ไว้ ยกเลิก แล้วเปิดแก้ใหม่เพื่อดูของล่าสุด':
+    'Someone saved this team while you were editing — go back, copy your changes, cancel, then edit again to see the latest version',
+  'ไม่พบแผน': 'Plan not found',
+  'พิมพ์ประกาศหรือเลือกแผนอย่างน้อย 1 อย่าง': 'Type an announcement or pick a plan',
+  'ไม่พบแผนที่เลือก': 'The selected plan was not found',
+  'ยศที่แท็กไม่ถูกต้อง (ใส่ Role ID เป็นตัวเลข)': 'Invalid role to mention (enter a numeric Role ID)',
+  'ลิงก์ Webhook ไม่ถูกต้อง (ต้องเป็น https://discord.com/api/webhooks/...)': 'Invalid webhook link (must be https://discord.com/api/webhooks/...)',
+  'Server ID ไม่ถูกต้อง (ตัวเลข)': 'Invalid Server ID (numbers only)',
+  'Role ID ไม่ถูกต้อง (ตัวเลข คั่นด้วย , ได้ไม่เกิน 10 ยศ)': 'Invalid Role ID (numbers separated by commas, up to 10 roles)',
+  'ชื่อยศ: Role ID ไม่ถูกต้อง': 'Role names: invalid Role ID',
+  'ลิงก์ Webhook ห้องบอสจุติไม่ถูกต้อง (ต้องเป็น https://discord.com/api/webhooks/...)': 'Invalid Revival Boss webhook link (must be https://discord.com/api/webhooks/...)',
+  'ยังไม่ได้ใส่ลิงก์ Webhook': 'No webhook link set yet',
+  'เซิร์ฟเวอร์มีปัญหา': 'Server error',
+  'เข้าสู่ระบบด้วย Discord ก่อนกดถูกใจ': 'Log in with Discord to like teams',
+  'ไม่พบทีมแก้': 'Counter not found',
+  'เข้าสู่ระบบด้วย Discord ก่อน': 'Log in with Discord first',
+  'ไม่พบพรีเซต': 'Preset not found',
+  'ไม่พบแพ็ค': 'Pack not found',
+  // กิลด์ทดลอง (lib/demo.ts)
+  'กิลด์ทดลองลบไม่ได้': "The demo guild can't be deleted",
+  'กิลด์ทดลองยังไม่รองรับคำสั่งนี้': "The demo guild doesn't support this yet",
+}
+const API_ERROR_RE: [RegExp, (m: RegExpExecArray) => string][] = [
+  [/^มีกิลด์ชื่อ "(.*)" อยู่แล้ว ลองใช้ชื่ออื่น$/, (m) => `A guild named "${m[1]}" already exists — try another name`],
+  [/^กดถูกใจได้ไม่เกิน (\d+) ทีม$/, (m) => `You can like up to ${m[1]} teams`],
+  [/^มีพรีเซตได้ไม่เกิน (\d+) ชุด ลบอันเก่าก่อน$/, (m) => `You can have up to ${m[1]} presets — delete an old one first`],
+  [/^Discord ตอบกลับ (\d+) — ลิงก์อาจถูกลบหรือผิด$/, (m) => `Discord replied ${m[1]} — the link may be deleted or wrong`],
+]
+/** ข้อความ error จาก API → ภาษาที่เลือก (ไม่รู้จัก = ใช้ข้อความเดิม) */
+export function apiError(msg: string) {
+  if (!EN) return msg
+  if (API_ERROR_EN[msg]) return API_ERROR_EN[msg]
+  for (const [re, f] of API_ERROR_RE) { const m = re.exec(msg); if (m) return f(m) }
+  return tx(msg)
+}
+
 // ---------- fetch ----------
 async function req<T>(path: string, init: RequestInit & { gid?: string; key?: string } = {}): Promise<T> {
   // กิลด์ทดลอง: ข้อมูลอยู่ในเครื่อง ไม่ยิง API
-  if (path === `/api/guild/${DEMO_ID}` || path.startsWith(`/api/guild/${DEMO_ID}/`)) return demoRequest(path, init) as Promise<T>
+  if (path === `/api/guild/${DEMO_ID}` || path.startsWith(`/api/guild/${DEMO_ID}/`)) {
+    return (demoRequest(path, init) as Promise<T>).catch((e: Error) => { e.message = apiError(e.message); throw e })
+  }
   // ส่ง Content-Type เฉพาะตอนมีข้อมูล — GET ธรรมดาจะได้ไม่ต้องมี preflight (OPTIONS) ทุกครั้ง (API อยู่คนละโดเมน)
   const headers: Record<string, string> = init.body ? { 'Content-Type': 'application/json' } : {}
   if (init.gid) {
@@ -89,7 +148,7 @@ async function req<T>(path: string, init: RequestInit & { gid?: string; key?: st
   if (session) headers.Authorization = `Bearer ${session}`
   const res = await fetch(BASE + path, { ...init, headers })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw Object.assign(new Error((data as any).error ?? `HTTP ${res.status}`), { status: res.status })
+  if (!res.ok) throw Object.assign(new Error(apiError((data as any).error ?? `HTTP ${res.status}`)), { status: res.status })
   return data as T
 }
 

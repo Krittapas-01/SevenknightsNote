@@ -975,9 +975,9 @@ app.get('/api/auth/me', async (c) => {
 })
 
 app.get('/api/auth/discord/login', async (c) => {
-  if (!c.env.DISCORD_CLIENT_ID || !c.env.DISCORD_CLIENT_SECRET) return c.text('ยังไม่ได้ตั้งค่า Discord login', 503)
+  if (!c.env.DISCORD_CLIENT_ID || !c.env.DISCORD_CLIENT_SECRET) return c.text('ยังไม่ได้ตั้งค่า Discord login / Discord login is not set up', 503)
   const ret = safeReturn(c.env, c.req.query('return'))
-  if (!ret) return c.text('return URL ไม่ถูกต้อง', 400)
+  if (!ret) return c.text('return URL ไม่ถูกต้อง / Invalid return URL', 400)
   const state = randomId(24)
   const now = Date.now()
   await c.env.DB.batch([
@@ -990,7 +990,7 @@ app.get('/api/auth/discord/login', async (c) => {
 
 app.get('/api/auth/discord/callback', async (c) => {
   const st = await c.env.DB.prepare('SELECT return_to, created_at FROM oauth_states WHERE state = ?').bind(c.req.query('state') || '').first<any>()
-  if (!st || Date.now() - st.created_at > 10 * 60 * 1000) return c.text('ลิงก์ล็อกอินหมดอายุ ลองกดเข้าสู่ระบบใหม่', 400)
+  if (!st || Date.now() - st.created_at > 10 * 60 * 1000) return c.text('ลิงก์ล็อกอินหมดอายุ ลองกดเข้าสู่ระบบใหม่ / The login link expired — please log in again', 400)
   await c.env.DB.prepare('DELETE FROM oauth_states WHERE state = ?').bind(c.req.query('state')).run()
   const fail = (why: string) => c.redirect(`${st.return_to}#discord_error=${encodeURIComponent(why)}`)
   const code = c.req.query('code')
