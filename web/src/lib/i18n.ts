@@ -18,7 +18,11 @@ export function setLang(lang: LangPref) {
   setPrefs({ lang })
   location.reload()
 }
-if (typeof document !== 'undefined') document.documentElement.lang = LANG
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = LANG
+  // ชื่อแท็บเบราว์เซอร์ (index.html เป็นภาษาไทย)
+  if (EN) document.title = '7K Note — Guild War team notes'
+}
 
 const DICT = EN_DICT as Record<string, string>
 const norm = (s: string) => s.replace(/\s+/g, ' ').trim()

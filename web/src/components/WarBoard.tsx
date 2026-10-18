@@ -179,8 +179,8 @@ function ComposeModal({ open, onClose, gid, data, activeIds, todayType, reload }
 
   // ข้อความสำเร็จรูป
   const templates = [
-    planId && activeId && planId !== activeId ? `วันนี้ (${today}) เปลี่ยนจาก "${titleOf(activeId)}" เป็น "${titleOf(planId)}"` : null,
-    planId ? `วันนี้ (${today}) ใช้ "${titleOf(planId)}"${opponent ? ` เจอกิลด์ ${opponent}` : ''}` : null,
+    planId && activeId && planId !== activeId ? L(`วันนี้ (${today}) เปลี่ยนจาก "${titleOf(activeId)}" เป็น "${titleOf(planId)}"`, `Today (${today}): switching from "${titleOf(activeId)}" to "${titleOf(planId)}"`) : null,
+    planId ? L(`วันนี้ (${today}) ใช้ "${titleOf(planId)}"${opponent ? ` เจอกิลด์ ${opponent}` : ''}`, `Today (${today}): using "${titleOf(planId)}"${opponent ? ` vs guild ${opponent}` : ''}`) : null,
     L(`วันนี้ (${today}) จัดบ้านกันตามแผนล่าสุด`, `Today (${today}): set defenses per the latest plan`),
     L(`วันนี้พักสงคราม`, `No war today`),
   ].filter(Boolean) as string[]

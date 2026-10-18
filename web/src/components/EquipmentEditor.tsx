@@ -1,6 +1,6 @@
 import { Plus, X } from 'lucide-react'
 import { useState } from 'react'
-import { RING_NAMES, SET_NAMES, ringImage, setIcon, setImages } from '../data/equipment'
+import { RING_NAMES, SET_NAMES, ringImage, ringLabel, ringShort, setIcon, setImages, setLabel, setShort } from '../data/equipment'
 import Modal from './Modal'
 import { tx, L } from '../lib/i18n'
 
@@ -22,9 +22,9 @@ export default function EquipmentEditor({ sets, rings, onChange }: {
   }
   return (
     <div className="mt-2 flex flex-wrap items-center gap-3">
-      <Group label={tx('เซต')} items={sets.map((s) => ({ name: `ชุด${s}`, src: setIcon(s) ?? setImages(s)[0] }))} max={MAX_SETS}
+      <Group label={tx('เซต')} items={sets.map((s) => ({ name: setLabel(s), src: setIcon(s) ?? setImages(s)[0] }))} max={MAX_SETS}
         onRemove={(i) => onChange(sets.filter((_, j) => j !== i), rings)} onAdd={() => setPick('set')} />
-      <Group label={tx('เครื่องประดับ')} items={rings.map((r) => ({ name: r, src: ringImage(r) }))} max={MAX_RINGS}
+      <Group label={tx('เครื่องประดับ')} items={rings.map((r) => ({ name: ringLabel(r), src: ringImage(r) }))} max={MAX_RINGS}
         onRemove={(i) => onChange(sets, rings.filter((_, j) => j !== i))} onAdd={() => setPick('ring')} />
 
       <Modal open={pick !== null} title={pick === 'set' ? tx('เลือกเซตไอเทม') : tx('เลือกเครื่องประดับ')} onClose={() => setPick(null)}>
@@ -32,10 +32,10 @@ export default function EquipmentEditor({ sets, rings, onChange }: {
           {options.map((name) => {
             const src = pick === 'set' ? setIcon(name) ?? setImages(name)[0] : ringImage(name)
             return (
-              <button key={name} type="button" onClick={() => add(name)} title={pick === 'set' ? `ชุด${name}` : name}
+              <button key={name} type="button" onClick={() => add(name)} title={pick === 'set' ? setLabel(name) : ringLabel(name)}
                 className="flex flex-col items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1.5 hover:border-gold">
-                {src ? <img src={src} alt={name} className="h-12 w-12 object-contain" draggable={false} /> : <span className="grid h-12 w-12 place-items-center text-[10px]">{name}</span>}
-                <span className="line-clamp-2 text-center text-[10px] leading-tight text-white/70">{pick === 'set' ? name : name.replace(/^แหวน(แห่ง)?/, '')}</span>
+                {src ? <img src={src} alt={pick === 'set' ? setLabel(name) : ringLabel(name)} className="h-12 w-12 object-contain" draggable={false} /> : <span className="grid h-12 w-12 place-items-center text-[10px]">{pick === 'set' ? setShort(name) : ringLabel(name)}</span>}
+                <span className="line-clamp-2 text-center text-[10px] leading-tight text-white/70">{pick === 'set' ? setShort(name) : ringShort(name)}</span>
               </button>
             )
           })}
