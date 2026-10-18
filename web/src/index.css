@@ -159,11 +159,47 @@ h1, h2, h3 { text-wrap: balance; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: linear-gradient(#d9b56d88, #a8854899); border-radius: 9999px; }
 .scrollbar-thin { scrollbar-width: thin; scrollbar-color: #c9a35a66 transparent; }
 
-/* ช่องที่เลือก (กดครั้งแรก) = กรอบเรืองแสงแบบในเกม */
-.slot-selected > * {
-  border-radius: 12px;
+/* ช่องที่เลือก (กดครั้งแรก) = กรอบเรืองแสงแบบในเกม · ตอนเลือก วงทองหดเข้าหาการ์ด (ขยับแค่ transform/opacity)
+   อยู่บน ::after ของกรอบช่อง (ไม่ใช่ .slot-selected > * — ตัวเลือกที่ขวาสุดเป็น * ถูกเช็กกับทุกชิ้นในหน้า) */
+.slot-selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
   box-shadow: 0 0 0 2px #fff3c4, 0 0 14px 4px rgba(255, 214, 110, 0.85), 0 0 28px 8px rgba(255, 190, 60, 0.45);
+  animation: slot-pick 260ms var(--motion-out);
 }
+@keyframes slot-pick { from { opacity: 0; transform: scale(1.22); } }
+/* จัดทีม (lib/teamMotion): การ์ดลงช่อง = แสงทองวาบในการ์ด · เอาออก = การ์ดเดิมย่อจางในช่อง + ประกายดาว */
+.slot-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at 50% 35%, #fffdf3 0%, #fff0b8e6 35%, #f7cf6ad9 70%, #e0a53acc 100%);
+  box-shadow: inset 0 0 0 2px #fff6d6, inset 0 0 14px 3px #fff2c2;
+}
+.slot-ghost { position: absolute; inset: 0; z-index: 3; display: block; pointer-events: none; contain: layout style; }
+.slot-sparks {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  contain: layout style;
+  font-size: calc(var(--s, 64px) * 0.19);
+  line-height: 1;
+  color: #fff6d2;
+  text-shadow: 0 0 6px #f6c556;
+}
+.slot-sparks-sm { font-size: 8px; }
+.slot-sparks > i { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; opacity: 0; }
+/* การ์ดที่ลากอยู่: ยกขึ้นจากช่อง */
+.drag-lift { animation: drag-lift 200ms var(--motion-out); }
+@keyframes drag-lift { from { opacity: .6; transform: scale(.86); } }
 /* ทีมที่กำลังใส่ตัวจากแถบล่าง */
 .panel-focused {
   outline: 2px dashed rgba(244, 213, 141, 0.7);
@@ -682,6 +718,7 @@ html[data-theme="light"] .slot-empty {
   box-shadow: none;
 }
 html[data-theme="light"] .round-slot { border-color: #b1aea8; background: #ebeae8; }
+html[data-theme="light"] .slot-sparks { color: #e9b13f; text-shadow: 0 0 5px #fff3cf; }
 html[data-theme="light"] .pill {
   border-color: #c9a35a80;
   background: linear-gradient(180deg, #ffffff, #f3f2f1);

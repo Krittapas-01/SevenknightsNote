@@ -420,7 +420,7 @@ function DnDSlot({ id, enabled, filled, selected, round, kind, children }: { id:
   // วงทอง = ปล่อยตรงนี้แล้วเกิดผลจริง (กติกาเดียวกับตอนปล่อยใน DndHub เช่น ทีมครบ 3 ตัวแล้ววางช่องว่างไม่ได้)
   const canDrop = !!(drop.isOver && drop.active && hub?.canDrop(String(drop.active.id), id))
   return (
-    <div data-slot={kind} data-empty={filled ? undefined : ''}
+    <div data-slot={kind} data-empty={filled ? undefined : ''} data-mhost={round ? 'sm' : ''}
       ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el) }}
       {...(enabled && filled ? { ...drag.listeners, ...drag.attributes } : {})}
       style={!round ? { borderRadius: UNIT_SLOT_RADIUS } : undefined}

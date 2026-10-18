@@ -1,11 +1,19 @@
 import { useLayoutEffect, useRef, type RefObject } from 'react'
 import { uiZoom } from './zoom'
 
+/** ตั้งค่าเครื่อง "ลดการเคลื่อนไหว" — จำค่าไว้ (อัปเดตตอนเปลี่ยน) อ่าน .matches กลางจังหวะกดอาจทำให้เบราว์เซอร์คำนวณหน้าใหม่ */
+let sysReduce = false
+if (typeof matchMedia !== 'undefined') {
+  const mq = matchMedia('(prefers-reduced-motion: reduce)')
+  sysReduce = mq.matches
+  mq.addEventListener?.('change', (e) => { sysReduce = e.matches })
+}
+
 /** เล่นแอนิเมชันได้ไหม (ตั้งค่า "ลดแอนิเมชัน" / ตั้งค่าเครื่อง) — WAAPI ไม่โดนกฎ CSS เลยต้องเช็กเอง */
 export function motionOK() {
   if (typeof document === 'undefined') return false
   if (document.documentElement.classList.contains('reduce-motion')) return false
-  return !matchMedia('(prefers-reduced-motion: reduce)').matches
+  return !sysReduce
 }
 
 const EASE = 'cubic-bezier(.2,.8,.2,1)'
@@ -13,8 +21,8 @@ const BOUNCE = 'cubic-bezier(.34,1.56,.64,1)'
 
 /** แบบเด้งของชิ้นที่เพิ่งโผล่ (data-mp="ชนิด:คีย์") */
 const POP: Record<string, { k: Keyframe[]; o: KeyframeAnimationOptions }> = {
-  // อัศวิน/สัตว์เลี้ยงเพิ่งใส่: ขยายจากเล็ก + เด้งนิด ๆ
-  hero: { k: [{ transform: 'scale(.55)', opacity: 0 }, { transform: 'scale(1.08)', opacity: 1, offset: 0.65 }, { transform: 'none', opacity: 1 }], o: { duration: 360, easing: EASE } },
+  // อัศวิน/สัตว์เลี้ยงเพิ่งใส่: ขยายจากเล็ก + เด้งนิด ๆ (คู่กับแสงทองวาบ)
+  hero: { k: [{ transform: 'scale(.7)', opacity: 0 }, { transform: 'scale(1.07)', opacity: 1, offset: 0.55 }, { transform: 'none', opacity: 1 }], o: { duration: 340, easing: EASE } },
   // ป้ายลำดับสกิล
   badge: { k: [{ transform: 'scale(0)' }, { transform: 'none' }], o: { duration: 300, easing: BOUNCE } },
   // ช่องว่างหลังเอาตัวออก: ค่อย ๆ โผล่
@@ -23,48 +31,176 @@ const POP: Record<string, { k: Keyframe[]; o: KeyframeAnimationOptions }> = {
   orb: { k: [{ transform: 'rotate(-70deg) scale(.75)' }, { transform: 'none' }], o: { duration: 420, easing: BOUNCE } },
 }
 
+/** ทำหลังเฟรมที่ตอบการกดวาดเสร็จแล้ว (rAF ซ้อน 2 ชั้น) — ของประดับที่เริ่มจากมองไม่เห็นอยู่แล้ว ไม่ต้องแย่งเวลาเฟรมแรกหลังกด */
+function nextFrame(cb: () => void) {
+  requestAnimationFrame(() => requestAnimationFrame(cb))
+}
+
+/** แสงทองวาบบนการ์ดที่เพิ่งลงช่อง (แบบในเกม): ขึ้นเร็ว ค้างนิดหนึ่ง แล้วจางออก — ใส่ไว้ในการ์ด (ตัดขอบตามรูปทรงการ์ดเอง) */
+export function flashCard(card: Element | null) {
+  if (card) nextFrame(() => { if (card.isConnected) flash(card) })
+}
+function flash(card: Element) {
+  const f = document.createElement('span')
+  f.className = 'slot-flash'
+  f.setAttribute('aria-hidden', 'true')
+  card.appendChild(f)
+  f.animate([{ opacity: 0 }, { opacity: 1, offset: 0.12 }, { opacity: 0.85, offset: 0.38 }, { opacity: 0 }], { duration: 560, easing: 'ease-out' })
+    .finished.catch(() => {}).finally(() => f.remove())
+}
+
 /**
- * แอนิเมชันตอนจัดทีม (เฉพาะการ์ดที่แก้อยู่)
+ * ประกายดาวเล็ก ๆ กระจายออกจากกลางช่อง (ตอนเอาตัวออก แบบในเกม)
+ * ดาวแต่ละดวงอยู่ในกล่องขนาดเท่าช่อง → เลื่อนเป็น % ของขนาดช่องได้เลย ไม่ต้องวัดขนาด · ขยับแค่ transform/opacity
+ */
+export function sparkle(host: Element, count = 8) {
+  nextFrame(() => { if (host.isConnected) sparks(host, count) })
+}
+function sparks(host: Element, count: number) {
+  const box = document.createElement('span')
+  box.className = host.getAttribute('data-mhost') === 'sm' ? 'slot-sparks slot-sparks-sm' : 'slot-sparks'
+  box.setAttribute('aria-hidden', 'true')
+  const anims: Promise<unknown>[] = []
+  const turn = Math.random() * 360
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('i')
+    s.textContent = '✦'
+    box.appendChild(s)
+    const a = turn + (360 / count) * i + (Math.random() - 0.5) * 30
+    const d0 = 8 + Math.random() * 10
+    const d1 = 30 + Math.random() * 22
+    const big = 0.7 + Math.random() * 0.6
+    anims.push(s.animate([
+      { opacity: 0, transform: `rotate(${a}deg) translateY(-${d0}%) scale(.2)` },
+      { opacity: 1, transform: `rotate(${a}deg) translateY(-${(d0 + d1) / 2}%) scale(${big})`, offset: 0.3 },
+      { opacity: 0, transform: `rotate(${a}deg) translateY(-${d1}%) scale(.35)` },
+    ], { duration: 520 + Math.random() * 220, delay: Math.random() * 90, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'backwards' }).finished)
+  }
+  host.appendChild(box)
+  Promise.all(anims).catch(() => {}).finally(() => box.remove())
+}
+
+/** การ์ดที่เพิ่งถูกเอาออก: เอาการ์ดเดิม (ที่ React ถอดออกแล้ว) มาวางทับช่องเดิม แล้วย่อ+จางหาย พร้อมประกายดาว */
+function ghostOut(host: Element, card: Element) {
+  const g = document.createElement('span')
+  g.className = 'slot-ghost'
+  g.setAttribute('aria-hidden', 'true')
+  g.appendChild(card)
+  host.appendChild(g)
+  g.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.82)' }], { duration: 240, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards' })
+    .finished.catch(() => {}).finally(() => g.remove())
+  sparkle(host)
+}
+
+/** ตัวที่เพิ่งลากมาวาง (ตั้งตอนปล่อย) → ช่องปลายทางวาบทองตรงที่ปล่อย แทนการเลื่อนจากช่องเดิม (การ์ดอยู่ใต้นิ้วแล้ว) */
+let dropped: { unit: string; at: number } | null = null
+export function markDrop(unit: string | null | undefined) {
+  dropped = unit ? { unit, at: performance.now() } : null
+}
+const justDropped = (key: string) => !!dropped && performance.now() - dropped.at < 600 && key.slice(key.indexOf(':') + 1) === dropped.unit
+
+type Snap = {
+  sig: string
+  w: number
+  h: number
+  /** ตำแหน่งชิ้นที่ย้ายได้ (เทียบมุมกล่อง) */
+  pos: Map<string, { x: number; y: number }>
+  /** กรอบช่องที่ชิ้นนั้นอยู่ (data-mhost) */
+  hosts: Map<string, Element | null>
+  pops: Set<string>
+  /** การ์ดตัวละครในตอนนั้น (ไว้ทำเงาตอนถูกเอาออก) */
+  cards: Map<string, { card: Element; host: Element | null }>
+}
+
+function snap(el: HTMLElement, sig: string): Snap {
+  const z = uiZoom()
+  const base = el.getBoundingClientRect()
+  const pos = new Map<string, { x: number; y: number }>()
+  const hosts = new Map<string, Element | null>()
+  const cards = new Map<string, { card: Element; host: Element | null }>()
+  const keep = (k: string, m: Element) => {
+    const card = m.querySelector('.unit-card')
+    const host = m.closest('[data-mhost]')
+    if (card) cards.set(k, { card, host })
+    return host
+  }
+  for (const m of Array.from(el.querySelectorAll<HTMLElement>('[data-m]'))) {
+    const r = m.getBoundingClientRect()
+    pos.set(m.dataset.m!, { x: (r.left - base.left) / z, y: (r.top - base.top) / z })
+    hosts.set(m.dataset.m!, keep(`m|${m.dataset.m}`, m))
+  }
+  const pops = new Set<string>()
+  for (const p of Array.from(el.querySelectorAll<HTMLElement>('[data-mp]'))) {
+    const k = p.dataset.mp!
+    pops.add(k)
+    if (k.startsWith('hero:')) keep(`p|${k}`, p)
+  }
+  return { sig, w: base.width, h: base.height, pos, hosts, pops, cards }
+}
+
+/**
+ * แอนิเมชันตอนจัดทีม (เฉพาะส่วนที่แก้อยู่) — ใช้กับทุกที่ที่ใส่/เอาออก/สลับตัวละคร
  * - data-m="คีย์" : ชิ้นที่ย้ายที่ได้ (อัศวิน) → ย้ายช่อง/เปลี่ยนรูปแบบ = เลื่อนไปที่ใหม่ (FLIP)
  * - data-mp="ชนิด:คีย์" : ชิ้นที่เพิ่งโผล่ (คีย์ใหม่) → เด้งเข้าตามชนิดใน POP
+ * - ตัวละครเพิ่งลงช่อง (data-m ใหม่ / data-mp "hero:") → เด้ง + แสงทองวาบ
+ * - ตัวละครถูกเอาออก → การ์ดเดิมย่อจางหายในช่องเดิม (data-mhost = กรอบช่อง) + ประกายดาว
+ * - ลากมาวาง (markDrop) → วาบทองที่ช่องปลายทาง ไม่เลื่อนจากช่องเดิม
  * เล่นเฉพาะตอนทีมเปลี่ยน (sig เปลี่ยน) ไม่เล่นตอนเปิดหน้า · ใช้ transform/opacity อย่างเดียว
+ * วัดตำแหน่งเฉพาะตอน sig เปลี่ยน (เดิมวัดทุกครั้งที่วาดใหม่ เช่น กดเลือกช่อง = บังคับคำนวณหน้าในจังหวะกด)
  */
 export function useTeamMotion(root: RefObject<HTMLElement | null>, sig: string, enabled: boolean) {
-  const prevPos = useRef<Map<string, { x: number; y: number }> | null>(null)
-  const prevPop = useRef<Set<string> | null>(null)
-  const prevSig = useRef(sig)
+  const prev = useRef<Snap | null>(null)
   useLayoutEffect(() => {
     const el = root.current
-    if (!enabled || !el) { prevPos.current = null; prevPop.current = null; prevSig.current = sig; return }
+    if (!enabled || !el) { prev.current = null; return }
+    const old = prev.current
+    if (old && old.sig === sig) return
+    const now = snap(el, sig)
+    prev.current = now
+    if (!old || !motionOK()) return
+    // ขนาดกล่องเปลี่ยน (หมุนจอ/ย่อหน้าต่าง) = ตำแหน่งที่จำไว้ใช้ไม่ได้ → ไม่เลื่อน (ยังเด้ง/วาบได้)
+    const sameBox = Math.abs(old.w - now.w) < 1 && Math.abs(old.h - now.h) < 1
     const z = uiZoom()
-    const base = el.getBoundingClientRect()
-    const movers = Array.from(el.querySelectorAll<HTMLElement>('[data-m]'))
-    const pops = Array.from(el.querySelectorAll<HTMLElement>('[data-mp]'))
-    const pos = new Map<string, { x: number; y: number }>()
-    for (const m of movers) {
-      const r = m.getBoundingClientRect()
-      pos.set(m.dataset.m!, { x: (r.left - base.left) / z, y: (r.top - base.top) / z })
-    }
-    const popKeys = new Set(pops.map((p) => p.dataset.mp!))
-    const oldPos = prevPos.current, oldPop = prevPop.current
-    if (oldPos && oldPop && sig !== prevSig.current && motionOK()) {
-      for (const m of movers) {
-        const k = m.dataset.m!
-        const a = oldPos.get(k), b = pos.get(k)!
-        if (a) {
-          const dx = a.x - b.x, dy = a.y - b.y
-          if (Math.abs(dx) > 1 || Math.abs(dy) > 1) m.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 340, easing: EASE })
-        } else m.animate(POP.hero.k, POP.hero.o) // เพิ่งใส่เข้ามา
+    for (const m of Array.from(el.querySelectorAll<HTMLElement>('[data-m]'))) {
+      const k = m.dataset.m!
+      const a = old.pos.get(k), b = now.pos.get(k)!
+      // การ์ดใบใหม่ในช่อง (ใส่/ย้าย) ไม่ต้องเล่น card-arrive ของ CSS (จางจาก .35) ซ้อน — ย้ายช่องแล้วการ์ดจะดูโปร่ง ๆ ตอนเลื่อน
+      const card = m.querySelector<HTMLElement>('.unit-card')
+      if (card && (!a || !old.cards.has(`m|${k}`) || old.cards.get(`m|${k}`)!.card !== card)) card.style.animation = 'none'
+      if (!a) {
+        m.animate(POP.hero.k, POP.hero.o) // เพิ่งใส่เข้ามา
+        flashCard(card)
+        continue
       }
-      for (const p of pops) {
-        const k = p.dataset.mp!
-        if (oldPop.has(k)) continue
-        const kind = POP[k.slice(0, k.indexOf(':'))]
-        if (kind) p.animate(kind.k, kind.o)
+      if (justDropped(k)) {
+        m.animate([{ transform: 'scale(1.1)' }, { transform: 'none' }], { duration: 280, easing: EASE })
+        flashCard(card)
+        continue
       }
+      // ย้ายช่อง: ช่องเดิมยังอยู่ = วัดช่องเดิมกับช่องใหม่ตอนนี้เลย (ตำแหน่งสด แม้หน้าเพิ่งขยับ)
+      // ช่องเดิมหายไป / ช่องเดิมแต่ตำแหน่งเปลี่ยน (เปลี่ยนรูปแบบ) = ใช้ตำแหน่งที่จำไว้
+      const ho = old.hosts.get(k), hn = now.hosts.get(k)
+      let dx = 0, dy = 0
+      if (ho && hn && ho !== hn && ho.isConnected) {
+        const r1 = ho.getBoundingClientRect(), r2 = hn.getBoundingClientRect()
+        dx = (r1.left - r2.left) / z; dy = (r1.top - r2.top) / z
+      } else if (sameBox) {
+        dx = a.x - b.x; dy = a.y - b.y
+      }
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) m.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 340, easing: EASE })
     }
-    prevPos.current = pos
-    prevPop.current = popKeys
-    prevSig.current = sig
+    for (const p of Array.from(el.querySelectorAll<HTMLElement>('[data-mp]'))) {
+      const k = p.dataset.mp!
+      if (old.pops.has(k)) continue
+      const kind = k.slice(0, k.indexOf(':'))
+      const anim = POP[kind]
+      if (anim) p.animate(anim.k, anim.o)
+      if (kind === 'hero') flashCard(p.querySelector('.unit-card'))
+    }
+    // ตัวที่หายไปจากทีม: React ถอดการ์ดออกแล้ว (ยังไม่วาดเฟรมใหม่) → เอาการ์ดเดิมมาเล่นจางออกในช่องเดิม
+    for (const [k, { card, host }] of old.cards) {
+      if (now.cards.has(k) || card.isConnected || !host?.isConnected) continue
+      ghostOut(host, card)
+    }
   })
 }
