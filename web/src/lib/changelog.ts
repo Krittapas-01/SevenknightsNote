@@ -79,6 +79,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
       ] },
       { kind: 'fix', groups: [
         g(undefined,
+          'หน้าไม่กระโดดตอนกดย้อนกลับ: เลื่อนลงสุดหน้าบ้านศัตรูแล้วย้อนกลับมาหน้ากิลด์ ท้ายเว็บไม่วูบผ่านกลางจอ · ปุ่มขวาบนของหัวเว็บ (? / ภาษา / เข้าสู่ระบบ) ไม่ขยับเมื่อเปลี่ยนหน้าหรือเปิดเว็บ · มือถือ: กิลด์ที่ยังไม่มีประกาศ แถบประกาศไม่หดดันหน้าขึ้นตอนโหลดเสร็จ',
           'กดเข้าบ้านศัตรูตอนกรองแท็ก/ค้นหาอยู่ แล้วกดย้อนกลับ ยังอยู่ที่ตัวกรอง/คำค้นเดิม และตำแหน่งเลื่อนเดิม (เดิมเด้งกลับไปทั้งหมด)',
           'ตรา God rank ในหน้าคำนวณแต้มเบ็ดเสร็จคมชัดขึ้น',
           'มือถือ: รูปโปรไฟล์ Discord บนหัวเว็บไม่โดนบีบแล้ว และหน้าเว็บไม่เลื่อนข้าง/ไม่ซูมออกเอง (ปุ่ม Discord มุมขวาล่างไม่หลุดจอตอนเลื่อน)',
@@ -337,6 +338,7 @@ const CHANGELOG_EN: ChangelogEntry[] = [
       ] },
       { kind: 'fix', groups: [
         g(undefined,
+          'No more jumps when going back: scroll to the bottom of an enemy defense and go back to the guild page, and the footer no longer flashes across the screen · the top-right header buttons (? / language / log in) no longer shift when you change pages or open the site · Phone: for guilds with no announcement yet, the announcement bar no longer shrinks and pulls the page up once it loads',
           'Opening an enemy defense while filtering by tag/search and going back keeps your filter, search and scroll position (it used to reset to All)',
           'Sharper God rank emblem on the Total War score calculator',
           'Phones: your Discord avatar in the header is no longer squished, and the page no longer slides sideways or zooms out (the Discord button stays in the bottom corner while scrolling)',

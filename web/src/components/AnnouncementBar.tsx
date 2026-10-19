@@ -97,7 +97,8 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
             </span>
           </button>
         ) : (
-          <span className="flex-1 text-white/40">{tx('ยังไม่มีประกาศ')}</span>
+          // basis-60 เท่าปุ่มประกาศ: มือถือขึ้นบรรทัดที่ 2 เหมือนกิลด์ที่มีประกาศ → สูงเท่าที่จองไว้ตอนโหลดครั้งแรก (63px) หน้าไม่ขยับขึ้น
+          <span className="min-w-0 flex-1 basis-60 text-white/40">{tx('ยังไม่มีประกาศ')}</span>
         )}
 
         <Link to={`/g/${gid}`} onClick={markSeen} className="hidden shrink-0 text-xs text-white/50 hover:text-white sm:inline">
