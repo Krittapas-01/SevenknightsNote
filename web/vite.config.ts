@@ -19,8 +19,27 @@ function apiPreconnect(): Plugin {
   }
 }
 
+/**
+ * เปิดเว็บมาที่หน้าของกิลด์ → เริ่มดึงข้อมูลกิลด์ตั้งแต่อ่าน HTML (สคริปต์เล็กใน <head>) ไม่ต้องรอโค้ดหลักโหลด+รันเสร็จก่อน
+ * เดิมคำขอข้อมูลออกหลังไฟล์ JS หลักโหลดเสร็จ (~1.6 วิ บนเน็ตช้า) → รูปอัศวินบนจอ (LCP) ต้องรอต่อคิวทั้งสองอย่าง
+ * ยิงคำขอเดียวกับที่โค้ดจะยิงเองทุกอย่าง (URL + ?rev= ของข้อมูลในเครื่อง + Authorization) → api.ts หยิบผลนี้ไปใช้แทน ไม่ยิงซ้ำ (ไม่เพิ่มโควตา)
+ * ต้องตรงกับ: main.tsx (รูปแบบ path), lib/useGuild.ts (REV_LS), lib/auth.ts (KEY), lib/api.ts (takeBoot), lib/demo.ts (DEMO_ID)
+ */
+function guildBoot(): Plugin {
+  let base = ''
+  return {
+    name: 'guild-boot',
+    configResolved(config) { base = (config.env.VITE_API_URL || '').replace(/\/$/, '') },
+    // ใส่แทน <!-- guild-boot --> ใน index.html (ก่อน <link> CSS: สคริปต์ที่อยู่หลัง CSS ต้องรอ CSS โหลดเสร็จก่อนถึงจะได้รัน)
+    transformIndexHtml: (html) => html.replace('<!-- guild-boot -->', '<script>' + `(function(){try{var m=location.pathname.match(/^\\/g\\/([^/]+)(?:\\/[tp]\\/[^/]+)?\\/?$/);if(!m)return;var g=decodeURIComponent(m[1]);if(g==='demo')return;`
+        + `var r=JSON.parse(localStorage.getItem('7k-note:guild-rev')||'{}')[g];var s=localStorage.getItem('7knote:session');var a=s?'Bearer '+s:null;`
+        + `var u=${JSON.stringify(base)}+'/api/guild/'+g+(typeof r==='string'&&r?'?rev='+encodeURIComponent(r):'');`
+        + `var p=fetch(u,{headers:a?{Authorization:a}:{}});p.catch(function(){});window.__7kGuild={url:u,auth:a,res:p}}catch(e){}})()` + '</script>'),
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), apiPreconnect()],
+  plugins: [react(), tailwindcss(), apiPreconnect(), guildBoot()],
   build: {
     rollupOptions: {
       output: {
