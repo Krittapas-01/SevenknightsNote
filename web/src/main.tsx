@@ -7,7 +7,8 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { applyUiZoom } from './lib/zoom'
 import { applyMotion } from './lib/prefs'
 import LandingPage from './pages/LandingPage'
-import { prefetchGuild } from './lib/useGuild'
+import { peekGuild, prefetchGuild } from './lib/useGuild'
+import { preloadFirstScreen } from './lib/bootImages'
 // หน้าหนัก ๆ โหลดแยกเมื่อเปิดหน้านั้น (หน้าแรกเปิดเร็วขึ้น)
 const loadGuild = () => import('./pages/GuildPage')
 const loadTarget = () => import('./pages/TargetPage')
@@ -38,7 +39,16 @@ applyMotion()
 // แล้วตอนเครื่องว่าง โหลดโค้ดหน้าที่มักกดต่อไว้ก่อน (กิลด์ ↔ บ้านศัตรู ↔ แผน) → กดแล้วเปิดทันที ไม่ค้างหน้าเดิมรอโหลด
 const guildPath = location.pathname.match(/^\/g\/([^/]+)(?:\/([tp])\/[^/]+)?\/?$/)
 if (guildPath) {
-  try { prefetchGuild(decodeURIComponent(guildPath[1])) } catch { /* URL เพี้ยน → หน้ากิลด์จัดการเอง */ }
+  try {
+    // ข้อมูลกิลด์ (ดึงไว้แล้วตั้งแต่ index.html — vite.config.ts guildBoot) + สั่งโหลดรูปอัศวินจอแรกทันทีที่รู้ว่าเป็นใคร (LCP)
+    // มีข้อมูลในเครื่อง = สั่งเลย · ไม่มี = รอข้อมูลมา (ไม่ต้องรอโค้ดหน้า + React วาด)
+    const gid = decodeURIComponent(guildPath[1])
+    const run = prefetchGuild(gid)
+    const cached = peekGuild(gid)
+    const preload = (d: Parameters<typeof preloadFirstScreen>[2]) => { try { preloadFirstScreen(location.pathname, location.search, d) } catch { /* แค่เร่งความเร็ว */ } }
+    if (cached) preload(cached)
+    else run?.then(preload, () => {})
+  } catch { /* URL เพี้ยน → หน้ากิลด์จัดการเอง */ }
   void (guildPath[2] === 't' ? loadTarget() : guildPath[2] === 'p' ? loadPlan() : loadGuild()).catch(() => {})
   const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData
   if (!saveData) {

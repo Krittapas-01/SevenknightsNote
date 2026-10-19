@@ -75,6 +75,19 @@ export function pushRecent(r: Recent) {
 }
 
 // ---------- fetch ----------
+/**
+ * ข้อมูลกิลด์ที่ index.html เริ่มดึงไว้ตั้งแต่อ่าน HTML (vite.config.ts → guildBoot) — ใช้ได้ครั้งเดียว
+ * ใช้แทนการยิงใหม่เฉพาะคำขอที่ตรงกันทุกอย่าง (URL รวม ?rev= และ Authorization) · ไม่ตรง = ยิงเองตามปกติ
+ */
+type Boot = { url: string; auth: string | null; res: Promise<Response> }
+function takeBoot(url: string, auth: string | null): Promise<Response> | null {
+  const w = window as Window & { __7kGuild?: Boot }
+  const b = w.__7kGuild
+  if (!b || b.url.split('?')[0] !== url.split('?')[0]) return null
+  // คำขอข้อมูลกิลด์นี้ครั้งแรกของโค้ด = ใช้หรือทิ้งเลย (ไม่ตรง เช่น เพิ่งล็อกอิน → ผลเก่าค้างไว้ไม่ได้ ไม่งั้นโหลดใหม่ทีหลังได้ข้อมูลเก่า)
+  delete w.__7kGuild
+  return b.url === url && b.auth === auth ? b.res : null
+}
 async function req<T>(path: string, init: RequestInit & { gid?: string; key?: string } = {}): Promise<T> {
   // กิลด์ทดลอง: ข้อมูลอยู่ในเครื่อง ไม่ยิง API
   if (path === `/api/guild/${DEMO_ID}` || path.startsWith(`/api/guild/${DEMO_ID}/`)) return demoRequest(path, init) as Promise<T>
@@ -87,7 +100,8 @@ async function req<T>(path: string, init: RequestInit & { gid?: string; key?: st
   }
   const session = getSession() // ล็อกอิน Discord (ใช้เช็คยศ + ขึ้นชื่อคนประกาศ)
   if (session) headers.Authorization = `Bearer ${session}`
-  const res = await fetch(BASE + path, { ...init, headers })
+  const boot = !init.body && !init.method && !headers['X-Edit-Key'] ? takeBoot(BASE + path, headers.Authorization ?? null) : null
+  const res = await (boot ?? fetch(BASE + path, { ...init, headers }))
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw Object.assign(new Error((data as any).error ?? `HTTP ${res.status}`), { status: res.status })
   return data as T
