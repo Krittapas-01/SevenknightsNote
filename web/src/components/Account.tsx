@@ -1,7 +1,7 @@
 import { ChevronDown, CircleHelp, LogIn, LogOut, Star, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
-import { clearAuthError, loginWithDiscord, logout, useAuth } from '../lib/auth'
+import { clearAuthError, loginWithDiscord, logout, shownAuth, useAuth } from '../lib/auth'
 import { L, tx } from '../lib/i18n'
 import { closeAllTours, startTour, useTourState } from '../lib/tour'
 import { DiscordIcon } from './ContactFab'
@@ -11,7 +11,9 @@ import { DiscordIcon } from './ContactFab'
  * กดรูป → เมนู: พรีเซต & ทีมที่ชอบ · สอนใช้หน้านี้ · ออกจากระบบ (หัวเว็บมือถือไม่เบียด)
  */
 export default function Account() {
-  const { ready, enabled, user, error } = useAuth()
+  const auth = useAuth()
+  const { error } = auth
+  const { enabled, user } = shownAuth(auth) // ระหว่างเช็กล็อกอิน: โชว์ตามครั้งก่อน (ปุ่มไม่โผล่ทีหลัง หัวเว็บไม่กระโดด)
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const { available, active } = useTourState()
@@ -26,7 +28,7 @@ export default function Account() {
     document.addEventListener('keydown', key)
     return () => { document.removeEventListener('pointerdown', down); document.removeEventListener('keydown', key) }
   }, [open])
-  if (!ready || (!enabled && !user)) return null
+  if (!enabled && !user) return null
   const item = 'flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm'
   return (
     <div ref={box} className="relative flex items-center">
