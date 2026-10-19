@@ -24,7 +24,12 @@ export function useSlidePill(active: string | number | null | undefined) {
     setPill((p) => (p.left === next.left && p.width === next.width && p.top === next.top && p.height === next.height && p.opacity === 1 ? p : next))
   }, [])
   // เปลี่ยนแท็บ → วัดใหม่ · ขนาดกล่องเปลี่ยน (ฟอนต์โหลด/จอหมุน) → วัดใหม่
-  useLayoutEffect(() => { measure() }, [active, measure])
+  // ครั้งแรกวัดก่อนวาด (ไม่ให้พื้นทองโผล่ผิดที่) · กดเปลี่ยนแท็บ = วัดในเฟรมถัดไป: วัดทันทีหลังกด = บังคับคำนวณตำแหน่งทั้งหน้าซ้ำกลางการกด (INP) · พื้นทองเลื่อน 260ms อยู่แล้ว ช้า 1 เฟรมไม่เห็น
+  useLayoutEffect(() => {
+    if (first.current) { measure(); return }
+    const id = requestAnimationFrame(measure)
+    return () => cancelAnimationFrame(id)
+  }, [active, measure])
   useLayoutEffect(() => {
     const el = box.current
     if (!el || typeof ResizeObserver === 'undefined') return

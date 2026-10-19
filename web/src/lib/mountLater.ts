@@ -20,7 +20,7 @@ const BATCH = 3
 /** เพิ่งมีช่องใหม่ (เปิดหน้า/ย้อนกลับ) → รอเท่านี้ก่อนเริ่มทยอยใส่ ให้จอแรกได้เครื่องเต็ม ๆ */
 const START_DELAY = 1000
 
-/** กำลังเลื่อนจออยู่ (เลื่อนล่าสุดไม่เกินเท่านี้) → รอก่อน ไม่แย่งเฟรมตอนเลื่อน (ใบที่ใกล้จอยังใส่ทันทีตามปกติ) */
+/** กำลังเลื่อนจอ/กด/พิมพ์อยู่ (ล่าสุดไม่เกินเท่านี้) → รอก่อน ไม่แย่งเฟรม (ใบที่ใกล้จอยังใส่ทันทีตามปกติ) */
 const SCROLL_QUIET = 200
 
 const jobs = new Map<Element, () => void>() // ลำดับที่ใส่ = ลำดับบนหน้า (บนลงล่าง)
@@ -56,7 +56,11 @@ function schedule() {
   if (pending || jobs.size === 0) return
   if (!listening) {
     listening = true
-    window.addEventListener('scroll', () => { quietUntil = Math.max(quietUntil, performance.now() + SCROLL_QUIET) }, { passive: true })
+    const quiet = () => { quietUntil = Math.max(quietUntil, performance.now() + SCROLL_QUIET) }
+    window.addEventListener('scroll', quiet, { passive: true })
+    // กด/พิมพ์ (ค้นหา, กดแท็ก) → พักด้วย ไม่แย่งเครื่องกับงานที่ผู้ใช้รอเห็นผล
+    window.addEventListener('pointerdown', quiet, { passive: true, capture: true })
+    window.addEventListener('keydown', quiet, { passive: true, capture: true })
   }
   pending = true
   idle(pump)

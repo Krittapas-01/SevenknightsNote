@@ -2,7 +2,7 @@ import { Check, ChevronLeft, ChevronRight, ClipboardList, LayoutGrid, Link2, Plu
 import { ImgPriority } from '../components/UnitCard'
 import PageSkeleton from '../components/PageSkeleton'
 import { sortTags, tagColor, tagStyle, tagText } from '../lib/tags'
-import { memo, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigationType, useParams, useSearchParams } from 'react-router'
 import Modal from '../components/Modal'
@@ -14,7 +14,7 @@ import { activePlanId } from '../lib/war'
 import { useSlideDir, useSlidePill } from '../lib/slide'
 import { getUnit, englishOf, unitBase } from '../data/heroes'
 import { EditLogin, EditSettings } from '../components/EditAccess'
-import { PLAN_KIND_LABEL, planKind, type Plan, type PlanKind, type Target, type Team, slotLabel } from '../lib/types'
+import { PLAN_KIND_LABEL, planKind, type GuildData, type Plan, type PlanKind, type Target, type Team, slotLabel } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import HelpLink from '../components/HelpLink'
 import GuildTour from '../components/GuildTour'
@@ -24,6 +24,8 @@ import GuildOnboarding from '../components/GuildOnboarding'
 import { markShared, onboardFlags } from '../lib/onboarding'
 import { useSmoothWheel } from '../lib/smoothWheel'
 import { useMountLater } from '../lib/mountLater'
+import { useParam } from '../lib/useParam'
+import { useAfterPaint } from '../lib/afterPaint'
 import { uiZoom } from '../lib/zoom'
 import NotFound from './NotFound'
 import { tx, L, LOCALE } from '../lib/i18n'
@@ -36,18 +38,20 @@ const matches = (t: Target, q: string) =>
 export default function GuildPage() {
   const { gid = '' } = useParams()
   const { data, error, canEdit, realCanEdit, isOwner, setCanEdit, recheck, reload } = useGuild(gid)
-  const [copied, setCopied] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
-  // ค้นหา/แท็กเก็บใน URL → กดเข้าบ้านแล้วกดย้อนกลับ ยังเป็นตัวกรองเดิม (ไม่เด้งกลับเป็น "ทั้งหมด")
-  const q = params.get('q') ?? ''
-  const tag = params.get('tag')
-  const setParam = (k: 'q' | 'tag', v: string | null) => setParams((p) => {
-    const n = new URLSearchParams(p)
+  // ค้นหา/แท็ก/แท็บเก็บใน URL → กดเข้าบ้านแล้วกดย้อนกลับ ยังเป็นตัวกรองเดิม (ไม่เด้งกลับเป็น "ทั้งหมด")
+  // แต่จอใช้ค่าในเครื่องก่อน (useParam): พิมพ์/กดแล้วขึ้นจอทันที URL ตามไปทีหลัง
+  // เขียนจาก location.search ปัจจุบัน (ไม่ใช่ params ของรอบ render ที่ตั้งเวลาไว้ — ค่าอื่นที่เพิ่งเปลี่ยนจะไม่ถูกทับ)
+  const writeParam = (k: 'q' | 'tag', v: string | null) => {
+    const n = new URLSearchParams(window.location.search)
     if (v) n.set(k, v); else n.delete(k)
-    return n
-  }, { replace: true })
-  const setQ = (v: string) => setParam('q', v)
-  const setTag = (v: string | null) => setParam('tag', v)
+    setParams(n, { replace: true })
+  }
+  const [qv, setQ, flushQ] = useParam(params, (p) => p.get('q'), (v) => writeParam('q', v), 350)
+  const q = qv ?? ''
+  const [tag, setTag] = useParam(params, (p) => p.get('tag'), (v) => writeParam('tag', v))
+  // เปลี่ยนแท็บ = ล้างคำค้น/แท็ก (เหมือนเดิม)
+  const [tab, setTab] = useParam(params, readTab, (v) => setParams(v === 'targets' ? { tab: v } : {}, { replace: true }))
   // ตำแหน่งเลื่อนจอ: จำไว้ตอนออกจากหน้า · กดย้อนกลับมา = เลื่อนกลับไปที่เดิม
   const loc = useLocation()
   const navType = useNavigationType()
@@ -82,18 +86,19 @@ export default function GuildPage() {
   const restored = useRef(false)
   // กดย้อนกลับมา: การ์ดที่เคยดูอยู่ (สร้างการ์ดรอบ ๆ ใบนี้ก่อน ใบอื่นทยอยตามมา)
   const [anchor] = useState(() => navType === 'POP' ? readSnap(scrollKey)?.id ?? null : null)
-  const tab = params.get('tab') === 'targets' ? 'targets' : 'plans'
+  // แท็บ: พื้นทองวิ่งไปทันทีที่กด (tab) · เนื้อหาแท็บใหม่ (ทั้งรายการ) วาดตามหลัง (shownTab) ไม่ให้พื้นทองค้างรอ
+  const shownTab = useAfterPaint(tab)
   const tabPill = useSlidePill(tab)
-  const tabSlide = useSlideDir(tab === 'plans' ? 0 : 1)
-  useSmoothWheel(tab === 'targets')
+  const tabSlide = useSlideDir(shownTab === 'plans' ? 0 : 1)
+  useSmoothWheel(shownTab === 'targets')
   // สอนใช้: คนแก้ได้ = สอนจัดการกิลด์ · คนดูอย่างเดียว = สอนดูแผน + เข้าแก้ไข
   useTour('guild-editor', !!data && canEdit && !isDemo(gid))
   useTour('guild-viewer', !!data && !realCanEdit && !isDemo(gid))
 
   const allTags = useMemo(() => sortTags([...new Set(data?.targets.flatMap((t) => t.tags) ?? [])]), [data])
-  // ค้นหา/กรองแท็กแบบเลื่อนไปทำทีหลัง: ช่องพิมพ์/ปุ่มแท็กตอบทันที รายการค่อยตามมา (INP)
-  const dq = useDeferredValue(q)
-  const dTag = useDeferredValue(tag)
+  // ค้นหา/กรองแท็กทำหลังจอวาดเสร็จ (useAfterPaint): ช่องพิมพ์/ปุ่มแท็กขึ้นจอก่อน รายการค่อยตามมา (INP)
+  const dq = useAfterPaint(q)
+  const dTag = useAfterPaint(tag)
   const sorted = useMemo(() => {
     const s = dq.trim().toLowerCase()
     // แก้ล่าสุดอยู่บนสุด (ตัวบ้านศัตรูหรือทีมแก้ข้างใน — เวลาเดียวกับจุดเขียว)
@@ -140,6 +145,87 @@ export default function GuildPage() {
   if (error) return <NotFound message={error} />
   if (!data) return <PageSkeleton kind="guild" />
 
+  return (
+    <div>
+      {/* ส่วนบน (แบนเนอร์ + กระดานวอร์) และเนื้อหาแท็บ แยกเป็น memo: พิมพ์ค้นหา/กดแท็ก/กดแท็บ วาดใหม่แค่แถบแท็บ ช่องค้นหา และปุ่มแท็ก (INP) */}
+      <GuildHead gid={gid} data={data} canEdit={canEdit} realCanEdit={realCanEdit} isOwner={isOwner} setCanEdit={setCanEdit} recheck={recheck} reload={reload} />
+
+      {/* แท็บ */}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        {/* แท็บ: พื้นทองวิ่งตามแท็บที่เลือก */}
+        <div ref={tabPill.box} data-tour="guild-tabs" className="pill relative flex p-1">
+          <span aria-hidden className="slide-pill" style={tabPill.pill} />
+          {([
+            ['plans', tx('แผนสงคราม'), ClipboardList],
+            ['targets', tx('บ้านศัตรู'), Swords],
+          ] as const).map(([k, label, Icon]) => (
+            <button
+              key={k}
+              data-tour={`tab-${k}`}
+              ref={tabPill.item(k)}
+              onClick={() => { flushQ(); setTab(k) }}
+              className={`relative z-10 flex items-center gap-1.5 rounded-full px-4 py-1.5 transition-colors sm:px-5 ${tab === k ? 'font-semibold text-ink' : 'text-white/70 hover:bg-white/10'}`}
+            >
+              <Icon className="h-4 w-4" /> {label}
+            </button>
+          ))}
+        </div>
+        <HelpLink section={tab === 'plans' ? ['plans', 'announce', 'discord', 'edit'] : ['targets', 'team', 'stats', 'edit']} />
+        {canEdit && tab !== 'plans' && (
+          <Link data-onboard="add-target" to={`/g/${gid}/t/new`} className="btn-gold ml-auto flex items-center gap-1.5 px-4 py-2 text-sm">
+            <Plus className="h-4 w-4" />{' '}{tx('เพิ่มบ้านศัตรู')}
+          </Link>
+        )}
+      </div>
+
+      {/* เนื้อหาเลื่อนเข้าตามทิศแท็บ (แผนสงคราม ← → บ้านศัตรู) */}
+      <div key={shownTab} className={tabSlide}>
+      {shownTab === 'plans' ? (
+        <PlansTab gid={gid} data={data} canEdit={canEdit} />
+      ) : (
+        <>
+      <div data-tour="target-search" className="mt-5 flex flex-wrap items-center gap-2">
+        <label className="pill flex min-w-60 flex-1 items-center gap-2 px-4 py-2">
+          <Search className="h-4 w-4 text-white/50" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} onBlur={flushQ} placeholder={tx('ค้นหาชื่ออัศวิน, โน้ต, แท็ก...')} className="w-full bg-transparent outline-none placeholder:text-white/40" />
+        </label>
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <TagChip active={!tag} onClick={() => setTag(null)}>{tx('ทั้งหมด')}</TagChip>
+            {allTags.map((t) => (
+              <TagChip key={t} active={tag === t} onClick={() => setTag(tag === t ? null : t)}>{tagText(t)}</TagChip>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <TargetList list={list} stale={stale} gid={gid} anchor={anchor} total={data.targets.length} canEdit={canEdit} onResort={setResort} />
+        </>
+      )}
+      </div>
+    </div>
+  )
+}
+
+function TagChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1 text-sm ${active ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70 hover:bg-white/5'}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+const readTab = (p: URLSearchParams): 'plans' | 'targets' => (p.get('tab') === 'targets' ? 'targets' : 'plans')
+
+/** แบนเนอร์กิลด์ + กระดานวอร์ (memo: ไม่วาดใหม่ตอนพิมพ์ค้นหา/กดแท็ก/สลับแท็บ) */
+const GuildHead = memo(function GuildHead({ gid, data, canEdit, realCanEdit, isOwner, setCanEdit, recheck, reload }: {
+  gid: string; data: GuildData; canEdit: boolean; realCanEdit: boolean; isOwner: boolean
+  setCanEdit: (v: boolean) => void; recheck: () => Promise<void>; reload: () => Promise<void>
+}) {
+  const [copied, setCopied] = useState<string | null>(null)
   async function copy(kind: 'view') {
     const url = `${location.origin}/g/${gid}`
     await navigator.clipboard.writeText(url).catch(() => prompt(tx('คัดลอกลิงก์นี้'), url))
@@ -147,9 +233,8 @@ export default function GuildPage() {
     setCopied(kind)
     setTimeout(() => setCopied(null), 1500)
   }
-
   return (
-    <div>
+    <>
       {!isDemo(gid) && !onboardFlags(gid)?.on && <GuildTour />}
       <GuildOnboarding gid={gid} data={data} canEdit={canEdit} />
       <div className="guild-banner flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
@@ -174,38 +259,13 @@ export default function GuildPage() {
       </div>
 
       <WarBoard gid={gid} data={data} canEdit={canEdit} isOwner={isOwner} reload={reload} />
+    </>
+  )
+})
 
-      {/* แท็บ */}
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        {/* แท็บ: พื้นทองวิ่งตามแท็บที่เลือก */}
-        <div ref={tabPill.box} data-tour="guild-tabs" className="pill relative flex p-1">
-          <span aria-hidden className="slide-pill" style={tabPill.pill} />
-          {([
-            ['plans', tx('แผนสงคราม'), ClipboardList],
-            ['targets', tx('บ้านศัตรู'), Swords],
-          ] as const).map(([k, label, Icon]) => (
-            <button
-              key={k}
-              data-tour={`tab-${k}`}
-              ref={tabPill.item(k)}
-              onClick={() => setParams(k === 'plans' ? {} : { tab: k }, { replace: true })}
-              className={`relative z-10 flex items-center gap-1.5 rounded-full px-4 py-1.5 transition-colors sm:px-5 ${tab === k ? 'font-semibold text-ink' : 'text-white/70 hover:bg-white/10'}`}
-            >
-              <Icon className="h-4 w-4" /> {label}
-            </button>
-          ))}
-        </div>
-        <HelpLink section={tab === 'plans' ? ['plans', 'announce', 'discord', 'edit'] : ['targets', 'team', 'stats', 'edit']} />
-        {canEdit && tab !== 'plans' && (
-          <Link data-onboard="add-target" to={`/g/${gid}/t/new`} className="btn-gold ml-auto flex items-center gap-1.5 px-4 py-2 text-sm">
-            <Plus className="h-4 w-4" />{' '}{tx('เพิ่มบ้านศัตรู')}
-          </Link>
-        )}
-      </div>
-
-      {/* เนื้อหาเลื่อนเข้าตามทิศแท็บ (แผนสงคราม ← → บ้านศัตรู) */}
-      <div key={tab} className={tabSlide}>
-      {tab === 'plans' ? (
+/** แท็บแผนสงคราม (memo) */
+const PlansTab = memo(function PlansTab({ gid, data, canEdit }: { gid: string; data: GuildData; canEdit: boolean }) {
+  return (
         <div className="space-y-10">
           {(['attack', 'defense'] as const).map((k) => (
             <section key={k}>
@@ -222,25 +282,18 @@ export default function GuildPage() {
             </section>
           ))}
         </div>
-      ) : (
-        <>
-      <div data-tour="target-search" className="mt-5 flex flex-wrap items-center gap-2">
-        <label className="pill flex min-w-60 flex-1 items-center gap-2 px-4 py-2">
-          <Search className="h-4 w-4 text-white/50" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tx('ค้นหาชื่ออัศวิน, โน้ต, แท็ก...')} className="w-full bg-transparent outline-none placeholder:text-white/40" />
-        </label>
-        {allTags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            <TagChip active={!tag} onClick={() => setTag(null)}>{tx('ทั้งหมด')}</TagChip>
-            {allTags.map((t) => (
-              <TagChip key={t} active={tag === t} onClick={() => setTag(tag === t ? null : t)}>{tagText(t)}</TagChip>
-            ))}
-          </div>
-        )}
-      </div>
+  )
+})
 
+/** รายการการ์ดบ้านศัตรู + ข้อความตอนว่าง + ปุ่มเรียงใหม่ (memo: พิมพ์ค้นหา/กดแท็กแล้วช่องพิมพ์/ปุ่มขึ้นจอก่อน รายการตามมาทีหลัง) */
+const TargetList = memo(function TargetList({ list, stale, gid, anchor, total, canEdit, onResort }: {
+  list: Target[]; stale: boolean; gid: string; anchor: string | null; total: number; canEdit: boolean
+  onResort: React.Dispatch<React.SetStateAction<number>>
+}) {
+  return (
+    <>
       {list.length === 0 ? (
-        data.targets.length === 0 && canEdit ? (
+        total === 0 && canEdit ? (
           // กิลด์ยังว่าง: การ์ดใหญ่ "เริ่มจากตรงนี้"
           <div className="panel panel-gold mx-auto mt-8 max-w-lg p-8 text-center">
             <Swords className="mx-auto h-10 w-10 text-gold" />
@@ -249,7 +302,7 @@ export default function GuildPage() {
           </div>
         ) : (
           <div className="panel mt-8 p-10 text-center text-white/60">
-            {data.targets.length === 0 ? tx('ยังไม่มีทีมที่จดไว้') : tx('ไม่พบทีมที่ค้นหา')}
+            {total === 0 ? tx('ยังไม่มีทีมที่จดไว้') : tx('ไม่พบทีมที่ค้นหา')}
           </div>
         )
       ) : (
@@ -257,7 +310,7 @@ export default function GuildPage() {
         <TargetGrid list={list} gid={gid} anchor={anchor} />
         {/* ปุ่มลอย (fixed = ไม่ดันหน้า) · portal: แท็บมีแอนิเมชันเลื่อน (transform) ทำให้ fixed ข้างในเพี้ยน */}
         {stale && createPortal(
-          <button type="button" data-testid="resort" onClick={() => setResort((n) => n + 1)}
+          <button type="button" data-testid="resort" onClick={() => onResort((n) => n + 1)}
             className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-full border border-gold/60 bg-[var(--surface-deep)] px-4 py-2 text-sm font-semibold text-gold shadow-lg hover:bg-gold/15">
             {L('มีการแก้ใหม่ · เรียงล่าสุดขึ้นก่อน', 'New edits · sort latest first')}
           </button>,
@@ -265,23 +318,9 @@ export default function GuildPage() {
         )}
         </>
       )}
-        </>
-      )}
-      </div>
-    </div>
+    </>
   )
-}
-
-function TagChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-full border px-3 py-1 text-sm ${active ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70 hover:bg-white/5'}`}
-    >
-      {children}
-    </button>
-  )
-}
+})
 
 /** เวลาที่แต่ละแผนถูกประกาศใช้ล่าสุด */
 function lastUsed(announcements: { planId: string | null; createdAt: number }[]) {
