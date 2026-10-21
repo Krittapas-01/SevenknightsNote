@@ -409,8 +409,8 @@ app.get('/api/guild/:id', async (c) => {
   if (c.req.query('rev') === rev) return c.json({ unchanged: true, rev })
   const [t, k, p, a, st, ap, lk] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT * FROM targets WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
-    // ลำดับที่หัวกิลด์เรียงไว้ก่อน (sort) · ยังไม่เคยเรียง/เพิ่มใหม่ = ต่อท้ายตามเวลาที่จด
-    c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY sort IS NULL, sort, created_at ASC').bind(id),
+    // ไม่ใส่ ORDER BY: D1 นับแถวที่ใช้เรียงเป็น rows read ด้วย (อ่าน x2) → ไปเรียงใน JS ข้างล่างแทน
+    c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ?').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
     c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(id),
@@ -439,7 +439,10 @@ app.get('/api/guild/:id', async (c) => {
     ...(id === BOSS_GUILD ? { bossConnected: !!settings?.boss_webhook, bossText: { start: settings?.boss_text_start ?? null, end: settings?.boss_text_end ?? null } } : {}),
   }
   const likeCount = new Map((lk.results as any[]).map((r) => [r.counter_id as string, r.n as number]))
-  const counters = (k.results as any[]).map((r) => ({ ...toCounter(r), likes: likeCount.get(r.id) ?? 0 }))
+  // ลำดับที่หัวกิลด์เรียงไว้ก่อน (sort) · ยังไม่เคยเรียง/เพิ่มใหม่ = ต่อท้ายตามเวลาที่จด
+  const counters = (k.results as any[])
+    .sort((x, y) => (x.sort == null ? 1 : 0) - (y.sort == null ? 1 : 0) || (x.sort ?? 0) - (y.sort ?? 0) || x.created_at - y.created_at)
+    .map((r) => ({ ...toCounter(r), likes: likeCount.get(r.id) ?? 0 }))
   const targets = (t.results as any[]).map((r) => ({
     ...toTarget(r),
     counters: counters.filter((x) => x.targetId === r.id),
@@ -657,6 +660,15 @@ app.delete('/api/guild/:id/plans/:pid', async (c) => {
 // ---- pulse: ข้อมูลเล็ก ๆ สำหรับแถบประกาศ (เว็บเรียกทุก 60 วิ — ให้เบาที่สุด) ----
 app.get('/api/guild/:id/pulse', async (c) => {
   const gid = c.req.param('id')
+  c.header('Cache-Control', 'no-store')
+  // เว็บส่งเลขเวอร์ชันที่มีอยู่มา → ยังเท่าเดิม = ประกาศ/แผนไม่เปลี่ยน (ทุกการเขียนขยับ rev) อ่านแค่แถวกิลด์ 1 แถว
+  // (เรียกวันละหลายหมื่นครั้ง เดิมยิง 4 query ทุกครั้ง)
+  const known = c.req.query('rev')
+  if (known) {
+    const g = await c.env.DB.prepare('SELECT rev FROM guilds WHERE id = ?').bind(gid).first<{ rev: number }>()
+    if (!g) return c.json({ error: 'ไม่พบกิลด์' }, 404)
+    if (guildRev(g.rev) === known) return c.json({ unchanged: true, rev: known, schedule: GAME_SCHEDULE, season: GAME_SEASON })
+  }
   const [g, latest, withPlan, perKind] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT name, rev FROM guilds WHERE id = ?').bind(gid),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 1').bind(gid),
@@ -674,7 +686,6 @@ app.get('/api/guild/:id/pulse', async (c) => {
   if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
   const a = (latest.results as any[])[0]
   const p = (withPlan.results as any[])[0]
-  c.header('Cache-Control', 'no-store')
   return c.json({
     guildName: guild.name,
     rev: guildRev(guild.rev),
