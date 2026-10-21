@@ -6,6 +6,7 @@ import type { HeroNote, SkillStep, Target, Team } from '../lib/types'
 import Modal from './Modal'
 import EquipmentLoadout from './EquipmentLoadout'
 import TeamPanel from './TeamPanel'
+import { teamNotes } from '../lib/heroNotes'
 import { tx, L } from '../lib/i18n'
 
 export type Comp = { id: string; team: Team; skills: SkillStep[]; note: string; heroNotes: HeroNote[] }
@@ -26,7 +27,7 @@ function libraryOf(targets: Target[]): Library {
   return {
     defenses: targets.map((t) => ({
       id: t.id, type: houseType(t.tags), team: t.team, skills: t.team.skills ?? [], note: t.note, heroNotes: [],
-      counters: t.counters.map((c) => ({ id: c.id, team: c.team, skills: c.skills, note: c.note, heroNotes: c.heroNotes ?? [] })),
+      counters: t.counters.map((c) => ({ id: c.id, team: c.team, skills: c.skills, note: c.note, heroNotes: teamNotes(c.heroNotes, c.team.slots) })),
     })),
   }
 }

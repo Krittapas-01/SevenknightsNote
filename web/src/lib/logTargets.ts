@@ -1,5 +1,6 @@
 import { api } from './api'
 import { heroKey } from './allocation'
+import { teamNotes } from './heroNotes'
 import { houseView, type Counter, type HeroNote, type PlanData, type Target, type Team, type WarOption } from './types'
 import { L } from './i18n'
 
@@ -64,8 +65,10 @@ export function findSyncItems(plan: PlanData, targets: Target[], prev?: PlanData
         if (!notes.length || !heroSet(opt.team)) return
         const counter = target.counters.find((c) => heroSet(c.team) === heroSet(opt.team))
         if (!counter || seen.has(counter.id)) return
-        const merged = mergeNotes(counter.heroNotes ?? [], notes)
-        if (JSON.stringify(merged) === JSON.stringify(counter.heroNotes ?? [])) return
+        // เฉพาะตัวที่อยู่ในทีม (ของตัวที่เคยเอาออกจากทีมแล้วไม่ส่งกลับ)
+        const lib = teamNotes(counter.heroNotes, counter.team.slots)
+        const merged = mergeNotes(lib, teamNotes(notes, counter.team.slots))
+        if (JSON.stringify(merged) === JSON.stringify(lib)) return
         seen.add(counter.id)
         out.push({ s, o, opt, vs: slot.vs!, counter, heroNotes: merged })
       })
@@ -108,7 +111,7 @@ export async function logToTargets(gid: string, items: LogItem[]) {
         team: it.opt.team,
         skills: it.opt.skills,
         note: [it.opt.condition, it.opt.notes].filter(Boolean).join('\n').slice(0, 500),
-        heroNotes: it.opt.heroNotes ?? [],
+        heroNotes: teamNotes(it.opt.heroNotes, it.opt.team.slots),
       })
       ok++
     } catch (e) {
