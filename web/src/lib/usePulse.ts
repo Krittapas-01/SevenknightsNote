@@ -25,7 +25,10 @@ function cachedPulse(gid: string | undefined): Pulse | null {
 
 export function usePulse(gid: string | undefined) {
   const [pulse, setPulseState] = useState<Pulse | null>(() => cachedPulse(gid))
+  const pulseRef = useRef(pulse) // ตัวที่โชว์อยู่ (ส่งเลขเวอร์ชันไปให้ API ตอบสั้น ๆ ถ้าไม่มีอะไรเปลี่ยน)
   const setPulse = (p: Pulse) => {
+    if (p === pulseRef.current) return // ไม่เปลี่ยน = ไม่ต้อง render/เขียนเครื่องใหม่
+    pulseRef.current = p
     setPulseState(p)
     try { localStorage.setItem(PKEY(gid!), JSON.stringify(p)) } catch { /* เต็ม/โหมดส่วนตัว */ }
   }
@@ -41,7 +44,7 @@ export function usePulse(gid: string | undefined) {
     if (!force && Date.now() - lastAt.current < REFOCUS_GAP) return
     lastAt.current = Date.now()
     try {
-      const p = await api.pulse(gid)
+      const p = await api.pulse(gid, pulseRef.current)
       setPulse(p)
       const id = p.latest?.id ?? null
       // ประกาศล่าสุดเปลี่ยน หรือมีคนแก้ข้อมูลกิลด์ (เลขเวอร์ชันขยับ) → ให้ทุกหน้าโหลดใหม่ (ถ้าเลขตรงกับที่มีอยู่แล้ว useGuild จะไม่โหลดซ้ำ)
@@ -65,7 +68,8 @@ export function usePulse(gid: string | undefined) {
     lastRev.current = undefined
     lastAt.current = 0
     gone.current = false
-    setPulseState(cachedPulse(gid))
+    pulseRef.current = cachedPulse(gid)
+    setPulseState(pulseRef.current)
     check()
     let activeAt = Date.now()
     const idle = () => Date.now() - activeAt > IDLE_AFTER || !document.hasFocus()
