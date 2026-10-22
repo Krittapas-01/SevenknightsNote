@@ -22,6 +22,7 @@ import { tx, L } from '../lib/i18n'
 import { usePageEnter } from '../lib/motion'
 import { navCommitted } from '../lib/navProgress'
 import NavProgress from './NavProgress'
+import { BrandMark } from './BrandMark'
 
 export default function Layout() {
   // อยู่ในหน้าของกิลด์ไหน → โชว์แถบประกาศของกิลด์นั้นทุกหน้า
@@ -54,12 +55,12 @@ export default function Layout() {
           <div className="flex shrink-0 items-center gap-3 sm:gap-5">
             {/* จอแคบ/ตั้งตัวอักษรใหญ่ (หน่วย rem ขยายตาม) → ย่อชื่อเว็บก่อน ไม่ให้หัวเว็บล้น: ซ่อน "Note" → ซ่อนชื่อทั้งหมด */}
             <Link to="/" aria-label="7K Note" className="flex items-center gap-1.5 text-lg font-bold tracking-wide sm:gap-3 @max-[18.5rem]:hidden">
-              <span className="hidden sm:block" aria-hidden="true"><span className="brand-mark">✦</span></span> 7K <span className="font-normal text-gold @max-[22rem]:hidden">Note</span>
+              <span className="hidden sm:block"><BrandMark /></span> 7K <span className="font-normal text-gold @max-[22rem]:hidden">Note</span>
             </Link>
             <HeaderClock />
           </div>
-          <span className="ml-auto mr-3 hidden text-xs font-medium tracking-[.2em] text-white/45 md:inline">GUILD WAR COMPANION</span>
-          <div className="ml-auto flex items-center md:ml-0"><TourHelpButton /><LangButton /><Account /></div>
+          <span className="ml-auto mr-3 hidden text-xs font-medium tracking-[.2em] text-white/45 lg:inline">GUILD WAR COMPANION</span>
+          <div className="ml-auto flex items-center lg:ml-0"><TourHelpButton /><LangButton /><Account /></div>
         </div>
       </header>
       <SideMenu open={menuOpen} onClose={closeMenu} />
