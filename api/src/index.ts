@@ -830,21 +830,36 @@ const EXTRA_WEBHOOK_GUILD = 'iWMpFr9g'
 // กิลด์ที่มีห้องแจ้งเตือนบอสจุติ (ตั้งในหน้า "เชื่อม Discord") — ThousandSunny
 const BOSS_GUILD = 'iWMpFr9g'
 
+/** ยศที่แท็กตอนประกาศ ('everyone' | 'here' | Role ID | '') → ข้อความแท็ก */
+const mentionTag = (m: string) => (m === 'everyone' ? '@everyone' : m === 'here' ? '@here' : m ? `<@&${m}>` : '')
+/** กันชื่อ/ชื่อแผนที่มี * _ [ ] ฯลฯ ไปเป็นตัวหนา/ลิงก์ใน Discord */
+const mdEscape = (s: string) => s.replace(/[\\*_~`|[\]<>]/g, '\\$&')
+/**
+ * payload webhook แบบข้อความธรรมดา (ไม่ใช่ embed) — แจ้งเตือนมือถือโชว์แค่ content เลยต้องมี @ยศ + ตัวประกาศในบรรทัดแรก
+ * แท็กได้เฉพาะยศที่ตั้งไว้: @everyone/@here ที่พิมพ์มาในข้อความไม่แท็ก · ไม่มีกล่องตัวอย่างลิงก์ (flags 4 = SUPPRESS_EMBEDS)
+ */
+function discordPayload(env: Env, mention: string, text: string) {
+  const site = (env.SITE_URL || '').replace(/\/$/, '')
+  const tag = mentionTag(mention)
+  const safe = text.replace(/@(everyone|here)/g, '@\u200b$1')
+  return JSON.stringify({
+    username: '7K Note',
+    avatar_url: site ? `${site}/logo-1024.png` : undefined, // โลโก้เว็บแทนรูป Discord เริ่มต้น
+    content: (tag ? `${tag} ${safe}` : safe).slice(0, 2000),
+    allowed_mentions: mention === 'everyone' || mention === 'here' ? { parse: ['everyone'] } : { parse: [], roles: mention ? [mention] : [] },
+    flags: 4,
+  })
+}
+
 /** ส่งแจ้งเตือนบอสจุติเข้าห้องที่ 2 → 'none' | 'ok' | HTTP status */
 async function postBoss(env: Env, gid: string, text: string, test = false) {
   const row = await env.DB.prepare('SELECT boss_webhook AS url, discord_mention AS mention FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
   if (gid !== BOSS_GUILD || !row?.url) return 'none'
-  const mention = row.mention === 'everyone' ? '@everyone' : row.mention === 'here' ? '@here' : row.mention ? `<@&${row.mention}>` : ''
-  const site = (env.SITE_URL || '').replace(/\/$/, '')
-  const res = await fetch(row.url, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      username: '7K Note', avatar_url: site ? `${site}/logo-1024.png` : undefined,
-      content: test ? undefined : mention || undefined,
-      allowed_mentions: row.mention === 'everyone' || row.mention === 'here' ? { parse: ['everyone'] } : { parse: [], roles: row.mention ? [row.mention] : [] },
-      embeds: [{ title: '👹 บอสจุติ', description: text, color: 0xe5484d, footer: test ? undefined : { text: `รอบละ ${BOSS_REVIVAL.days} วัน · แจ้งเตือนอัตโนมัติ 07:00` } }],
-    }),
-  })
+  const content = [
+    `👹 ${text}`,
+    !test && `-# บอสจุติ · รอบละ ${BOSS_REVIVAL.days} วัน · แจ้งเตือนอัตโนมัติ 07:00`,
+  ].filter(Boolean).join('\n')
+  const res = await fetch(row.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: discordPayload(env, test ? '' : row.mention, content) })
   return res.ok ? 'ok' : String(res.status)
 }
 
@@ -866,26 +881,16 @@ async function postDiscord(
   a: { body: string; planId: string | null; opponent: string; auto?: boolean; author?: { name: string; avatar: string; role?: string } | null }, test = false,
 ) {
   const site = (env.SITE_URL || '').replace(/\/$/, '')
-  const mention = row.mention === 'everyone' ? '@everyone' : row.mention === 'here' ? '@here' : row.mention ? `<@&${row.mention}>` : ''
-  const fields = [
-    row.plan_title && { name: 'แผนที่ใช้', value: site ? `[${row.plan_title}](${site}/g/${gid}/p/${a.planId})` : row.plan_title, inline: true },
-    a.opponent && { name: 'เจอกิลด์', value: a.opponent, inline: true },
-  ].filter(Boolean)
-  const body = JSON.stringify({
-    username: '7K Note',
-    avatar_url: site ? `${site}/logo-1024.png` : undefined, // โลโก้เว็บแทนรูป Discord เริ่มต้น
-    content: test ? undefined : mention || undefined,
-    allowed_mentions: row.mention === 'everyone' || row.mention === 'here' ? { parse: ['everyone'] } : { parse: [], roles: row.mention ? [row.mention] : [] },
-    embeds: [{
-      author: a.author ? { name: a.author.role ? `${a.author.name} · ${a.author.role}` : a.author.name, icon_url: a.author.avatar || undefined } : undefined,
-      title: `📢 ประกาศ ${row.name}`,
-      description: a.body || undefined,
-      url: site ? `${site}/g/${gid}` : undefined,
-      color: 0xe2bf72,
-      fields,
-      footer: a.auto ? { text: 'ประกาศอัตโนมัติ 07:00' } : undefined,
-    }],
-  })
+  const plan = row.plan_title ? (site ? `[${mdEscape(row.plan_title)}](${site}/g/${gid}/p/${a.planId})` : mdEscape(row.plan_title)) : ''
+  const meta = [plan && `แผนที่ใช้: ${plan}`, a.opponent && `เจอกิลด์: ${mdEscape(a.opponent)}`].filter(Boolean).join(' · ')
+  const by = a.author && mdEscape(a.author.role ? `${a.author.name} · ${a.author.role}` : a.author.name)
+  const foot = [by && `ประกาศโดย ${by}`, a.auto && 'ประกาศอัตโนมัติ 07:00', site ? `[${mdEscape(row.name)} · 7K Note](${site}/g/${gid})` : mdEscape(row.name)].filter(Boolean).join(' · ')
+  const content = [
+    `📢 ${a.body || meta}`, // ไม่มีข้อความ (ประกาศแค่แผน) → แผน/กิลด์ที่เจอขึ้นบรรทัดแรกแทน
+    a.body && meta && `📋 ${meta}`,
+    `-# ${foot}`,
+  ].filter(Boolean).join('\n')
+  const body = discordPayload(env, test ? '' : row.mention, content)
   const send = (url: string) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
   // webhook ที่ 2 (เฉพาะกิลด์ที่กำหนด) — ส่งข้อความเดียวกัน ถ้าพังไม่กระทบอันหลัก
   const extra = gid === EXTRA_WEBHOOK_GUILD && env.EXTRA_WEBHOOK && (WEBHOOK_RE.test(env.EXTRA_WEBHOOK) || env.DISCORD_ALLOW_ANY) ? env.EXTRA_WEBHOOK : ''
