@@ -1,7 +1,8 @@
 import { Plus } from 'lucide-react'
 import { zoomInPlace } from '../lib/zoom'
 import { DndContext, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { markDrop, useTeamMotion } from '../lib/teamMotion'
 import UnitCard from '../components/UnitCard'
 import UnitPicker from '../components/UnitPicker'
 import { FormationDiagram } from '../components/TeamModals'
@@ -91,9 +92,15 @@ export default function BiscuitPage() {
   )
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     setSelected(null)
-    if (over) swap(Number(active.id), Number(over.id))
+    if (over) {
+      markDrop(state.slots[Number(active.id)]?.id) // ช่องปลายทางวาบทองตรงที่ปล่อย
+      swap(Number(active.id), Number(over.id))
+    }
   }
   const { pet, front, slots } = state
+  // แอนิเมชันแบบหน้าจัดทีม: ใส่ตัว = เด้ง+แสงทอง · เปลี่ยน/ล้างตัว = จางหาย+ประกายดาว · สลับ = เลื่อนไปช่องใหม่
+  const teamRef = useRef<HTMLDivElement>(null)
+  useTeamMotion(teamRef, slots.map((r) => r.id ?? '').join(','), true)
   const petBuff = pet.reduce((sum, v) => sum + num(v), 0)
   const formation = FORMATION_ATK.find((f) => f.front === front) ?? FORMATION_ATK[0]
   const isBack = (col: number) => !FRONT_COLS[front].includes(col)
@@ -191,7 +198,7 @@ export default function BiscuitPage() {
 
         {/* ทีมแนวนอนแบบในเกม: แถวหลัง (B) ยกสูง · แถวหน้า (F) ต่ำลง */}
         <DndContext sensors={sensors} onDragEnd={onDragEnd} modifiers={[zoomInPlace]}>
-        <div className="biscuit-team mt-5 grid grid-cols-5 items-start gap-1.5 sm:gap-3">
+        <div ref={teamRef} className="biscuit-team mt-5 grid grid-cols-5 items-start gap-1.5 sm:gap-3">
           {slots.map((r, i) => {
             const back = isBack(i)
             return (
@@ -199,17 +206,18 @@ export default function BiscuitPage() {
                 <span key={back ? `b${formation.atk}` : 'f'} className={`biscuit-row-label biscuit-flip text-center text-[11px] font-semibold ${back ? 'text-[#ff8f9a]' : 'text-[#8fa8ff]'}`}>
                   {back ? L(`หลัง +${formation.atk}%`, `Back +${formation.atk}%`) : tx('หน้า')}
                 </span>
-                <DragSlot index={i} draggable={!!r.id}>
+                <DragSlot index={i} draggable={!!r.id} selected={selected === i}>
                 <button
+                  data-m={r.id ? `b:${r.id}` : undefined}
                   onClick={() => tapSlot(i)}
                   aria-pressed={selected === i}
                   aria-label={r.id ? L(`${unitLabel(r.id)}${selected === i ? ' (เลือกอยู่ · กดอีกครั้งเพื่อเปลี่ยนตัว)' : ''}`, `${unitLabel(r.id)}${selected === i ? ' (selected · tap again to change)' : ''}`) : L(`เลือกอัศวินช่องที่ ${i + 1}`, `Pick hero for slot ${i + 1}`)}
-                  className={`aspect-square w-full text-[12px] transition hover:-translate-y-0.5 ${selected === i ? 'rounded-[24%_4%_24%_4%] ring-2 ring-gold ring-offset-2 ring-offset-[var(--surface)]' : ''}`}
+                  className="aspect-square w-full text-[12px] transition hover:-translate-y-0.5"
                 >
                   {r.id ? (
                     <UnitCard id={r.id} />
                   ) : (
-                    <span className="slot-empty grid h-full w-full place-items-center rounded-[24%_4%_24%_4%] border border-dashed border-white/20 text-white/50">
+                    <span data-mp={`empty:${i}`} className="slot-empty grid h-full w-full place-items-center rounded-[24%_4%_24%_4%] border border-dashed border-white/20 text-white/50">
                       <Plus className="h-1/3 w-1/3" />
                     </span>
                   )}
@@ -302,13 +310,14 @@ export default function BiscuitPage() {
 }
 
 /** ช่องในทีมที่ลากไปวางช่องอื่นได้ (สลับตำแหน่ง) — มือถือกดค้างแล้วลาก */
-function DragSlot({ index, draggable, children }: { index: number; draggable: boolean; children: ReactNode }) {
+function DragSlot({ index, draggable, selected, children }: { index: number; draggable: boolean; selected: boolean; children: ReactNode }) {
   const drag = useDraggable({ id: String(index), disabled: !draggable })
   const drop = useDroppable({ id: String(index) })
   const t = drag.transform
   return (
-    <div ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el) }} {...drag.listeners}
-      className={`relative touch-manipulation ${drag.isDragging ? 'z-20 opacity-80' : ''} ${drop.isOver && !drag.isDragging ? 'rounded-[24%_4%_24%_4%] ring-2 ring-gold/70' : ''}`}
+    // data-mhost = กรอบช่อง (แสงทอง/การ์ดจางออก/ประกายดาวของ lib/teamMotion) · เลือกอยู่ = กรอบเรืองแสงแบบหน้าจัดทีม
+    <div ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el) }} {...drag.listeners} data-mhost=""
+      className={`relative rounded-[24%_4%_24%_4%] touch-manipulation ${drag.isDragging ? 'z-20 opacity-80' : ''} ${drop.isOver && !drag.isDragging ? 'ring-2 ring-gold/70' : ''} ${selected && !drag.isDragging ? 'slot-selected' : ''}`}
       style={t ? { transform: `translate3d(${t.x}px, ${t.y}px, 0)` } : undefined}>
       {children}
     </div>

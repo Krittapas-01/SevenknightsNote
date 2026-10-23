@@ -50,6 +50,9 @@ const CHANGELOG_TH: ChangelogEntry[] = [
           'ตารางอัศวินหน้าใหญ่ (ดูทั้งหมด): กดแล้วกรอบขึ้นทันที การ์ดไล่ลอยตามมาทีละหมวด (เดิมจอมืดค้างก่อนแล้วค่อยโผล่ทีเดียว) · เปิดครั้งต่อไปขึ้นไวเพราะเตรียมไว้แล้ว',
           'กดไปหน้าอื่น: มีแถบทองวิ่งบนสุดของจอและหน้าเดิมจางลงนิดหนึ่งระหว่างรอ รู้ทันทีว่ากดติด · กรอบโครงหน้าขึ้นทันที แล้วเนื้อหาจริงค่อย ๆ เข้ามาแทน ไม่มีจอว่างแวบ',
           'เมนู ☰ เลื่อนออกนุ่มขึ้น รายการในเมนูไล่เลื่อนเข้าทีละอัน · หน้าต่างตั้งไม้ในแผนวอร์เด้งเปิดและย่อปิดเหมือนกัน',
+          'จัดทีมแบบในเกม: แตะเลือกช่องแล้วกรอบเรืองแสงทอง · ใส่อัศวินแล้วแฟลชทอง · เอาออกแล้วการ์ดจางหายพร้อมประกายทอง · ลากการ์ดไปวาง ช่องปลายทางแฟลชทอง และการ์ดที่ลากยกขึ้นเอียงชัดขึ้น',
+          'ทีมครบ 3 ตัวแล้ว ช่องว่างที่เหลือเป็นช่องแดงขีดเฉียงแบบในเกม (ใส่ตัวเพิ่มไม่ได้ แตะแล้วช่องสั่นบอก · ยังย้ายตัวในทีมลงช่องนั้นได้) · เอาตัวออกแล้วกลับเป็นช่อง + เหมือนเดิม',
+          'ใช้ได้ทุกที่ที่จัดทีม: ทีมบ้านศัตรู/ทีมแก้/แผนวอร์ (อัศวิน สัตว์เลี้ยง สัตว์เลี้ยงเสริม) · หน้าบิสกิต (ลากสลับที่ก็เลื่อนตาม) · หน้าเทียบพลังโจมตี · ตัว OP และตัวแบนในแผนวอร์',
           'เปิด "ลดแอนิเมชัน" (ในตั้งค่า หรือในเครื่อง) แล้วทั้งหมดนี้ปิด ขึ้นและหายทันทีเหมือนเดิม'),
       ] },
       { kind: 'change', groups: [
@@ -310,6 +313,9 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'Big hero grid (View all): the frame appears the moment you tap and the cards rise in section by section (it used to sit on a dark screen, then pop in all at once) · later opens are quick because it is kept ready',
           'Going to another page shows a gold bar running along the top while the old page dims a little, so you know the tap worked · the page skeleton shows right away and the real content fades in over it with no blank flash',
           'The ☰ menu slides out more smoothly and its items slide in one after another · the war plan slot window pops open and shrinks closed the same way',
+          'Team building like in the game: tapping a slot gives it a gold glow · adding a hero flashes gold · removing one fades the card out with gold sparkles · dropping a dragged card flashes the slot it lands on, and the dragged card lifts and tilts more clearly',
+          'Once a team has 3 heroes, the other empty slots turn red with a slash like in the game (no more heroes can go in; tapping one makes it shake, but you can still move a team hero there) · removing a hero turns them back into + slots',
+          'Works everywhere you build a team: enemy defenses, counters and war plans (heroes, pet, backup pets) · Biscuit page (swapping by drag slides too) · Attack Compare page · OP and banned heroes in war plans',
           'Turn on "Reduce motion" (in Settings, or on your device) and all of this switches off — things appear and disappear instantly as before'),
       ] },
       { kind: 'change', groups: [
