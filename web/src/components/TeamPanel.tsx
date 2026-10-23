@@ -1,7 +1,7 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { queueStyle } from '../lib/queue'
 import { Footprints, PawPrint, Plus, RotateCcw } from 'lucide-react'
-import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   EXTRA_COUNT, MAX_HEROES, MAX_SKILL_QUEUE, SLOT_COUNT, formationLabel, formationName, heroCount, nextEmpty, type SkillStep, type SlotRef, type Team,
 } from '../lib/types'
@@ -13,7 +13,7 @@ import type { HeroNote } from '../lib/types'
 import type { HeroStats } from '../lib/stats'
 import { unitLabel } from '../data/heroes'
 import { tx, L } from '../lib/i18n'
-import { motionOK, useTeamMotion } from '../lib/teamMotion'
+import { hideQueueStars, motionOK, queueOrbFx, useTeamMotion } from '../lib/teamMotion'
 
 const getName = (id: string) => unitLabel(id)
 
@@ -218,7 +218,27 @@ export default function TeamPanel({
   const lit = Math.min(skills.length, MAX_SKILL_QUEUE)
   // แอนิเมชันตอนแก้ทีม: ใส่ตัว = เด้งเข้า · ย้าย/สลับ/เปลี่ยนรูปแบบ = เลื่อนไปที่ใหม่ · ตั้งลำดับสกิล = ป้ายเด้ง
   const rootRef = useRef<HTMLDivElement>(null)
-  useTeamMotion(rootRef, `${team.front}|${team.slots.join(',')}|${team.pet}|${team.extras.join(',')}|${skills.map((q) => `${q.slot}.${q.skill}`).join(',')}`, active)
+  const queueSig = skills.map((q) => `${q.slot}.${q.skill}`).join(',')
+  useTeamMotion(rootRef, `${team.front}|${team.slots.join(',')}|${team.pet}|${team.extras.join(',')}|${queueSig}`, active)
+  // วงลำดับสกิลแบบในเกม: ตั้งสกิลเสร็จแล้วปิดหน้าต่าง → ฟองแก้ว + ดาวติดทีละดวง + ป้ายเลขเด้ง
+  // ระหว่างเปิดหน้าต่างอยู่ไม่เล่น (มองไม่เห็น) — จำคิวตอนเปิดไว้ แล้วเล่นตอนปิดถ้าคิวเปลี่ยน · คิวเปลี่ยนตอนหน้าต่างปิดอยู่ (เช่น เอาอัศวินออก) = เล่นทันที
+  const queueOrbRef = useRef<HTMLButtonElement>(null)
+  const queueSeen = useRef({ sig: queueSig, lit })
+  const skillsWasOpen = useRef(false)
+  const skillsOpen = modal === 'skills'
+  // layout effect = ซ่อนดาวได้ก่อนเฟรมแรกที่หน้าต่างเริ่มปิดจะวาด (ไม่เห็นดาวแวบก่อนเล่น)
+  useLayoutEffect(() => {
+    const justClosed = skillsWasOpen.current && !skillsOpen
+    skillsWasOpen.current = skillsOpen
+    const seen = queueSeen.current
+    const changed = seen.sig !== queueSig
+    // เปิดหน้าต่างอยู่: คิวเปลี่ยนแล้ว = ซ่อนดาวในวงไว้ (หลังพื้นหลังมืด) รอโผล่ตอนปิด
+    if (skillsOpen) { hideQueueStars(queueOrbRef.current, active && changed && motionOK()); return }
+    if (!changed) { if (justClosed) hideQueueStars(queueOrbRef.current, false); return }
+    queueSeen.current = { sig: queueSig, lit }
+    // นอกหน้าต่าง: ย้ายช่อง/สลับตัว (คิวตามช่องเปลี่ยน แต่จำนวนเท่าเดิม) ไม่ต้องเล่น
+    if (active && (justClosed || seen.lit !== lit)) queueOrbFx(queueOrbRef.current, lit, rootRef.current, justClosed ? 140 : 0)
+  }, [skillsOpen, queueSig, active, lit])
   // เพิ่งกดแก้ (การ์ดเดิมกลายเป็นแก้ได้): การ์ดเด้งรับนิด ๆ + ขอบทองวาบ ให้รู้ว่าแก้ตรงนี้
   const wasActive = useRef(active)
   useEffect(() => {
@@ -370,10 +390,11 @@ export default function TeamPanel({
             onClick={() => setModal('skills')}
             data-tour="team-skills"
             title={skills.length ? L(`ตั้งลำดับการใช้สกิล ${skills.length} ครั้ง — กดดู`, `Skill queue set ${skills.length} times — tap to view`) : tx('ตั้งลำดับการใช้สกิล')}
+            ref={queueOrbRef}
             className="orb mt-4 grid place-items-center"
             style={{ width: 'var(--s)', height: 'var(--s)' }}
           >
-            <span data-mp={`orb:q${lit}`} className="absolute inset-0"><QueueStars lit={lit} /></span>
+            <span data-qstars className="absolute inset-0"><QueueStars lit={lit} /></span>
           </button>
         </div>
       </div>
