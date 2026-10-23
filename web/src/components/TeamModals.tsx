@@ -1,5 +1,5 @@
 import { RotateCcw } from 'lucide-react'
-import { useId } from 'react'
+import { useId, useRef } from 'react'
 import { queueStyle } from '../lib/queue'
 import { FORMATIONS, MAX_SKILL_QUEUE, SKILL_LABEL, SLOT_COUNT, type SkillKey, type SkillStep, type Team } from '../lib/types'
 import { unitBase, unitLabel } from '../data/heroes'
@@ -7,6 +7,7 @@ import { getSkillArt, skillKeysOf } from '../data/skills'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
 import { EN, tx, L } from '../lib/i18n'
+import { useSkillPickMotion } from '../lib/teamMotion'
 
 /**
  * รูปรูปแบบแบบในเกม: แถวหลัง = หมากแดง, แถวหน้า = โล่น้ำเงิน
@@ -131,6 +132,9 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
   const readOnly = !onChange
   const heroes = team.slots.map((id, slot) => ({ id, slot })).filter((h) => h.id) as { id: string; slot: number }[]
   const full = skills.length >= MAX_SKILL_QUEUE
+  // กดเลือก/เอาออก = แอนิเมชันแบบตอนใส่อัศวิน (เฉพาะตอนแก้ได้)
+  const boardRef = useRef<HTMLDivElement>(null)
+  useSkillPickMotion(boardRef, skills.map((s) => `${s.slot}.${s.skill}`).join(','), !readOnly)
   function toggle(slot: number, skill: SkillKey) {
     const i = skills.findIndex((s) => s.slot === slot && s.skill === skill)
     if (!onChange) return
@@ -142,7 +146,7 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
       {heroes.length === 0 ? (
         <p className="py-8 text-center text-white/45">{tx('ใส่อัศวินในทีมก่อน')}</p>
       ) : (
-        <div className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
+        <div ref={boardRef} className="flex flex-wrap justify-center gap-x-3 gap-y-6 rounded-2xl bg-black/20 px-1 py-5 sm:gap-x-6 sm:px-4">
           {heroes.map((h) => {
             const keys = skillKeysOf(h.id)
             const three = keys.length === 3
@@ -160,6 +164,7 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
                   return (
                     <button
                       key={k}
+                      data-sq={`${h.slot}.${k}`}
                       aria-label={`${description}${q >= 0 ? L(` · ลำดับ ${q + 1}`, ` · order ${q + 1}`) : ''}`}
                       aria-pressed={q >= 0}
                       title={description}
@@ -177,7 +182,7 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
                         </>
                       ) : label}
                       {q >= 0 && (
-                        <span className="absolute -bottom-[7px] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-px text-[11px] font-bold leading-4 ring-1 ring-white/70 shadow-[0_1px_4px_#000a]" style={queueStyle(q + 1)}>
+                        <span data-sqb className="absolute -bottom-[7px] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-px text-[11px] font-bold leading-4 ring-1 ring-white/70 shadow-[0_1px_4px_#000a]" style={queueStyle(q + 1)}>
                           {tx('ลำดับ')}{' '}{q + 1}
                         </span>
                       )}

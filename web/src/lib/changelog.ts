@@ -36,7 +36,8 @@ const CHANGELOG_TH: ChangelogEntry[] = [
         g('จัดทีมแบบในเกม',
           'แตะเลือกช่องแล้วกรอบเรืองแสงทอง · ใส่อัศวินแล้วแฟลชทอง · เอาออกแล้วการ์ดจางหายพร้อมประกายทอง · ลากการ์ดไปวาง ช่องปลายทางแฟลชทอง และการ์ดที่ลากยกขึ้นเอียงชัดขึ้น',
           'ทีมครบ 3 ตัวแล้ว ช่องว่างที่เหลือเป็นช่องแดงขีดเฉียงแบบในเกม (ใส่ตัวเพิ่มไม่ได้ แตะแล้วช่องสั่นบอก · ยังย้ายตัวในทีมลงช่องนั้นได้) · เอาตัวออกแล้วกลับเป็นช่อง + เหมือนเดิม',
-          'ใช้ได้ทุกที่ที่จัดทีม: ทีมบ้านศัตรู/ทีมแก้/แผนวอร์ (อัศวิน สัตว์เลี้ยง สัตว์เลี้ยงเสริม) · หน้าบิสกิต (ลากสลับที่ก็เลื่อนตาม) · หน้าเทียบพลังโจมตี · ตัว OP และตัวแบนในแผนวอร์'),
+          'ใช้ได้ทุกที่ที่จัดทีม: ทีมบ้านศัตรู/ทีมแก้/แผนวอร์ (อัศวิน สัตว์เลี้ยง สัตว์เลี้ยงเสริม) · หน้าบิสกิต (ลากสลับที่ก็เลื่อนตาม) · หน้าเทียบพลังโจมตี · ตัว OP และตัวแบนในแผนวอร์',
+          'ตั้งลำดับการใช้สกิลแบบในเกม: กดเลือกสกิลแล้วไอคอนแฟลชทอง ป้ายลำดับเด้งขึ้น · กดเอาออกมีประกายทอง · กด "เสร็จ" แล้ววงลำดับสกิลขึ้นเป็นฟองแก้วขอบม่วง มีเส้นแสงหมุนจากกลางวงลงมาเป็นแนวนอน ดาวติดพร้อมกัน และเลขลำดับบนการ์ดเด้งตาม 1 → 2 → 3'),
       ] },
       { kind: 'change', groups: [
         g('หน้าเว็บภาษาอังกฤษ: ไม่มีภาษาไทยหลุดแล้ว',
@@ -364,7 +365,8 @@ const CHANGELOG_EN: ChangelogEntry[] = [
         g('Team building like in the game',
           'Tapping a slot gives it a gold glow · adding a hero flashes gold · removing one fades the card out with gold sparkles · dropping a dragged card flashes the slot it lands on, and the dragged card lifts and tilts more clearly',
           'Once a team has 3 heroes, the other empty slots turn red with a slash like in the game (no more heroes can go in; tapping one makes it shake, but you can still move a team hero there) · removing a hero turns them back into + slots',
-          'Works everywhere you build a team: enemy defenses, counters and war plans (heroes, pet, backup pets) · Biscuit page (swapping by drag slides too) · Attack Compare page · OP and banned heroes in war plans'),
+          'Works everywhere you build a team: enemy defenses, counters and war plans (heroes, pet, backup pets) · Biscuit page (swapping by drag slides too) · Attack Compare page · OP and banned heroes in war plans',
+          'Skill queue like in the game: picking a skill flashes its icon gold and pops its order badge · removing one gives gold sparkles · tapping "Done" turns the skill queue orb into a glass bubble with a purple rim, a light streak spins from the center down to horizontal as the stars light up, and the order badges on the cards pop in 1 → 2 → 3'),
       ] },
       { kind: 'change', groups: [
         g('English mode: no more Thai text',
