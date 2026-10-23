@@ -4,6 +4,7 @@ import { EXPORT_ON, exportPng, waitImages } from '../lib/exportImage'
 import type { HeroStats } from '../lib/stats'
 import { StatsGrid, upsertStats } from './HeroStats'
 import HeroNotesTable from './HeroNotesTable'
+import { BrandMark } from './BrandMark'
 import { startTransition, useEffect, useRef, useState } from 'react'
 import EquipmentLoadout from './EquipmentLoadout'
 import Modal from './Modal'
@@ -129,7 +130,7 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
                   <p className="eyebrow mb-1">{shot.guild} · {shot.plan}</p>
                   <h2 className="gold-title text-4xl font-extrabold">{shot.heading}</h2>
                 </div>
-                <span className="flex shrink-0 items-center gap-2 font-bold"><span className="brand-mark" aria-hidden="true">✦</span> 7K <span className="font-normal text-gold">Note</span></span>
+                <span className="flex shrink-0 items-center gap-2 font-bold"><BrandMark /> 7K <span className="font-normal text-gold">Note</span></span>
               </div>
               {option.condition && <p className="mb-3 text-lg font-semibold text-gold">{option.condition}</p>}
               <AtlasTeam team={option.team} skills={option.skills} heroNotes={heroNotes} title={teamTitle(option)} />
