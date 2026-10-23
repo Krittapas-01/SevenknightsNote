@@ -207,12 +207,10 @@ export function useTeamMotion(root: RefObject<HTMLElement | null>, sig: string, 
 
 /* ---------- ลำดับการใช้สกิล (แบบในเกม) ---------- */
 
-/** ตำแหน่งดาว 3 ดวงในวงลำดับสกิล (% ของวง — ตรงกับ QueueStars) */
-const QUEUE_STAR_POS: readonly (readonly [number, number])[] = [[30, 52], [57, 33], [61, 64]]
-
 /**
- * ปิดหน้าตั้งลำดับสกิลแล้ว (หรือคิวเปลี่ยน) → วงลำดับสกิลเล่นแบบในเกม:
- * ฟองแก้วม่วงโผล่ + แสงกวาดผ่าน → ดาวที่ตั้งแล้วติดทีละดวง พร้อมแสงแฟลร์แนวนอนวาบ → ป้ายเลขบนการ์ดเด้งตามลำดับ
+ * ปิดหน้าตั้งลำดับสกิลแล้ว (หรือคิวเปลี่ยน) → วงลำดับสกิลเล่นแบบในเกม (เทียบจากคลิปในเกมทีละเฟรม):
+ * ฟองแก้วใส ขอบม่วงเรืองโผล่ → เส้นแสงเส้นเดียวหมุนรอบจุดกลางวง จากแนวตั้งลงมาเป็นแนวนอน แล้วยืดยาวเกินวงก่อนจางหาย
+ * → ดาวที่ตั้งแล้วติดพร้อมกันระหว่างเส้นหมุน → ป้ายเลขบนการ์ดเด้งตามลำดับ
  * ขยับแค่ transform/opacity · ของประดับสร้างแล้วลบทิ้งเมื่อจบ
  */
 export function queueOrbFx(orb: HTMLElement | null, lit: number, badges?: Element | null, delay = 0) {
@@ -222,7 +220,7 @@ export function queueOrbFx(orb: HTMLElement | null, lit: number, badges?: Elemen
   else run()
 }
 function orbFx(orb: HTMLElement, lit: number, badges: Element | null) {
-  // ฟองแก้วอยู่ใต้ดาว (ใส่ก่อนดาว) · แฟลร์อยู่บนดาว (ใส่ท้าย)
+  // ฟองแก้วอยู่ใต้ดาว (ใส่ก่อนดาว) · เส้นแสงอยู่บนดาว (ใส่ท้าย)
   const layer = () => {
     const l = document.createElement('span')
     l.className = 'orb-fx'
@@ -233,36 +231,31 @@ function orbFx(orb: HTMLElement, lit: number, badges: Element | null) {
   const fx = layer()
   const glass = document.createElement('span')
   glass.className = 'orb-glass'
-  const sheen = document.createElement('span')
-  sheen.className = 'orb-sheen'
-  glass.appendChild(sheen)
   back.appendChild(glass)
+  const ray = document.createElement('span')
+  ray.className = 'orb-ray'
+  const core = document.createElement('span')
+  core.className = 'orb-core'
+  fx.append(ray, core)
   const anims: Promise<unknown>[] = []
   const go = (el: Element, k: Keyframe[], o: KeyframeAnimationOptions) => { anims.push(el.animate(k, { fill: 'backwards', ...o }).finished) }
-  // ฟองแก้ว: โผล่ ค้างระหว่างดาวติด แล้วจางหาย · แสงกวาดเฉียงผ่านฟอง
-  go(glass, [{ opacity: 0, transform: 'scale(.86)' }, { opacity: 1, transform: 'scale(1.04)', offset: 0.18 }, { opacity: 1, transform: 'none', offset: 0.5 }, { opacity: 0, transform: 'none' }], { duration: 1000, easing: 'ease-out' })
-  go(sheen, [{ transform: 'translateX(-110%)' }, { transform: 'translateX(110%)' }], { duration: 560, delay: 120, easing: 'cubic-bezier(.4,0,.2,1)' })
-  // ดาวที่ติดแล้ว (svg.queue-star ดวงละอัน) ติดทีละดวงหลังแสงกวาดผ่าน
-  const stars = Array.from(orb.querySelectorAll<SVGElement>('svg.queue-star'))
-  const t0 = 380
-  for (let i = 0; i < Math.min(lit, stars.length, QUEUE_STAR_POS.length); i++) {
-    const [x, y] = QUEUE_STAR_POS[i]
-    const at = t0 + i * 150
-    const s = stars[i]
-    s.style.transformOrigin = `${x}% ${y}%`
-    go(s, [{ opacity: 0, transform: 'scale(.2) rotate(-60deg)' }, { opacity: 1, transform: 'scale(1.45)', offset: 0.55 }, { opacity: 1, transform: 'none' }], { duration: 480, delay: at, easing: EASE })
-    // แฟลร์: เส้นแสงแนวนอนผ่านดาว + จุดแสงกลมตรงดาว
-    const flare = document.createElement('span')
-    flare.className = 'orb-flare'
-    flare.style.top = `${y}%`
-    fx.appendChild(flare)
-    go(flare, [{ opacity: 0, transform: 'translate(-50%, -50%) scaleX(.15)' }, { opacity: 1, transform: 'translate(-50%, -50%) scaleX(1)', offset: 0.3 }, { opacity: 0, transform: 'translate(-50%, -50%) scaleX(.7)' }], { duration: 560, delay: at + 90, easing: 'ease-out' })
-    const glow = document.createElement('span')
-    glow.className = 'orb-glow'
-    glow.style.left = `${x}%`
-    glow.style.top = `${y}%`
-    fx.appendChild(glow)
-    go(glow, [{ opacity: 0, transform: 'translate(-50%, -50%) scale(.2)' }, { opacity: 1, transform: 'translate(-50%, -50%) scale(1.1)', offset: 0.3 }, { opacity: 0, transform: 'translate(-50%, -50%) scale(.6)' }], { duration: 520, delay: at + 90, easing: 'ease-out' })
+  // ฟองแก้ว: โผล่เร็ว ค้างไว้ระหว่างเส้นแสงหมุน แล้วค่อย ๆ จาง
+  go(glass, [{ opacity: 0, transform: 'scale(.9)' }, { opacity: 1, transform: 'none', offset: 0.16 }, { opacity: 1, offset: 0.5 }, { opacity: 0 }], { duration: 720, easing: 'ease-out' })
+  // เส้นแสง: หมุนรอบจุดกลางจากแนวตั้ง → แนวนอน (ยาวพอดีวง) แล้วยืดออกเกินวง ค้างนิดหนึ่ง แล้วจาง
+  go(ray, [
+    { opacity: 0, transform: 'translate(-50%, -50%) rotate(-95deg) scaleX(.55)' },
+    { opacity: 1, transform: 'translate(-50%, -50%) rotate(-60deg) scaleX(.85)', offset: 0.12 },
+    { opacity: 1, transform: 'translate(-50%, -50%) rotate(0deg) scaleX(1)', offset: 0.36 },
+    { opacity: 0.9, transform: 'translate(-50%, -50%) rotate(0deg) scaleX(1.9)', offset: 0.68 },
+    { opacity: 0, transform: 'translate(-50%, -50%) rotate(0deg) scaleX(2.2)' },
+  ], { duration: 640, delay: 60, easing: 'cubic-bezier(.3,.6,.3,1)' })
+  // จุดแสงตรงกลางวง (จุดหมุนของเส้น)
+  go(core, [{ opacity: 0, transform: 'translate(-50%, -50%) scale(.3)' }, { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.2 }, { opacity: 0.9, transform: 'translate(-50%, -50%) scale(1.15)', offset: 0.5 }, { opacity: 0, transform: 'translate(-50%, -50%) scale(.6)' }], { duration: 600, delay: 60, easing: 'ease-out' })
+  // ดาวที่ติดแล้ว (svg.queue-star ดวงละอัน) ติดพร้อมกันตอนเส้นแสงหมุนผ่าน
+  const t0 = 130
+  for (const s of Array.from(orb.querySelectorAll<SVGElement>('svg.queue-star')).slice(0, lit)) {
+    s.style.transformOrigin = '50% 50%'
+    go(s, [{ opacity: 0, transform: 'scale(.85)' }, { opacity: 0.45, transform: 'scale(.92)', offset: 0.4 }, { opacity: 1, transform: 'none' }], { duration: 220, delay: t0, easing: 'ease-out' })
   }
   orb.prepend(back)
   orb.appendChild(fx)
@@ -271,7 +264,7 @@ function orbFx(orb: HTMLElement, lit: number, badges: Element | null) {
     const list = Array.from(badges.querySelectorAll<HTMLElement>('[data-mp^="badge:"]'))
     const num = (b: HTMLElement) => Number(b.dataset.mp!.slice(b.dataset.mp!.lastIndexOf(':') + 1)) || 0
     list.sort((a, b) => num(a) - num(b))
-    list.forEach((b, i) => b.animate(POP.badge.k, { ...POP.badge.o, delay: t0 + i * 150 + 60, fill: 'backwards' }))
+    list.forEach((b, i) => b.animate(POP.badge.k, { ...POP.badge.o, delay: t0 + 120 + i * 120, fill: 'backwards' }))
   }
   Promise.all(anims).catch(() => {}).finally(() => { back.remove(); fx.remove() })
 }
