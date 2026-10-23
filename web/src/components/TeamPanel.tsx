@@ -7,7 +7,7 @@ import {
 } from '../lib/types'
 import { FormationModal, SkillQueueModal } from './TeamModals'
 import { groupOfKey, keyOf, refOf, useDndHub } from './DndHub'
-import UnitCard, { UNIT_SLOT_RADIUS } from './UnitCard'
+import UnitCard, { MD_HERO_SIZES, UNIT_SLOT_RADIUS } from './UnitCard'
 import HeroDetailModal from './HeroDetailModal'
 import type { HeroNote } from '../lib/types'
 import type { HeroStats } from '../lib/stats'
@@ -447,7 +447,6 @@ function DnDSlot({ id, enabled, filled, selected, round, kind, children }: { id:
 
 // ทีมขนาดกลาง (md): ช่อง clamp(58px, 17vw, 84px) · รูปอัศวินขยาย 1.6 เท่าในช่อง → บอกขนาดจริงให้เบราว์เซอร์เลือกรูปเอง
 // จอคอม/จอธรรมดาได้รูปย่อ 256px (คมพอ ไฟล์เล็กกว่าครึ่ง) · มือถือจอคมมากได้รูปเต็ม 512px เหมือนเดิม
-const MD_HERO_SIZES = '(min-width: 495px) 135px, 27vw'
 const MD_PET_SIZES = '(min-width: 495px) 84px, 17vw'
 
 function HeroSlot({ id, editable, inspectable, onClick, queue, side, small, slotIndex, blocked }: {

@@ -25,11 +25,31 @@ const LS = '7k-note:guild-cache'
 const LS_MAX_GUILDS = 3
 const LS_MAX_CHARS = 1_500_000 // กิลด์ใหญ่มาก ๆ ไม่เก็บลงเครื่อง (กันเต็มโควตา localStorage)
 type Stored = { gid: string; at: number; data: GuildData }[]
+/**
+ * เลขเวอร์ชันของกิลด์ที่เก็บใน LS (gid → rev) แยกไว้เป็นค่าเล็ก ๆ ให้สคริปต์ใน index.html (vite.config.ts → guildBoot)
+ * อ่านได้ทันทีโดยไม่ต้องแปลงข้อมูลกิลด์ทั้งก้อน → ยิงคำขอเดียวกับ fetchGuild ได้ตั้งแต่เปิดเว็บ · ต้องตรงกับ LS เสมอ (เขียนพร้อมกัน)
+ */
+const REV_LS = '7k-note:guild-rev'
+function writeRevs(list: Stored, also?: string) {
+  const revs: Record<string, string> = {}
+  // '' = ไม่มีข้อมูลในเครื่อง (กิลด์ใหญ่เกิน LS_MAX_CHARS) → ยิงแบบไม่มี ?rev= เหมือน fetchGuild
+  if (also) revs[also] = ''
+  for (const x of list) revs[x.gid] = x.data.rev ?? ''
+  try { localStorage.setItem(REV_LS, JSON.stringify(revs)) } catch { /* ignore */ }
+}
+/** ผู้ใช้ที่มีแคชจากเว็บเวอร์ชันก่อน (ยังไม่มี REV_LS) → สร้างให้ครั้งเดียว ไม่งั้นคำขอใน index.html ไม่ตรงกับที่โค้ดยิง (ยิงซ้ำทุกครั้ง) */
+function ensureRev(gid: string) {
+  try {
+    const revs: unknown = JSON.parse(localStorage.getItem(REV_LS) || 'null')
+    if (revs && typeof revs === 'object' && gid in revs) return
+  } catch { /* เสีย → สร้างใหม่ */ }
+  writeRevs(readStored(), gid)
+}
 /** ล้างข้อมูลกิลด์ที่เก็บไว้ในเครื่อง (หน้าตั้งค่า) */
 export function clearGuildCache() {
   mem.clear()
   loadedAt.clear()
-  try { localStorage.removeItem(LS) } catch { /* ignore */ }
+  try { localStorage.removeItem(LS); localStorage.removeItem(REV_LS) } catch { /* ignore */ }
 }
 
 // แคชในเครื่องที่รูปแบบไม่ตรง (เวอร์ชันเก่า/ถูกแก้มือ) → ทิ้ง ไม่ให้หน้าพังเป็นจอขาว
@@ -44,8 +64,15 @@ function readStored(): Stored {
   } catch { return [] }
 }
 function peek(gid: string): GuildData | null {
-  return mem.get(gid) ?? readStored().find((x) => x.gid === gid)?.data ?? null
+  const m = mem.get(gid)
+  if (m) return m
+  // จำไว้ในหน่วยความจำด้วย — เปิดเว็บแล้วหลายจุดถามพร้อมกัน (main.tsx, fetchGuild, useGuild) ไม่ต้องแปลง JSON ก้อนใหญ่ซ้ำ
+  const d = readStored().find((x) => x.gid === gid)?.data ?? null
+  if (d) mem.set(gid, d)
+  return d
 }
+/** ข้อมูลกิลด์ที่มีอยู่แล้ว (หน่วยความจำ/เครื่อง) — main.tsx ใช้สั่งโหลดรูปจอแรกก่อนข้อมูลใหม่มา */
+export const peekGuild = (gid: string) => (gid === DEMO_ID ? null : peek(gid))
 function store(gid: string, data: GuildData) {
   if (gid === DEMO_ID) return // กิลด์ทดลองไม่ต้องจำ (ข้อมูลอยู่ใน demo store แล้ว)
   mem.set(gid, data)
@@ -54,6 +81,7 @@ function store(gid: string, data: GuildData) {
     const rest = readStored().filter((x) => x.gid !== gid)
     const list = json.length > LS_MAX_CHARS ? rest : [{ gid, at: Date.now(), data }, ...rest].slice(0, LS_MAX_GUILDS)
     localStorage.setItem(LS, JSON.stringify(list))
+    writeRevs(list)
   } catch { /* เต็ม/โหมดส่วนตัว — ใช้แค่ในหน่วยความจำ */ }
 }
 
@@ -86,6 +114,7 @@ function fetchGuild(gid: string) {
     const fresh = await api.getGuild(gid, cached?.rev)
     const d = fresh ?? cached!
     if (fresh) store(gid, fresh)
+    else if (gid !== DEMO_ID) ensureRev(gid)
     loadedAt.set(gid, Date.now())
     return d
   })()
@@ -99,9 +128,11 @@ function fetchGuild(gid: string) {
  * เปิดเว็บมาที่หน้าของกิลด์ → เริ่มดึงข้อมูลตั้งแต่เว็บเริ่มทำงาน (main.tsx) พร้อมกับโหลดโค้ดของหน้านั้น
  * ไม่ต้องรอโค้ดหน้าโหลด+วาดเสร็จก่อนค่อยยิง (รูปอัศวินบนจอขึ้นเร็วขึ้น — LCP) · หน้าที่เปิดขึ้นมารอผลเดียวกันนี้ ไม่ยิงซ้ำ
  */
-export function prefetchGuild(gid: string) {
-  if (gid === DEMO_ID || loading.has(gid) || (isFresh(loadedAt, gid) && peek(gid))) return
-  fetchGuild(gid).catch(() => { /* หน้ากิลด์จัดการเอง (ขึ้นไม่พบ/โหลดใหม่ไม่สำเร็จ) */ })
+export function prefetchGuild(gid: string): Promise<GuildData> | null {
+  if (gid === DEMO_ID || loading.has(gid) || (isFresh(loadedAt, gid) && peek(gid))) return null
+  const run = fetchGuild(gid)
+  run.catch(() => { /* หน้ากิลด์จัดการเอง (ขึ้นไม่พบ/โหลดใหม่ไม่สำเร็จ) */ })
+  return run
 }
 
 /** โหลดข้อมูลกิลด์ + เช็คสิทธิ์แก้ไข (รับ ?key= จากลิงก์แชร์แล้วเก็บไว้) */

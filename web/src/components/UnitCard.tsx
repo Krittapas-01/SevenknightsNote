@@ -43,6 +43,16 @@ type Props = {
   sizes?: string
 }
 
+/** ขนาดรูปอัศวินในสนาม VS ขนาดปกติ (TeamPanel) — ใช้ตอนสั่งโหลดรูปจอแรกล่วงหน้าด้วย (lib/bootImages) ต้องตรงกันถึงจะใช้รูปเดียวกัน */
+export const MD_HERO_SIZES = '(min-width: 495px) 135px, 27vw'
+
+/** รูปที่การ์ดจะโหลด (src + srcSet) — ที่เดียวที่ตัดสินใจ ให้การโหลดล่วงหน้าได้ URL เดียวกับ <img> เสมอ */
+export function unitImage(u: { img?: string; thumb?: string }, small: boolean, sizes: string | undefined, failed: string | null = null) {
+  const src = small && u.thumb && failed !== u.thumb ? u.thumb : u.img
+  const srcSet = sizes && !small && u.thumb && u.img && failed !== u.thumb ? `${u.thumb} 256w, ${u.img} 512w` : undefined
+  return { src, srcSet }
+}
+
 export default function UnitCard({ id, shape = 'hero', className = '', showName = true, small = false, sizes }: Props) {
   const [failedImage, setFailedImage] = useState<string | null>(null)
   const priority = useContext(ImgPriority)
@@ -55,8 +65,7 @@ export default function UnitCard({ id, shape = 'hero', className = '', showName 
   const label = unitBase(u.id)
   const fullName = unitLabel(u.id)
   // รูปย่อสำหรับการ์ดเล็ก (ถ้ารูปย่อโหลดไม่ได้ ใช้รูปเต็มแทน)
-  const src = small && u.thumb && failedImage !== u.thumb ? u.thumb : u.img
-  const srcSet = sizes && !small && u.thumb && u.img && failedImage !== u.thumb ? `${u.thumb} 256w, ${u.img} 512w` : undefined
+  const { src, srcSet } = unitImage(u, small, sizes, failedImage)
 
   return (
     <div
