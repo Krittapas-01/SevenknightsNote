@@ -23,3 +23,9 @@ database_name = "7k-note"
 database_id = "0452d0ac-94bf-4c7d-b2da-820406af4ce6"
 # ตอน dev แบบ local ใช้ฐานข้อมูลเดิมในเครื่อง (ข้อมูล local ผูกกับ id นี้)
 preview_database_id = "00000000-0000-0000-0000-000000000000"
+
+# Workers Logs (ดู log ใน dashboard → 7k-note-api → Observability) — ต้องตรงกับที่ตั้งใน dashboard
+# ไม่งั้น deploy.cmd รอบหน้าจะปิด log กลับไปเอง · ห้าม console.log ข้อมูลลับ (webhook, edit key, token) เพราะ log ถูกเก็บไว้
+[observability.logs]
+enabled = true
+invocation_logs = true
