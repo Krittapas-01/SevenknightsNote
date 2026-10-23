@@ -17,17 +17,20 @@ const KIND_SHORT: Record<PatchKind, string> = { new: L('ใหม่', 'New'), c
 /** เวอร์ชันย่อย เช่น 1.5.1 (แพทช์เล็กระหว่างเวอร์ชันใหญ่) */
 export const isPatch = (v: string) => v.split('.').length > 2
 
-/** จำนวนรายการของแต่ละหมวด (เรียงตามที่อยู่ในแพทช์) */
-export function kindCounts(entry: ChangelogEntry) {
-  return entry.sections.map((s) => ({ kind: s.kind, n: s.groups.reduce((a, g) => a + g.items.length, 0) })).filter((c) => c.n > 0)
+const KINDS: PatchKind[] = ['new', 'change', 'fix']
+/** จำนวนรายการของแต่ละหมวด รวมทุกแพทช์ที่ส่งมา (ใหม่ → เปลี่ยน → แก้บั๊ก) */
+export function kindCounts(entries: ChangelogEntry[]) {
+  const n: Record<PatchKind, number> = { new: 0, change: 0, fix: 0 }
+  for (const e of entries) for (const s of e.sections) for (const g of s.groups) n[s.kind] += g.items.length
+  return KINDS.map((kind) => ({ kind, n: n[kind] })).filter((c) => c.n > 0)
 }
-export const itemCount = (entry: ChangelogEntry) => kindCounts(entry).reduce((a, c) => a + c.n, 0)
+export const itemCount = (entry: ChangelogEntry) => kindCounts([entry]).reduce((a, c) => a + c.n, 0)
 
 /** ป้ายนับ "✦ 8 ใหม่ · 🔧 20 เปลี่ยน · 🐞 5 แก้บั๊ก" */
-export function KindChips({ entry, className = '' }: { entry: ChangelogEntry; className?: string }) {
+export function KindChips({ entries, className = '' }: { entries: ChangelogEntry[]; className?: string }) {
   return (
     <div className={`flex flex-wrap gap-1.5 ${className}`}>
-      {kindCounts(entry).map(({ kind, n }) => {
+      {kindCounts(entries).map(({ kind, n }) => {
         const { icon: Icon, chip } = KIND_STYLE[kind]
         return (
           <span key={kind} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${chip}`}>

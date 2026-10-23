@@ -777,6 +777,17 @@ html[data-theme="light"] :is(.bg-ink\/80, .bg-ink\/85) { background-color: #ffff
 .updates-patch::before, .updates-patch::after { content: none; }
 .updates-more { border: 1px dashed #93a6d033; background: #ffffff05; transition: color 150ms ease, border-color 150ms ease; }
 .updates-more:hover { border-color: #c9a35a80; }
+/* อัปเดตย่อยในแพทช์: เส้นเวลาเล็กด้านซ้าย · ส่วน "เปิดตัวแพทช์" คั่นด้วยเส้น */
+.patch-part-label { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: #d8c08a; }
+.patch-subs { position: relative; padding-left: 1.35rem; }
+.patch-subs::before { content: ""; position: absolute; left: .3rem; top: .5rem; bottom: .5rem; width: 1px; background: linear-gradient(#c9a35a99, #8292bc33); }
+.patch-sub { position: relative; }
+.patch-sub::before { content: ""; position: absolute; left: calc(-1.35rem + .3rem - 4px); top: .45rem; width: 9px; height: 9px; border-radius: 9999px; border: 1px solid #f4d58d; background: var(--surface); box-shadow: 0 0 0 3px #f4d58d1a; }
+.patch-launch { border-top: 1px dashed #93a6d033; }
+html[data-theme="light"] .patch-part-label { color: #7d6a42; }
+html[data-theme="light"] .patch-subs::before { background: linear-gradient(#c9a35acc, #b1aea855); }
+html[data-theme="light"] .patch-sub::before { border-color: #c08a1e; background: #f5f5f4; box-shadow: 0 0 0 3px #d9a93f26; }
+html[data-theme="light"] .patch-launch { border-top-color: #bdb9b3; }
 /* มือถือ: ปุ่มเวอร์ชัน */
 .updates-chip {
   display: inline-flex; flex-shrink: 0; align-items: center; gap: .4rem;
