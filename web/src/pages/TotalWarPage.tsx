@@ -1,5 +1,5 @@
-import { Clock, Target } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { Clock, Pencil, Target } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import RankEmblem from '../components/RankEmblem'
 import './TotalWarPage.css'
 import profileFrame from '../assets/totalwar-ranks/profile-frame.webp'
@@ -40,14 +40,19 @@ function Stopwatch() {
   )
 }
 
-/** ป้ายแบบในเกม: ✦ หัวข้อ ........ ค่า */
-function Pill({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
+/** ป้ายแบบในเกม: ✦ หัวข้อ ........ ค่า (step = เลขลำดับช่องที่ต้องกรอก แทน ✦) */
+function Pill({ label, children, className = '', step }: { label: string; children: ReactNode; className?: string; step?: number }) {
   return (
     <div className={`flex items-center justify-between gap-3 rounded-full border border-white/10 bg-[var(--tw-bar)] px-4 py-1.5 ${className}`}>
-      <span className="whitespace-nowrap text-sm text-white/70"><span className="text-white/50">✦</span> {label}</span>
+      <span className="flex items-center gap-1.5 whitespace-nowrap text-sm text-white/70">{step ? <StepBadge n={step} /> : <span className="text-white/50">✦</span>} {label}</span>
       <span className="flex items-center gap-1 font-semibold tabular-nums">{children}</span>
     </div>
   )
+}
+
+/** เลขวงกลมบอกลำดับช่องที่ต้องกรอก */
+function StepBadge({ n }: { n: number }) {
+  return <span className="tw-step" aria-hidden="true">{n}</span>
 }
 
 /** สงครามเบ็ดเสร็จ — หน้าตาแบบหน้าในเกม: แถบเฟส · เวทีตราแรงค์ · แถบล่าง (รอบ/แรงค์/คะแนน/อัตราชนะ) */
@@ -56,6 +61,7 @@ export default function TotalWarPage() {
   const [rate, setRate] = useState('')
   const [target, setTarget] = useState(3)
   const [now, setNow] = useState(Date.now())
+  const scoreInput = useRef<HTMLInputElement>(null)
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t) }, [])
 
   const tw = totalWarNow(now)
@@ -127,11 +133,26 @@ export default function TotalWarPage() {
               <span className="text-3xl font-bold text-gold sm:text-4xl">{fmt(res.next)}</span>
             </>) : <span className="text-3xl font-bold text-gold sm:text-4xl">{fmt(s)}</span>}
           </div>
+          {score === '' && (
+            <button type="button" onClick={() => scoreInput.current?.focus()} className="tw-stage-hint mt-2 flex items-center gap-1.5 rounded-full px-3 py-1 text-sm">
+              <Pencil className="h-3.5 w-3.5" />{L('แตะเพื่อกรอกคะแนนปัจจุบัน', 'Tap to enter your current points')}
+            </button>
+          )}
           {res?.promoted && <div className="mt-2 rounded-full bg-black/40 px-3 py-0.5 text-sm text-emerald-200">{L(`🎉 ขึ้น${res.promoted.name}`, `🎉 Promoted to ${rankName(res.promoted)}`)}</div>}
         </div>
 
-        {/* แถบล่างแบบในเกม */}
-        <div className="tw-dashboard mt-4 grid gap-2 sm:grid-cols-[1fr_auto_1.3fr_1fr] sm:items-center sm:gap-3">
+        {/* แถบล่างแบบในเกม — ช่องที่กรอกได้มีเลข ①② + กรอบช่องกรอก ที่เหลือเว็บคิดให้เอง */}
+        <div className="tw-dashboard mt-4">
+        {(score === '' || rate === '') && (
+          <p className="tw-fill-hint mb-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center text-sm">
+            <Pencil className="h-3.5 w-3.5 shrink-0" />
+            <span>{L('ดูในเกมแล้วกรอก 2 ช่องนี้:', 'Check in-game, then fill in these 2 boxes:')}</span>
+            <span className="inline-flex items-center gap-1"><StepBadge n={1} />{L('คะแนนปัจจุบัน', 'Current points')}</span>
+            <span className="inline-flex items-center gap-1"><StepBadge n={2} />{L('% ชนะรอบนี้', 'Win rate this round')}</span>
+            <span className="opacity-75">{L('— ที่เหลือเว็บคิดให้เอง', '— the rest is worked out for you')}</span>
+          </p>
+        )}
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto_1.3fr_1fr] sm:items-center sm:gap-3">
           <div className="grid gap-2">
             <Pill className="tw-stat-pill" label={tx('รอบ')}>{tw.state === 'running' ? tw.round : 0}/{TOTAL_WAR_ROUNDS}</Pill>
             <Pill className="tw-stat-pill" label={tx('สิ้นสุดซีซัน')}><Clock className="h-4 w-4" />{tw.state === 'running' ? short(tw.seasonEnd - now) : '–'}</Pill>
@@ -154,9 +175,13 @@ export default function TotalWarPage() {
               </div>
               <RankEmblem rank={Math.min(rankIndex + 1, 4)} size={26} />
             </div>
-            <Pill className="tw-stat-pill" label={tx('คะแนนปัจจุบัน')}>
-              <input type="number" inputMode="numeric" min={0} value={score} onChange={(e) => editScore(e.target.value)} placeholder="0"
-                className="tw-number-input [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none w-20 bg-transparent text-right outline-none" />
+            <Pill className="tw-stat-pill" label={tx('คะแนนปัจจุบัน')} step={1}>
+              <label className={`tw-field ${score === '' ? 'tw-field-empty' : ''}`}>
+                <input ref={scoreInput} type="number" inputMode="numeric" min={0} value={score} onChange={(e) => editScore(e.target.value)} placeholder={L('กรอก', 'Enter')}
+                  aria-label={tx('คะแนนปัจจุบัน')}
+                  className="tw-number-input [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none w-16 bg-transparent text-right outline-none" />
+                <Pencil className="tw-field-pen h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              </label>
             </Pill>
             {staleScore && (
               <div className="tw-stale flex items-center justify-between gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[11px] text-amber-100">
@@ -169,14 +194,18 @@ export default function TotalWarPage() {
             )}
           </div>
           <div className="tw-win-card rounded-2xl border p-2">
-            <div className="text-center text-xs font-semibold">{tx('อัตราชนะรอบนี้')}</div>
-            <div className="flex items-baseline justify-center">
-              <input type="number" inputMode="decimal" min={0} max={100} step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="52.5"
-                className="tw-number-input [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none w-20 bg-transparent text-center text-2xl font-bold outline-none placeholder:text-gold/40" />
-              <span className="font-bold">%</span>
+            <div className="flex items-center justify-center gap-1.5 text-center text-xs font-semibold"><StepBadge n={2} />{tx('อัตราชนะรอบนี้')}</div>
+            <div className="mt-1 flex justify-center">
+              <label className={`tw-field tw-field-big ${rate === '' ? 'tw-field-empty' : ''}`}>
+                <input type="number" inputMode="decimal" min={0} max={100} step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder={L('กรอก', 'Enter')}
+                  aria-label={tx('อัตราชนะรอบนี้')}
+                  className="tw-number-input [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none w-20 bg-transparent text-center text-2xl font-bold outline-none placeholder:text-base placeholder:font-semibold" />
+                <span className="font-bold">%</span>
+              </label>
             </div>
-            <div className="text-center text-[11px] opacity-75">{validRate ? L(`ชนะ ${w}/${fights}`, `Win ${w}/${fights}`) : L(`${rank.teams} ทีม · สู้ ${fights}`, `${rank.teams} teams · ${fights} fights`)}</div>
+            <div className="mt-1 text-center text-[11px] opacity-75">{validRate ? L(`ชนะ ${w}/${fights}`, `Win ${w}/${fights}`) : L(`${rank.teams} ทีม · สู้ ${fights}`, `${rank.teams} teams · ${fights} fights`)}</div>
           </div>
+        </div>
         </div>
         {res && (
           <div className="mt-2 flex justify-center">
