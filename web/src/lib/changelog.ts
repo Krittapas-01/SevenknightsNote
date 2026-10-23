@@ -30,17 +30,13 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     version: '1.5.3',
     date: '24 ต.ค. 2026',
     title: 'Formation',
-    summary: 'จัดทีมแบบในเกม · อ่านค่าจากรูปได้หลายตัวต่อกัน · โหมดภาษาอังกฤษครบทุกหน้า · หน้าไม่กระโดดตอนย้อนกลับ และลื่นขึ้นอีก',
+    summary: 'จัดทีมแบบในเกม · โหมดภาษาอังกฤษครบทุกหน้า · หน้าไม่กระโดดตอนย้อนกลับ และลื่นขึ้นอีก',
     sections: [
       { kind: 'new', groups: [
         g('จัดทีมแบบในเกม',
           'แตะเลือกช่องแล้วกรอบเรืองแสงทอง · ใส่อัศวินแล้วแฟลชทอง · เอาออกแล้วการ์ดจางหายพร้อมประกายทอง · ลากการ์ดไปวาง ช่องปลายทางแฟลชทอง และการ์ดที่ลากยกขึ้นเอียงชัดขึ้น',
           'ทีมครบ 3 ตัวแล้ว ช่องว่างที่เหลือเป็นช่องแดงขีดเฉียงแบบในเกม (ใส่ตัวเพิ่มไม่ได้ แตะแล้วช่องสั่นบอก · ยังย้ายตัวในทีมลงช่องนั้นได้) · เอาตัวออกแล้วกลับเป็นช่อง + เหมือนเดิม',
           'ใช้ได้ทุกที่ที่จัดทีม: ทีมบ้านศัตรู/ทีมแก้/แผนวอร์ (อัศวิน สัตว์เลี้ยง สัตว์เลี้ยงเสริม) · หน้าบิสกิต (ลากสลับที่ก็เลื่อนตาม) · หน้าเทียบพลังโจมตี · ตัว OP และตัวแบนในแผนวอร์'),
-        g('อ่านค่าความสามารถจากรูป: ใส่ต่อหลายตัว',
-          'กดใส่แล้วหน้าต่างไม่ปิด ลงรูปตัวถัดไปต่อได้เลย ไม่ต้องกดเปิดใหม่ทีละตัว · เลือก/ลากหลายรูปพร้อมกันได้ เว็บอ่านให้ทีละตัว · ใส่ครบทุกตัวในทีมแล้วปิดเอง หรือกด "เสร็จ"',
-          'มีเครื่องหมาย ✓ บอกว่าตัวไหนใส่แล้ว และเลือกตัวถัดไปที่ยังไม่ได้ใส่ให้ · วางรูปเดิมซ้ำ (Ctrl+V ตอนคลิปบอร์ดยังเป็นรูปเก่า) มีเตือน และต้องกดยืนยันก่อนเอาค่าไปใส่ตัวอื่น',
-          'วางรูปใหม่ระหว่างที่รูปเดิมยังไม่ได้กดใส่ = รูปใหม่ต่อคิว ไม่ทับค่าที่อ่านไว้ · ปิดหน้าต่างระหว่างอ่านรูป เปิดใหม่แล้วค่าของรูปเก่าไม่โผล่มาทับ · เพิ่มอัศวินเข้าทีมในหน้าต่างแล้ววางรูปตัวนั้น ไม่เตือนผิดว่า "ยังไม่อยู่ในทีม"'),
       ] },
       { kind: 'change', groups: [
         g('หน้าเว็บภาษาอังกฤษ: ไม่มีภาษาไทยหลุดแล้ว',
@@ -362,17 +358,13 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 const CHANGELOG_EN: ChangelogEntry[] = [
   {
     id: '2026-10-24', version: '1.5.3', date: '24 Oct 2026', title: 'Formation',
-    summary: 'Team building like in the game, read several heroes from screenshots in a row, English mode on every page, no jumps when going back, and smoother still',
+    summary: 'Team building like in the game, English mode on every page, no jumps when going back, and smoother still',
     sections: [
       { kind: 'new', groups: [
         g('Team building like in the game',
           'Tapping a slot gives it a gold glow · adding a hero flashes gold · removing one fades the card out with gold sparkles · dropping a dragged card flashes the slot it lands on, and the dragged card lifts and tilts more clearly',
           'Once a team has 3 heroes, the other empty slots turn red with a slash like in the game (no more heroes can go in; tapping one makes it shake, but you can still move a team hero there) · removing a hero turns them back into + slots',
           'Works everywhere you build a team: enemy defenses, counters and war plans (heroes, pet, backup pets) · Biscuit page (swapping by drag slides too) · Attack Compare page · OP and banned heroes in war plans'),
-        g('Read stats from screenshots: several heroes in a row',
-          'After you apply, the window stays open so you can add the next hero\'s screenshot right away instead of reopening it for each one · pick or drop several screenshots at once and they are read one by one · it closes by itself once every hero on the team is filled in, or press "Done"',
-          'A ✓ shows which heroes are done and the next unfilled hero is picked for you · pasting the same screenshot again (Ctrl+V while the clipboard still holds the old one) shows a warning and asks before applying those numbers to another hero',
-          'A screenshot added before you apply the current one waits in line instead of replacing it · closing the window while a screenshot is being read no longer drops the old result into the next session · adding a hero inside the window and then pasting their screenshot no longer warns that they are "not on the team"'),
       ] },
       { kind: 'change', groups: [
         g('English mode: no more Thai text',
