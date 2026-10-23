@@ -204,3 +204,111 @@ export function useTeamMotion(root: RefObject<HTMLElement | null>, sig: string, 
     }
   })
 }
+
+/* ---------- ลำดับการใช้สกิล (แบบในเกม) ---------- */
+
+/** ตำแหน่งดาว 3 ดวงในวงลำดับสกิล (% ของวง — ตรงกับ QueueStars) */
+const QUEUE_STAR_POS: readonly (readonly [number, number])[] = [[30, 52], [57, 33], [61, 64]]
+
+/**
+ * ปิดหน้าตั้งลำดับสกิลแล้ว (หรือคิวเปลี่ยน) → วงลำดับสกิลเล่นแบบในเกม:
+ * ฟองแก้วม่วงโผล่ + แสงกวาดผ่าน → ดาวที่ตั้งแล้วติดทีละดวง พร้อมแสงแฟลร์แนวนอนวาบ → ป้ายเลขบนการ์ดเด้งตามลำดับ
+ * ขยับแค่ transform/opacity · ของประดับสร้างแล้วลบทิ้งเมื่อจบ
+ */
+export function queueOrbFx(orb: HTMLElement | null, lit: number, badges?: Element | null, delay = 0) {
+  if (!orb || !motionOK()) return
+  const run = () => nextFrame(() => { if (orb.isConnected) orbFx(orb, lit, badges ?? null) })
+  if (delay > 0) setTimeout(run, delay)
+  else run()
+}
+function orbFx(orb: HTMLElement, lit: number, badges: Element | null) {
+  // ฟองแก้วอยู่ใต้ดาว (ใส่ก่อนดาว) · แฟลร์อยู่บนดาว (ใส่ท้าย)
+  const layer = () => {
+    const l = document.createElement('span')
+    l.className = 'orb-fx'
+    l.setAttribute('aria-hidden', 'true')
+    return l
+  }
+  const back = layer()
+  const fx = layer()
+  const glass = document.createElement('span')
+  glass.className = 'orb-glass'
+  const sheen = document.createElement('span')
+  sheen.className = 'orb-sheen'
+  glass.appendChild(sheen)
+  back.appendChild(glass)
+  const anims: Promise<unknown>[] = []
+  const go = (el: Element, k: Keyframe[], o: KeyframeAnimationOptions) => { anims.push(el.animate(k, { fill: 'backwards', ...o }).finished) }
+  // ฟองแก้ว: โผล่ ค้างระหว่างดาวติด แล้วจางหาย · แสงกวาดเฉียงผ่านฟอง
+  go(glass, [{ opacity: 0, transform: 'scale(.86)' }, { opacity: 1, transform: 'scale(1.04)', offset: 0.18 }, { opacity: 1, transform: 'none', offset: 0.5 }, { opacity: 0, transform: 'none' }], { duration: 1000, easing: 'ease-out' })
+  go(sheen, [{ transform: 'translateX(-110%)' }, { transform: 'translateX(110%)' }], { duration: 560, delay: 120, easing: 'cubic-bezier(.4,0,.2,1)' })
+  // ดาวที่ติดแล้ว (svg.queue-star ดวงละอัน) ติดทีละดวงหลังแสงกวาดผ่าน
+  const stars = Array.from(orb.querySelectorAll<SVGElement>('svg.queue-star'))
+  const t0 = 380
+  for (let i = 0; i < Math.min(lit, stars.length, QUEUE_STAR_POS.length); i++) {
+    const [x, y] = QUEUE_STAR_POS[i]
+    const at = t0 + i * 150
+    const s = stars[i]
+    s.style.transformOrigin = `${x}% ${y}%`
+    go(s, [{ opacity: 0, transform: 'scale(.2) rotate(-60deg)' }, { opacity: 1, transform: 'scale(1.45)', offset: 0.55 }, { opacity: 1, transform: 'none' }], { duration: 480, delay: at, easing: EASE })
+    // แฟลร์: เส้นแสงแนวนอนผ่านดาว + จุดแสงกลมตรงดาว
+    const flare = document.createElement('span')
+    flare.className = 'orb-flare'
+    flare.style.top = `${y}%`
+    fx.appendChild(flare)
+    go(flare, [{ opacity: 0, transform: 'translate(-50%, -50%) scaleX(.15)' }, { opacity: 1, transform: 'translate(-50%, -50%) scaleX(1)', offset: 0.3 }, { opacity: 0, transform: 'translate(-50%, -50%) scaleX(.7)' }], { duration: 560, delay: at + 90, easing: 'ease-out' })
+    const glow = document.createElement('span')
+    glow.className = 'orb-glow'
+    glow.style.left = `${x}%`
+    glow.style.top = `${y}%`
+    fx.appendChild(glow)
+    go(glow, [{ opacity: 0, transform: 'translate(-50%, -50%) scale(.2)' }, { opacity: 1, transform: 'translate(-50%, -50%) scale(1.1)', offset: 0.3 }, { opacity: 0, transform: 'translate(-50%, -50%) scale(.6)' }], { duration: 520, delay: at + 90, easing: 'ease-out' })
+  }
+  orb.prepend(back)
+  orb.appendChild(fx)
+  // ป้ายเลขลำดับบนการ์ดอัศวิน: เด้งตามลำดับ 1 → 2 → 3 คู่กับดาว
+  if (badges) {
+    const list = Array.from(badges.querySelectorAll<HTMLElement>('[data-mp^="badge:"]'))
+    const num = (b: HTMLElement) => Number(b.dataset.mp!.slice(b.dataset.mp!.lastIndexOf(':') + 1)) || 0
+    list.sort((a, b) => num(a) - num(b))
+    list.forEach((b, i) => b.animate(POP.badge.k, { ...POP.badge.o, delay: t0 + i * 150 + 60, fill: 'backwards' }))
+  }
+  Promise.all(anims).catch(() => {}).finally(() => { back.remove(); fx.remove() })
+}
+
+/**
+ * หน้าตั้งลำดับสกิล: กดเลือกสกิล = ไอคอนเด้ง + แสงทองวาบ + ประกายดาว + ป้ายลำดับเด้ง (แบบตอนใส่อัศวิน)
+ * กดเอาออก/รีเซต = ประกายดาวที่ไอคอนนั้น · ลำดับที่เลื่อน = ป้ายเด้งเบา ๆ
+ * ปุ่มสกิลมี data-sq="ช่อง.สกิล" · ป้ายลำดับมี data-sqb
+ */
+export function useSkillPickMotion(root: RefObject<HTMLElement | null>, keys: string, enabled: boolean) {
+  const prev = useRef<string | null>(null)
+  useLayoutEffect(() => {
+    const old = prev.current
+    prev.current = keys
+    const el = root.current
+    if (old === null || old === keys || !enabled || !el || !motionOK()) return
+    const was = old ? old.split(',') : []
+    const now = keys ? keys.split(',') : []
+    const btn = (k: string) => el.querySelector<HTMLElement>(`[data-sq="${k}"]`)
+    now.forEach((k, i) => {
+      const b = btn(k)
+      if (!b) return
+      const badge = b.querySelector<HTMLElement>('[data-sqb]')
+      const j = was.indexOf(k)
+      if (j < 0) {
+        b.animate([{ transform: 'scale(.82)' }, { transform: 'scale(1.1)', offset: 0.5 }, { transform: 'none' }], { duration: 320, easing: EASE })
+        flashCard(b)
+        sparkle(b, 6)
+        badge?.animate([{ scale: '0' }, { scale: '1' }], { duration: 320, delay: 60, easing: BOUNCE, fill: 'backwards' })
+      } else if (j !== i) {
+        badge?.animate([{ scale: '.55' }, { scale: '1' }], { duration: 280, easing: BOUNCE })
+      }
+    })
+    for (const k of was) {
+      if (now.includes(k)) continue
+      const b = btn(k)
+      if (b) sparkle(b, 6)
+    }
+  }, [keys, enabled, root])
+}

@@ -203,6 +203,29 @@ h1, h2, h3 { text-wrap: balance; }
 }
 .slot-sparks-sm { font-size: 8px; }
 .slot-sparks > i { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; opacity: 0; }
+/* วงลำดับสกิล (lib/teamMotion queueOrbFx): ฟองแก้วม่วง + แสงกวาด อยู่ใต้ดาว · แฟลร์แนวนอน + จุดแสง อยู่บนดาว (แบบในเกม) */
+.orb-fx { position: absolute; inset: 0; pointer-events: none; border-radius: 9999px; contain: layout style; }
+.orb-glass {
+  position: absolute;
+  inset: -1px;
+  overflow: hidden;
+  border-radius: 9999px;
+  opacity: 0;
+  background: radial-gradient(circle at 36% 28%, #ffffffa6 0, #e6d8ff59 22%, #8f72d659 58%, #4a347fa6 100%);
+  box-shadow: inset 0 0 0 1.5px #e9ddffcc, inset 0 -6px 12px #c7b0ff59, 0 0 14px #b897ff8c;
+}
+.orb-sheen { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, #ffffffd9 47%, #ffffff40 55%, transparent 68%); transform: translateX(-110%); }
+.orb-flare {
+  position: absolute;
+  left: 50%;
+  width: 240%;
+  height: 3px;
+  border-radius: 9999px;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, #ffe9b366 30%, #fff 50%, #ffe9b366 70%, transparent);
+  box-shadow: 0 0 6px #ffd98acc;
+}
+.orb-glow { position: absolute; width: 48%; aspect-ratio: 1; border-radius: 9999px; opacity: 0; background: radial-gradient(circle, #fff 0, #fff6cf 22%, #ffd36499 42%, transparent 70%); }
 /* การ์ดที่ลากอยู่: ยกขึ้นจากช่อง */
 .drag-lift { animation: drag-lift 200ms var(--motion-out); }
 @keyframes drag-lift { from { opacity: .6; transform: scale(.86); } }
@@ -726,6 +749,11 @@ html[data-theme="light"] .slot-empty {
 html[data-theme="light"] .slot-empty.slot-blocked { border: 1.5px solid #dcb0b5; background: #f0dfe0; color: #b0606b73; }
 html[data-theme="light"] .round-slot { border-color: #b1aea8; background: #ebeae8; }
 html[data-theme="light"] .slot-sparks { color: #e9b13f; text-shadow: 0 0 5px #fff3cf; }
+html[data-theme="light"] .orb-glass {
+  background: radial-gradient(circle at 36% 28%, #ffffffe6 0, #efe6ff99 30%, #c8b3f099 70%, #9d84d6a6 100%);
+  box-shadow: inset 0 0 0 1.5px #ffffffcc, inset 0 -6px 12px #a58ae059, 0 0 12px #a58ae08c;
+}
+html[data-theme="light"] .orb-flare { background: linear-gradient(90deg, transparent, #f2c45a80 30%, #fff8e0 50%, #f2c45a80 70%, transparent); box-shadow: 0 0 6px #e9b13fcc; }
 html[data-theme="light"] .pill {
   border-color: #c9a35a80;
   background: linear-gradient(180deg, #ffffff, #f3f2f1);
