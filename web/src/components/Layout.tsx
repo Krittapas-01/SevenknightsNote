@@ -76,7 +76,10 @@ export default function Layout() {
         {/* หน้าไหนพัง → กล่องให้โหลดใหม่ (หัวเว็บ/เมนูยังใช้ได้) · เปลี่ยนหน้าแล้วลองใหม่เอง */}
         <ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary>
       </main>
-      <footer className="mx-auto max-w-6xl px-4 pb-8 pt-10 text-xs leading-relaxed text-white/40">
+      {/* key = หน้า: เปลี่ยนหน้าแล้ว footer เป็นชิ้นใหม่ (ไม่ใช่ชิ้นเดิมที่ย้ายที่) → ไม่นับเป็นการกระโดด (CLS)
+          เดิม: อยู่ท้ายหน้าบ้านศัตรูจน footer อยู่กลางจอ แล้วกดย้อนกลับ → หน้ากิลด์คืนตำแหน่งเลื่อนในเฟรมเดียวกัน
+          เบราว์เซอร์นับว่า footer ย้ายจากกลางจอไปท้ายรายการยาว = CLS ~0.39 บนมือถือ */}
+      <footer key={loc.pathname} className="mx-auto max-w-6xl px-4 pb-8 pt-10 text-xs leading-relaxed text-white/40">
         <p className="mb-4 text-center text-gold/65" aria-hidden="true">— ✦ —</p>
         <div className="flex flex-col items-center gap-1.5 border-t border-white/10 pt-4 text-center sm:flex-row sm:justify-between sm:text-left">
           <p>{tx('7K Note · เครื่องมือวางแผนสงครามกิลด์ Seven Knights Re:BIRTH · โปรเจกต์แฟนเมด')}</p>

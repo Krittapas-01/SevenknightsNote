@@ -44,6 +44,19 @@ const set = (s: Partial<AuthState>) => {
   window.dispatchEvent(new Event(EVENT))
 }
 
+// ผลเช็กล็อกอินครั้งก่อน (เก็บในเครื่อง) — หัวเว็บใช้ระหว่างรอ /api/auth/me ตอนเปิดเว็บ
+// ไม่งั้นปุ่มขวาบน (ล็อกอิน/รูปโปรไฟล์) โผล่ทีหลัง → กลุ่มปุ่มชิดขวากว้างขึ้น ขอบซ้ายขยับ = หัวเว็บกระโดด (CLS)
+// ยังไม่เคยเช็ก = เดาว่า "เปิดล็อกอินอยู่ ยังไม่ได้ล็อกอิน" (เว็บจริงเปิด Discord ไว้)
+const LAST = '7knote:auth-last'
+type Shown = Pick<AuthState, 'enabled' | 'user'>
+let last: Shown = { enabled: true, user: null }
+try {
+  const v = JSON.parse(localStorage.getItem(LAST) || 'null') as Shown | null
+  if (v && typeof v.enabled === 'boolean') last = { enabled: v.enabled, user: getSession() && v.user?.id ? v.user : null }
+} catch { /* ไม่มี storage */ }
+/** สิ่งที่หัวเว็บควรโชว์: เช็กเสร็จแล้ว = ของจริง · ยังไม่เสร็จ = ผลครั้งก่อน */
+export const shownAuth = (s: AuthState): Shown => (s.ready ? s : last)
+
 let loading: Promise<void> | null = null
 function load() {
   loading ??= fetch(`${BASE}/api/auth/me`, { headers: getSession() ? { Authorization: `Bearer ${getSession()}` } : {} })
@@ -51,6 +64,7 @@ function load() {
     .then((d: { discordLogin: boolean; user: DiscordUser | null }) => {
       if (!d.user && getSession()) setSession(null) // หมดอายุ
       set({ ready: true, enabled: d.discordLogin, user: d.user })
+      try { localStorage.setItem(LAST, JSON.stringify({ enabled: d.discordLogin, user: d.user })) } catch { /* เต็ม/โหมดส่วนตัว */ }
     })
     .catch(() => set({ ready: true }))
   return loading
