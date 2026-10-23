@@ -1,6 +1,7 @@
 /**
  * แพทช์โน้ต (ใหม่สุดอยู่บนสุด) แบบ Minecraft: เวอร์ชัน + ชื่อแพทช์ → หมวด ใหม่ / เปลี่ยน / แก้บั๊ก → หัวข้อย่อย → รายการ
- * เพิ่มแพทช์ใหม่ไว้บนสุดทุกครั้งที่ deploy · id ต้องไม่ซ้ำ (ใช้วันที่ + ตัวอักษร) — เครื่องที่ยังไม่เห็น id ล่าสุดจะเห็นป๊อปอัป
+ * แพตช์ใหญ่ (x.y) ทุก 2 สัปดาห์เหมือนตัวเกม · deploy ระหว่างนั้น = อัปเดตย่อย x.y.1, x.y.2 … ของแพตช์ล่าสุด (หน้าอัปเดตจัดไว้ในการ์ดแพตช์เดียวกัน)
+ * เพิ่มรายการใหม่ไว้บนสุดทุกครั้งที่ deploy · ห้ามเติมของใหม่ลงรายการเดิม · id ต้องไม่ซ้ำ (ใช้วันที่ + ตัวอักษร) — เครื่องที่ยังไม่เห็น id ล่าสุดจะเห็นป๊อปอัป
  */
 import { EN } from './i18n'
 
@@ -26,7 +27,7 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
     id: '2026-10-24',
-    version: '1.6',
+    version: '1.5.3',
     date: '24 ต.ค. 2026',
     title: 'Formation',
     summary: 'จัดทีมแบบในเกม · อ่านค่าจากรูปได้หลายตัวต่อกัน · โหมดภาษาอังกฤษครบทุกหน้า · หน้าไม่กระโดดตอนย้อนกลับ และลื่นขึ้นอีก',
@@ -51,6 +52,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
           'หน้าไม่กระโดดตอนกดย้อนกลับ: เลื่อนลงสุดหน้าบ้านศัตรูแล้วย้อนกลับมาหน้ากิลด์ ท้ายเว็บไม่วูบผ่านกลางจอ · ปุ่มขวาบนของหัวเว็บ (? / ภาษา / เข้าสู่ระบบ) ไม่ขยับเมื่อเปลี่ยนหน้าหรือเปิดเว็บ · มือถือ: กิลด์ที่ยังไม่มีประกาศ แถบประกาศไม่หดดันหน้าขึ้นตอนโหลดเสร็จ',
           'เปิดลิงก์บ้านศัตรู/กิลด์: เว็บเริ่มดึงข้อมูลกิลด์ทันทีที่เปิด (ไม่ต้องรอโค้ดเว็บโหลดเสร็จก่อน) และสั่งโหลดรูปอัศวินบนจอแรกทันทีที่รู้ว่าเป็นใคร — การ์ดอัศวินขึ้นเร็วขึ้น',
           'หน้ากิลด์ แท็บบ้านศัตรู: พิมพ์ค้นหาเร็ว ๆ บนมือถือแล้วตัวอักษรไม่หายแล้ว (เดิมพิมพ์ "rachel" อาจเหลือ "rl") · ตัวอักษร ปุ่มแท็ก และแท็บแผนสงคราม/บ้านศัตรู ขึ้นจอทันทีที่กด (มือถือช้าเร็วขึ้นราว 7–10 เท่า) รายการการ์ดค่อยตามมา'),
+        g('หน้าอัปเดต', 'หน้าอัปเดตโฉมใหม่: แถบเลือกแพทช์ (คอม = เส้นเวลาด้านซ้าย · มือถือ = ปุ่มเลื่อนข้าง) · อัปเดตย่อยอยู่ในการ์ดแพทช์เดียวกัน เรียงตามวัน · นับให้ว่ามีใหม่/เปลี่ยน/แก้บั๊กกี่ข้อ · แพทช์เก่าย่อไว้ กดดูได้ · แชร์ลิงก์ไปแพทช์ที่ต้องการได้'),
         g('ตารางอุปกรณ์/ค่าความสามารถรายตัว',
           'ตอนแก้ทีมแก้/แผน จอกว้าง ช่องอัศวินกว้างขึ้น เซต เครื่องประดับ และปุ่ม "ใช้ค่าความสามารถล่าสุดของฉัน" อยู่บรรทัดเดียว ไม่หักคำเป็น 2 บรรทัดแล้ว · มือถือ ปุ่มนี้อยู่ใต้รูปอัศวินแทน'),
       ] },
@@ -359,7 +361,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
   {
-    id: '2026-10-24', version: '1.6', date: '24 Oct 2026', title: 'Formation',
+    id: '2026-10-24', version: '1.5.3', date: '24 Oct 2026', title: 'Formation',
     summary: 'Team building like in the game, read several heroes from screenshots in a row, English mode on every page, no jumps when going back, and smoother still',
     sections: [
       { kind: 'new', groups: [
@@ -382,6 +384,7 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'No more jumps when going back: scroll to the bottom of an enemy defense and go back to the guild page, and the footer no longer flashes across the screen · the top-right header buttons (? / language / log in) no longer shift when you change pages or open the site · Phone: for guilds with no announcement yet, the announcement bar no longer shrinks and pulls the page up once it loads',
           'Opening a defense or guild link: guild data starts loading the moment the page opens (no longer waits for the site code first) and the hero portraits on the first screen start loading as soon as the team is known, so hero cards show up sooner',
           'Guild page, Enemy defenses tab: typing fast on a phone no longer drops letters (typing "rachel" could end up as "rl") · letters, tag filters and the War plans / Enemy defenses tabs respond the moment you tap (about 7–10× faster on slow phones), the card list follows right after'),
+        g('Updates page', 'Redesigned updates page: patch picker (desktop = timeline on the left · phone = scrollable chips) · small updates sit inside their patch card by date · counts of new/changed/fixed · older patches collapsed, tap to open · link straight to a patch'),
         g('Per-hero gear/stats table',
           'Counter and plan editors: on wide screens the hero column is wider, so sets, accessories and the "Use my latest stats" button stay on one line instead of breaking onto two · on phones that button sits under the hero portrait'),
       ] },
