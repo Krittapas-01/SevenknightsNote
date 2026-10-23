@@ -37,12 +37,13 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
       <AddHeroNote team={team} have={notes.map((n) => n.hero)} onAdd={(hero) => onChange?.([...notes, { hero, text: '', sets: [], rings: [] }].slice(0, 5))} />
     </div>
   )
-  if (!notes.length) return addRow || null
+  if (!notes.length && !addRow) return null
   return (
     <>
-    {/* ปุ่มอ่านค่าความสามารถจากรูป / เพิ่มของรายตัว อยู่บนตาราง (เห็นก่อน ไม่ต้องเลื่อนลงไปหา) */}
-    {addRow && <div className="mb-2">{addRow}</div>}
-    <div className="@container overflow-hidden rounded-2xl border border-white/10">
+    {/* ปุ่มอ่านค่าความสามารถจากรูป / เพิ่มของรายตัว อยู่บนตาราง (เห็นก่อน ไม่ต้องเลื่อนลงไปหา)
+        อยู่ตำแหน่งเดิมเสมอทั้งตอนมี/ไม่มีแถว — เดิมแถวแรกโผล่แล้วปุ่มถูกสร้างใหม่ หน้าต่างอ่านรูปที่เปิดอยู่ปิดเอง (ใส่ต่อตัวถัดไปไม่ได้) */}
+    {addRow && <div className={notes.length ? 'mb-2' : undefined}>{addRow}</div>}
+    {notes.length > 0 && <div className="@container overflow-hidden rounded-2xl border border-white/10">
       {/* กว้างตามกล่องที่วาง (container query) — กล่องแคบเรียงซ้อน · กล่องกว้างเป็น 2 คอลัมน์
           ช่องซ้าย 29rem = รูป + เซต 3 ช่องกับเครื่องประดับ 3 ช่องในบรรทัดเดียว + ปุ่ม "ใช้ค่าความสามารถล่าสุดของฉัน" ไม่ตัดบรรทัด
           (เดิม 17rem → ป้าย "เครื่องประดับ" กับปุ่มหักเป็น 2 บรรทัด ขณะที่ช่องรายละเอียดว่างเกือบทั้งช่อง) */}
@@ -109,7 +110,7 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
           </div>
         </div>
       ))}
-    </div>
+    </div>}
     </>
   )
 }

@@ -1,4 +1,4 @@
-import { Camera, CircleHelp, ClipboardPaste, History, Loader2, Plus, X } from 'lucide-react'
+import { Camera, Check, CircleHelp, ClipboardPaste, History, Images, Loader2, Plus, SkipForward, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { baseName, getUnit, unitBase } from '../data/heroes'
 import { pickHero } from '../lib/heroPick'
@@ -71,8 +71,15 @@ export function upsertStats(notes: HeroNote[], hero: string, stats: HeroStats, e
 }
 
 
+/** ตัวเลขที่อ่านจากรูปชุดเดียวกัน (ครบ 5 ค่าขึ้นไปและตรงทุกช่อง) = รูปเดิม/ตัวเดิม */
+function sameRead(a: HeroStats, b: HeroStats) {
+  const ka = STATS.filter((s) => a[s.key] !== undefined)
+  return ka.length >= 5 && STATS.every((s) => a[s.key] === b[s.key])
+}
+
 /**
  * ปุ่ม "อ่านค่าความสามารถจากรูป": เลือกรูป / วางรูป (Ctrl+V) → อ่านตัวเลข → ตรวจทาน → ใส่ให้อัศวินในทีม
+ * ใส่ต่อหลายตัว: กดใส่แล้วหน้าต่างไม่ปิด → ลงรูปตัวถัดไปได้เลย (เลือก/ลากหลายรูปพร้อมกัน = เข้าคิวอ่านทีละรูป) · ครบทุกตัวแล้วปิดเอง หรือกด "เสร็จ"
  */
 export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }: {
   team: (string | null)[]
@@ -86,6 +93,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
 }) {
   const heroes = team.filter((h): h is string => !!h)
   const input = useRef<HTMLInputElement>(null)
+  const root = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [img, setImg] = useState<string | null>(null)
   const [progress, setProgress] = useState<number | null>(null)
@@ -106,29 +114,75 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
   // 2 ขั้น: เปิดมาเห็นแค่ที่ใส่รูป → อ่านรูปเสร็จ (หรือกดข้าม) ค่อยโชว์ช่องรายละเอียด
   const [step, setStep] = useState<'upload' | 'details'>('upload')
   const details = step === 'details'
-  // เปิดหน้าต่างครั้งแรก (เบราว์เซอร์นี้) → โชว์วิธีใช้ให้เอง
   /** ค่าในช่องมาจากการอ่านรูปรอบนี้ (ไม่ใช่ค่าเดิมของตัวนั้น) → เปลี่ยนตัวแล้วไม่ดึงค่าเดิมมาทับ */
   const fromImage = useRef(false)
+  // --- ใส่ต่อหลายตัวในหน้าต่างเดียว ---
+  /** รูปที่รออ่าน (เลือก/ลากมาหลายรูป หรือวางรูปใหม่ระหว่างที่รูปเดิมยังไม่ได้กดใส่ — ไม่ทับค่าที่ยังไม่ได้ใส่) */
+  const [queue, setQueue] = useState<Blob[]>([])
+  /** ตัวที่กดใส่ไปแล้วรอบนี้ (เปิดหน้าต่างครั้งนี้) */
+  const [done, setDone] = useState<string[]>([])
+  /** ตัวเลขที่อ่านจากรูปของตัวที่ใส่ไปแล้ว → รูปใหม่ตัวเลขชุดเดิม = รูปซ้ำ (กด Ctrl+V ตอนคลิปบอร์ดยังเป็นรูปเก่า) */
+  const doneReads = useRef(new Map<string, HeroStats>())
+  const lastRead = useRef<HeroStats | null>(null)
+  const [dupOf, setDupOf] = useState<string | null>(null)
+  /** รอบการอ่านรูป: ปิดหน้าต่าง/ใส่แล้ว/อ่านรูปใหม่ = ผลของรูปเก่าที่อ่านเสร็จทีหลังจะไม่มาทับ */
+  const runId = useRef(0)
+  const reading = useRef(false)
+  /** ล้างฟอร์ม → effect ด้านล่างดึงของเดิมของตัวที่เลือกมาใหม่ (แม้เป็นตัวเดิม) */
+  const [round, setRound] = useState(0)
+  const canAdd = !!onAddHero && heroes.length < MAX_HEROES
+  /** ใส่ได้หลายตัว (หน้ารายละเอียดอัศวินมีตัวเดียว → ใส่แล้วปิดเหมือนเดิม) */
+  const multi = heroes.length > 1 || canAdd
+  const isDone = (h: string) => done.some((d) => sameHero(d, h))
+  // ค่าล่าสุดสำหรับงานที่จบทีหลัง (อ่านรูปเสร็จ / วางรูปผ่าน window) — ไม่ใช้ค่าตอนเปิดหน้าต่างที่ค้างอยู่ใน closure
+  const latest = useRef({ heroes, hero, canAdd, done })
+  latest.current = { heroes, hero, canAdd, done }
+
+  /** ล้างภาพ/ค่า/คำเตือนของรูปปัจจุบัน */
+  function resetForm() {
+    runId.current++
+    reading.current = false
+    fromImage.current = false
+    lastRead.current = null
+    recallRef.current = null
+    setImg((old) => { if (old) URL.revokeObjectURL(old); return null })
+    setStats({}); setRaw(''); setErr(null); setMismatchId(null); setNoHero(false); setConfirming(false); setAskAdd(false); setDupOf(null)
+    setProgress(null)
+    setRecalledAt(null)
+    setRound((r) => r + 1)
+  }
   const openImport = () => {
     // เปิดรอบใหม่ = เริ่มสะอาด (เดิม: ภาพ/ค่า/คำเตือนของรอบก่อนค้าง → เลือกตัวอื่นแล้วได้ค่าของตัวก่อนไป)
-    fromImage.current = false
-    setImg((old) => { if (old) URL.revokeObjectURL(old); return null })
-    setStats({}); setRaw(''); setErr(null); setMismatchId(null); setNoHero(false); setConfirming(false); setAskAdd(false)
+    resetForm()
+    setQueue([]); setDone([]); doneReads.current.clear()
     setOpen(true)
     setStep('upload')
-    setRecalledAt(null)
     setHero((h) => (h && heroes.includes(h) ? h : heroes[0] ?? ''))
+    // เปิดหน้าต่างครั้งแรก (เบราว์เซอร์นี้) → โชว์วิธีใช้ให้เอง
     // ครั้งแรก: มีการสอนแบบส่องปุ่ม (lib/tours: stats-import) แล้ว → ไม่ต้องเด้งหน้าวิธีใช้ซ้อน
     if (!helpSeen() && tourSeen('stats-import')) { setHelp(true); markHelpSeen() }
+  }
+  /** ปิดหน้าต่าง: ตัวที่กดใส่แล้วอยู่ในหน้านั้นแล้ว · รูปที่กำลังอ่าน/รอคิวทิ้งไป */
+  const close = () => {
+    runId.current++
+    reading.current = false
+    setProgress(null)
+    setQueue([])
+    setOpen(false)
   }
   useTour('stats-import', open, 600)
   const nameOf = (id: string) => unitBase(id)
   const mismatch = mismatchId ? nameOf(mismatchId) : null
-  const canAdd = !!onAddHero && heroes.length < MAX_HEROES
   /** ตัวที่เลือกอยู่ในทีมจริงไหม (กันค่าเก่าค้างจากทีมก่อนหน้า) */
   const validHero = !!hero && heroes.includes(hero)
   /** ภาพเป็นตัวที่ไม่อยู่ในทีม แต่ทีมยังเพิ่มได้ → ปุ่มเพิ่มเข้าทีม + ใส่ค่าความสามารถ */
   const quickAdd = canAdd && !!mismatchId
+  /** ตัวเลขซ้ำกับตัวที่ใส่ไปแล้ว แต่ตัวที่เลือกเป็นอีกตัว → ต้องกดยืนยันก่อน (กันเอาค่าตัวแรกไปใส่ตัวที่สอง) */
+  const dupOther = dupOf && !(validHero && sameHero(dupOf, hero)) ? nameOf(dupOf) : null
+  /** ชื่อตัวที่ภาพน่าจะเป็นจริง ๆ (ไม่ใช่ตัวที่เลือก) → กดใส่ครั้งแรก = ถามยืนยัน */
+  const suspect = mismatch ?? dupOther
+  /** ตัวถัดไปที่ยังไม่ได้ใส่ */
+  const nextUp = heroes.find((h) => !isDone(h))
   const addHero = (id: string) => {
     onAddHero?.(id)
     setHero(id)
@@ -151,7 +205,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
     // กรอกเอง/แก้ของเดิม (ไม่ได้อ่านจากรูป) → ช่องค่าความสามารถขึ้นค่าเดิมของตัวนั้นให้แก้ต่อ
     if (!fromImage.current) setStats({ ...(n?.stats ?? {}) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hero, open])
+  }, [hero, open, round])
   const hasExtra = gear && (extra.sets.length > 0 || extra.rings.length > 0 || extra.text.trim() !== '')
   const canApply = hasStats(stats) || hasExtra
   const extraOut = gear ? extra : undefined
@@ -166,16 +220,21 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
     const ex: NoteExtra = { sets: sv.note.sets ?? [], rings: sv.note.rings ?? [], text: cur?.text?.trim() ? cur.text : sv.note.text ?? '' }
     recallRef.current = { hero: h, extra: ex }
     fromImage.current = true // ค่ามาจากที่เคยจด → effect ไม่ดึงค่าในโน้ตมาทับ
+    lastRead.current = null
     if (h === hero) { setExtra(ex); recallRef.current = null }
     setHero(h)
     setStats({ ...(sv.note.stats ?? {}) })
-    setErr(null); setMismatchId(null); setNoHero(false); setConfirming(false)
+    setErr(null); setMismatchId(null); setNoHero(false); setConfirming(false); setDupOf(null)
     setRecalledAt(sv.at)
     setStep('details')
   }
 
   async function run(file: Blob) {
+    const id = ++runId.current
+    const live = () => runId.current === id
+    reading.current = true
     fromImage.current = true
+    lastRead.current = null
     setOpen(true)
     setRecalledAt(null)
     setErr(null)
@@ -185,41 +244,88 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
     setNoHero(false)
     setConfirming(false)
     setAskAdd(false)
+    setDupOf(null)
     setImg((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(file) })
     setProgress(0)
     try {
       // name = บรรทัดชื่ออัศวินที่ครอปมาอ่านแยก (แม่นกว่าอ่านจากทั้งภาพ)
-      const { text, name } = await readImageText(file, setProgress)
+      const { text, name } = await readImageText(file, (p) => { if (live()) setProgress(p) })
+      // ระหว่างอ่าน ปิดหน้าต่าง/วางรูปใหม่ไปแล้ว → ทิ้งผลนี้
+      if (!live()) return
+      // ทีม/ตัวที่เลือก ณ ตอนอ่านเสร็จ (ระหว่างรอ อาจเพิ่มตัวเข้าทีมหรือเปลี่ยนตัวไปแล้ว)
+      const cur = latest.current
       setRaw(name ? `ชื่อ: ${name}\n---\n${text}` : text)
       const s = parseStats(text)
+      lastRead.current = s
       setStats(s)
-      const { found, other } = pickHero(name, text, heroes)
+      const { found, other } = pickHero(name, text, cur.heroes)
       if (found) setHero(found)
       else {
-        if (!hero && heroes[0]) setHero(heroes[0])
+        // หาชื่อไม่เจอ: ยังไม่ได้เลือกตัว → ตัวแรกที่ยังไม่ได้ใส่ (ใส่ครบแล้ว = ไม่เลือกให้ ต้องเลือกเอง กันทับตัวที่ใส่ไปแล้ว)
+        if (!cur.hero || !cur.heroes.includes(cur.hero)) setHero(cur.heroes.find((h) => !cur.done.some((d) => sameHero(d, h))) ?? '')
         // ภาพเป็นอัศวินตัวอื่นที่ไม่ได้อยู่ในคอมพ์ → เตือน (ข้อความทั้งภาพต้องตรงเป๊ะ กันเตือนผิดตัว)
-        if (other) { setMismatchId(other); if (canAdd) setAskAdd(true) }
+        if (other) { setMismatchId(other); if (cur.canAdd) setAskAdd(true) }
         else setNoHero(true)
       }
+      // ตัวเลขชุดเดียวกับตัวที่เพิ่งใส่ไป = น่าจะเป็นรูปเดิม
+      const dup = [...doneReads.current].find(([, r]) => sameRead(r, s))
+      if (dup) setDupOf(dup[0])
       if (!hasStats(s)) setErr(tx('อ่านค่าความสามารถไม่เจอ — ใช้ภาพหน้าข้อมูลอัศวินในเกม (ภาษาไทยหรืออังกฤษ) หรือพิมพ์ค่าเองด้านล่าง'))
     } catch (e) {
-      setErr(tx('อ่านรูปไม่สำเร็จ: ') + (e as Error).message)
+      if (live()) setErr(tx('อ่านรูปไม่สำเร็จ: ') + (e as Error).message)
     } finally {
-      setProgress(null)
-      setStep('details')
+      if (live()) {
+        reading.current = false
+        setProgress(null)
+        setStep('details')
+      }
     }
   }
 
-  // วางรูปจากคลิปบอร์ดได้ตอนหน้าต่างเปิดอยู่
+  /** รับรูปเข้ามา (เลือกไฟล์ / ลากวาง / Ctrl+V) — หลายรูป = อ่านรูปแรก ที่เหลือเข้าคิว */
+  function take(files: Blob[]) {
+    const imgs = files.filter((f) => f.type.startsWith('image/'))
+    if (!imgs.length) return
+    if (!multi) { void run(imgs[0]); return }
+    // รูปเดิมยังอ่านอยู่ หรืออ่านได้แล้วแต่ยังไม่ได้กดใส่ → รูปใหม่ต่อคิว ไม่ทับของเดิม
+    const busy = reading.current || (!!img && hasStats(stats))
+    const later = busy ? imgs : imgs.slice(1)
+    if (later.length) setQueue((q) => [...q, ...later])
+    if (!busy) void run(imgs[0])
+  }
+  const takeRef = useRef(take)
+  takeRef.current = take
+
+  /**
+   * กดใส่แล้ว (applied = ตัวที่ใส่) หรือกดข้ามรูปนี้ (null) → ไปตัวถัดไป:
+   * มีรูปรอคิว = อ่านต่อเลย · ไม่มี = กลับไปหน้าใส่รูป · ใส่ครบทุกตัวและเพิ่มตัวไม่ได้แล้ว = ปิด
+   */
+  function proceed(applied: string | null, added = false) {
+    const doneNow = applied ? [...done.filter((h) => !sameHero(h, applied)), applied] : done
+    if (applied) {
+      setDone(doneNow)
+      if (lastRead.current && hasStats(lastRead.current)) doneReads.current.set(applied, lastRead.current)
+    }
+    const teamNow = added && applied && !heroes.includes(applied) ? [...heroes, applied] : heroes
+    const roomLeft = !!onAddHero && teamNow.length < MAX_HEROES
+    const next = teamNow.find((h) => !doneNow.some((d) => sameHero(d, h)))
+    const [first, ...rest] = queue
+    if (applied && (!multi || (!next && !first && !roomLeft))) { close(); return }
+    resetForm()
+    if (applied) setHero(next ?? '')
+    setQueue(rest)
+    if (first) void run(first)
+    else setStep('upload')
+    // มือถือ: ปุ่มใส่อยู่ล่างสุด → กลับขึ้นไปดูรูป/ตัวถัดไป
+    root.current?.closest('.overflow-y-auto')?.scrollTo({ top: 0 })
+  }
+
+  // วางรูปจากคลิปบอร์ดได้ตอนหน้าต่างเปิดอยู่ (ผ่าน ref = ใช้ทีม/สถานะล่าสุดเสมอ)
   useEffect(() => {
     if (!open) return
-    const onPaste = (e: ClipboardEvent) => {
-      const f = [...(e.clipboardData?.files ?? [])].find((x) => x.type.startsWith('image/'))
-      if (f) run(f)
-    }
+    const onPaste = (e: ClipboardEvent) => takeRef.current([...(e.clipboardData?.files ?? [])])
     window.addEventListener('paste', onPaste)
     return () => window.removeEventListener('paste', onPaste)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   if (!heroes.length && !onAddHero) return null
@@ -231,31 +337,49 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
         className="mt-2 flex items-center gap-1.5 rounded-full border border-sky-300/50 px-3 py-1 text-sm text-sky-100 hover:bg-sky-400/10">
         <Camera className="h-4 w-4" />{' '}{tx('อ่านค่าความสามารถจากรูป')}
       </button>
-      <input ref={input} type="file" accept="image/*" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) run(f); e.target.value = '' }} />
+      <input ref={input} type="file" accept="image/*" multiple={multi} className="hidden"
+        onChange={(e) => { take([...(e.target.files ?? [])]); e.target.value = '' }} />
 
-      <Modal open={open} title={tx('อ่านค่าความสามารถจากรูป')} onClose={() => setOpen(false)} wide>
-        <div className={details ? 'grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]' : 'mx-auto max-w-xl'}>
+      <Modal open={open} title={tx('อ่านค่าความสามารถจากรูป')} onClose={close} wide>
+        <div ref={root} className={details ? 'grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]' : 'mx-auto max-w-xl'}>
           <div>
             <button type="button" data-tour="stats-help" onClick={() => setHelp(true)}
               className="mb-2 flex items-center gap-1.5 text-sm text-sky-200/80 hover:text-sky-100">
               <CircleHelp className="h-4 w-4" />{' '}{tx('วิธีใช้ / ต้องแคปหน้าไหน')}
             </button>
+            {/* ใส่ไปแล้วอย่างน้อย 1 ตัว: ใครเสร็จแล้ว · ตัวถัดไปคือใคร */}
+            {!details && done.length > 0 && (
+              <div className="mb-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm">
+                <div className="flex flex-wrap gap-2">
+                  {heroes.map((h) => (
+                    <span key={h} className={`flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2.5 ${isDone(h) ? 'border-emerald-300/50 text-emerald-100' : h === nextUp ? 'border-gold/70 text-gold' : 'border-white/15 text-white/60'}`}>
+                      <span className="h-6 w-6" style={{ fontSize: 7 }}><UnitCard id={h} shape="round" small /></span>
+                      {unitBase(h)}{isDone(h) && <Check className="h-3.5 w-3.5 text-emerald-300" aria-label={L('ใส่แล้ว', 'applied')} />}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-2 text-emerald-100/90">
+                  {nextUp
+                    ? L(`ใส่แล้ว ${done.length} ตัว · ต่อไป ${nameOf(nextUp)} — ลงรูปได้เลย`, `${done.length} applied · next up: ${nameOf(nextUp)} — add the screenshot`)
+                    : L('ใส่ครบทุกตัวในทีมแล้ว — ลงรูปตัวใหม่เพื่อเพิ่มเข้าทีม หรือกด "เสร็จ"', 'Every hero on the team is filled in — add a screenshot of a new hero to add them, or press "Done"')}
+                </p>
+              </div>
+            )}
             <button type="button" data-tour="stats-drop" onClick={() => input.current?.click()}
               onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
               onDragLeave={() => setDragging(false)}
               onDrop={(e) => {
                 e.preventDefault()
                 setDragging(false)
-                const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/'))
-                if (f) run(f)
+                take([...e.dataTransfer.files])
               }}
-              className={`flex ${details ? 'min-h-48' : 'min-h-72'} w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed bg-black/20 hover:border-gold hover:text-gold ${dragging ? 'border-gold text-gold' : 'border-white/20 text-white/60'}`}>
+              className={`flex ${details ? 'min-h-48' : 'min-h-72'} w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl text-center border-2 border-dashed bg-black/20 hover:border-gold hover:text-gold ${dragging ? 'border-gold text-gold' : 'border-white/20 text-white/60'}`}>
               {img ? <img src={img} alt={tx('ภาพค่าความสามารถ')} className="max-h-80 w-full object-contain" /> : (
                 <>
                   <Camera className="h-8 w-8" />
-                  <span>{tx('เลือกรูปหน้าข้อมูลอัศวิน หรือลากไฟล์มาวาง')}</span>
+                  <span>{done.length ? L('เลือกรูปตัวถัดไป หรือลากไฟล์มาวาง', 'Pick the next screenshot, or drag it in') : tx('เลือกรูปหน้าข้อมูลอัศวิน หรือลากไฟล์มาวาง')}</span>
                   <span className="flex items-center gap-1 text-xs text-white/40"><ClipboardPaste className="h-3.5 w-3.5" />{' '}{tx('หรือกด Ctrl+V วางภาพหน้าจอ')}</span>
+                  {multi && <span className="px-4 text-xs text-white/40">{L('เลือกหลายรูปพร้อมกันได้ — อ่านให้ทีละตัว', 'You can pick several at once — they are read one by one')}</span>}
                 </>
               )}
             </button>
@@ -266,7 +390,19 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
                 <p className="mt-1 text-xs text-white/40">{tx('ครั้งแรกต้องโหลดตัวอ่านประมาณ 8MB')}</p>
               </div>
             )}
+            {queue.length > 0 && (
+              <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-sky-400/10 px-3 py-1.5 text-xs text-sky-100">
+                <Images className="h-3.5 w-3.5 shrink-0" />{' '}
+                {L(`รูปถัดไปรออยู่ ${queue.length} รูป — กดใส่ (หรือข้ามรูปนี้) แล้วจะอ่านต่อให้เอง`, `${queue.length} more screenshot${queue.length > 1 ? 's' : ''} waiting — apply (or skip this one) and the next is read automatically`)}
+              </p>
+            )}
             {err && <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-100">{err}</p>}
+            {dupOf && (
+              <p role="alert" className={`mt-3 rounded-lg border px-3 py-2 text-sm ${dupOther ? 'border-red-400/50 bg-red-500/15 text-red-100' : 'border-amber-400/40 bg-amber-500/10 text-amber-100'}`}>
+                {L(`⚠️ ตัวเลขชุดนี้เหมือนของ ${nameOf(dupOf)} ที่เพิ่งใส่ไป — รูปซ้ำหรือเปล่า? (กด Ctrl+V ก่อนแคปรูปใหม่ จะได้รูปเดิม)`,
+                  `⚠️ These numbers match ${nameOf(dupOf)}, which you just applied — same screenshot again? (Ctrl+V before taking a new screenshot pastes the old one)`)}
+              </p>
+            )}
             {mismatch && (
               <p role="alert" className={`mt-3 rounded-lg border px-3 py-2 text-sm ${quickAdd ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100' : 'border-red-400/50 bg-red-500/15 text-red-100'}`}>
                 {quickAdd
@@ -309,6 +445,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
                   className={`flex items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3 text-sm ${hero === h ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/70'}`}>
                   <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={h} shape="round" small /></span>
                   {unitBase(h)}
+                  {isDone(h) && <Check className="h-3.5 w-3.5 text-emerald-300" aria-label={L('ใส่แล้ว', 'applied')} />}
                 </button>
               ))}
               {canAdd && mismatchId && (
@@ -376,32 +513,53 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
                 const ex = gear ? { sets: own?.sets ?? [], rings: own?.rings ?? [], text: own?.text ?? '' } : undefined
                 if (onAddWithStats) onAddWithStats(mismatchId!, stats, ex)
                 else { addHero(mismatchId!); onApply(mismatchId!, stats, ex) }
-                setOpen(false)
+                proceed(mismatchId!, true)
               }}
-              className="btn-gold flex flex-1 items-center justify-center gap-1.5 py-2 font-semibold">
+              className="btn-gold flex flex-1 items-center justify-center gap-1.5 py-2 font-semibold max-sm:basis-full">
               <Plus className="h-4 w-4" />{' '}{tx('เพิ่ม')}{' '}{mismatch}{' '}{gear ? L('เข้าทีม แล้วใส่ข้อมูล', 'to team and fill info') : L('เข้าทีม แล้วใส่ค่าความสามารถ', 'to team and fill stats')}
             </button>
           )}
           {!(quickAdd && !validHero) && (
           <button disabled={!validHero || !canApply || progress !== null}
             onClick={() => {
-              if (mismatch && !confirming) { setConfirming(true); return }
+              if (suspect && !confirming) { setConfirming(true); return }
               onApply(hero, stats, extraOut)
-              setOpen(false)
+              proceed(hero)
             }} className={confirming
-              ? 'flex-1 rounded-full border border-red-400/70 bg-red-500/25 py-2 font-semibold text-red-50 hover:bg-red-500/35'
-              : quickAdd ? 'pill px-4 py-2 text-sm text-white/75 hover:border-gold/60' : 'btn-gold flex-1 py-2'}>
+              ? 'flex-1 rounded-full border border-red-400/70 bg-red-500/25 py-2 font-semibold text-red-50 hover:bg-red-500/35 max-sm:basis-full'
+              : quickAdd ? 'pill px-4 py-2 text-sm text-white/75 hover:border-gold/60 max-sm:flex-1' : 'btn-gold flex-1 py-2 max-sm:basis-full'}>
             {confirming
-              ? L(`ยืนยัน: ใส่ค่าความสามารถของ ${mismatch} ให้ ${nameOf(hero)}`, `Confirm: apply ${mismatch}'s stats to ${nameOf(hero)}`)
+              ? L(`ยืนยัน: ใส่ค่าความสามารถของ ${suspect} ให้ ${nameOf(hero)}`, `Confirm: apply ${suspect}'s stats to ${nameOf(hero)}`)
               : validHero ? L(`${quickAdd ? 'ใส่ให้' : gear ? 'ใส่ข้อมูลให้' : 'ใส่ค่าความสามารถให้'} ${nameOf(hero)}${quickAdd ? 'แทน' : ''}`, `${quickAdd ? 'Apply to' : gear ? 'Apply info to' : 'Apply stats to'} ${nameOf(hero)}${quickAdd ? ' instead' : ''}`) : tx('เลือกอัศวินก่อน')}
           </button>
           )}
-          <button onClick={() => setOpen(false)} className="pill flex items-center gap-1 px-5 py-2"><X className="h-4 w-4" />{' '}{tx('ยกเลิก')}</button>
+          {/* มีรูปรอคิว: รูปนี้ไม่ใช้ (ผิดรูป/ตัวซ้ำ) → ข้ามไปอ่านรูปถัดไป */}
+          {multi && img && queue.length > 0 && progress === null && (
+            <button type="button" onClick={() => proceed(null)} className="pill flex items-center justify-center gap-1 px-4 py-2 text-sm text-white/75 hover:border-gold/60 max-sm:flex-1">
+              <SkipForward className="h-4 w-4" />{' '}{L('ข้ามรูปนี้', 'Skip this one')}
+            </button>
+          )}
+          {/* ใส่ไปแล้ว = ปิดไม่ได้ย้อนอะไร (ตัวที่ใส่อยู่ในหน้านั้นแล้ว) → ปุ่มเป็น "เสร็จ" แทน "ยกเลิก" */}
+          <button onClick={close} className="pill flex items-center justify-center gap-1 px-5 py-2 max-sm:flex-1">
+            {done.length
+              ? <><Check className="h-4 w-4" />{' '}{L(`เสร็จ (ใส่แล้ว ${done.length})`, `Done (${done.length} applied)`)}</>
+              : <><X className="h-4 w-4" />{' '}{tx('ยกเลิก')}</>}
+          </button>
         </div>
         <p className="mt-2 text-xs text-white/40">
-          {confirming ? tx('ภาพกับตัวที่เลือกไม่ตรงกัน — กดอีกครั้งเพื่อยืนยัน หรือเลือกตัวใหม่ด้านบน') : tx('ตรวจตัวเลขก่อนกดใส่ · ยังไม่บันทึกจนกด "บันทึก" ของหน้านั้น')}
+          {confirming ? tx('ภาพกับตัวที่เลือกไม่ตรงกัน — กดอีกครั้งเพื่อยืนยัน หรือเลือกตัวใหม่ด้านบน')
+            : multi ? L('ตรวจตัวเลขก่อนกดใส่ · กดใส่แล้วลงรูปตัวถัดไปต่อได้เลย ไม่ต้องเปิดใหม่ · ยังไม่บันทึกจนกด "บันทึก" ของหน้านั้น',
+              'Check the numbers before applying · after applying, add the next screenshot right here · nothing is saved until you press "Save" on that page')
+            : tx('ตรวจตัวเลขก่อนกดใส่ · ยังไม่บันทึกจนกด "บันทึก" ของหน้านั้น')}
         </p>
         </>}
+        {/* หน้าใส่รูปหลังใส่ไปแล้ว: ปุ่มจบ */}
+        {!details && done.length > 0 && (
+          <div className="mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-end gap-x-3 gap-y-2">
+            <p className="min-w-0 flex-1 basis-56 text-xs text-white/45">{L('ตัวที่ใส่แล้วอยู่ในตารางของหน้านั้นแล้ว · ยังไม่บันทึกจนกด "บันทึก" ของหน้านั้น', 'Applied heroes are already in that page\'s table · nothing is saved until you press "Save" on that page')}</p>
+            <button type="button" onClick={close} className="btn-gold flex items-center gap-1.5 px-6 py-2"><Check className="h-4 w-4" />{' '}{L('เสร็จ', 'Done')}</button>
+          </div>
+        )}
       </Modal>
       <Modal open={askAdd && !!mismatchId} title={L('เพิ่มอัศวินเข้าทีม?', 'Add this hero to the team?')} onClose={() => setAskAdd(false)}>
         {mismatchId && (
