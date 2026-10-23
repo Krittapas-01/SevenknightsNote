@@ -28,6 +28,19 @@
 .tw-stat-pill > span:last-child { color: #f4d58d; }
 .tw-stat-pill input { color: #fff4d4; }
 .tw-number-input:focus { color: #fff4d4; }
+/* ช่องที่ผู้ใช้กรอกเอง: เลขลำดับ + กรอบช่องกรอก (ว่าง = เส้นประทองกระพริบ 3 ครั้ง) */
+.tw-step { display: inline-grid; flex-shrink: 0; place-items: center; width: 1.15rem; height: 1.15rem; border-radius: 50%; background: var(--tw-gold); color: #171d2a; font-size: .7rem; font-weight: 700; line-height: 1; }
+.tw-field { display: inline-flex; align-items: center; gap: .3rem; cursor: text; border: 1px solid #f4d58d66; border-radius: .6rem; background: #0a1220b3; padding: .1rem .5rem; box-shadow: inset 0 1px 3px #0007; transition: border-color 140ms ease, box-shadow 140ms ease; }
+.tw-field:hover { border-color: #f4d58daa; }
+.tw-field:focus-within { border-color: var(--tw-gold); box-shadow: inset 0 1px 3px #0007, 0 0 0 3px #f4d58d33; }
+.tw-field-big { padding: .1rem .7rem; }
+.tw-field-pen { color: #f4d58d99; }
+.tw-field input::placeholder { color: #f4d58d8c; }
+.tw-field-empty { border-style: dashed; border-color: var(--tw-gold); animation: tw-nudge 1.6s ease-in-out 3; }
+@keyframes tw-nudge { 50% { box-shadow: inset 0 1px 3px #0007, 0 0 0 4px #f4d58d40; } }
+.tw-fill-hint { color: #f4d58dd9; }
+.tw-stage-hint { border: 1px dashed #f4d58d88; background: #0a122099; color: var(--tw-gold); }
+.tw-stage-hint:hover { background: #0a1220d9; }
 .tw-win-card { border-color: #dfbd6d; background: linear-gradient(155deg, #2a3650, #172337); color: #f4d58d; box-shadow: inset 0 0 0 2px #f4d58d20, 0 8px 24px #070d1a55; }
 .tw-win-card input { color: #fff0bd; }
 .tw-goal { background: linear-gradient(145deg, #222f46, #151f31 75%); }
@@ -111,3 +124,13 @@ html[data-theme="light"] .tw-rewards-heading { color: #855604; border-bottom-col
 html[data-theme="light"] .tw-reward-row { border-color: #322e281f; background: linear-gradient(100deg, #e9e8e6, #dcdbd9); color: #2e2a24; box-shadow: inset 0 1px #ffffff99; }
 html[data-theme="light"] .tw-reward-current { border-color: #a0781f; background: linear-gradient(100deg, #ecdcb0, #d9d0bb); box-shadow: inset 0 0 0 1px #a0781f40, 0 0 14px #c9a35a33; }
 html[data-theme="light"] .tw-reward-row .text-xs:not(.rounded-lg, .rounded-xl) { color: #625e58; }
+html[data-theme="light"] .tw-step { background: #855604; color: #fff; }
+html[data-theme="light"] .tw-field { border-color: #a0781f88; background: #ffffffb3; box-shadow: inset 0 1px 2px #322e281a; }
+html[data-theme="light"] .tw-field:hover { border-color: #a0781f; }
+html[data-theme="light"] .tw-field:focus-within { border-color: #855604; box-shadow: inset 0 1px 2px #322e281a, 0 0 0 3px #a0781f33; }
+html[data-theme="light"] .tw-field-empty { border-color: #a0781f; }
+html[data-theme="light"] .tw-field-pen { color: #855604b3; }
+html[data-theme="light"] .tw-field input::placeholder { color: #85560499; }
+html[data-theme="light"] .tw-fill-hint { color: #6b4a0c; }
+html[data-theme="light"] .tw-stage-hint { border-color: #a0781f99; background: #ffffffa6; color: #855604; }
+html[data-theme="light"] .tw-stage-hint:hover { background: #ffffffe0; }
