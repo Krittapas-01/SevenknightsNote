@@ -82,6 +82,11 @@ const CHANGELOG_TH: ChangelogEntry[] = [
         g('ประกาศใน Discord', 'ส่งเป็นข้อความธรรมดาแล้ว ไม่เป็นกล่อง — แจ้งเตือนบนมือถือขึ้นข้อความประกาศต่อจาก @ยศ (เดิมขึ้นแค่ @ยศ) · แผนที่ใช้ กิลด์ที่เจอ และชื่อคนประกาศอยู่บรรทัดถัดไป · แจ้งเตือนบอสจุติก็เปลี่ยนเหมือนกัน'),
       ] },
       { kind: 'fix', groups: [
+        g('หน้าเว็บภาษาอังกฤษ: ไม่มีภาษาไทยหลุดแล้ว',
+          'แท็กกรองในหน้าต่าง "เลือกจากที่จดไว้" (ทั้งหมด / ทีมกายภาพ / ทีมเวท / ทีมแทงก์ / ทีมอื่นๆ) เป็นภาษาอังกฤษแล้ว',
+          'ชื่อเซตอุปกรณ์และแหวนเป็นชื่อภาษาอังกฤษตามเกม (ข้อมูลที่จดไว้ไม่เปลี่ยน)',
+          'ข้อความแจ้งเตือนจากเซิร์ฟเวอร์ (เช่น รหัสผิด ไม่พบกิลด์ ลิงก์ Webhook ผิด) ข้อความเตือนในหน้าแผนสงคราม/บ้านศัตรู ข้อความประกาศสำเร็จรูป ชื่ออัศวินตอนชี้ที่รูป และชื่อแท็บเบราว์เซอร์ เป็นภาษาอังกฤษแล้ว',
+          'ข้อความแจ้งเตือนบอสจุติใส่ {end} / {next} แทน {จบ} / {รอบใหม่} ได้'),
         g(undefined,
           'กดเข้าบ้านศัตรูตอนกรองแท็ก/ค้นหาอยู่ แล้วกดย้อนกลับ ยังอยู่ที่ตัวกรอง/คำค้นเดิม และตำแหน่งเลื่อนเดิม (เดิมเด้งกลับไปทั้งหมด)',
           'ตรา God rank ในหน้าคำนวณแต้มเบ็ดเสร็จคมชัดขึ้น',
@@ -346,6 +351,11 @@ const CHANGELOG_EN: ChangelogEntry[] = [
         g('Discord announcements', 'Now sent as a plain message instead of a box — phone notifications show the announcement after the @role (they used to show only the @role) · the plan, opponent guild and who announced are on the lines below · world boss alerts work the same way'),
       ] },
       { kind: 'fix', groups: [
+        g('English mode: no more Thai text',
+          'The filter chips in "Pick from saved" (All / Physical team / Magic team / Tank team / Other team) are now in English',
+          'Gear set and ring names now use their English in-game names (saved notes are unchanged)',
+          'Server messages (e.g. wrong password, guild not found, invalid webhook link), war plan and enemy defense warnings, quick announcement texts, hero names when hovering a portrait and the browser tab title are now in English',
+          'Revival Boss reminder texts accept {end} / {next} as well as {จบ} / {รอบใหม่}'),
         g(undefined,
           'Opening an enemy defense while filtering by tag/search and going back keeps your filter, search and scroll position (it used to reset to All)',
           'Sharper God rank emblem on the Total War score calculator',

@@ -6,7 +6,7 @@ import { unitBase, unitLabel } from '../data/heroes'
 import { getSkillArt, skillKeysOf } from '../data/skills'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
-import { tx, L } from '../lib/i18n'
+import { EN, tx, L } from '../lib/i18n'
 
 /**
  * รูปรูปแบบแบบในเกม: แถวหลัง = หมากแดง, แถวหน้า = โล่น้ำเงิน
@@ -155,7 +155,8 @@ export function SkillQueueBoard({ team, skills, onChange }: { team: Team; skills
                   const q = skills.findIndex((s) => s.slot === h.slot && s.skill === k)
                   const art = getSkillArt(h.id, k)
                   const label = L(`สกิล${SKILL_LABEL[k]}`, `${SKILL_LABEL[k]} skill`)
-                  const description = `${unitLabel(h.id)} · ${label}${art ? ` · ${art.name}` : ''}`
+                  // ชื่อสกิลมีแต่ภาษาไทย (skills.json) → หน้าเว็บภาษาอังกฤษไม่โชว์ชื่อสกิล
+                  const description = `${unitLabel(h.id)} · ${label}${art && !EN ? ` · ${art.name}` : ''}`
                   return (
                     <button
                       key={k}

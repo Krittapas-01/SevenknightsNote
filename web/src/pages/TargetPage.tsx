@@ -15,7 +15,7 @@ import CompLibrary, { type Comp } from '../components/CompLibrary'
 import VsArena from '../components/VsArena'
 import Modal from '../components/Modal'
 import { useDragScroll } from '../lib/useDragScroll'
-import { getUnit } from '../data/heroes'
+import { getUnit, unitLabel } from '../data/heroes'
 import { api } from '../lib/api'
 import { MAX_HEROES, addHeroToTeam, changeFormation, compKey, emptyTeam, heroCount, moveSlot, placeUnit, teamOps, type HeroNote, type SkillStep, type Team } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
@@ -124,8 +124,8 @@ export default function TargetPage() {
 
   if (error) return <NotFound message={error} />
   if (!data) return <PageSkeleton kind="target" />
-  if (!isNew && !target) return <NotFound message="ไม่พบบ้านศัตรูนี้" />
-  if (isNew && !canEdit) return <NotFound message="ลิงก์นี้ไม่มีสิทธิ์แก้ไข" />
+  if (!isNew && !target) return <NotFound message={L('ไม่พบบ้านศัตรูนี้', 'Enemy defense not found')} />
+  if (isNew && !canEdit) return <NotFound message={L('ลิงก์นี้ไม่มีสิทธิ์แก้ไข', "This link can't edit")} />
 
   const counters = reorder.order.map((id) => serverCounters.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => !!c)
   const current = counters[Math.min(sel, counters.length - 1)]
@@ -234,7 +234,10 @@ export default function TargetPage() {
       // คอมพ์ซ้ำ (อัศวินชุดเดียวกัน) ห้ามจดซ้ำ — ไปเพิ่มทีมแก้ที่บ้านเดิมแทน
       const key = compKey(tDraft.team)
       const dup = data?.targets.find((t) => t.id !== tid && compKey(t.team) === key)
-      if (dup) throw new Error(`คอมพ์นี้จดไว้แล้ว${dup.tags.length ? ` (${dup.tags.join(', ')})` : ''} — เปิดบ้านเดิมแล้วเพิ่มทีมแก้ที่นั่นแทน`)
+      if (dup) {
+        const tags = dup.tags.length ? ` (${dup.tags.map(tagText).join(', ')})` : ''
+        throw new Error(L(`คอมพ์นี้จดไว้แล้ว${tags} — เปิดบ้านเดิมแล้วเพิ่มทีมแก้ที่นั่นแทน`, `This comp is already saved${tags} — open that defense and add counters there instead`))
+      }
       if (isNew) {
         const t = await api.createTarget(gid, tDraft)
         await reload()
@@ -445,8 +448,8 @@ export default function TargetPage() {
             {rightTeam.slots.filter(Boolean).map((id, i) => {
               const u = getUnit(id)
               return u?.thumb || u?.img
-                ? <img key={i} src={u.thumb ?? u.img} alt={u.name} title={u.name} className="h-9 w-9 rounded-lg object-cover ring-1 ring-white/15" />
-                : <span key={i} title={u?.name} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-[10px]">{u?.name.slice(0, 3)}</span>
+                ? <img key={i} src={u.thumb ?? u.img} alt={unitLabel(id)} title={unitLabel(id)} className="h-9 w-9 rounded-lg object-cover ring-1 ring-white/15" />
+                : <span key={i} title={unitLabel(id)} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-[10px]">{unitLabel(id).slice(0, 3)}</span>
             })}
           </div>
         </div>

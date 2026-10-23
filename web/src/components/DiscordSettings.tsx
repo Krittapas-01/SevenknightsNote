@@ -2,10 +2,10 @@ import { BellRing, Check, Plus, Send, ShieldCheck, Trash2, Unlink } from 'lucide
 import { useState } from 'react'
 import { api } from '../lib/api'
 import type { GuildData } from '../lib/types'
-import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT } from '../../../shared/game'
+import { BOSS_DEFAULT_TEXT, BOSS_PLACEHOLDER_EN, BOSS_REVIVAL, MAX_BOSS_TEXT } from '../../../shared/game'
 import Modal from './Modal'
 import { DiscordIcon } from './ContactFab'
-import { tx, L } from '../lib/i18n'
+import { EN, tx, L } from '../lib/i18n'
 
 type Mode = '' | 'everyone' | 'here' | 'role'
 type RoleRow = { id: string; name: string; edit: boolean }
@@ -147,7 +147,8 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
                 <textarea value={v} onChange={(e) => set(e.target.value)} maxLength={MAX_BOSS_TEXT} rows={2} placeholder={tx('เว้นว่าง = ไม่ส่งวันนี้')} className={field} />
               </div>
             ))}
-            <p className="mt-1 text-xs text-white/40">{'{จบ}'}{' '}{tx('= วันจบรอบ ·')}{' '}{'{รอบใหม่}'}{' '}{tx('= วันเริ่มรอบถัดไป · เว้นว่าง = ไม่ส่ง')}</p>
+            <p className="mt-1 text-xs text-white/40">{EN ? BOSS_PLACEHOLDER_EN.end : '{จบ}'}{' '}{tx('= วันจบรอบ ·')}{' '}{EN ? BOSS_PLACEHOLDER_EN.next : '{รอบใหม่}'}{' '}{tx('= วันเริ่มรอบถัดไป · เว้นว่าง = ไม่ส่ง')}</p>
+            {EN && <p className="mt-1 text-xs text-amber-300">Discord messages are currently posted in Thai (default text and dates).</p>}
             <input value={bossUrl} onChange={(e) => setBossUrl(e.target.value)} placeholder={bossConnected ? tx('เปลี่ยนห้อง (เว้นว่าง = ใช้ห้องเดิม)') : 'https://discord.com/api/webhooks/...'} className={field} autoComplete="off" />
             {bossConnected && (
               <div className="mt-2 flex flex-wrap gap-2">

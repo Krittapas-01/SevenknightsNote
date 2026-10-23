@@ -60,8 +60,8 @@ export function teamType(t: Team) {
   const best = Object.entries(n).sort((a, b) => b[1] - a[1])
   return !best.length || (best[1] && best[1][1] === best[0][1]) ? 'อื่นๆ' : best[0][0]
 }
-/** บ้านกัน → "บ้านโจมตี", ทีมแก้ → "ทีมโจมตี" */
-const typeLabel = (t: string, attack: boolean) => (t === 'ทั้งหมด' ? t : attack ? `ทีม${tagText(t)}` : houseLabel(t))
+/** บ้านกัน → "บ้านกายภาพ" / "Physical defense", ทีมแก้ → "ทีมกายภาพ" / "Physical team" */
+const typeLabel = (t: string, attack: boolean) => (t === 'ทั้งหมด' ? tx('ทั้งหมด') : attack ? L(`ทีม${tagText(t)}`, `${tagText(t)} team`) : houseLabel(t))
 
 const teamText = (t: Team, extra = '') =>
   [...t.slots, t.pet, ...t.extras].map((id) => (id ? `${getUnit(id)?.name ?? ''} ${unitBase(id)}` : '')).join(' ') + ' ' + extra

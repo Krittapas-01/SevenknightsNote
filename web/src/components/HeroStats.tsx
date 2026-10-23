@@ -254,7 +254,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
       if (!live()) return
       // ทีม/ตัวที่เลือก ณ ตอนอ่านเสร็จ (ระหว่างรอ อาจเพิ่มตัวเข้าทีมหรือเปลี่ยนตัวไปแล้ว)
       const cur = latest.current
-      setRaw(name ? `ชื่อ: ${name}\n---\n${text}` : text)
+      setRaw(name ? `${L('ชื่อ', 'Name')}: ${name}\n---\n${text}` : text)
       const s = parseStats(text)
       lastRead.current = s
       setStats(s)

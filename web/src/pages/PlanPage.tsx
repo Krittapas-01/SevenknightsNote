@@ -134,7 +134,7 @@ export default function PlanPage() {
       return
     }
     try {
-      await exportPng(exportRef.current, `${data?.guild.name ?? '7K Note'} - ${plan?.title ?? 'แผนสงคราม'}`)
+      await exportPng(exportRef.current, `${data?.guild.name ?? '7K Note'} - ${plan?.title ?? L('แผนสงคราม', 'War plan')}`)
     } catch (e) {
       flash(tx('สร้างรูปไม่สำเร็จ: ') + (e as Error).message)
     } finally {
@@ -236,8 +236,8 @@ export default function PlanPage() {
 
   if (error) return <NotFound message={error} />
   if (!data) return <PageSkeleton kind="plan" />
-  if (!isNew && !plan) return <NotFound message="ไม่พบแผนนี้" />
-  if (isNew && !canEdit) return <NotFound message="ลิงก์นี้ไม่มีสิทธิ์แก้ไข" />
+  if (!isNew && !plan) return <NotFound message={L('ไม่พบแผนนี้', 'Plan not found')} />
+  if (isNew && !canEdit) return <NotFound message={L('ลิงก์นี้ไม่มีสิทธิ์แก้ไข', "This link can't edit")} />
 
   // หน้าใหม่: รอบแรกก่อน useEffect เปิดโหมดแก้ไข ยังไม่มี plan ให้ใช้ draft ไปก่อน
   const view: PlanData = editing || !plan ? draft : plan.data
@@ -269,7 +269,8 @@ export default function PlanPage() {
     if (!mains.size && !unresolved.length) return flash(tx('ยังไม่มีไม้ที่มีทีม — เพิ่มทีมแก้ก่อน'))
     setDraft((d) => ({ ...d, slots: d.slots.map((x, i) => (mains.has(i) ? { ...x, main: mains.get(i) } : x)) }))
     flash(unresolved.length
-      ? `จัดได้ ${mains.size} ไม้ · ${unresolved.map((i) => `ไม้ ${i + 1}`).join(', ')} หาทีมที่ไม่ชนไม่ได้ — ลองเพิ่มทีมสำรอง`
+      ? L(`จัดได้ ${mains.size} ไม้ · ${unresolved.map((i) => `ไม้ ${i + 1}`).join(', ')} หาทีมที่ไม่ชนไม่ได้ — ลองเพิ่มทีมสำรอง`,
+        `Assigned ${mains.size} slots · no clash-free team for ${unresolved.map((i) => `Slot ${i + 1}`).join(', ')} — try adding backup teams`)
       : L(`จัดครบ ${mains.size} ไม้ ไม่มีตัวซ้ำ ✓`, `All ${mains.size} slots assigned, no duplicates ✓`))
   }
   function flash(msg: string) {
@@ -457,7 +458,8 @@ export default function PlanPage() {
       const u = heroUsage(plan.slots)
       const dupe = [...u.entries()].find(([, ss]) => ss.length > 1)
       if (dupe) {
-        setErr(`${dupe[0]} อยู่ในบ้านกันหลายไม้ (${dupe[1].map((x) => `ไม้ ${x + 1}`).join(', ')}) — แต่ละไม้ใช้ตัว/สัตว์เลี้ยงซ้ำกันไม่ได้`)
+        setErr(L(`${unitBase(dupe[0])} อยู่ในบ้านกันหลายไม้ (${dupe[1].map((x) => `ไม้ ${x + 1}`).join(', ')}) — แต่ละไม้ใช้ตัว/สัตว์เลี้ยงซ้ำกันไม่ได้`,
+          `${unitBase(dupe[0])} is in more than one defense (${dupe[1].map((x) => `Slot ${x + 1}`).join(', ')}) — each slot can't reuse a hero/pet`))
         shakeScreen()
         return
       }
@@ -478,7 +480,7 @@ export default function PlanPage() {
         if (isMain) return null
         // ทีมแก้ที่ดึงมาจากที่จดไว้ (ไม่ได้จัดเองในแผน) ไม่ต้องถาม — แก้ลำดับสกิลได้ที่หน้าบ้านศัตรู
         if (x.kind === 'attack' && x.vsId && !o.custom) return null
-        return { label: `ไม้ ${si + 1} · ${oi === 0 ? 'บ้านกันหลัก' : `ทีมสำรอง ${oi}`}`, have: o.skills.length, s: si, o: oi }
+        return { label: L(`ไม้ ${si + 1} · ${oi === 0 ? 'บ้านกันหลัก' : `ทีมสำรอง ${oi}`}`, `Slot ${si + 1} · ${oi === 0 ? 'main defense' : `backup team ${oi}`}`), have: o.skills.length, s: si, o: oi }
       })).filter((v): v is { label: string; have: number; s: number; o: number } => !!v)
       if (short.length) return setSkillAsk({ items: short.map((x) => [x.label, x.have]), back: { s: short[0].s, o: short[0].o }, then: () => void save(plan, askSpeed, true) })
     }
@@ -496,7 +498,7 @@ export default function PlanPage() {
       // แถวอุปกรณ์/ค่าความสามารถที่ยังว่าง (เปิดไว้ให้กรอกในหน้าต่างตั้งไม้) ไม่ต้องบันทึก
       const filled = (n: HeroNote) => !!(n.text.trim() || n.sets.length || n.rings.length || hasStats(n.stats))
       const cleaned = { ...plan, slots: plan.slots.map((x) => ({ ...x, options: x.options.map((o) => (o.heroNotes ? { ...o, heroNotes: o.heroNotes.filter(filled) } : o)) })) }
-      const body = { title: title.trim() || 'แผนสงคราม', data: { ...cleaned, banned: plan.banned.filter((g) => g.length) } }
+      const body = { title: title.trim() || L('แผนสงคราม', 'War plan'), data: { ...cleaned, banned: plan.banned.filter((g) => g.length) } }
       // ทีมที่จัดเองในแผน → เดี๋ยวถามว่าจะจดลงบ้านศัตรูด้วยไหม
       const items = findLogItems(body.data, data?.targets ?? [])
       let planId = pid
@@ -1403,7 +1405,7 @@ export default function PlanPage() {
               <input type="checkbox" className="h-4 w-4 accent-[#f4d58d]" checked={speedAsk.picked[i]}
                 onChange={() => setSpeedAsk((x) => x && { ...x, picked: x.picked.map((v, j) => (j === i ? !v : v)) })} />
               <span className="min-w-0 flex-1 text-sm">
-                <span className="font-semibold text-gold">{draft.slots[it.s]?.name || L(`ไม้ ${it.s + 1}`, `Slot ${it.s + 1}`)}</span>
+                <span className="font-semibold text-gold">{slotLabel(draft.slots[it.s]?.name, it.s)}</span>
                 <span className="text-white/50">{' '}{tx('· ทีม')}{' '}{it.o + 1}</span>
                 <span className="block truncate text-xs text-white/60">{teamNames(draft.slots[it.s].options[it.o].team)}</span>
               </span>

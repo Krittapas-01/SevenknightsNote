@@ -1,4 +1,5 @@
-import { equipmentNames, ringImage, setIcon, setImages } from '../data/equipment'
+import { equipmentNames, ringImage, ringLabel, setIcon, setImages, setLabel } from '../data/equipment'
+import { L } from '../lib/i18n'
 
 export default function EquipmentLoadout({ sets, rings }: { sets: string[]; rings: string[] }) {
   if (!sets.length && !rings.length) return null
@@ -15,16 +16,16 @@ function SetBadge({ name }: { name: string }) {
   const src = setIcon(name)
   if (!src) return <EquipmentItem name={name} kind="set" />
   return (
-    <img src={src} alt={`ชุด${name}`} title={`ชุด${name}`} width={40} height={40} loading="lazy" decoding="async" draggable={false}
+    <img src={src} alt={setLabel(name)} title={setLabel(name)} width={40} height={40} loading="lazy" decoding="async" draggable={false}
       className="h-10 w-10 rounded-lg ring-1 ring-gold/30" />
   )
 }
 
 function EquipmentItem({ name, kind }: { name: string; kind: 'set' | 'ring' }) {
   const images = kind === 'set' ? setImages(name) : [ringImage(name)].filter(Boolean)
-  const label = kind === 'set' ? `ชุด${name}` : name
+  const label = kind === 'set' ? setLabel(name) : ringLabel(name)
   if (!images.length) return <span className="rounded-lg bg-white/10 px-2 py-1 text-xs text-white/80">{label}</span>
-  const slots = ['อาวุธกายภาพ', 'อาวุธเวทย์', 'เกราะ']
+  const slots = [L('อาวุธกายภาพ', 'Physical weapon'), L('อาวุธเวทย์', 'Magic weapon'), L('เกราะ', 'Armor')]
   return (
     // มีรูปแล้วไม่ต้องโชว์ชื่อ (ทุกคนรู้จากรูป) — ชี้เมาส์ค้างดูชื่อได้
     <span className="inline-flex items-center rounded-lg border border-gold/20 bg-black/20 p-1 align-middle" title={label}>

@@ -198,4 +198,8 @@ export const BOSS_DEFAULT_TEXT = {
 export const MAX_BOSS_TEXT = 300
 const TH_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 const thDay = (key: string) => `${+key.slice(8, 10)} ${TH_MONTHS_SHORT[+key.slice(5, 7) - 1]}`
-export const fillBoss = (text: string, b: { end: string; next: string }) => text.split('{จบ}').join(thDay(b.end)).split('{รอบใหม่}').join(thDay(b.next))
+/** ใส่ได้ทั้ง {จบ}/{รอบใหม่} และ {end}/{next} (หน้าเว็บภาษาอังกฤษ) */
+export const BOSS_PLACEHOLDER_EN = { end: '{end}', next: '{next}' }
+export const fillBoss = (text: string, b: { end: string; next: string }) =>
+  text.split('{จบ}').join(thDay(b.end)).split(BOSS_PLACEHOLDER_EN.end).join(thDay(b.end))
+    .split('{รอบใหม่}').join(thDay(b.next)).split(BOSS_PLACEHOLDER_EN.next).join(thDay(b.next))
