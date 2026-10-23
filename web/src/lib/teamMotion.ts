@@ -215,9 +215,19 @@ export function useTeamMotion(root: RefObject<HTMLElement | null>, sig: string, 
  */
 export function queueOrbFx(orb: HTMLElement | null, lit: number, badges?: Element | null, delay = 0) {
   if (!orb || !motionOK()) return
-  const run = () => nextFrame(() => { if (orb.isConnected) orbFx(orb, lit, badges ?? null) })
+  // ดาวหายไปก่อนทันที (ตั้งแต่เฟรมแรกที่หน้าต่างเริ่มปิด) แล้วค่อยโผล่ตอนเส้นแสงหมุน
+  hideQueueStars(orb, true)
+  const run = () => nextFrame(() => {
+    if (orb.isConnected) orbFx(orb, lit, badges ?? null)
+    else hideQueueStars(orb, false)
+  })
   if (delay > 0) setTimeout(run, delay)
   else run()
+}
+/** ซ่อน/คืนดาวทั้งหมดในวงลำดับสกิล (กล่อง data-qstars) */
+export function hideQueueStars(orb: HTMLElement | null, hide: boolean) {
+  const w = orb?.querySelector<HTMLElement>('[data-qstars]')
+  if (w) w.style.opacity = hide ? '0' : ''
 }
 function orbFx(orb: HTMLElement, lit: number, badges: Element | null) {
   // ฟองแก้วอยู่ใต้ดาว (ใส่ก่อนดาว) · เส้นแสงอยู่บนดาว (ใส่ท้าย)
@@ -253,9 +263,15 @@ function orbFx(orb: HTMLElement, lit: number, badges: Element | null) {
   go(core, [{ opacity: 0, transform: 'translate(-50%, -50%) scale(.3)' }, { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.2 }, { opacity: 0.9, transform: 'translate(-50%, -50%) scale(1.15)', offset: 0.5 }, { opacity: 0, transform: 'translate(-50%, -50%) scale(.6)' }], { duration: 600, delay: 60, easing: 'ease-out' })
   // ดาวที่ติดแล้ว (svg.queue-star ดวงละอัน) ติดพร้อมกันตอนเส้นแสงหมุนผ่าน
   const t0 = 130
+  // ดาวทั้งวง (ทั้งดวงที่ติดและดวงมืด) จางเข้าพร้อมกัน แทนที่การซ่อนไว้ก่อนหน้า
+  const wrap = orb.querySelector<HTMLElement>('[data-qstars]')
+  if (wrap) {
+    go(wrap, [{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: t0, easing: 'ease-out' })
+    wrap.style.opacity = ''
+  }
   for (const s of Array.from(orb.querySelectorAll<SVGElement>('svg.queue-star')).slice(0, lit)) {
     s.style.transformOrigin = '50% 50%'
-    go(s, [{ opacity: 0, transform: 'scale(.85)' }, { opacity: 0.45, transform: 'scale(.92)', offset: 0.4 }, { opacity: 1, transform: 'none' }], { duration: 220, delay: t0, easing: 'ease-out' })
+    go(s, [{ transform: 'scale(.8)' }, { transform: 'scale(1.08)', offset: 0.6 }, { transform: 'none' }], { duration: 260, delay: t0, easing: 'ease-out' })
   }
   orb.prepend(back)
   orb.appendChild(fx)

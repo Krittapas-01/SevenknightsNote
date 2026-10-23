@@ -1,7 +1,7 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { queueStyle } from '../lib/queue'
 import { Footprints, PawPrint, Plus, RotateCcw } from 'lucide-react'
-import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   EXTRA_COUNT, MAX_HEROES, MAX_SKILL_QUEUE, SLOT_COUNT, formationLabel, formationName, heroCount, nextEmpty, type SkillStep, type SlotRef, type Team,
 } from '../lib/types'
@@ -13,7 +13,7 @@ import type { HeroNote } from '../lib/types'
 import type { HeroStats } from '../lib/stats'
 import { unitLabel } from '../data/heroes'
 import { tx, L } from '../lib/i18n'
-import { motionOK, queueOrbFx, useTeamMotion } from '../lib/teamMotion'
+import { hideQueueStars, motionOK, queueOrbFx, useTeamMotion } from '../lib/teamMotion'
 
 const getName = (id: string) => unitLabel(id)
 
@@ -226,11 +226,15 @@ export default function TeamPanel({
   const queueSeen = useRef({ sig: queueSig, lit })
   const skillsWasOpen = useRef(false)
   const skillsOpen = modal === 'skills'
-  useEffect(() => {
+  // layout effect = ซ่อนดาวได้ก่อนเฟรมแรกที่หน้าต่างเริ่มปิดจะวาด (ไม่เห็นดาวแวบก่อนเล่น)
+  useLayoutEffect(() => {
     const justClosed = skillsWasOpen.current && !skillsOpen
     skillsWasOpen.current = skillsOpen
     const seen = queueSeen.current
-    if (skillsOpen || seen.sig === queueSig) return
+    const changed = seen.sig !== queueSig
+    // เปิดหน้าต่างอยู่: คิวเปลี่ยนแล้ว = ซ่อนดาวในวงไว้ (หลังพื้นหลังมืด) รอโผล่ตอนปิด
+    if (skillsOpen) { hideQueueStars(queueOrbRef.current, active && changed && motionOK()); return }
+    if (!changed) { if (justClosed) hideQueueStars(queueOrbRef.current, false); return }
     queueSeen.current = { sig: queueSig, lit }
     // นอกหน้าต่าง: ย้ายช่อง/สลับตัว (คิวตามช่องเปลี่ยน แต่จำนวนเท่าเดิม) ไม่ต้องเล่น
     if (active && (justClosed || seen.lit !== lit)) queueOrbFx(queueOrbRef.current, lit, rootRef.current, justClosed ? 140 : 0)
@@ -390,7 +394,7 @@ export default function TeamPanel({
             className="orb mt-4 grid place-items-center"
             style={{ width: 'var(--s)', height: 'var(--s)' }}
           >
-            <span className="absolute inset-0"><QueueStars lit={lit} /></span>
+            <span data-qstars className="absolute inset-0"><QueueStars lit={lit} /></span>
           </button>
         </div>
       </div>
