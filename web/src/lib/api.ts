@@ -172,7 +172,15 @@ export const api = {
   // แท็กหลัก (กายภาพ/เวท/แทงก์) ขึ้นก่อนเสมอ — ข้อมูลเก่าที่ลำดับต่างกันก็เรียงให้ตอนโหลด
   /** rev = เวอร์ชันที่มีในเครื่อง → ถ้าบนเซิร์ฟเวอร์ยังเท่าเดิมได้ null (ใช้ของเดิมต่อ ไม่ต้องโหลดทั้งกิลด์) */
   getGuild: (gid: string, rev?: string) => req<GuildData | { unchanged: true; rev: string }>(`/api/guild/${gid}${rev && gid !== DEMO_ID ? `?rev=${encodeURIComponent(rev)}` : ''}`).then((d) => 'unchanged' in d ? null : ({ ...d, targets: d.targets.map((t) => ({ ...t, tags: sortTags(t.tags) })) })),
-  pulse: (gid: string) => req<Pulse>(`/api/guild/${gid}/pulse`),
+  /** prev = แถบประกาศที่มีอยู่ → ส่งเลขเวอร์ชันไป ถ้าบนเซิร์ฟเวอร์ยังเท่าเดิมได้ prev ตัวเดิมกลับมา (API อ่านแค่ 1 แถว) */
+  pulse: (gid: string, prev?: Pulse | null) =>
+    req<Pulse | { unchanged: true; rev: string; schedule: DayType[]; season?: Pulse['season'] }>(`/api/guild/${gid}/pulse${prev?.rev && gid !== DEMO_ID ? `?rev=${encodeURIComponent(prev.rev)}` : ''}`)
+      .then((p): Pulse => {
+        if (!('unchanged' in p) || !prev) return p as Pulse
+        // ตาราง/Season มาจากโค้ด API (ไม่อ่านฐานข้อมูล) — ส่งมาทุกครั้ง เผื่อ deploy ใหม่เปลี่ยน
+        const same = JSON.stringify([p.schedule, p.season]) === JSON.stringify([prev.schedule, prev.season])
+        return same ? prev : { ...prev, schedule: p.schedule, season: p.season }
+      }),
   checkEdit: (gid: string, key?: string) => req<{ canEdit: boolean; owner?: boolean; locked?: boolean }>(`/api/guild/${gid}/check`, { gid, key }),
   setPassword: (gid: string, password: string) =>
     req<{ ok: true }>(`/api/guild/${gid}/password`, { method: 'PUT', body: JSON.stringify({ password }), gid }),

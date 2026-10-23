@@ -56,6 +56,23 @@ try {
   await check('plan save and reload retains awakening queue', async () => { const r = await request(path + '/plans', { method: 'POST', key: a.editKey, body: { title: 'Audit plan', data: { kind: 'attack', slots: [{ options: [{ team, skills: [{ slot: 0, skill: 3 }] }] }] } } }); assert.equal(r.status, 201); plan = r.data; assert.equal(plan.data.slots.length, 5); assert.equal(plan.data.slots[0].options[0].skills[0].skill, 3) })
   await check('announcement rejects another guild plan', async () => assert.equal((await request('/api/guild/' + b.id + '/announcements', { method: 'POST', key: b.editKey, body: { planId: plan.id } })).status, 400))
   await check('announcement and pulse select correct plan', async () => { assert.equal((await request(path + '/announcements', { method: 'POST', key: a.editKey, body: { planId: plan.id, body: 'Local test only' } })).status, 201); assert.equal((await request(path + '/pulse')).data.activePlan.id, plan.id) })
+  await check('pulse with current rev answers unchanged, new announcement changes it', async () => {
+    const full = (await request(path + '/pulse')).data
+    const same = await request(path + '/pulse?rev=' + encodeURIComponent(full.rev))
+    assert.equal(same.status, 200); assert.equal(same.data.unchanged, true); assert.equal(same.data.rev, full.rev); assert.deepEqual(same.data.schedule, full.schedule); assert.deepEqual(same.data.season, full.season)
+    assert.equal((await request(path + '/announcements', { method: 'POST', key: a.editKey, body: { body: 'Local test only 2' } })).status, 201)
+    const next = (await request(path + '/pulse?rev=' + encodeURIComponent(full.rev))).data
+    assert.equal(next.unchanged, undefined); assert.notEqual(next.rev, full.rev); assert.equal(next.latest.body, 'Local test only 2'); assert.equal(next.activePlan.id, plan.id)
+    assert.equal((await request('/api/guild/missing/pulse?rev=' + encodeURIComponent(full.rev))).status, 404)
+  })
+  await check('counters keep manual order, then unsorted by time', async () => {
+    const mk = async () => (await request(path + '/targets/' + target.id + '/counters', { method: 'POST', key: a.editKey, body: { team } })).data.id
+    const c2 = await mk(), c3 = await mk()
+    assert.equal((await request(path + '/targets/' + target.id + '/counters/order', { method: 'PUT', key: a.editKey, body: { ids: [c3, counter.id, c2] } })).status, 200)
+    const c4 = await mk(); await new Promise((r) => setTimeout(r, 5)); const c5 = await mk() // ยังไม่เคยเรียง = ต่อท้ายตามเวลาที่จด
+    const ids = (await request(path)).data.targets.find((t) => t.id === target.id).counters.map((x) => x.id)
+    assert.deepEqual(ids, [c3, counter.id, c2, c4, c5])
+  })
   await check('missing guild returns 404', async () => assert.equal((await request('/api/guild/missing')).status, 404))
   await check('null JSON request returns validation error, not server error', async () => assert.equal((await request('/api/guild', { method: 'POST', body: null })).status, 400))
   await check('duplicate heroes rejected', async () => assert.equal((await request(path + '/targets', { method: 'POST', key: a.editKey, body: { team: { ...team, slots: ['same', 'same', null, null, null] } } })).status, 400))
