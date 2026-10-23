@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useTeamMotion } from '../lib/teamMotion'
 import UnitCard from '../components/UnitCard'
 import UnitPicker from '../components/UnitPicker'
 import { getUnit, unitLabel } from '../data/heroes'
@@ -141,6 +142,9 @@ export default function AtkPage() {
   })
   const [a, b] = calc
   const leader = a.total === b.total ? null : a.total > b.total ? a : b
+  // แอนิเมชันแบบหน้าจัดทีม: เลือกอัศวิน = เด้ง+แสงทอง · เปลี่ยน/เอาออก = ตัวเดิมจางหาย+ประกายดาว
+  const charsRef = useRef<HTMLDivElement>(null)
+  useTeamMotion(charsRef, chars.map((c) => c.id ?? '').join(','), true)
   const trailer = leader === a ? b : a
 
   return (
@@ -269,7 +273,7 @@ export default function AtkPage() {
         </Section>
       </section>
 
-      <div className="mt-8 grid gap-6 sm:grid-cols-2">
+      <div ref={charsRef} className="mt-8 grid gap-6 sm:grid-cols-2">
         {chars.map((c, i) => {
           const r = calc[i]
           return (
@@ -278,12 +282,13 @@ export default function AtkPage() {
                 <button
                   onClick={() => setPicking(i)}
                   aria-label={L(`เลือกอัศวินตัวที่ ${i + 1}`, `Pick hero ${i + 1}`)}
-                  className="aspect-square w-16 shrink-0 text-[11px] transition hover:-translate-y-0.5"
+                  data-mhost=""
+                  className="relative aspect-square w-16 shrink-0 text-[11px] transition hover:-translate-y-0.5"
                 >
                   {c.id ? (
-                    <UnitCard id={c.id} />
+                    <span data-mp={`hero:a${i}:${c.id}`} className="block h-full w-full"><UnitCard id={c.id} /></span>
                   ) : (
-                    <span className="slot-empty grid h-full w-full place-items-center rounded-[24%_4%_24%_4%] border border-dashed border-white/20 text-white/50">
+                    <span data-mp={`empty:a${i}`} className="slot-empty grid h-full w-full place-items-center rounded-[24%_4%_24%_4%] border border-dashed border-white/20 text-white/50">
                       <Plus className="h-1/3 w-1/3" />
                     </span>
                   )}

@@ -25,6 +25,7 @@ import GuildOnboarding from '../components/GuildOnboarding'
 import { EXPORT_ON, exportPng } from '../lib/exportImage'
 import { autoAssign, blockedFor, conflictCount, conflictsOf, heroKey, heroUsage, heroesOf, mainIndex, mainOption } from '../lib/allocation'
 import HeroDock from '../components/HeroDock'
+import { useTeamMotion } from '../lib/teamMotion'
 import OptionCard from '../components/OptionCard'
 import type { SlotKind } from '../components/TeamPanel'
 import UnitCard from '../components/UnitCard'
@@ -1560,14 +1561,17 @@ function HeroRow({
   danger?: boolean
 }) {
   const dock = useListTarget('list:op', editing ? { label, used: ids, full: ids.length >= 20, onAdd } : null)
+  // ใส่ตัวจากแถบล่าง = เด้ง+แสงทอง แบบหน้าจัดทีม
+  const listRef = useRef<HTMLDivElement>(null)
+  useTeamMotion(listRef, ids.join(','), editing)
   if (!editing && ids.length === 0) return null
   return (
     <div className="flex flex-wrap items-center gap-3">
       {icon}
       <span className="text-lg font-semibold">{label}</span>
-      <div className="flex flex-wrap items-center gap-2">
+      <div ref={listRef} className="flex flex-wrap items-center gap-2">
         {ids.map((id) => (
-          <span key={id} className={`flex items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3 ${danger ? 'border-red-400/40 bg-red-500/10' : 'border-green-400/40 bg-green-500/10'}`}>
+          <span key={id} data-mp={`hero:op:${id}`} className={`flex items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3 ${danger ? 'border-red-400/40 bg-red-500/10' : 'border-green-400/40 bg-green-500/10'}`}>
             <span className="h-8 w-8 text-[9px]">
               <UnitCard id={id} shape="round" />
             </span>
@@ -1604,16 +1608,19 @@ function BannedRow({
   const dock = useListTarget('list:banned', editing ? {
     label: L(`ยกเลิกบ้าน ชุด ${cur + 1}`, `Remove banned set ${cur + 1}`), used: grp, full: grp.length >= 5, onAdd: (id) => onAddHero(cur, id),
   } : null)
+  // ใส่ตัวจากแถบล่าง = เด้ง+แสงทอง แบบหน้าจัดทีม
+  const listRef = useRef<HTMLDivElement>(null)
+  useTeamMotion(listRef, groups.map((g) => g.join(',')).join('|'), editing)
   if (!editing && groups.length === 0) return null
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className="grid h-7 w-7 place-items-center rounded-md bg-red-500 text-white"><X className="h-5 w-5" strokeWidth={3} /></span>
       <span className="text-lg font-semibold">{tx('ยกเลิกบ้าน')}</span>
-      <div className="flex flex-wrap items-center gap-2">
+      <div ref={listRef} className="flex flex-wrap items-center gap-2">
         {groups.map((g, gi) => (
           <span key={gi} className={`flex flex-wrap items-center gap-1 rounded-full border bg-red-500/10 py-0.5 pl-0.5 pr-2 ${dock.active && cur === gi ? 'border-gold shadow-[0_0_12px_rgba(244,213,141,.5)]' : 'border-red-400/40'}`}>
             {g.map((id, i) => (
-              <span key={id} className="flex items-center gap-1">
+              <span key={id} data-mp={`hero:ban${gi}:${id}`} className="flex items-center gap-1">
                 {i > 0 && <span className="text-red-300/70">+</span>}
                 <span className="h-7 w-7" style={{ fontSize: 8 }}><UnitCard id={id} shape="round" /></span>
                 <span className="text-red-100 line-through decoration-red-400/70">{unitLabel(id)}</span>

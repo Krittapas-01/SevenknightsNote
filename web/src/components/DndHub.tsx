@@ -3,6 +3,7 @@ import {
   type CollisionDetection, type DragEndEvent, type DragStartEvent, type Modifier,
 } from '@dnd-kit/core'
 import { zoomOverlay } from '../lib/zoom'
+import { markDrop } from '../lib/teamMotion'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { MAX_HEROES, type SlotRef } from '../lib/types'
@@ -252,6 +253,8 @@ export function DndHub({ children }: { children: ReactNode }) {
   function onDragEnd(e: DragEndEvent) {
     setDrag(null)
     if (!e.over) return
+    // ช่องปลายทางวาบทองตรงที่ปล่อย (ไม่ให้การ์ดเด้งกลับไปเลื่อนจากช่องเดิม)
+    markDrop(drag?.unit)
     const from = parseDndId(String(e.active.id))
     const to = parseDndId(String(e.over.id))
     if (to.roster) return
@@ -309,7 +312,7 @@ export function DndHub({ children }: { children: ReactNode }) {
           <DragOverlay dropAnimation={null} modifiers={[rosterOffset, zoomOverlay]} className="will-change-transform">
             {drag ? (
               <div
-                className="rotate-3 scale-105 cursor-grabbing drop-shadow-2xl"
+                className="drag-lift rotate-3 scale-110 cursor-grabbing drop-shadow-2xl"
                 style={{ width: drag.size, height: drag.shape === 'hero' ? undefined : drag.size, aspectRatio: '1', fontSize: drag.size * (drag.shape === 'round' ? 0.14 : 0.22) }}
               >
                 <UnitCard id={drag.unit} shape={drag.shape} />
