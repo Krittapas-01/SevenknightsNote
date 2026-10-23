@@ -41,10 +41,10 @@ export default function WhatsNew() {
     <Modal open={open} title={<span className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-gold" />{' '}{tx('มีอะไรใหม่')}</span>} onClose={close}>
       {/* แพทช์ที่ยังไม่เห็น (ใหม่สุดก่อน) — ปกติมีอันเดียว */}
       <div className="space-y-6">
-        {items.map((c) => (
-          <div key={c.id}>
+        {items.map((c, i) => (
+          <div key={c.id} className={i ? 'border-t border-white/10 pt-6' : ''}>
             <PatchHeader entry={c} />
-            <div className="mt-3"><PatchNotes entry={c} onNavigate={close} /></div>
+            <div className="mt-4"><PatchNotes entry={c} onNavigate={close} /></div>
           </div>
         ))}
       </div>

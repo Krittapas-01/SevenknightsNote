@@ -784,3 +784,86 @@ html[data-theme="light"] .skill-queue-face { box-shadow: 0 0 0 1px #75737066, 0 
 html[data-theme="light"] .bg-gold { background-color: #e2bf72; }
 /* พื้นทับมืด (bg-ink/xx) บนการ์ด → พื้นสว่างโปร่ง */
 html[data-theme="light"] :is(.bg-ink\/80, .bg-ink\/85) { background-color: #ffffffe6; }
+
+/* ---------- หน้าอัปเดต (UpdatesPage / PatchNotes) ---------- */
+/* ตราเวอร์ชันใหญ่: ทรงโล่เหมือน hero-crest + ตัวเลขทอง */
+.patch-crest {
+  display: grid; place-items: center;
+  width: 3.5rem; height: 3.5rem; padding-top: .1rem;
+  border: 1px solid #c9a35a66; border-radius: 12px 12px 18px 18px;
+  background: linear-gradient(150deg, #f4d58d1f, #131d30 75%);
+  box-shadow: inset 0 0 0 3px #0b1227, inset 0 0 0 4px #c9a35a22;
+  color: #f4d58d; font-size: 1.15rem; font-weight: 800; letter-spacing: -.02em; line-height: 1;
+}
+.patch-crest-lg { width: 4.5rem; height: 4.75rem; font-size: 1.6rem; border-radius: 14px 14px 24px 24px; box-shadow: inset 0 0 0 4px #0b1227, inset 0 0 0 5px #c9a35a33, 0 0 28px #f4d58d14; }
+.patch-crest-long { font-size: 1.15rem; }
+.patch-crest-v { font-size: .55em; font-weight: 600; opacity: .65; margin-right: .08em; }
+.patch-chip { display: inline-flex; align-items: center; border-radius: 9999px; border: 1px solid #c9a35a59; background: #f4d58d14; padding: 0 .5rem; font-size: 11px; font-weight: 700; line-height: 1.35rem; color: #f4d58d; }
+.patch-fresh { border-radius: 9999px; background: #f8717126; color: #fca5a5; padding: .1rem .5rem; font-weight: 500; }
+.patch-rule { background: linear-gradient(90deg, currentColor, transparent); opacity: .3; }
+.patch-kind-new { --kind: var(--color-emerald-300); }
+.patch-kind-change { --kind: var(--color-sky-300); }
+.patch-kind-fix { --kind: var(--color-amber-300); }
+/* หัวข้อย่อย: กล่องแคบ (มือถือ) = เส้นสีหมวดด้านซ้าย · กล่องกว้าง = การ์ดเล็ก */
+.patch-group { border-left: 2px solid color-mix(in srgb, var(--kind, #93a6d0) 40%, transparent); padding: .1rem 0 .1rem .8rem; }
+@container (min-width: 30rem) {
+  .patch-group { border: 1px solid #93a6d01a; border-radius: .75rem; background: linear-gradient(160deg, #ffffff07, #ffffff02); padding: .85rem; }
+}
+@media (max-width: 639px) {
+  .patch-crest { width: 3rem; height: 3rem; font-size: 1rem; }
+  .patch-crest-lg { width: 3.75rem; height: 4rem; font-size: 1.35rem; }
+  .patch-crest-long { font-size: 1rem; }
+}
+/* การ์ดเวอร์ชันล่าสุด: แสงทองจาง ๆ มุมบน */
+.updates-featured { background: radial-gradient(ellipse 70% 220px at 12% 0%, #f4d58d14, transparent 70%), linear-gradient(150deg, #27354f 0%, #1a2439 45%, #131c2e 100%); }
+/* เวอร์ชันย่อย (1.5.1): การ์ดบางกว่า ไม่มีดาว */
+.updates-patch { background: linear-gradient(150deg, #212c43 0%, #182136 100%); box-shadow: inset 0 1px 0 #ffffff0a, 0 8px 22px #05091533; }
+.updates-patch::before, .updates-patch::after { content: none; }
+.updates-more { border: 1px dashed #93a6d033; background: #ffffff05; transition: color 150ms ease, border-color 150ms ease; }
+.updates-more:hover { border-color: #c9a35a80; }
+/* อัปเดตย่อยในแพทช์: เส้นเวลาเล็กด้านซ้าย · ส่วน "เปิดตัวแพทช์" คั่นด้วยเส้น */
+.patch-part-label { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: #d8c08a; }
+.patch-subs { position: relative; padding-left: 1.35rem; }
+.patch-subs::before { content: ""; position: absolute; left: .3rem; top: .5rem; bottom: .5rem; width: 1px; background: linear-gradient(#c9a35a99, #8292bc33); }
+.patch-sub { position: relative; }
+.patch-sub::before { content: ""; position: absolute; left: calc(-1.35rem + .3rem - 4px); top: .45rem; width: 9px; height: 9px; border-radius: 9999px; border: 1px solid #f4d58d; background: var(--surface); box-shadow: 0 0 0 3px #f4d58d1a; }
+.patch-launch { border-top: 1px dashed #93a6d033; }
+html[data-theme="light"] .patch-part-label { color: #7d6a42; }
+html[data-theme="light"] .patch-subs::before { background: linear-gradient(#c9a35acc, #b1aea855); }
+html[data-theme="light"] .patch-sub::before { border-color: #c08a1e; background: #f5f5f4; box-shadow: 0 0 0 3px #d9a93f26; }
+html[data-theme="light"] .patch-launch { border-top-color: #bdb9b3; }
+/* มือถือ: ปุ่มเวอร์ชัน */
+.updates-chip {
+  display: inline-flex; flex-shrink: 0; align-items: center; gap: .4rem;
+  border-radius: 9999px; border: 1px solid #8292bc40; background: linear-gradient(180deg, #232e45, #182134);
+  padding: .4rem .8rem; font-size: 13px; color: #eef1f8b3; white-space: nowrap;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.updates-chip.is-active { border-color: #c9a35acc; background: linear-gradient(180deg, #3a3626, #221f19); color: #eef1f8; box-shadow: 0 0 14px #f4d58d1a; }
+/* คอม: เส้นเวลาเวอร์ชัน */
+.updates-rail { position: relative; }
+.updates-rail::before { content: ""; position: absolute; left: 13px; top: 14px; bottom: 14px; width: 1px; background: linear-gradient(#c9a35a80, #8292bc33 60%, transparent); }
+.updates-rail-item { position: relative; display: flex; width: 100%; align-items: flex-start; gap: .65rem; border-radius: 10px; padding: .45rem .5rem .45rem .45rem; text-align: left; transition: background-color 150ms ease; }
+.updates-rail-item:hover { background: #ffffff08; }
+.updates-rail-item.is-active { background: linear-gradient(90deg, #f4d58d17, transparent); }
+.updates-rail-dot { position: relative; margin-top: .35rem; width: 11px; height: 11px; flex-shrink: 0; border-radius: 9999px; border: 1px solid #b2bdd680; background: var(--surface); transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
+.updates-rail-item.is-patch .updates-rail-dot { width: 7px; height: 7px; margin: .5rem 2px 0; }
+.updates-rail-item.is-patch { padding-top: .3rem; padding-bottom: .3rem; }
+.updates-rail-item.is-active .updates-rail-dot { border-color: #f4d58d; background: #f4d58d; box-shadow: 0 0 0 3px #f4d58d26, 0 0 10px #f4d58d88; }
+
+html[data-theme="light"] .patch-crest { border-color: #c9a35a99; background: linear-gradient(150deg, #f4d58d55, #f5f5f4 75%); box-shadow: inset 0 0 0 3px #f5f5f4, inset 0 0 0 4px #c9a35a44; color: #8a5400; }
+html[data-theme="light"] .patch-crest-lg { box-shadow: inset 0 0 0 4px #f5f5f4, inset 0 0 0 5px #c9a35a55, 0 4px 14px #c9a35a33; }
+html[data-theme="light"] .patch-chip { border-color: #c9a35a99; background: #f4d58d40; color: #7a4a00; }
+html[data-theme="light"] .patch-fresh { background: #fecaca; color: #991b1b; }
+@container (min-width: 30rem) { html[data-theme="light"] .patch-group { border-color: #d6d3cf; background: #ffffff8c; } }
+html[data-theme="light"] .updates-featured { background: radial-gradient(ellipse 70% 220px at 12% 0%, #f4d58d40, transparent 70%), linear-gradient(160deg, #f8f7f6 0%, #efeeed 100%); }
+html[data-theme="light"] .updates-patch { background: linear-gradient(160deg, #f3f2f1, #ecebe9); box-shadow: inset 0 1px 0 #ffffff, 0 1px 2px #322e2814, 0 6px 16px #322e281a; }
+html[data-theme="light"] .updates-more { border-color: #bdb9b3; background: #ffffff66; }
+html[data-theme="light"] .updates-more:hover { border-color: #c08a1e; }
+html[data-theme="light"] .updates-chip { border-color: #c1beb9; background: linear-gradient(180deg, #f7f6f5, #ecebe9); color: #4a463f; }
+html[data-theme="light"] .updates-chip.is-active { border-color: #c08a1e; background: linear-gradient(180deg, #fbf1d6, #f3e3b8); color: #25221d; box-shadow: 0 2px 8px #c9a35a40; }
+html[data-theme="light"] .updates-rail::before { background: linear-gradient(#c9a35aaa, #b1aea855 60%, transparent); }
+html[data-theme="light"] .updates-rail-item:hover { background: #ffffff80; }
+html[data-theme="light"] .updates-rail-item.is-active { background: linear-gradient(90deg, #f4d58d55, transparent); }
+html[data-theme="light"] .updates-rail-dot { border-color: #a5a19a; }
+html[data-theme="light"] .updates-rail-item.is-active .updates-rail-dot { border-color: #c08a1e; background: #d9a93f; box-shadow: 0 0 0 3px #d9a93f33; }
