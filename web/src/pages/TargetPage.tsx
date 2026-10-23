@@ -49,6 +49,7 @@ import { tx, L } from '../lib/i18n'
 import { tourSeen, useTour } from '../lib/tour'
 import { flashSaved, savedToast } from '../lib/celebrate'
 import { isDemo } from '../lib/demo'
+import { keepHiddenNotes, teamNotes } from '../lib/heroNotes'
 
 const copyNotes = (n?: HeroNote[]) => (n ?? []).map((x) => ({ ...x, sets: [...x.sets], rings: [...x.rings] }))
 
@@ -129,6 +130,9 @@ export default function TargetPage() {
 
   const counters = reorder.order.map((id) => serverCounters.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => !!c)
   const current = counters[Math.min(sel, counters.length - 1)]
+  // อุปกรณ์รายตัวเฉพาะตัวที่อยู่ในทีม (ทีมแก้เก่าที่เคยเอาตัวออกแล้วของยังค้าง → ไม่โชว์ · บันทึกครั้งหน้าหายไปเอง)
+  const curNotes = current ? teamNotes(current.heroNotes, current.team.slots) : []
+  const draftNotes = teamNotes(cDraft.heroNotes, cDraft.team.slots)
   if (!reorder.dragId) selId.current = current?.id ?? null
   // ไลค์มากก่อน (เท่ากัน = ลำดับเดิม) — ปุ่มลัด "เรียงตามไลค์" โชว์เมื่อมีไลค์และลำดับยังไม่ตรง
   const byLikes = [...counters].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0)).map((c) => c.id)
@@ -280,8 +284,9 @@ export default function TargetPage() {
       // ทีมแก้ซ้ำในบ้านเดียวกัน (อัศวินชุดเดียวกัน) ห้ามจดซ้ำ
       const dupC = counters.findIndex((c) => c.id !== cDraft.id && compKey(c.team) === compKey(team))
       if (dupC >= 0) throw new Error(L(`ทีมแก้นี้มีอยู่แล้ว (ทีมแก้ #${dupC + 1}) — แก้ที่ทีมเดิมแทน`, `This counter already exists (Counter #${dupC + 1}) — edit that one instead`))
-      const body = { team, skills: cDraft.skills, note: cDraft.note, heroNotes: cDraft.heroNotes }
-      rememberNotes(cDraft.heroNotes) // จำค่าความสามารถล่าสุดของเครื่องนี้
+      // ของตัวที่เอาออกจากทีมแล้วไม่บันทึก
+      const body = { team, skills: cDraft.skills, note: cDraft.note, heroNotes: teamNotes(cDraft.heroNotes, team.slots) }
+      rememberNotes(body.heroNotes) // จำค่าความสามารถล่าสุดของเครื่องนี้
       // หน้าเปลี่ยนทันที (ทีมแก้ขึ้นจอเลย) แล้วค่อยบันทึกเบื้องหลัง — ทีมใหม่ใช้ id ชั่วคราวจนโหลดข้อมูลจริงกลับมา
       const draft = { ...cDraft, team: clone(cDraft.team) }
       const now = Date.now()
@@ -341,7 +346,7 @@ export default function TargetPage() {
     <TeamPanel
         variant="ally"
         team={leftTeam}
-        heroNotes={editingC ? cDraft.heroNotes : current?.heroNotes ?? []}
+        heroNotes={editingC ? draftNotes : curNotes}
         title={undefined}
         skills={leftSkills}
         editable={editingC}
@@ -470,7 +475,9 @@ export default function TargetPage() {
       />
       <div className="mt-4">
         <p className="mb-2 text-sm text-white/60">{tx('อุปกรณ์/ค่าความสามารถรายตัว')}</p>
-        <HeroNotesTable notes={cDraft.heroNotes} editing team={cDraft.team.slots} onChange={(heroNotes) => setCDraft((d) => ({ ...d, heroNotes }))}
+        {/* โชว์เฉพาะตัวในทีม · ตัวที่เพิ่งเอาออกยังจำของไว้จนกดบันทึก (ใส่กลับมาแล้วของเดิมกลับมา) */}
+        <HeroNotesTable notes={draftNotes} editing team={cDraft.team.slots}
+          onChange={(next) => setCDraft((d) => ({ ...d, heroNotes: keepHiddenNotes(d.heroNotes, draftNotes, next) }))}
           onAddHero={(hero) => setCDraft((d) => ({ ...d, team: addHeroToTeam(d.team, hero) }))} />
       </div>
       <Actions busy={busy} onSave={() => saveCounter()} onCancel={cancel} onDelete={cDraft.id ? deleteCounter : undefined} />
@@ -719,15 +726,15 @@ export default function TargetPage() {
                 <h3 data-tour="counter-head" className="flex items-center gap-2 font-semibold text-gold">
                   {current ? L(`ทีมแก้ #${Math.min(sel, counters.length - 1) + 1}`, `Counter #${Math.min(sel, counters.length - 1) + 1}`) : tx('ทีมแก้')}
                   {current && <LikeButton key={current.id} gid={gid} cid={current.id} count={current.likes ?? 0} onChanged={reload} />}
-                  {current && <SavePresetButton team={current.team} skills={current.skills} note={current.note} heroNotes={current.heroNotes} className="font-normal" />}
+                  {current && <SavePresetButton team={current.team} skills={current.skills} note={current.note} heroNotes={curNotes} className="font-normal" />}
                 </h3>
               </div>
               {current ? (
                 <>
                   {current.note ? <EquipmentNoteText text={current.note} /> : <p className="mt-3 text-white/40">{tx('ไม่มีโน้ต')}</p>}
                   {/* อยู่ในการ์ดทีมแก้ → รู้ว่าดูรายละเอียดของทีมไหน */}
-                  {(current.heroNotes?.length ?? 0) > 0 && (
-                    <TeamGearButton className="mt-4" team={current.team} skills={current.skills} heroNotes={current.heroNotes!}
+                  {curNotes.length > 0 && (
+                    <TeamGearButton className="mt-4" team={current.team} skills={current.skills} heroNotes={curNotes}
                       label={L(`ดูรายละเอียดทีมแก้ #${Math.min(sel, counters.length - 1) + 1}`, `View counter #${Math.min(sel, counters.length - 1) + 1} details`)}
                       title={L(`ทีมแก้ #${Math.min(sel, counters.length - 1) + 1} · รายละเอียดทั้งทีม`, `Counter #${Math.min(sel, counters.length - 1) + 1} · full team details`)} />
                   )}
