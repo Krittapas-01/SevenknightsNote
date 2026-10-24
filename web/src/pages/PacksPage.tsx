@@ -118,7 +118,7 @@ export default function PacksPage() {
             ? <ValuesTab prefs={prefs} worth={worth} onChange={(k, v) => { const w = { ...prefs.worth }; if (v === undefined) delete w[k]; else w[k] = v; update({ worth: w }) }}
                 onReset={() => update({ worth: {} })} />
             : (
-              <div className="space-y-3">
+              <div className="grid gap-2 xl:grid-cols-2">
                 {shown.map((g) => <GroupRow key={g.name} g={g} now={now} onOpen={() => setOpenGroup(g.name)} />)}
                 {packs && !shown.length && <p className="py-12 text-center text-white/50">{L('ยังไม่มีแพ็คในหมวดนี้', 'No packs in this tab')}</p>}
               </div>
@@ -203,17 +203,17 @@ function GroupRow({ g, now, onOpen }: { g: Group; now: number; onOpen: () => voi
   const prices = g.rows.map((r) => r.p.price)
   return (
     <button type="button" onClick={onOpen}
-      className="panel group relative flex min-h-[112px] w-full items-stretch overflow-hidden text-left transition hover:border-gold/60">
+      className="panel group relative flex min-h-[72px] w-full items-stretch overflow-hidden text-left transition hover:border-gold/60">
       {meta?.art
-        ? <img src={meta.art} alt="" loading="lazy" draggable={false} className="pack-art-l pointer-events-none absolute inset-y-0 left-0 h-full w-[46%] object-cover object-left sm:w-[38%]" />
-        : <span className="pointer-events-none absolute inset-y-0 left-0 w-[30%] bg-gradient-to-r from-gold/15 to-transparent" />}
-      <span className="relative ml-auto flex w-[62%] min-w-0 flex-col justify-center gap-1 py-3 pr-3 sm:w-[66%]">
+        ? <img src={meta.art} alt="" loading="lazy" draggable={false} className="pack-art-l pointer-events-none absolute inset-y-0 left-0 h-full w-[96px] object-cover object-left sm:w-[120px]" />
+        : <span className="pointer-events-none absolute inset-y-0 left-0 w-[96px] bg-gradient-to-r from-gold/15 to-transparent sm:w-[120px]" />}
+      <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-2 pl-[88px] pr-3 sm:pl-[112px]">
         <span className="flex items-start gap-2">
-          <b className="min-w-0 flex-1 text-[15px] leading-snug">{g.name}</b>
+          <b className="min-w-0 flex-1 text-sm leading-snug">{g.name}</b>
           {g.endsAt && <span className="flex shrink-0 items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[11px] text-white/70"><CalendarClock className="h-3 w-3" />{endsIn(g.endsAt, now)}</span>}
         </span>
-        {meta?.sub && <span className="text-xs leading-snug text-white/55">{L(...meta.sub)}</span>}
-        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        {meta?.sub && <span className="truncate text-xs leading-snug text-white/55">{L(...meta.sub)}</span>}
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           {g.best > 0 && <span className={`rounded-full px-2 py-0.5 font-semibold ${t.cls}`}>{L('คุ้มสุด', 'Best')} {Math.round(g.best)}%</span>}
           <span className="text-white/50 tabular-nums">{g.rows.length} {L('ขั้น', 'tiers')} · {baht(Math.min(...prices))}{prices.length > 1 ? `–${baht(Math.max(...prices))}` : ''}</span>
           <ChevronRight className="ml-auto h-4 w-4 text-white/40 transition group-hover:translate-x-0.5 group-hover:text-gold" />
