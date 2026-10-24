@@ -4,7 +4,7 @@ import Modal from '../components/Modal'
 import PackTile, { Prism } from '../components/PackTile'
 import { api } from '../lib/api'
 import {
-  ATLAS_CATS, CAT_NAME, GROUP_META, ITEMS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, boughtCount, defaultWorth, itemName, itemsOf, loadWorthPrefs, packTab, packValue, periodLabel,
+  ATLAS_CATS, CAT_NAME, GROUP_META, ITEMS, shownItems, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, boughtCount, defaultWorth, itemName, itemsOf, loadWorthPrefs, packTab, packValue, periodLabel,
   rateOf, recommend, saveWorthPrefs, setBought, shopValue, tierOf, worthTable,
   type Metric, type Pack, type PackItemKey, type PackTab, type Profile, type Worth, type WorthPrefs,
 } from '../lib/packs'
@@ -230,7 +230,9 @@ function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; wort
   const left = p.limit - bought
   const done = left <= 0
   const t = tierOf(pct)
-  const items = itemsOf(p)
+  const all = itemsOf(p)
+  const items = shownItems(p, (k) => worth[k])
+  const opts = all.filter((x) => x.s)
   const shop = shopValue(p)
   const counted = items.filter((x) => worth[x.k] > 0)
   const skipped = items.filter((x) => !(worth[x.k] > 0))
@@ -250,7 +252,7 @@ function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; wort
         </div>
         {/* ช่องของ 2 แถวแบบในเกม */}
         <div className="ml-auto grid min-w-0 gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(items.length / 2))}, auto)` }}>
-          {items.map((x, i) => <PackTile key={i} k={x.k} n={x.n} bonus={!!x.b} muted={!(worth[x.k] > 0)} />)}
+          {items.map((x, i) => <PackTile key={i} k={x.k} n={x.n} bonus={!!x.b} pick={!!x.s} muted={!(worth[x.k] > 0)} />)}
         </div>
       </div>
       {p.items.other && <p className="-mt-1 px-3 pb-2 text-right text-[11px] text-white/45">+ {p.items.other}</p>}
@@ -265,9 +267,10 @@ function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; wort
         <div className="edit-arrive space-y-1 border-t border-white/10 bg-black/15 px-3 py-2.5 text-xs leading-relaxed text-white/70">
           {counted.map((x, i) => (
             <p key={i} className="flex justify-between gap-2 tabular-nums">
-              <span className="min-w-0 truncate">{itemName(x.k)} {num(x.n)} × {num(worth[x.k])}</span><span>{fmt(x.n * worth[x.k])}</span>
+              <span className="min-w-0 truncate">{x.s && L('เลือก: ', 'Pick: ')}{itemName(x.k)} {num(x.n)} × {num(worth[x.k])}</span><span>{fmt(x.n * worth[x.k])}</span>
             </p>
           ))}
+          {opts.length > 1 && <p className="text-white/45">{L('ช่อง Select เลือกได้ 1 อย่าง (นับอันที่คุ้มสุด)', 'Select slot: pick 1 (the best one is counted)')}: {opts.map((x) => `${itemName(x.k)} ${num(x.n)}`).join(' / ')}</p>}
           <p className="flex justify-between gap-2 border-t border-white/10 pt-1 font-semibold text-white tabular-nums">
             <span>{L('รวม', 'Total')}</span><span>{fmt(value)} {L('รูบี้', 'rubies')}</span>
           </p>

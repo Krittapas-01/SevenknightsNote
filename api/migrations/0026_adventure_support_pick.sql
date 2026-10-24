@@ -1,0 +1,5 @@
+-- Adventure Support S: ช่อง Select เลือกของแถมได้ 1 อย่าง (ตั๋วถาวร / ตั๋วสัตว์ / กล่องกุญแจ) — จากคลิปที่ Krit อัดมา 24 ต.ค. 2026
+-- s = 1 คือตัวเลือกของช่อง Select · เว็บนับตัวเลือกที่คุ้มสุดตามค่าที่ผู้เล่นให้
+UPDATE packs SET items = '{"list":[{"k":"rubies","n":250},{"k":"chests","n":5,"b":1},{"k":"permanent","n":10,"b":1,"s":1},{"k":"pet","n":10,"b":1,"s":1},{"k":"chests","n":10,"b":1,"s":1},{"k":"ore","n":75,"b":1}],"tab":"special"}', updated_at = 1792825200000 WHERE id = 'adv-s-179';
+UPDATE packs SET items = '{"list":[{"k":"rubies","n":1000},{"k":"chests","n":10,"b":1},{"k":"permanent","n":40,"b":1,"s":1},{"k":"pet","n":40,"b":1,"s":1},{"k":"chests","n":40,"b":1,"s":1},{"k":"ore","n":300,"b":1}],"tab":"special"}', updated_at = 1792825200000 WHERE id = 'adv-s-729';
+UPDATE packs SET items = '{"list":[{"k":"rubies","n":1650},{"k":"chests","n":20,"b":1},{"k":"permanent","n":50,"b":1,"s":1},{"k":"pet","n":50,"b":1,"s":1},{"k":"chests","n":50,"b":1,"s":1},{"k":"ore","n":490,"b":1}],"tab":"special"}', updated_at = 1792825200000 WHERE id = 'adv-s-1150';

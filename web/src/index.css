@@ -910,6 +910,8 @@ html[data-theme="light"] .updates-rail-item.is-active .updates-rail-dot { border
 .pack-tile.is-muted { opacity: .45; filter: grayscale(.7); }
 .pack-tile-n { color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
 .pack-tile-bonus { background: #111; color: #fff; }
+.pack-tile.is-pick { box-shadow: inset 0 0 0 2px #e9c46a, 0 1px 2px #0006; }
+.pack-tile-pick { background: #e9c46a; color: #1b1b1f; }
 .pack-art-l {
   -webkit-mask-image: linear-gradient(to left, transparent 0, #000 35%);
   mask-image: linear-gradient(to left, transparent 0, #000 35%);

@@ -25,8 +25,8 @@ export const PACKS_ON = false
 export const KEYS_PER_CHEST = 60
 export { ATLAS_CATS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, type AtlasCat, type PackItemKey, type PackTab }
 
-/** ของ 1 ช่องในแพ็ค · b = ของแถม (ป้าย BONUS ในเกม) */
-export type ItemLine = { k: PackItemKey; n: number; b?: 1 }
+/** ของ 1 ช่องในแพ็ค · b = ของแถม (ป้าย BONUS ในเกม) · s = ตัวเลือกของช่อง "Select" (เลือกได้ 1 อย่างจากทุกบรรทัดที่มี s) */
+export type ItemLine = { k: PackItemKey; n: number; b?: 1; s?: 1 }
 export type PackItems = {
   list?: ItemLine[]; tab?: PackTab; other?: string
   /** ข้อมูลรุ่นแรก (ก่อนมี list) */
@@ -162,13 +162,27 @@ export function packTab(p: Pack): PackTab {
   return p.period === 'monthly' ? 'monthly' : p.period === 'daily' ? 'daily' : 'special'
 }
 
+/** ตัวเลือกที่คุ้มสุดของช่อง "Select" ตามค่าที่ให้ (ไม่มีช่องเลือก = null) */
+export function bestPick(lines: ItemLine[], val: (k: PackItemKey) => number) {
+  let best: ItemLine | null = null
+  for (const x of lines) if (x.s && (!best || x.n * val(x.k) > best.n * val(best.k))) best = x
+  return best
+}
+/** ช่องที่แสดง/นับจริง: ของตายตัว + ช่องเลือก 1 ช่อง (ใช้ตัวเลือกที่คุ้มสุด วางที่ตำแหน่งตัวเลือกแรก) */
+export function shownItems(p: Pick<Pack, 'items'>, val: (k: PackItemKey) => number) {
+  const all = itemsOf(p)
+  const best = bestPick(all, val)
+  const firstPick = all.findIndex((x) => x.s)
+  return all.flatMap((x, i) => (!x.s ? [x] : i === firstPick && best ? [best] : []))
+}
 /** มูลค่ารวม (รูบี้เทียบเท่า) ตามค่าที่ให้ */
 export function packValue(p: Pick<Pack, 'items'>, worth: Worth = DEFAULT_WORTH) {
-  return itemsOf(p).reduce((s, x) => s + x.n * worth[x.k], 0)
+  return shownItems(p, (k) => worth[k]).reduce((s, x) => s + x.n * worth[x.k], 0)
 }
 /** มูลค่าถ้าคิดตามราคาร้านรูบี้ (แบบเว็บอื่น) — ของที่ไม่มีในร้านใช้ค่าตั้งต้น */
 export function shopValue(p: Pick<Pack, 'items'>) {
-  return itemsOf(p).reduce((s, x) => s + x.n * (ITEMS[x.k].shop ?? DEFAULT_WORTH[x.k]), 0)
+  const shop = (k: PackItemKey) => ITEMS[k].shop ?? DEFAULT_WORTH[k]
+  return shownItems(p, shop).reduce((s, x) => s + x.n * shop(x.k), 0)
 }
 export const priceOf = (p: Pick<Pack, 'price' | 'gems'>, m: Metric) => (m === 'gem' ? p.gems : p.price)
 /** รูบี้เทียบเท่าต่อ 1 บาท / 1 ปริซึม (0 = ไม่มีราคาแบบนั้น) */

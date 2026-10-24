@@ -1219,9 +1219,9 @@ function cleanPack(b: any): Omit<PackRow, 'id' | 'updated_at'> | string {
   const price = Math.round(Number(b?.price) * 100) / 100
   if (!(price > 0) || price > 100000) return 'ราคาไม่ถูกต้อง'
   const it = b?.items ?? {}
-  // ของในแพ็ค = รายการ { k ชนิด (shared/packs.ts), n จำนวน, b = ของแถม }
+  // ของในแพ็ค = รายการ { k ชนิด (shared/packs.ts), n จำนวน, b = ของแถม, s = ตัวเลือกของช่อง Select (เลือกได้ 1) }
   const list = (Array.isArray(it.list) ? it.list : []).slice(0, MAX_PACK_ITEMS)
-    .map((x: any) => ({ k: String(x?.k ?? ''), n: nonNeg(x?.n, 1e9), ...(x?.b ? { b: 1 } : {}) }))
+    .map((x: any) => ({ k: String(x?.k ?? ''), n: nonNeg(x?.n, 1e9), ...(x?.b ? { b: 1 } : {}), ...(x?.s ? { s: 1 } : {}) }))
     .filter((x: { k: string; n: number }) => (PACK_ITEM_KEYS as readonly string[]).includes(x.k) && x.n > 0)
   const tab = (PACK_TABS as readonly string[]).includes(it.tab) ? it.tab : undefined
   const items = { list, ...(tab ? { tab } : {}), other: str(it.other, 120) }
