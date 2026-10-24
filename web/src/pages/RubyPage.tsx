@@ -5,7 +5,7 @@ import packPowerUp from '../assets/packs/power-up.webp'
 import packRuby from '../assets/packs/ruby-support.webp'
 import packPass from '../assets/packs/7k-pass.webp'
 import packCheckin from '../assets/packs/premium-checkin.webp'
-import { DEFAULT_FARM_FORM, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, bestBattles, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
+import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, bestBattles, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 import RubyIcon from '../components/RubyIcon'
 
@@ -106,7 +106,7 @@ export default function RubyPage() {
   const keys = dailyKeys(form)
   const plan = useMemo(() => planFarm(input, 0), [input])
   const setSize = Math.max(1, Math.floor(input.battlesPerSet))
-  const sec = Math.max(1, num(form.secPerBattle, 21))
+  const sec = Math.max(1, num(form.secPerBattle, FARM_DEFAULTS.secPerBattle))
   // ว่าง = เล่นเท่าที่ไม่ต้องจ่ายรูบี้ (กุญแจฟรี + กล่องฟรี)
   let freeN = 0
   while (freeN < plan.prices.length && plan.prices[freeN] === 0) freeN++
@@ -205,8 +205,17 @@ export default function RubyPage() {
             </div>
           )}
 
-        {/* กุญแจ / กล่อง / สุทธิ */}
+        {/* อัศวินที่ดรอปคืน / กุญแจ / กล่อง */}
         <div className="mt-3 rounded-xl bg-white/[.04] px-3 py-2.5 text-sm">
+          {r.dropped > 0 && r.heroes > 0 && (
+            <p className="mb-1.5 flex items-start gap-1.5 border-b border-white/10 pb-1.5 tabular-nums">
+              <Users className="mt-0.5 h-4 w-4 shrink-0 text-white/50" />
+              <span className="min-w-0">
+                <span className="text-white/70">{L(`ดรอปอัศวิน 2–3★ คืน ~${fmt(r.dropped)} ตัว (ใช้ฟาร์มต่อได้) · `, `~${fmt(r.dropped)} 2–3★ heroes drop back (usable for farming) · `)}</span>
+                <span className="font-semibold">{L(`เตรียมเองแค่ ~${fmt(Math.max(0, r.heroes - r.dropped))} ตัว`, `prepare only ~${fmt(Math.max(0, r.heroes - r.dropped))}`)}</span>
+              </span>
+            </p>
+          )}
           <p className="flex items-start gap-1.5 text-white/70 tabular-nums">
             <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-white/50" />
             <span className="min-w-0">{L(`ใช้กุญแจ ${fmt(r.keysNeeded)} · มีกุญแจฟรีวันละ ${fmt(r.freeKeys)} · ได้ทอง ${big(r.gold)}`, `Uses ${fmt(r.keysNeeded)} keys · ${fmt(r.freeKeys)} free keys a day · ${big(r.gold)} gold`)}</span>
@@ -375,6 +384,7 @@ export default function RubyPage() {
               <Field label={L('รูบี้ต่ออัศวินที่เต็มเลเวล', 'Rubies per maxed hero')} value={form.rubyPerHero} onChange={(v) => set('rubyPerHero', v)} unit={<Ruby />} />
               <Field label={L('รอบจนอัศวินตัน (ไม่มีแพ็ค)', 'Battles to max (no pack)')} value={form.battlesPerSetBase} onChange={(v) => set('battlesPerSetBase', v)} unit={L('รอบ', 'battles')} />
               <Field label={L('รอบจนอัศวินตัน (มี Daily Ruby)', 'Battles to max (Daily Ruby)')} value={form.battlesPerSet} onChange={(v) => set('battlesPerSet', v)} unit={L('รอบ', 'battles')} />
+              <Field label={L('ดรอปอัศวิน 2–3★ ต่อ 100 รอบ', '2–3★ hero drops per 100 battles')} value={form.heroDrop} onChange={(v) => set('heroDrop', v)} unit={L('ตัว', 'heroes')} />
             </div>
 
             <p className="mt-5 text-sm font-medium text-gold">{L('กุญแจและการต่อสู้', 'Keys and battles')}</p>
