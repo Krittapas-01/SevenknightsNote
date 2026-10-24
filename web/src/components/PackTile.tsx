@@ -1,11 +1,17 @@
 import { itemName, type PackItemKey } from '../lib/packs'
 import { L } from '../lib/i18n'
+import prism from '../assets/packs/items/prism.webp'
 
 /** รูปไอเท็มจาก 7K Atlas (ที่มาใน assets/packs/SOURCES.md) · ชื่อไฟล์ = key ของไอเท็ม */
 const ART = Object.fromEntries(
   Object.entries(import.meta.glob<string>('../assets/packs/items/*.webp', { eager: true, import: 'default' }))
     .map(([path, url]) => [path.slice(path.lastIndexOf('/') + 1, -5), url]),
 ) as Partial<Record<PackItemKey, string>>
+
+/** ไอคอนปริซึม (สกุลเงินแพ็คในเกม) ขนาดเท่าตัวอักษร */
+export function Prism({ className = '' }: { className?: string }) {
+  return <img src={prism} alt={L('ปริซึม', 'Prism')} draggable={false} className={`inline-block h-[1.1em] w-[1.1em] -translate-y-px align-middle ${className}`} />
+}
 
 const short = (n: number) => n >= 1_000_000 ? `${+(n / 1_000_000).toFixed(1)}M` : n >= 100_000 ? `${Math.round(n / 1000)}K` : n.toLocaleString('en-US')
 

@@ -1,7 +1,7 @@
 import { CalendarClock, ChevronDown, ChevronRight, Info, Minus, Plus, RotateCcw, Sparkles, Wallet } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import Modal from '../components/Modal'
-import PackTile from '../components/PackTile'
+import PackTile, { Prism } from '../components/PackTile'
 import { api } from '../lib/api'
 import {
   GROUP_META, ITEMS, PACK_ITEM_KEYS, PACK_TABS, boughtCount, defaultWorth, itemName, itemsOf, loadWorthPrefs, packTab, packValue, periodLabel,
@@ -96,7 +96,7 @@ export default function PacksPage() {
         <Seg value={prefs.profile} onChange={(v) => update({ profile: v })}
           options={[['vet', L('ผู้เล่นเก่า', 'Veteran')], ['rookie', L('ผู้เล่นใหม่', 'New player')]]} label={L('ผู้เล่นแบบไหน', 'Player type')} />
         <Seg value={metric} onChange={(v) => update({ metric: v })}
-          options={[['baht', L('ต่อบาท', 'Per baht')], ['gem', L('ต่อ 💎', 'Per 💎')]]} label={L('เทียบราคาแบบไหน', 'Compare by')} />
+          options={[['baht', L('ต่อบาท', 'Per baht')], ['gem', <>{L('ต่อ', 'Per')} <Prism /></>]]} label={L('เทียบราคาแบบไหน', 'Compare by')} />
       </div>
 
       {/* แท็บแบบร้านในเกม: มือถือเป็นแถบบน · จอกว้างเป็นคอลัมน์ซ้าย */}
@@ -176,7 +176,7 @@ export default function PacksPage() {
   )
 }
 
-function Seg<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: [T, string][]; label: string }) {
+function Seg<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: [T, ReactNode][]; label: string }) {
   return (
     <div role="radiogroup" aria-label={label} className="flex rounded-full border border-white/15 bg-black/20 p-0.5">
       {options.map(([v, text]) => (
@@ -223,7 +223,7 @@ function GroupRow({ g, now, onOpen }: { g: Group; now: number; onOpen: () => voi
   )
 }
 
-/** การ์ด 1 ขั้นราคาแบบในเกม: หัว "ซื้อได้" · ช่องของ (BONUS) · ราคา ฿ (💎) + % ความคุ้ม */
+/** การ์ด 1 ขั้นราคาแบบในเกม: หัว "ซื้อได้" · ช่องของ (BONUS) · ราคา ฿ (ปริซึม) + % ความคุ้ม */
 function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; worth: Worth; metric: Metric; base: Pack | null; baseRate: number; onBought: (p: Pack, n: number) => void }) {
   const [open, setOpen] = useState(false)
   const { p, value, rate, pct, bought } = r
@@ -234,7 +234,7 @@ function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; wort
   const shop = shopValue(p)
   const counted = items.filter((x) => worth[x.k] > 0)
   const skipped = items.filter((x) => !(worth[x.k] > 0))
-  const unit = metric === 'gem' ? '💎' : L('บาท', 'baht')
+  const unit = metric === 'gem' ? <Prism /> : L('บาท', 'baht')
   return (
     <article className={`overflow-hidden rounded-2xl border transition ${p.base ? 'border-gold/70' : 'border-white/10'} bg-black/20 ${done ? 'opacity-55' : ''}`}>
       <div className="pack-head flex items-center justify-center gap-2 px-3 py-1 text-xs font-semibold">
@@ -246,7 +246,7 @@ function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; wort
         <div className="w-[84px] shrink-0 text-center">
           <b className={`block text-2xl font-extrabold tabular-nums ${pct >= 100 ? 'text-gold' : 'text-white/85'}`}>{rate ? `${Math.round(pct)}%` : '—'}</b>
           {rate > 0 && <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.cls}`}>{t.label}</span>}
-          <span className="mt-1 block text-[11px] leading-tight text-white/50 tabular-nums">{rate ? `${rate.toFixed(1)} / ${unit}` : L('ไม่มีราคา 💎', 'No 💎 price')}</span>
+          <span className="mt-1 block text-[11px] leading-tight text-white/50 tabular-nums">{rate ? <>{rate.toFixed(1)} / {unit}</> : L('ไม่มีราคาปริซึม', 'No prism price')}</span>
         </div>
         {/* ช่องของ 2 แถวแบบในเกม */}
         <div className="ml-auto grid min-w-0 gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(items.length / 2))}, auto)` }}>
@@ -255,7 +255,7 @@ function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; wort
       </div>
       {p.items.other && <p className="-mt-1 px-3 pb-2 text-right text-[11px] text-white/45">+ {p.items.other}</p>}
       <div className="pack-price flex items-center justify-center gap-1.5 py-1.5 text-lg font-bold tabular-nums">
-        {baht(p.price)}{!!p.gems && <span className="text-sm font-semibold opacity-80">(💎{p.gems})</span>}
+        {baht(p.price)}{!!p.gems && <span className="text-sm font-semibold opacity-80">(<Prism />{p.gems})</span>}
       </div>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
         className="flex w-full items-center justify-center gap-1 border-t border-white/10 py-1.5 text-xs text-white/55 hover:text-gold">
@@ -272,7 +272,7 @@ function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; wort
             <span>{L('รวม', 'Total')}</span><span>{fmt(value)} {L('รูบี้', 'rubies')}</span>
           </p>
           {skipped.length > 0 && <p className="text-white/45">{L('ไม่นับ', 'Not counted')}: {skipped.map((x) => `${itemName(x.k)} ${num(x.n)}`).join(' · ')}</p>}
-          {rate > 0 && <p className="tabular-nums">{fmt(value)} ÷ {metric === 'gem' ? `💎${p.gems}` : baht(p.price)} = <b className="text-white">{rate.toFixed(2)}</b>
+          {rate > 0 && <p className="tabular-nums">{fmt(value)} ÷ {metric === 'gem' ? <><Prism />{p.gems}</> : baht(p.price)} = <b className="text-white">{rate.toFixed(2)}</b>
             {base && !p.base && baseRate > 0 && <>{' · '}{L('ฐาน', 'baseline')} {baseRate.toFixed(2)} → <b className="text-gold">{Math.round(pct)}%</b></>}</p>}
           <p className="text-white/45 tabular-nums">{L('ถ้าคิดตามราคาร้านรูบี้ (แบบเว็บอื่น)', 'At Ruby Shop prices (like other sites)')}: {fmt(shop)} {L('รูบี้', 'rubies')}</p>
         </div>
