@@ -209,6 +209,13 @@ export const BASE_KEYS: { id: string; th: string; en: string; keys: number; days
   { id: 'guild', th: 'ร้านค้ากิลด์ (รายสัปดาห์)', en: 'Guild Shop (weekly)', keys: 420, days: 7 },
   { id: 'guildWar', th: 'ร้านค้าสงครามกิลด์ (รายเดือน)', en: 'Guild War Shop (monthly)', keys: 600, days: 28 },
 ]
+/** กุญแจสำหรับคนเติม (ติ๊กเอง) */
+export const PAID_KEYS = {
+  passPremium: { th: '7K Pass พรีเมียม', en: '7K Pass premium', keys: 1200, days: 28 },
+  premiumCheckin: { th: 'เช็กอินพรีเมียม', en: 'Premium check-in', keys: 180, days: 7 },
+}
+/** ไพ่ทาโรต์ ได้กุญแจ 30–60 ดอก/วัน (สุ่ม) */
+export const TAROT_RANGE = [30, 60] as const
 export const BASE_KEYS_PER_DAY = BASE_KEYS.reduce((sum, x) => sum + x.keys / x.days, 0)
 /** เช็กอินกิลด์ (ตามจำนวนคนที่เช็กอินเมื่อวาน 1/10/15/20/25 คน) */
 export const GUILD_CHECKIN = [0, 14, 40, 52, 64, 80]
@@ -218,6 +225,7 @@ export type FarmForm = Record<NumKey, string> & {
   team: number; tiers: { boxes: string; price: string }[]; soul: string; owned: string
   /** ส่วนที่แต่ละคนต่างกัน: แพ็ค Power Up · เช็กอินกิลด์ · กุญแจอื่น ๆ (อีเวนต์ / 7K Pass พรีเมียม) */
   powerUp: boolean; guildKeys: number; extraKeys: string
+  passPremium: boolean; premiumCheckin: boolean; tarot: boolean; tarotKeys: string
   rubySupport: boolean; rubyBoost: string
 }
 
@@ -230,7 +238,7 @@ export const DEFAULT_FARM_FORM: FarmForm = {
   team: FARM_DEFAULTS.heroesPerSet,
   tiers: FARM_DEFAULTS.tiers.map((t) => ({ boxes: s(t.boxes), price: s(t.price) })),
   soul: '100', owned: '',
-  powerUp: false, guildKeys: 80, extraKeys: '',
+  powerUp: false, guildKeys: 80, extraKeys: '', passPremium: false, premiumCheckin: false, tarot: false, tarotKeys: '45',
   rubySupport: false, rubyBoost: '',
 }
 
@@ -272,6 +280,9 @@ export function dailyKeys(f: FarmForm) {
     base: BASE_KEYS_PER_DAY,
     powerUp: f.powerUp ? powerUpRegen + POWER_UP.dailyKeys : 0,
     guild: f.guildKeys,
+    passPremium: f.passPremium ? PAID_KEYS.passPremium.keys / PAID_KEYS.passPremium.days : 0,
+    premiumCheckin: f.premiumCheckin ? PAID_KEYS.premiumCheckin.keys / PAID_KEYS.premiumCheckin.days : 0,
+    tarot: f.tarot ? Math.max(0, val(f.tarotKeys, 45)) : 0,
     extra: Math.max(0, val(f.extraKeys, 0)),
   }
   return { ...parts, powerUpRegen, total: Object.values(parts).reduce((a, b) => a + b, 0) }

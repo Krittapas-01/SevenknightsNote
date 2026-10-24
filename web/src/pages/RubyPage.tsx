@@ -1,7 +1,7 @@
 import { ChevronDown, Clock, Coins, Flame, KeyRound, Minus, Plus, RotateCcw, Swords, Users } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import ruby from '../assets/ui/ruby.webp'
-import { DEFAULT_FARM_FORM, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, POWER_UP, dailyKeys, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
+import { DEFAULT_FARM_FORM, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, TAROT_RANGE, dailyKeys, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 
 // คำนวณรูบี้ขายวิญญาณ: ต่อสู้ซ้ำด่านฟาร์มรูบี้ ซื้อกล่องกุญแจถึงขั้นไหนถึงคุ้ม · ข้อมูลเก็บในเครื่องนี้เท่านั้น
@@ -84,7 +84,7 @@ export default function RubyPage() {
 
   const input = useMemo(() => farmInputOf(form), [form])
   const keys = dailyKeys(form)
-  const toggle = (k: 'powerUp' | 'rubySupport') => setForm((f) => ({ ...f, [k]: !f[k] }))
+  const toggle = (k: 'powerUp' | 'rubySupport' | 'passPremium' | 'premiumCheckin' | 'tarot') => setForm((f) => ({ ...f, [k]: !f[k] }))
   const soul = num(form.soul)
   const plan = useMemo(() => planFarm(input, soul), [input, soul])
   // กล่องฟรีในร้านรูบี้ (ขั้นราคาแรกที่ราคา 0) อยู่ในขั้นราคากล่อง ไม่นับซ้ำในกุญแจฟรี
@@ -176,9 +176,6 @@ export default function RubyPage() {
               </ul>
             )}
           </li>
-          <KeyToggle on={form.powerUp} onClick={() => toggle('powerUp')} keys={keys.powerUp}
-            label={L('แพ็ค Daily Power Up Support (฿149 / 28 วัน)', 'Daily Power Up Support (฿149 / 28 days)')}
-            sub={L(`กุญแจฟื้นเร็วขึ้น 60 วิ (+${fmt(keys.powerUpRegen)} ดอก) + ${POWER_UP.dailyKeys} ดอกทุกวัน`, `Keys regen 60 s faster (+${fmt(keys.powerUpRegen)}) + ${POWER_UP.dailyKeys} keys daily`)} />
           <li>
             <div className="flex items-center gap-2"><span className="text-white/70">{L('เช็กอินกิลด์', 'Guild check-in')}</span><b className="ml-auto tabular-nums">{fmt(keys.guild)}</b></div>
             <div className="mt-1.5 flex flex-wrap gap-1" role="radiogroup" aria-label={L('เช็กอินกิลด์', 'Guild check-in')}>
@@ -192,12 +189,33 @@ export default function RubyPage() {
             </div>
           </li>
           <li className="flex items-center gap-2">
-            <span className="min-w-0 text-white/70">{L('อื่น ๆ', 'Other')} <span className="text-xs text-white/45">{L('(อีเวนต์ · 7K Pass พรีเมียม)', '(events · premium 7K Pass)')}</span></span>
+            <span className="min-w-0 text-white/70">{L('อื่น ๆ', 'Other')} <span className="text-xs text-white/45">{L('(อีเวนต์ ฯลฯ)', '(events, etc.)')}</span></span>
             <input value={form.extraKeys} onChange={(e) => set('extraKeys', e.target.value)} inputMode="numeric" placeholder="0" aria-label={L('กุญแจอื่น ๆ ต่อวัน', 'Other keys per day')}
               aria-invalid={bad(form.extraKeys) || undefined} className={`${numInput(form.extraKeys)} ml-auto w-16 shrink-0 text-white`} />
           </li>
+          <li className="mt-2 border-t border-white/10 pt-3 text-xs font-medium text-gold">{L('สำหรับคนเติม', 'For spenders')}</li>
+          <KeyToggle on={form.powerUp} onClick={() => toggle('powerUp')} keys={keys.powerUp}
+            label={L('แพ็ค Daily Power Up Support (฿149 / 28 วัน)', 'Daily Power Up Support (฿149 / 28 days)')}
+            sub={L(`กุญแจฟื้นเร็วขึ้น 60 วิ (+${fmt(keys.powerUpRegen)} ดอก) + ${POWER_UP.dailyKeys} ดอกทุกวัน`, `Keys regen 60 s faster (+${fmt(keys.powerUpRegen)}) + ${POWER_UP.dailyKeys} keys daily`)} />
+          <KeyToggle on={form.passPremium} onClick={() => toggle('passPremium')} keys={keys.passPremium}
+            label={L(PAID_KEYS.passPremium.th, PAID_KEYS.passPremium.en)}
+            sub={L(`+${fmt(PAID_KEYS.passPremium.keys)} กุญแจต่อ ${PAID_KEYS.passPremium.days} วัน`, `+${fmt(PAID_KEYS.passPremium.keys)} keys per ${PAID_KEYS.passPremium.days} days`)} />
+          <KeyToggle on={form.premiumCheckin} onClick={() => toggle('premiumCheckin')} keys={keys.premiumCheckin}
+            label={L(PAID_KEYS.premiumCheckin.th, PAID_KEYS.premiumCheckin.en)}
+            sub={L(`+${fmt(PAID_KEYS.premiumCheckin.keys)} กุญแจต่อ ${PAID_KEYS.premiumCheckin.days} วัน`, `+${fmt(PAID_KEYS.premiumCheckin.keys)} keys per ${PAID_KEYS.premiumCheckin.days} days`)} />
+          <KeyToggle on={form.tarot} onClick={() => toggle('tarot')} keys={keys.tarot}
+            label={L('ไพ่ทาโรต์', 'Tarot cards')}
+            sub={L(`สุ่มได้ ${TAROT_RANGE[0]}–${TAROT_RANGE[1]} กุญแจ/วัน`, `${TAROT_RANGE[0]}–${TAROT_RANGE[1]} random keys/day`)} />
+          {form.tarot && (
+            <li className="flex items-center gap-2 pl-7 text-white/70">
+              {L('เฉลี่ยวันละ', 'Average per day')}
+              <input value={form.tarotKeys} onChange={(e) => set('tarotKeys', e.target.value)} inputMode="numeric" aria-label={L('กุญแจจากไพ่ทาโรต์ต่อวัน', 'Tarot keys per day')}
+                aria-invalid={bad(form.tarotKeys) || undefined} className={`${numInput(form.tarotKeys)} w-16 text-white`} />
+              {L('ดอก', 'keys')}
+            </li>
+          )}
         </ul>
-        <div className="mt-4 border-t border-white/10 pt-3 text-sm">
+        <div className="mt-2 text-sm">
           <KeyToggle on={form.rubySupport} onClick={() => toggle('rubySupport')}
             label={L('แพ็ค Daily Ruby Support (฿249 / 28 วัน)', 'Daily Ruby Support (฿249 / 28 days)')}
             sub={L('รูบี้จากด่านฟาร์มรูบี้เพิ่มขึ้น · ไม่นับ 200 รูบี้รายวันของแพ็ค', 'More rubies from Ruby Farming · the pack’s 200 daily rubies aren’t counted')} />
