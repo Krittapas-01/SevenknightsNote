@@ -36,10 +36,10 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     sections: [
       { kind: 'new', groups: [
         g('คำนวณรูบี้ขายวิญญาณ (เมนู → คำนวณรูบี้ขายวิญญาณ)',
-          'ใส่แค่ว่าเล่นได้วันละกี่ชั่วโมง กับฮีโร่ Lv.1 ในทีม (1–5 ตัว = 20–100 รูบี้ต่อ 10 รอบ) แล้วเห็นเลยว่าฟาร์มได้กี่รอบ ใช้ฮีโร่กี่ตัว ได้รูบี้สุทธิเท่าไหร่ (หักค่ากล่องกุญแจแล้ว) และต้องซื้อกล่องกี่กล่อง',
-          'ภาพรวมทีละขั้นราคากล่อง (ไม่ซื้อ / ฟรี / 50 / 80 / 100 รูบี้): รูบี้สุทธิ เวลา ฮีโร่ และรอบ พร้อมป้ายคุ้ม เท่าทุน หรือขาดทุน · แตะขั้นไหนก็ใช้เวลานั้นได้เลย',
+          'ใส่แค่ว่าเล่นได้วันละกี่ชั่วโมง กับฮีโร่ Lv.1 ในทีม (1–5 ตัว = 20–100 รูบี้ทุกครั้งที่ฮีโร่ตัน: 11 รอบ หรือ 10 รอบถ้ามีแพ็ค Daily Ruby Support) แล้วเห็นเลยว่าฟาร์มได้กี่รอบ ใช้ฮีโร่กี่ตัว ได้รูบี้สุทธิเท่าไหร่ (หักค่ากล่องกุญแจแล้ว) และต้องซื้อกล่องกี่กล่อง',
+          'เปิดมาเลือก "คุ้มสุด" ให้เลย (รูบี้สุทธิมากสุด) แล้วบอกว่าถ้าเล่นน้อยลงจะเสียรูบี้เท่าไหร่ ประหยัดเวลาและฮีโร่เท่าไหร่ · ตารางเทียบกล่องฟรี / 50 / 80 / 100 รูบี้ (เวลา ฮีโร่ รูบี้สุทธิ) แตะแถวไหนก็เลือกได้',
           'นับกุญแจฟรีที่ทุกคนได้ให้แล้ว (ฟื้นเอง ภารกิจ เช็กชื่อ 7K Pass Relay ร้านค้า ฯลฯ) · เลือกเองแค่เช็กอินกิลด์',
-          'ติ๊กแพ็คที่ซื้อ (มีรูปแพ็ค): Daily Power Up Support, 7K Pass พรีเมียม, เช็กอินพรีเมียม (เพิ่มกุญแจ) และ Daily Ruby Support (+200 รูบี้/วัน แสดงแยกจากที่ฟาร์ม)',
+          'ติ๊กแพ็คที่ซื้อ (มีรูปแพ็ค): Daily Power Up Support, 7K Pass พรีเมียม, เช็กอินพรีเมียม (เพิ่มกุญแจ) และ Daily Ruby Support (ฮีโร่ตันเร็วขึ้น 10 รอบแทน 11 · +200 รูบี้/วัน แสดงแยกจากที่ฟาร์ม)',
           'แก้ค่าที่ใช้คิดได้ทุกอย่าง (กุญแจ เวลาต่อรอบ ทอง เควสต์ทำซ้ำ ราคากล่อง)'),
       ] },
     ],
@@ -384,10 +384,10 @@ const CHANGELOG_EN: ChangelogEntry[] = [
     sections: [
       { kind: 'new', groups: [
         g('Ruby Farming Calculator (menu → Ruby Farming Calculator)',
-          'Just enter how many hours you play a day and the Lv.1 heroes in your team (1–5 = 20–100 rubies per 10 battles) to see your battles, heroes used, net rubies (after key box costs) and key boxes to buy',
-          'Overview for each box price tier (none / free / 50 / 80 / 100 rubies): net rubies, time, heroes and battles, tagged profit, break-even or loss · tap a tier to use its play time',
+          'Just enter how many hours you play a day and the Lv.1 heroes in your team (1–5 = 20–100 rubies each time they max out: 11 battles, or 10 with Daily Ruby Support) to see your battles, heroes used, net rubies (after key box costs) and key boxes to buy',
+          'Opens on the "Best" option (most net rubies) and shows how many rubies you give up, and how much time and how many heroes you save, if you play less · a table compares free / 50 / 80 / 100-ruby boxes (time, heroes, net rubies), tap a row to pick it',
           'Free keys everyone gets are counted for you (regen, missions, login, 7K Pass, Relay, shops, etc.) · you only pick your guild check-in',
-          'Tick the packs you have (with pack art): Daily Power Up Support, 7K Pass premium, premium check-in (more keys) and Daily Ruby Support (+200 rubies/day, shown apart from farming)',
+          'Tick the packs you have (with pack art): Daily Power Up Support, 7K Pass premium, premium check-in (more keys) and Daily Ruby Support (heroes max in 10 battles instead of 11 · +200 rubies/day, shown apart from farming)',
           'Every value is editable (keys, time per battle, gold, repeat quest, box prices)'),
       ] },
     ],

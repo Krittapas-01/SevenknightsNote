@@ -5,7 +5,7 @@ import packPowerUp from '../assets/packs/power-up.webp'
 import packRuby from '../assets/packs/ruby-support.webp'
 import packPass from '../assets/packs/7k-pass.webp'
 import packCheckin from '../assets/packs/premium-checkin.webp'
-import { DEFAULT_FARM_FORM, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
+import { DEFAULT_FARM_FORM, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, bestBattles, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 import RubyIcon from '../components/RubyIcon'
 
@@ -105,7 +105,7 @@ export default function RubyPage() {
   const input = useMemo(() => farmInputOf(form), [form])
   const keys = dailyKeys(form)
   const plan = useMemo(() => planFarm(input, 0), [input])
-  const setSize = Math.max(1, Math.floor(num(form.battlesPerSet, 10)))
+  const setSize = Math.max(1, Math.floor(input.battlesPerSet))
   const sec = Math.max(1, num(form.secPerBattle, 21))
   // ว่าง = เล่นเท่าที่ไม่ต้องจ่ายรูบี้ (กุญแจฟรี + กล่องฟรี)
   let freeN = 0
@@ -114,10 +114,21 @@ export default function RubyPage() {
   const maxBattles = plan.days[plan.prices.length].battles
   const typed = parseHours(form.hours)
   const auto = !(typed >= 0)
-  // ชั่วโมง → รอบ (ปัดลงให้ครบชุด) · เกินที่ร้านขายกล่องได้ = เล่นได้เท่าที่มีกุญแจ
-  const wanted = auto ? freeBattles : Math.floor(Math.floor((Math.min(24, typed) * 3600 + 1e-6) / sec) / setSize) * setSize
+  // คุ้มที่สุด = ฟาร์มนานสุดที่ยังได้รูบี้สุทธิมากสุด (ซื้อกล่องทีละขั้นจนขั้นถัดไปไม่ได้เพิ่ม)
+  const bestB = useMemo(() => bestBattles(input, plan.prices, plan.days[plan.prices.length].battles), [input, plan])
+  // ชั่วโมง → รอบ (ปัดลงให้ครบชุด) · เกินที่ร้านขายกล่องได้ = เล่นได้เท่าที่มีกุญแจ · ว่าง = คุ้มที่สุด
+  const wanted = auto ? bestB : Math.floor(Math.floor((Math.min(24, typed) * 3600 + 1e-6) / sec) / setSize) * setSize
   const battles = Math.min(wanted, maxBattles)
   const r = useMemo(() => farmBattles(input, battles, plan.prices), [input, battles, plan.prices])
+  const best = useMemo(() => farmBattles(input, bestB, plan.prices), [input, bestB, plan.prices])
+  const isBest = battles === bestB
+  // ตัวเลือกให้เทียบ: ทุกขั้นราคากล่อง + ที่ผู้ใช้กรอกเอง (ถ้าไม่ตรงขั้นไหน)
+  const options = useMemo(() => {
+    const rows: { key: string; row: TierRow | null; res: typeof r }[] = plan.rows.map((row) => ({ key: `t${row.tier}`, row, res: farmBattles(input, row.day.battles, plan.prices) }))
+    if (!rows.some((o) => o.res.battles === best.battles)) rows.push({ key: 'best', row: null, res: best })
+    if (!rows.some((o) => o.res.battles === battles)) rows.push({ key: 'mine', row: null, res: r })
+    return rows.filter((o, i, a) => a.findIndex((x) => x.res.battles === o.res.battles) === i).sort((a, b) => a.res.battles - b.res.battles)
+  }, [plan, input, battles, r, best])
   const perSet = form.team * num(form.rubyPerHero)
 
   return (
@@ -151,13 +162,16 @@ export default function RubyPage() {
           <div className="min-w-0">
             <p className="text-sm font-medium text-gold">{L('เล่นได้วันละ', 'Play time per day')}</p>
             <div className="mt-2 flex items-center gap-1.5">
-              <input value={form.hours} onChange={(e) => set('hours', e.target.value)} inputMode="decimal" placeholder={hm(plan.days[freeN].seconds)}
+              <input value={form.hours} onChange={(e) => set('hours', e.target.value)} inputMode="decimal" placeholder={hm(best.seconds)}
                 aria-label={L('เล่นได้วันละกี่ชั่วโมง', 'Hours played per day')} aria-invalid={badHours(form.hours) || undefined}
                 className={`${INPUT} ${badHours(form.hours) ? '!border-red-400' : ''} h-10 w-24 text-lg font-bold text-white`} />
               <span className="text-sm text-white/55">{L('ชม.', 'h')}</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
               <button type="button" onClick={() => set('hours', '')} className={CHIP(auto)}>
+                {L(`★ คุ้มสุด · ${hours(best.seconds)}`, `★ Best · ${hours(best.seconds)}`)}
+              </button>
+              <button type="button" onClick={() => set('hours', hm(plan.days[freeN].seconds))} className={CHIP(!auto && battles === freeBattles)}>
                 {L(`แค่กุญแจฟรี · ${hours(plan.days[freeN].seconds)}`, `Free keys only · ${hours(plan.days[freeN].seconds)}`)}
               </button>
               {QUICK_HOURS.map((q) => (
@@ -177,6 +191,19 @@ export default function RubyPage() {
           <Big icon={<Ruby className="h-3.5 w-3.5" />} label={L('รูบี้สุทธิ', 'Net rubies')} value={<span className={r.net >= 0 ? 'text-gold' : 'text-red-300'}>{signed(r.net)}</span>}
             sub={r.cost ? L(`ได้ ${fmt(r.rubies)} − กล่อง ${fmt(r.cost)}`, `${fmt(r.rubies)} − ${fmt(r.cost)} boxes`) : L('ไม่เสียค่ากล่อง', 'No box cost')} />
         </div>
+
+        {isBest
+          ? <p className="mt-3 rounded-xl bg-gold/15 px-3 py-2 text-sm font-semibold text-gold">{L('★ คุ้มที่สุด: ฟาร์มได้นานสุดและได้รูบี้สุทธิมากสุด', '★ Best value: the longest farm with the most net rubies')}</p>
+          : (
+            <div className="mt-3 rounded-xl border border-gold/30 px-3 py-2 text-sm">
+              <p className="text-xs text-white/55">{L(`เทียบกับคุ้มสุด (${hours(best.seconds)})`, `Compared with the best (${hours(best.seconds)})`)}</p>
+              <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 font-semibold tabular-nums">
+                <span className={r.net - best.net < 0 ? 'text-red-300' : 'text-emerald-300'}>{L(`รูบี้ ${signed(r.net - best.net)}`, `${signed(r.net - best.net)} rubies`)}</span>
+                <span>{r.seconds <= best.seconds ? L(`เร็วกว่า ${hours(best.seconds - r.seconds)}`, `${hours(best.seconds - r.seconds)} faster`) : L(`นานกว่า ${hours(r.seconds - best.seconds)}`, `${hours(r.seconds - best.seconds)} longer`)}</span>
+                <span>{r.heroes <= best.heroes ? L(`ฮีโร่น้อยกว่า ${fmt(best.heroes - r.heroes)} ตัว`, `${fmt(best.heroes - r.heroes)} fewer heroes`) : L(`ฮีโร่มากกว่า ${fmt(r.heroes - best.heroes)} ตัว`, `${fmt(r.heroes - best.heroes)} more heroes`)}</span>
+              </p>
+            </div>
+          )}
 
         {/* กุญแจ / กล่อง / สุทธิ */}
         <div className="mt-3 rounded-xl bg-white/[.04] px-3 py-2.5 text-sm">
@@ -206,52 +233,47 @@ export default function RubyPage() {
         </div>
       </section>
 
-      {/* ===== ภาพรวมแต่ละขั้น ===== */}
+      {/* ===== เทียบตัวเลือก ===== */}
       <section className="mt-5">
-        <h2 className="text-sm font-medium text-gold">{L('ภาพรวมถ้าซื้อกล่องกุญแจถึงขั้นนี้', 'Overview if you buy key boxes up to')}</h2>
-        <p className="mt-1 text-xs text-white/45">{L('ใช้กุญแจหมดทุกดอก · แตะเพื่อใช้เวลานั้นด้านบน', 'Every key used · tap to use that play time above')}</p>
-        <div className="mt-2 space-y-2">
-          {plan.rows.map((row, i) => {
-            const v = row.tier < 0 ? null : verdict(row)
-            const d = row.day
-            const active = battles === d.battles
+        <h2 className="text-sm font-medium text-gold">{L('เทียบตัวเลือก', 'Compare options')}</h2>
+        <p className="mt-1 text-xs text-white/45">{L('ยิ่งซื้อกล่องมาก ยิ่งเล่นนานและใช้ฮีโร่มาก · แตะแถวเพื่อเลือก', 'More boxes = longer play and more heroes · tap a row to pick it')}</p>
+        <div className="mt-2 overflow-hidden rounded-2xl border border-white/10" role="list">
+          <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,.8fr)_minmax(0,1fr)] gap-2 bg-white/[.04] px-3 py-2 text-[11px] text-white/45">
+            <span>{L('ตัวเลือก', 'Option')}</span><span className="text-right">{L('เวลา', 'Time')}</span>
+            <span className="text-right">{L('ฮีโร่', 'Heroes')}</span><span className="text-right">{L('รูบี้สุทธิ', 'Net rubies')}</span>
+          </div>
+          {options.map(({ key, row, res }) => {
+            const sel = res.battles === battles
+            const top = res.battles === bestB
+            const v = row && row.tier >= 0 ? verdict(row) : null
+            const label = !row ? (key === 'best' ? L('คุ้มสุด', 'Best value') : L('ที่กรอกเอง', 'Your hours')) : row.tier < 0 ? L('ไม่ซื้อกล่อง', 'No boxes')
+              : row.price ? L(`กล่อง ${fmt(row.price)}`, `${fmt(row.price)}-ruby boxes`) : L('กล่องฟรี', 'Free box')
             return (
-              <button key={row.tier} type="button" onClick={() => set('hours', hm(d.seconds))} aria-pressed={active}
-                className={`block w-full rounded-2xl border p-3 text-left transition sm:px-4 ${active ? 'border-gold/70 bg-gold/10' : 'border-white/10 bg-white/[.04] hover:border-gold/50'}`}>
-                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <b className="text-sm">{row.tier < 0 ? L('ไม่ซื้อกล่อง', 'No boxes') : L(`ซื้อถึงกล่องที่ ${row.to}`, `Up to box ${row.to}`)}</b>
-                  {row.tier >= 0 && <span className="flex items-center gap-1 text-xs text-white/55 tabular-nums">{row.price ? <><Ruby className="h-3 w-3" />{fmt(row.price)}{L('/กล่อง', '/box')}</> : L('ฟรี', 'free')}</span>}
-                  {v && <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${v.cls}`}>{v.label}</span>}
-                </span>
-                <span className="mt-2 grid grid-cols-[1.3fr_1fr_1fr] items-end gap-x-2 tabular-nums sm:grid-cols-4">
-                  <span className="min-w-0">
-                    <span className="block text-[11px] text-white/45">{L('รูบี้สุทธิ', 'Net rubies')}</span>
-                    <span className={`flex items-center gap-1 text-xl font-extrabold ${d.net > 0 ? 'text-gold' : 'text-red-300'}`}><Ruby className="h-4 w-4" />{signed(d.net)}</span>
+              <button key={key} type="button" role="listitem" aria-current={sel || undefined}
+                onClick={() => set('hours', top ? '' : hm(res.seconds))}
+                className={`grid w-full grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,.8fr)_minmax(0,1fr)] items-center gap-2 border-t px-3 text-left tabular-nums transition ${sel
+                  ? 'relative z-[1] border-gold bg-gold/15 py-3.5 shadow-[inset_4px_0_0_var(--color-gold)]'
+                  : 'border-white/10 py-2.5 hover:bg-white/[.04]'}`}>
+                <span className="min-w-0">
+                  <span className={`flex flex-wrap items-center gap-1 ${sel ? 'font-bold text-gold' : 'font-medium'}`}>
+                    {label}{top && <span className="rounded-full bg-gold px-1.5 py-px text-[10px] font-bold text-ink">{L('★ คุ้มสุด', '★ Best')}</span>}
                   </span>
-                  <span className="min-w-0">
-                    <span className="block text-[11px] text-white/45">{L('เวลา', 'Time')}</span>
-                    <span className="block font-bold">{hours(d.seconds)}</span>
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[11px] text-white/45">{L('ฮีโร่ Lv.1', 'Heroes')}</span>
-                    <span className="block font-bold">{fmt(d.heroesUsed)}</span>
-                  </span>
-                  <span className="hidden min-w-0 sm:block">
-                    <span className="block text-[11px] text-white/45">{L('รอบ', 'Battles')}</span>
-                    <span className="block font-bold">{fmt(d.battles)}</span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-white/45">
+                    {row && row.tier >= 0 && <span>{L(`ซื้อถึงใบที่ ${row.to}`, `up to box ${row.to}`)}</span>}
+                    {v && <span className={`rounded-full px-1.5 ${v.cls}`}>{v.label}</span>}
+                    {!row && <span>{L(`${fmt(res.boxes)} กล่อง`, `${fmt(res.boxes)} boxes`)}</span>}
                   </span>
                 </span>
-                {i > 0 && (
-                  <span className="mt-1.5 block text-[11px] text-white/45 tabular-nums">
-                    {L(`จากขั้นก่อน ${signed(row.addNet)} รูบี้ · +${hours(row.addHours * 3600)}`, `vs last tier ${signed(row.addNet)} rubies · +${hours(row.addHours * 3600)}`)}
-                    <span className="sm:hidden">{L(` · ${fmt(d.battles)} รอบ`, ` · ${fmt(d.battles)} battles`)}</span>
-                  </span>
-                )}
-                {i === 0 && <span className="mt-1.5 block text-[11px] text-white/45 tabular-nums sm:hidden">{L(`${fmt(d.battles)} รอบ`, `${fmt(d.battles)} battles`)}</span>}
+                <span className={`text-right text-sm ${sel ? 'font-bold' : ''}`}>{hm(res.seconds)}</span>
+                <span className={`text-right text-sm ${sel ? 'font-bold' : ''}`}>{fmt(res.heroes)}</span>
+                <span className={`flex items-center justify-end gap-1 ${sel ? 'text-base font-extrabold' : 'text-sm font-semibold'} ${res.net > 0 ? 'text-gold' : 'text-red-300'}`}>
+                  <Ruby className="h-3 w-3 shrink-0" />{signed(res.net)}
+                </span>
               </button>
             )
           })}
         </div>
+        <p className="mt-1.5 text-[11px] text-white/40">{L('เวลาเป็น ชั่วโมง:นาที', 'Time is hours:minutes')}</p>
       </section>
 
       {/* ===== แพ็คที่ซื้อ ===== */}
@@ -264,7 +286,7 @@ export default function RubyPage() {
             value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(keys.powerUpRegen + POWER_UP.dailyKeys)}{L('/วัน', '/day')}</>} />
           <PackToggle on={form.rubySupport} onClick={() => toggle('rubySupport')} img={packRuby}
             label="Daily Ruby Support"
-            sub={L('฿249 / 28 วัน · รูบี้ฟรีทุกวัน (แยกจากฟาร์ม)', '฿249 / 28 days · free rubies daily (not from farming)')}
+            sub={L(`฿249 / 28 วัน · EXP เพิ่ม ฮีโร่ตันใน ${RUBY_SUPPORT.battlesPerSet} รอบ (ปกติ ${RUBY_SUPPORT.battlesPerSetWithout}) + รูบี้ฟรีทุกวัน`, `฿249 / 28 days · more EXP, heroes max in ${RUBY_SUPPORT.battlesPerSet} battles (not ${RUBY_SUPPORT.battlesPerSetWithout}) + free rubies daily`)}
             value={<><Ruby className="h-3.5 w-3.5" />+{fmt(RUBY_SUPPORT.dailyRubies)}{L('/วัน', '/day')}</>} />
           <PackToggle on={form.passPremium} onClick={() => toggle('passPremium')} img={packPass}
             label={L(PAID_KEYS.passPremium.th, PAID_KEYS.passPremium.en)}
@@ -351,7 +373,8 @@ export default function RubyPage() {
             <p className="text-sm font-medium text-gold">{L('ฮีโร่ Lv.1', 'Lv.1 heroes')}</p>
             <div className="mt-2 flex flex-wrap gap-3">
               <Field label={L('รูบี้ต่อฮีโร่ที่เต็มเลเวล', 'Rubies per maxed hero')} value={form.rubyPerHero} onChange={(v) => set('rubyPerHero', v)} unit={<Ruby />} />
-              <Field label={L('รอบต่อชุด (ฮีโร่เต็มเลเวล)', 'Battles per set (heroes max out)')} value={form.battlesPerSet} onChange={(v) => set('battlesPerSet', v)} unit={L('รอบ', 'battles')} />
+              <Field label={L('รอบจนฮีโร่ตัน (ไม่มีแพ็ค)', 'Battles to max (no pack)')} value={form.battlesPerSetBase} onChange={(v) => set('battlesPerSetBase', v)} unit={L('รอบ', 'battles')} />
+              <Field label={L('รอบจนฮีโร่ตัน (มี Daily Ruby)', 'Battles to max (Daily Ruby)')} value={form.battlesPerSet} onChange={(v) => set('battlesPerSet', v)} unit={L('รอบ', 'battles')} />
             </div>
 
             <p className="mt-5 text-sm font-medium text-gold">{L('กุญแจและการต่อสู้', 'Keys and battles')}</p>
@@ -398,8 +421,8 @@ export default function RubyPage() {
 
       <p className="mt-6 text-xs leading-relaxed text-white/40">
         <Clock className="mr-1 inline h-3 w-3" />
-        {L('นับรูบี้เฉพาะชุดที่ครบ (ฮีโร่เต็มเลเวลพร้อมกันทุก 10 รอบ) · เควสต์ทำซ้ำคืนกุญแจระหว่างเล่น · กุญแจไม่มีเพดาน ที่เหลือเก็บไว้วันถัดไป · ค่าเริ่มต้นมาจากที่ผู้เล่นจับเวลาเอง · รูปแพ็คจาก 7K Atlas · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น',
-          'Rubies count only full sets (heroes max out together every 10 battles) · the repeat quest refunds keys while you play · keys have no cap, leftovers carry over · defaults come from a player’s own timing · pack art via 7K Atlas · data stays on this device')}
+        {L('นับรูบี้เฉพาะชุดที่ครบ (ฮีโร่เต็มเลเวลพร้อมกันทุก 11 รอบ หรือ 10 รอบถ้ามีแพ็ค Daily Ruby Support) · เควสต์ทำซ้ำคืนกุญแจระหว่างเล่น · กุญแจไม่มีเพดาน ที่เหลือเก็บไว้วันถัดไป · ค่าเริ่มต้นมาจากที่ผู้เล่นจับเวลาเอง · รูปแพ็คจาก 7K Atlas · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น',
+          'Rubies count only full sets (heroes max out together every 11 battles, or 10 with Daily Ruby Support) · the repeat quest refunds keys while you play · keys have no cap, leftovers carry over · defaults come from a player’s own timing · pack art via 7K Atlas · data stays on this device')}
       </p>
     </div>
   )

@@ -2,9 +2,9 @@
 export default function RubyIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
-      <path d="M8 2h8l4 4v12l-4 4H8l-4-4V6z" />
-      <path d="M10 7.5h4l1.5 1.5v6L14 16.5h-4L8.5 15V9z" />
-      <path d="M5.5 4.5l4 4M18.5 4.5l-4 4M18.5 19.5l-4-4M5.5 19.5l4-4" />
+      <path d="M7 3h10l4 4v10l-4 4H7l-4-4V7z" />
+      <path d="M9.5 8h5l1.5 1.5v5L14.5 16h-5L8 14.5v-5z" />
+      <path d="M5 5l3.5 3.5M19 5l-3.5 3.5M19 19l-3.5-3.5M5 19l3.5-3.5" />
     </svg>
   )
 }
