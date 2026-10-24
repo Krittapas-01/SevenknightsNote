@@ -5,7 +5,7 @@ import type { HeroStats } from '../lib/stats'
 import { StatsGrid, upsertStats } from './HeroStats'
 import HeroNotesTable from './HeroNotesTable'
 import { BrandMark } from './BrandMark'
-import { startTransition, useEffect, useId, useRef, useState } from 'react'
+import { startTransition, useEffect, useRef, useState } from 'react'
 import EquipmentLoadout from './EquipmentLoadout'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
@@ -17,7 +17,6 @@ import TeamPanel, { type SlotKind } from './TeamPanel'
 import { SkillQueueBoard, SkillQueueModal } from './TeamModals'
 import AtlasTeam from './AtlasTeam'
 import TeamCardLite from './TeamCardLite'
-import { SkillDetail, SkillStrip, hasSkillInfo, type SkillKind } from './HeroSkills'
 import { tx, L } from '../lib/i18n'
 
 type Props = {
@@ -295,9 +294,6 @@ export function TeamGearButton({ team, skills = [], heroNotes, title, label, cla
 
 /** อุปกรณ์/ค่าความสามารถของอัศวิน 1 ตัว (ดูอย่างเดียว — ตอนแก้ใช้ HeroNotesTable) */
 function GearNote({ note, wide }: { note: HeroNote; wide?: boolean }) {
-  // กดไอคอนสกิล = คำอธิบายสกิลโผล่ใต้แถวนี้ (เต็มความกว้าง) · กดซ้ำ = ปิด
-  const [skill, setSkill] = useState<SkillKind | null>(null)
-  const panelId = useId()
   if (wide) return (
     <li className="grid min-w-0 gap-4 rounded-xl bg-black/20 p-4 text-sm md:grid-cols-[minmax(0,13rem)_1fr]">
       <div className="min-w-0">
@@ -308,10 +304,7 @@ function GearNote({ note, wide }: { note: HeroNote; wide?: boolean }) {
         <EquipmentLoadout sets={note.sets} rings={note.rings} />
         {!note.sets.length && !note.rings.length && <p className="mt-2 text-white/45">{tx('ยังไม่ได้ระบุอุปกรณ์')}</p>}
         {note.text && <p className="mt-3 whitespace-pre-wrap break-words text-white/80">{note.text}</p>}
-        {hasSkillInfo(note.hero) && <SkillStrip hero={note.hero} open={skill} onPick={setSkill} panelId={panelId} />}
       </div>
-      {/* มือถือ (คอลัมน์เดียว) = ต่อใต้ไอคอนสกิลเลย · จอกว้าง = แถวล่างเต็มความกว้าง ต่อจากค่าความสามารถ */}
-      {skill && <SkillDetail hero={note.hero} kind={skill} id={panelId} className="md:order-last md:col-span-2" />}
       <div className="min-w-0">
         {hasStats(note.stats) ? <StatsGrid stats={note.stats} size="lg" className="!mt-0" /> : <p className="text-white/45">{tx('ยังไม่ได้ระบุค่าความสามารถ')}</p>}
       </div>
