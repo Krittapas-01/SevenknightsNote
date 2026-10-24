@@ -2,10 +2,10 @@
  * คำนวณรูบี้ขายวิญญาณ — ฟาร์มรูบี้ด้วยการต่อสู้ซ้ำ (Ruby Farming) แล้วดูว่าซื้อกล่องกุญแจถึงขั้นไหนถึงคุ้ม
  * ค่าเริ่มต้นจากที่ Krit เล่นจริง (24 ต.ค. 2026):
  * - 1 รอบใช้ 6 กุญแจ ~21 วิ ได้ ~6,800 ทอง
- * - ฮีโร่ Lv.1 5 ตัวเต็มเลเวลทุก 11 รอบ (มีแพ็ค Daily Ruby Support = EXP เพิ่ม → 10 รอบ) ได้ตัวละ 20 รูบี้ = 100 รูบี้ (นับเฉพาะชุดครบ)
+ * - อัศวิน Lv.1 5 ตัวเต็มเลเวลทุก 11 รอบ (มีแพ็ค Daily Ruby Support = EXP เพิ่ม → 10 รอบ) ได้ตัวละ 20 รูบี้ = 100 รูบี้ (นับเฉพาะชุดครบ)
  * - กุญแจฟื้น 1 ดอก/3 นาที = 480/วัน (แพ็ค Daily Power Up Support: เร็วขึ้น 60 วิ → 2 นาที = 720/วัน + 80 ดอก/วัน) · ไม่มีเพดาน → ที่เหลือเก็บไว้วันถัดไปได้
  * - กุญแจฟรีอื่น ๆ: กล่องฟรีร้านรายวัน 30 · ภารกิจรายวัน 60 (40 แต้ม 20 + 80 แต้ม 40) · เช็กอินกิลด์ 14/40/52/64/80
- * - แพ็ค Daily Ruby Support: EXP เพิ่ม (ฮีโร่ตันใน 10 รอบแทน 11) + 200 รูบี้/วัน (แสดงแยก ไม่รวมกับรูบี้จากฟาร์ม)
+ * - แพ็ค Daily Ruby Support: EXP เพิ่ม (อัศวินตันใน 10 รอบแทน 11) + 200 รูบี้/วัน (แสดงแยก ไม่รวมกับรูบี้จากฟาร์ม)
  * - เควสต์ทำซ้ำ: ทุก 160 รอบ ได้ 20 กุญแจ + 60,000 ทอง
  * - กล่องกุญแจ 60 ดอก ราคาต่อวัน: กล่องแรกฟรี · 20 กล่องถัดไป 50 · 50 กล่องถัดไป 80 · 50 กล่องถัดไป 100 รูบี้
  */
@@ -28,7 +28,7 @@ export type FarmInput = {
   questGold: number
   keysPerBox: number
   tiers: BoxTier[]
-  /** ฮีโร่ดรอปต่อรอบ (เฉลี่ย) */
+  /** อัศวินดรอปต่อรอบ (เฉลี่ย) */
   heroDrop: number
   /** เล่นได้วันละกี่ชั่วโมง (สูงสุด 24) */
   maxHours: number
@@ -122,7 +122,7 @@ export function simulateDay(input: FarmInput, boxes: number, prices = boxPrices(
   }
 }
 
-/** ฟาร์ม `battles` รอบ: ใช้เวลาเท่าไหร่ ใช้ฮีโร่กี่ตัว ได้รูบี้เท่าไหร่ และต้องซื้อกล่องกุญแจกี่กล่อง */
+/** ฟาร์ม `battles` รอบ: ใช้เวลาเท่าไหร่ ใช้อัศวินกี่ตัว ได้รูบี้เท่าไหร่ และต้องซื้อกล่องกุญแจกี่กล่อง */
 export type BattlesResult = {
   battles: number
   sets: number
@@ -167,7 +167,7 @@ export function farmBattles(input: FarmInput, battles: number, prices = boxPrice
   }
 }
 
-/** ฟาร์มกี่รอบได้รูบี้สุทธิมากสุด (เสมอกันเลือกที่เร็วกว่า ใช้ฮีโร่น้อยกว่า) · ไล่ทีละชุดจนกุญแจที่ร้านขายได้หมด */
+/** ฟาร์มกี่รอบได้รูบี้สุทธิมากสุด (เสมอกันเลือกที่เร็วกว่า ใช้อัศวินน้อยกว่า) · ไล่ทีละชุดจนกุญแจที่ร้านขายได้หมด */
 export function bestBattles(input: FarmInput, prices = boxPrices(input.tiers), maxBattles = simulateDay(input, prices.length, prices).battles) {
   const setSize = Math.max(1, Math.floor(pos(input.battlesPerSet, 1)))
   let best = 0
@@ -271,13 +271,13 @@ export const PAID_KEYS = {
   passPremium: { th: '7K Pass พรีเมียม', en: '7K Pass premium', keys: 1200, days: 28 },
   premiumCheckin: { th: 'เช็กอินพรีเมียม', en: 'Premium check-in', keys: 180, days: 7 },
 }
-/** แพ็ค Daily Ruby Support: EXP เพิ่ม → ฮีโร่ตันใน 10 รอบ (ไม่มีแพ็ค 11 รอบ) + รูบี้ฟรีทุกวัน (ไม่ได้มาจากการฟาร์ม → แสดงแยก) */
+/** แพ็ค Daily Ruby Support: EXP เพิ่ม → อัศวินตันใน 10 รอบ (ไม่มีแพ็ค 11 รอบ) + รูบี้ฟรีทุกวัน (ไม่ได้มาจากการฟาร์ม → แสดงแยก) */
 export const RUBY_SUPPORT = { dailyRubies: 200, battlesPerSet: 10, battlesPerSetWithout: 11 }
 export const BASE_KEYS_PER_DAY = BASE_KEYS.reduce((sum, x) => sum + x.keys / x.days, 0)
 /** เช็กอินกิลด์ (ตามจำนวนคนที่เช็กอินเมื่อวาน 1/10/15/20/25 คน) */
 export const GUILD_CHECKIN = [0, 14, 40, 52, 64, 80]
 type NumKey = Exclude<keyof FarmInput, 'tiers' | 'heroesPerSet' | 'freeKeys' | 'maxHours'>
-/** ค่าในฟอร์มเป็นข้อความ (ช่องว่าง = ใช้ค่าเริ่มต้น) · team = ฮีโร่ Lv.1 ในทีม 1–5 */
+/** ค่าในฟอร์มเป็นข้อความ (ช่องว่าง = ใช้ค่าเริ่มต้น) · team = อัศวิน Lv.1 ในทีม 1–5 */
 export type FarmForm = Record<NumKey, string> & {
   team: number; tiers: { boxes: string; price: string }[]
   /** รอบต่อชุดเมื่อไม่มีแพ็ค Daily Ruby Support (battlesPerSet = มีแพ็ค) */
@@ -362,7 +362,7 @@ export const loadFarmInput = () => farmInputOf(loadFarmForm())
 
 /**
  * กุญแจ 1 ดอกฟาร์มได้กี่รูบี้ (เฉลี่ยระยะยาว ไม่ปัดชุด)
- * = รูบี้ต่อรอบ ÷ กุญแจสุทธิต่อรอบ (เควสต์ทำซ้ำคืนกุญแจ) · 5 ฮีโร่ = 10 ÷ 5.875 ≈ 1.70
+ * = รูบี้ต่อรอบ ÷ กุญแจสุทธิต่อรอบ (เควสต์ทำซ้ำคืนกุญแจ) · 5 อัศวิน = 10 ÷ 5.875 ≈ 1.70
  */
 export function rubiesPerKey(input: FarmInput = loadFarmInput()) {
   const setSize = Math.max(1, pos(input.battlesPerSet, 1))

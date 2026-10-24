@@ -9,7 +9,7 @@ import { DEFAULT_FARM_FORM, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS,
 import { L } from '../lib/i18n'
 import RubyIcon from '../components/RubyIcon'
 
-// คำนวณรูบี้ขายวิญญาณ: เล่นได้วันละกี่ชั่วโมง → ฟาร์มได้กี่รอบ ใช้ฮีโร่ Lv.1 กี่ตัว ได้รูบี้เท่าไหร่ · ข้อมูลเก็บในเครื่องนี้เท่านั้น
+// คำนวณรูบี้ขายวิญญาณ: เล่นได้วันละกี่ชั่วโมง → ฟาร์มได้กี่รอบ ใช้อัศวิน Lv.1 กี่ตัว ได้รูบี้เท่าไหร่ · ข้อมูลเก็บในเครื่องนี้เท่านั้น
 const MAX_TIERS = 6
 const MAX_TEAM = 5
 const QUICK_HOURS = [1, 2, 3, 4, 6]
@@ -136,7 +136,7 @@ export default function RubyPage() {
       <p className="eyebrow mb-1.5">RUBY FARMING</p>
       <h1 className="gold-title flex items-center gap-2 text-3xl font-extrabold"><RubyIcon className="h-7 w-7 shrink-0 text-gold" />{L('คำนวณรูบี้ขายวิญญาณ', 'Ruby Farming Calculator')}</h1>
       <p className="mt-2 text-sm leading-relaxed text-white/60">
-        {L('ใส่ว่าเล่นได้วันละกี่ชั่วโมง แล้วดูว่าฟาร์มได้กี่รอบ ใช้ฮีโร่ Lv.1 กี่ตัว และได้รูบี้เท่าไหร่',
+        {L('ใส่ว่าเล่นได้วันละกี่ชั่วโมง แล้วดูว่าฟาร์มได้กี่รอบ ใช้อัศวิน Lv.1 กี่ตัว และได้รูบี้เท่าไหร่',
           'Enter how many hours you play a day and see how many battles you get, how many Lv.1 heroes you need, and how many rubies you earn')}
       </p>
 
@@ -144,11 +144,11 @@ export default function RubyPage() {
       <section className="panel panel-gold mt-5 p-4 sm:p-5">
         <div className="grid gap-4 sm:grid-cols-[auto_1fr] sm:gap-6">
           <div>
-            <p className="flex items-baseline gap-2 text-sm font-medium text-gold">{L('ฮีโร่ Lv.1 ในทีม', 'Lv.1 heroes in the team')}
+            <p className="flex items-baseline gap-2 text-sm font-medium text-gold">{L('อัศวิน Lv.1 ในทีม', 'Lv.1 heroes in the team')}
               <b className="text-lg tabular-nums text-white">{L(`${form.team} ตัว`, `${form.team}`)}</b></p>
             <div className="mt-2 w-full sm:w-52">
               <input type="range" min={1} max={MAX_TEAM} step={1} value={form.team} onChange={(e) => setForm((f) => ({ ...f, team: Number(e.target.value) }))}
-                aria-label={L('ฮีโร่ Lv.1 ในทีม', 'Lv.1 heroes in the team')} className="h-2 w-full cursor-pointer accent-gold" />
+                aria-label={L('อัศวิน Lv.1 ในทีม', 'Lv.1 heroes in the team')} className="h-2 w-full cursor-pointer accent-gold" />
               <div className="mt-0.5 flex justify-between px-0.5 text-xs tabular-nums" aria-hidden="true">
                 {Array.from({ length: MAX_TEAM }, (_, i) => i + 1).map((k) => (
                   <span key={k} className={form.team === k ? 'font-bold text-gold' : 'text-white/40'}>{k}</span>
@@ -186,7 +186,7 @@ export default function RubyPage() {
         <div className="mt-5 grid grid-cols-3 gap-2">
           <Big icon={<Swords className="h-3.5 w-3.5" />} label={L('ฟาร์มได้', 'Battles')} value={fmt(r.battles)}
             sub={L(`${hours(r.seconds)}`, `${hours(r.seconds)}`)} />
-          <Big icon={<Users className="h-3.5 w-3.5" />} label={L('ฮีโร่ Lv.1', 'Lv.1 heroes')} value={fmt(r.heroes)}
+          <Big icon={<Users className="h-3.5 w-3.5" />} label={L('อัศวิน Lv.1', 'Lv.1 heroes')} value={fmt(r.heroes)}
             sub={L(`${form.team} ตัว × ${fmt(r.sets)} ชุด`, `${form.team} × ${fmt(r.sets)} sets`)} />
           <Big icon={<Ruby className="h-3.5 w-3.5" />} label={L('รูบี้สุทธิ', 'Net rubies')} value={<span className={r.net >= 0 ? 'text-gold' : 'text-red-300'}>{signed(r.net)}</span>}
             sub={r.cost ? L(`ได้ ${fmt(r.rubies)} − กล่อง ${fmt(r.cost)}`, `${fmt(r.rubies)} − ${fmt(r.cost)} boxes`) : L('ไม่เสียค่ากล่อง', 'No box cost')} />
@@ -200,7 +200,7 @@ export default function RubyPage() {
               <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 font-semibold tabular-nums">
                 <span className={r.net - best.net < 0 ? 'text-red-300' : 'text-emerald-300'}>{L(`รูบี้ ${signed(r.net - best.net)}`, `${signed(r.net - best.net)} rubies`)}</span>
                 <span>{r.seconds <= best.seconds ? L(`เร็วกว่า ${hours(best.seconds - r.seconds)}`, `${hours(best.seconds - r.seconds)} faster`) : L(`นานกว่า ${hours(r.seconds - best.seconds)}`, `${hours(r.seconds - best.seconds)} longer`)}</span>
-                <span>{r.heroes <= best.heroes ? L(`ฮีโร่น้อยกว่า ${fmt(best.heroes - r.heroes)} ตัว`, `${fmt(best.heroes - r.heroes)} fewer heroes`) : L(`ฮีโร่มากกว่า ${fmt(r.heroes - best.heroes)} ตัว`, `${fmt(r.heroes - best.heroes)} more heroes`)}</span>
+                <span>{r.heroes <= best.heroes ? L(`อัศวินน้อยกว่า ${fmt(best.heroes - r.heroes)} ตัว`, `${fmt(best.heroes - r.heroes)} fewer heroes`) : L(`อัศวินมากกว่า ${fmt(r.heroes - best.heroes)} ตัว`, `${fmt(r.heroes - best.heroes)} more heroes`)}</span>
               </p>
             </div>
           )}
@@ -236,11 +236,11 @@ export default function RubyPage() {
       {/* ===== เทียบตัวเลือก ===== */}
       <section className="mt-5">
         <h2 className="text-sm font-medium text-gold">{L('เทียบตัวเลือก', 'Compare options')}</h2>
-        <p className="mt-1 text-xs text-white/45">{L('ยิ่งซื้อกล่องมาก ยิ่งเล่นนานและใช้ฮีโร่มาก · แตะแถวเพื่อเลือก', 'More boxes = longer play and more heroes · tap a row to pick it')}</p>
+        <p className="mt-1 text-xs text-white/45">{L('ยิ่งซื้อกล่องมาก ยิ่งเล่นนานและใช้อัศวินมาก · แตะแถวเพื่อเลือก', 'More boxes = longer play and more heroes · tap a row to pick it')}</p>
         <div className="mt-2 overflow-hidden rounded-2xl border border-white/10" role="list">
           <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,.8fr)_minmax(0,1fr)] gap-2 bg-white/[.04] px-3 py-2 text-[11px] text-white/45">
             <span>{L('ตัวเลือก', 'Option')}</span><span className="text-right">{L('เวลา', 'Time')}</span>
-            <span className="text-right">{L('ฮีโร่', 'Heroes')}</span><span className="text-right">{L('รูบี้สุทธิ', 'Net rubies')}</span>
+            <span className="text-right">{L('อัศวิน', 'Heroes')}</span><span className="text-right">{L('รูบี้สุทธิ', 'Net rubies')}</span>
           </div>
           {options.map(({ key, row, res }) => {
             const sel = res.battles === battles
@@ -286,7 +286,7 @@ export default function RubyPage() {
             value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(keys.powerUpRegen + POWER_UP.dailyKeys)}{L('/วัน', '/day')}</>} />
           <PackToggle on={form.rubySupport} onClick={() => toggle('rubySupport')} img={packRuby}
             label="Daily Ruby Support"
-            sub={L(`฿249 / 28 วัน · EXP เพิ่ม ฮีโร่ตันใน ${RUBY_SUPPORT.battlesPerSet} รอบ (ปกติ ${RUBY_SUPPORT.battlesPerSetWithout}) + รูบี้ฟรีทุกวัน`, `฿249 / 28 days · more EXP, heroes max in ${RUBY_SUPPORT.battlesPerSet} battles (not ${RUBY_SUPPORT.battlesPerSetWithout}) + free rubies daily`)}
+            sub={L(`฿249 / 28 วัน · EXP เพิ่ม อัศวินตันใน ${RUBY_SUPPORT.battlesPerSet} รอบ (ปกติ ${RUBY_SUPPORT.battlesPerSetWithout}) + รูบี้ฟรีทุกวัน`, `฿249 / 28 days · more EXP, heroes max in ${RUBY_SUPPORT.battlesPerSet} battles (not ${RUBY_SUPPORT.battlesPerSetWithout}) + free rubies daily`)}
             value={<><Ruby className="h-3.5 w-3.5" />+{fmt(RUBY_SUPPORT.dailyRubies)}{L('/วัน', '/day')}</>} />
           <PackToggle on={form.passPremium} onClick={() => toggle('passPremium')} img={packPass}
             label={L(PAID_KEYS.passPremium.th, PAID_KEYS.passPremium.en)}
@@ -370,11 +370,11 @@ export default function RubyPage() {
         </button>
         {more && (
           <div className="edit-arrive border-t border-white/10 p-4">
-            <p className="text-sm font-medium text-gold">{L('ฮีโร่ Lv.1', 'Lv.1 heroes')}</p>
+            <p className="text-sm font-medium text-gold">{L('อัศวิน Lv.1', 'Lv.1 heroes')}</p>
             <div className="mt-2 flex flex-wrap gap-3">
-              <Field label={L('รูบี้ต่อฮีโร่ที่เต็มเลเวล', 'Rubies per maxed hero')} value={form.rubyPerHero} onChange={(v) => set('rubyPerHero', v)} unit={<Ruby />} />
-              <Field label={L('รอบจนฮีโร่ตัน (ไม่มีแพ็ค)', 'Battles to max (no pack)')} value={form.battlesPerSetBase} onChange={(v) => set('battlesPerSetBase', v)} unit={L('รอบ', 'battles')} />
-              <Field label={L('รอบจนฮีโร่ตัน (มี Daily Ruby)', 'Battles to max (Daily Ruby)')} value={form.battlesPerSet} onChange={(v) => set('battlesPerSet', v)} unit={L('รอบ', 'battles')} />
+              <Field label={L('รูบี้ต่ออัศวินที่เต็มเลเวล', 'Rubies per maxed hero')} value={form.rubyPerHero} onChange={(v) => set('rubyPerHero', v)} unit={<Ruby />} />
+              <Field label={L('รอบจนอัศวินตัน (ไม่มีแพ็ค)', 'Battles to max (no pack)')} value={form.battlesPerSetBase} onChange={(v) => set('battlesPerSetBase', v)} unit={L('รอบ', 'battles')} />
+              <Field label={L('รอบจนอัศวินตัน (มี Daily Ruby)', 'Battles to max (Daily Ruby)')} value={form.battlesPerSet} onChange={(v) => set('battlesPerSet', v)} unit={L('รอบ', 'battles')} />
             </div>
 
             <p className="mt-5 text-sm font-medium text-gold">{L('กุญแจและการต่อสู้', 'Keys and battles')}</p>
@@ -421,7 +421,7 @@ export default function RubyPage() {
 
       <p className="mt-6 text-xs leading-relaxed text-white/40">
         <Clock className="mr-1 inline h-3 w-3" />
-        {L('นับรูบี้เฉพาะชุดที่ครบ (ฮีโร่เต็มเลเวลพร้อมกันทุก 11 รอบ หรือ 10 รอบถ้ามีแพ็ค Daily Ruby Support) · เควสต์ทำซ้ำคืนกุญแจระหว่างเล่น · กุญแจไม่มีเพดาน ที่เหลือเก็บไว้วันถัดไป · ค่าเริ่มต้นมาจากที่ผู้เล่นจับเวลาเอง · รูปแพ็คจาก 7K Atlas · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น',
+        {L('นับรูบี้เฉพาะชุดที่ครบ (อัศวินเต็มเลเวลพร้อมกันทุก 11 รอบ หรือ 10 รอบถ้ามีแพ็ค Daily Ruby Support) · เควสต์ทำซ้ำคืนกุญแจระหว่างเล่น · กุญแจไม่มีเพดาน ที่เหลือเก็บไว้วันถัดไป · ค่าเริ่มต้นมาจากที่ผู้เล่นจับเวลาเอง · รูปแพ็คจาก 7K Atlas · ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น',
           'Rubies count only full sets (heroes max out together every 11 battles, or 10 with Daily Ruby Support) · the repeat quest refunds keys while you play · keys have no cap, leftovers carry over · defaults come from a player’s own timing · pack art via 7K Atlas · data stays on this device')}
       </p>
     </div>
