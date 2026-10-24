@@ -75,7 +75,7 @@ const BASE_ITEMS: Record<PackBaseKey, ItemDef> = {
   awakening: { th: 'Awakening Stone', en: 'Awakening Stone', shop: 400, worth: 0, rookie: 400,
     note: ['ผู้เล่นเก่ามีล้นคลัง · ผู้เล่นใหม่ต้องการมาก', 'Veterans have plenty · new players need lots'] },
   crystal: { th: 'Tuning Crystal', en: 'Tuning Crystal', shop: 3, worth: 2.54, note: ['กดตู้ของรัก 80 รูบี้ ได้ ≈31.5 ผลึก', 'A dedicated gear pull (80) gives ≈31.5'] },
-  rankUp: { th: 'วัสดุเลื่อนขั้น', en: 'Rank Up material', shop: 10, worth: 2.8, note: ['จากรอบดันเจี้ยน Power Up', 'From Power Up Dungeon runs'] },
+  rankUp: { th: 'วัสดุเลื่อนขั้น', en: 'Rank Up material', shop: 10, worth: 0, note: ['หาง่ายเกินไป ไม่นับ', 'Too easy to get, not counted'] },
   spark: { th: 'Inner Spark', en: 'Inner Spark', shop: 1, worth: 0.28, note: ['จากรอบดันเจี้ยน Power Up', 'From Power Up Dungeon runs'] },
   skillStone: { th: 'หินสกิล Brilliant', en: 'Brilliant Skill Stone', shop: 3000, worth: 2500, note: ['หายากมาก ส่วนใหญ่จากร้านรายเดือน', 'Very rare, mostly from the monthly shop'] },
   raid: { th: 'ตั๋วเรด', en: 'Raid ticket', worth: 0, note: ['ไม่นับ', 'Not counted'] },
