@@ -904,3 +904,9 @@ html[data-theme="light"] .updates-rail-item:hover { background: #ffffff80; }
 html[data-theme="light"] .updates-rail-item.is-active { background: linear-gradient(90deg, #f4d58d55, transparent); }
 html[data-theme="light"] .updates-rail-dot { border-color: #a5a19a; }
 html[data-theme="light"] .updates-rail-item.is-active .updates-rail-dot { border-color: #c08a1e; background: #d9a93f; box-shadow: 0 0 0 3px #d9a93f33; }
+
+/* รูปแพ็คในหน้าคำนวณรูบี้: จางจากซ้าย ให้ตัวหนังสืออ่านง่าย */
+.pack-art {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 55%);
+  mask-image: linear-gradient(to right, transparent 0, #000 55%);
+}
