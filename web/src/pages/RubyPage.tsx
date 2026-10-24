@@ -122,13 +122,12 @@ export default function RubyPage() {
   const r = useMemo(() => farmBattles(input, battles, plan.prices), [input, battles, plan.prices])
   const best = useMemo(() => farmBattles(input, bestB, plan.prices), [input, bestB, plan.prices])
   const isBest = battles === bestB
-  // ตัวเลือกให้เทียบ: ทุกขั้นราคากล่อง + ที่ผู้ใช้กรอกเอง (ถ้าไม่ตรงขั้นไหน)
+  // ตัวเลือกให้เทียบ: ทุกขั้นราคากล่อง + ที่ผู้ใช้กรอกเอง (ถ้าไม่ตรงขั้นไหน) · ไม่เพิ่มแถว "คุ้มสุด" แยก (Krit: ไม่ต้องมี เพราะซ้ำกับแถวกล่อง)
   const options = useMemo(() => {
     const rows: { key: string; row: TierRow | null; res: typeof r }[] = plan.rows.map((row) => ({ key: `t${row.tier}`, row, res: farmBattles(input, row.day.battles, plan.prices) }))
-    if (!rows.some((o) => o.res.battles === best.battles)) rows.push({ key: 'best', row: null, res: best })
-    if (!rows.some((o) => o.res.battles === battles)) rows.push({ key: 'mine', row: null, res: r })
+    if (battles !== bestB && !rows.some((o) => o.res.battles === battles)) rows.push({ key: 'mine', row: null, res: r })
     return rows.filter((o, i, a) => a.findIndex((x) => x.res.battles === o.res.battles) === i).sort((a, b) => a.res.battles - b.res.battles)
-  }, [plan, input, battles, r, best])
+  }, [plan, input, battles, bestB, r])
   const perSet = form.team * num(form.rubyPerHero)
 
   return (
@@ -262,7 +261,7 @@ export default function RubyPage() {
             const sel = res.battles === battles
             const top = res.battles === bestB
             const v = row && row.tier >= 0 ? verdict(row) : null
-            const label = !row ? (key === 'best' ? L('คุ้มสุด', 'Best value') : L('ที่กรอกเอง', 'Your hours')) : row.tier < 0 ? L('ไม่ซื้อกล่อง', 'No boxes')
+            const label = !row ? L('ที่กรอกเอง', 'Your hours') : row.tier < 0 ? L('ไม่ซื้อกล่อง', 'No boxes')
               : row.price ? L(`กล่อง ${fmt(row.price)}`, `${fmt(row.price)}-ruby boxes`) : L('กล่องฟรี', 'Free box')
             return (
               <button key={key} type="button" role="listitem" aria-current={sel || undefined}
