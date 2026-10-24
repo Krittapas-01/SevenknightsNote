@@ -361,7 +361,8 @@ export default function RubyPage() {
                     <span className="mt-1 flex h-20 w-full items-end justify-center lg:h-52">
                       <span className={`ruby-bar w-7 rounded-t-md lg:w-14 lg:rounded-t-lg ${res.net <= 0 ? 'bg-red-400/50' : sel ? 'bg-gold' : 'bg-white/20'}`} style={{ height: `${h}%`, animationDelay: `${i * 70}ms` }} />
                     </span>
-                    <span className={`mt-1.5 flex items-center gap-0.5 text-xs font-semibold lg:mt-2 lg:text-base ${sel ? 'text-gold' : 'text-white/70'}`}>
+                    <Package className={`mt-2 h-4 w-4 lg:h-5 lg:w-5 ${sel ? 'text-gold' : 'text-white/45'}`} aria-hidden="true" />
+                    <span className={`mt-0.5 flex items-center gap-0.5 text-xs font-semibold lg:text-base ${sel ? 'text-gold' : 'text-white/70'}`}>
                       {row.price > 0 && <Ruby className="h-3 w-3" />}{tierName(row)}
                     </span>
                     <span className="text-[10px] tabular-nums text-white/45 lg:text-sm">{hm(res.seconds)}</span>
@@ -370,7 +371,7 @@ export default function RubyPage() {
                 )
               })}
             </div>
-            <p className="mt-1.5 text-center text-[11px] text-white/40 lg:mt-4 lg:text-sm">{L('ซื้อกล่องถึงราคา', 'Boxes bought up to')}</p>
+            <p className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-white/45 lg:mt-4 lg:text-sm"><Package className="h-3.5 w-3.5" aria-hidden="true" />{L('ราคากล่องกุญแจที่ซื้อถึง', 'Key box price you buy up to')}</p>
           </section>
         </div>
       </div>
