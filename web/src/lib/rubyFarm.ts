@@ -3,7 +3,7 @@
  * ค่าเริ่มต้นจากที่ Krit เล่นจริง (24 ต.ค. 2026):
  * - 1 รอบใช้ 6 กุญแจ ~21 วิ ได้ ~6,800 ทอง
  * - ทุก 10 รอบ ฮีโร่ Lv.1 5 ตัวเต็มเลเวล ได้ตัวละ 20 รูบี้ = 100 รูบี้ (นับเฉพาะชุดครบ 10 รอบ)
- * - กุญแจฟื้น 1 ดอก/2 นาที = 720/วัน (แพ็ค Daily Power Up Support: เร็วขึ้น 60 วิ → 1/นาที + 80 ดอก/วัน) · ไม่มีเพดาน → ที่เหลือเก็บไว้วันถัดไปได้
+ * - กุญแจฟื้น 1 ดอก/2 นาที = 720/วัน (แพ็ค Daily Power Up Support: +80 ดอก/วัน) · ไม่มีเพดาน → ที่เหลือเก็บไว้วันถัดไปได้
  * - กุญแจฟรีอื่น ๆ: กล่องฟรีร้านรายวัน 30 · ภารกิจรายวัน 60 (40 แต้ม 20 + 80 แต้ม 40) · เช็กอินกิลด์ 14/40/52/64/80
  * - แพ็ค Daily Ruby Support: รูบี้จากฟาร์มเพิ่ม x% (+ 200 รูบี้/วัน ไม่นับในหน้านี้)
  * - เควสต์ทำซ้ำ: ทุก 160 รอบ ได้ 20 กุญแจ + 60,000 ทอง
@@ -177,8 +177,10 @@ export function planFarm(input: FarmInput, soulPrice: number): FarmPlan {
     // ในขั้นนี้เลือกจำนวนที่กำไรสูงสุด (ติดเวลาเล่นแล้ว ซื้อเพิ่มก็เสียเปล่า)
     let pick = r.from - 1
     for (let n = r.from; n <= r.to; n++) if (days[n].net > days[pick].net) pick = n
-    const addNet = days[pick].net - days[best].net
-    const addHours = (days[pick].seconds - days[best].seconds) / 3600
+    // ไม่ติดเวลา → ตัดสินจากทั้งขั้น (กันเศษกุญแจที่เหลือมาเติมชุดพอดี ทำให้ดูเหมือนซื้อเพิ่มไม่กี่กล่องแล้วคุ้ม)
+    const end = days[r.to].timeCapped ? pick : r.to
+    const addNet = days[end].net - days[best].net
+    const addHours = (days[end].seconds - days[best].seconds) / 3600
     if (!(addNet > 0 && (addHours <= 0 || addNet / addHours >= soulPrice))) break
     best = pick
     bestTier = r.tier
@@ -190,8 +192,8 @@ export function planFarm(input: FarmInput, soulPrice: number): FarmPlan {
 /* ===== ค่าที่ผู้ใช้กรอกในหน้า /ruby (เก็บในเครื่อง) — หน้าอื่น (เช่น เช็กความคุ้มค่าแพ็ค) อ่านผ่าน loadFarmInput() ได้ ===== */
 
 export const FARM_STORE_KEY = '7k-note:ruby'
-/** แพ็ครายเดือน Daily Power Up Support: กุญแจฟื้นเร็วขึ้นกี่วินาที + กุญแจรายวัน */
-export const POWER_UP = { regenCut: 60, dailyKeys: 80 }
+/** แพ็ครายเดือน Daily Power Up Support: นับแค่กุญแจรายวัน (Krit: ไม่นับที่ฟื้นเร็วขึ้น) */
+export const POWER_UP = { dailyKeys: 80 }
 /** เช็กอินกิลด์ (ตามจำนวนคนที่เช็กอินเมื่อวาน 1/10/15/20/25 คน) */
 export const GUILD_CHECKIN = [0, 14, 40, 52, 64, 80]
 type NumKey = Exclude<keyof FarmInput, 'tiers' | 'heroesPerSet' | 'freeKeys' | 'rubyBoost'>
@@ -248,7 +250,7 @@ const val = (v: string, d: number) => { const n = parseNum(v); return Number.isF
 
 /** กุญแจฟรีต่อวันแยกตามที่มา */
 export function dailyKeys(f: FarmForm) {
-  const regenSec = Math.max(1, val(f.regenSec, 120) - (f.powerUp ? POWER_UP.regenCut : 0))
+  const regenSec = Math.max(1, val(f.regenSec, 120))
   const parts = {
     regen: Math.floor(86400 / regenSec),
     powerUp: f.powerUp ? POWER_UP.dailyKeys : 0,
