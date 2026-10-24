@@ -1,6 +1,7 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { ArrowLeftRight, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTeamMotion } from '../lib/teamMotion'
+import { afterModalClose } from '../lib/overlayMotion'
 import UnitCard from '../components/UnitCard'
 import UnitPicker from '../components/UnitPicker'
 import { getUnit, unitLabel } from '../data/heroes'
@@ -121,9 +122,21 @@ export default function AtkPage() {
     setState((s) => ({ ...s, buffs: s.buffs.map((b, j) => (j === i ? { ...b, ...patch } : b)) }))
   const setChar = (i: number, patch: Partial<Char>) =>
     setState((s) => ({ ...s, chars: s.chars.map((c, j) => (j === i ? { ...c, ...patch } : c)) }))
+  // ปิดหน้าต่างเลือกก่อน แล้วค่อยเปลี่ยนตัว → เห็นการ์ดเด้ง/แสงทอง/ประกายดาวชัด ๆ ไม่จมอยู่หลังพื้นหลังมืด
   const pick = (i: number, id: string | null) => {
-    setChar(i, id ? { id, base: '', hit: debuffedType(id) } : { id: null })
     setPicking(null)
+    afterModalClose(() => setChar(i, id ? { id, base: '', hit: debuffedType(id) } : { id: null }))
+  }
+  // คีย์ประจำฝั่ง (ไม่บันทึก) ย้ายตามข้อมูล → สลับแล้วกล่องทั้งใบเลื่อนข้ามไปอีกฝั่ง (การ์ดไม่เด้งใหม่)
+  const uids = useRef(['c0', 'c1'])
+  // สลับตัวที่ 1 ↔ 2 พร้อมค่าที่กรอกไว้ และติ๊ก "ได้บัฟ" ของแต่ละตัว
+  const swapChars = () => {
+    uids.current.reverse()
+    setState((s) => ({
+      ...s,
+      chars: [s.chars[1], s.chars[0]],
+      buffs: s.buffs.map((b) => ({ ...b, to: [b.to[1], b.to[0]] })),
+    }))
   }
 
   const calc = chars.map((c, i) => {
@@ -142,9 +155,9 @@ export default function AtkPage() {
   })
   const [a, b] = calc
   const leader = a.total === b.total ? null : a.total > b.total ? a : b
-  // แอนิเมชันแบบหน้าจัดทีม: เลือกอัศวิน = เด้ง+แสงทอง · เปลี่ยน/เอาออก = ตัวเดิมจางหาย+ประกายดาว
+  // แอนิเมชันแบบหน้าจัดทีม: เลือกอัศวิน = เด้ง+แสงทอง · เปลี่ยน/เอาออก = ตัวเดิมจางหาย+ประกายดาว · สลับ = กล่องเลื่อนข้ามฝั่ง
   const charsRef = useRef<HTMLDivElement>(null)
-  useTeamMotion(charsRef, chars.map((c) => c.id ?? '').join(','), true)
+  useTeamMotion(charsRef, chars.map((c, i) => `${uids.current[i]}:${c.id ?? ''}`).join(','), true)
   const trailer = leader === a ? b : a
 
   return (
@@ -273,11 +286,28 @@ export default function AtkPage() {
         </Section>
       </section>
 
-      <div ref={charsRef} className="mt-8 grid gap-6 sm:grid-cols-2">
+      <div ref={charsRef} className="mt-8 grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:gap-3">
         {chars.map((c, i) => {
           const r = calc[i]
-          return (
-            <section key={i} className={`panel p-4 sm:p-5 ${leader === r ? 'panel-gold' : ''}`}>
+          const uid = uids.current[i]
+          return [
+            i === 1 && (
+              <div key="swap" className="flex items-center justify-center sm:items-start sm:pt-7">
+                <button
+                  type="button"
+                  data-atk-swap=""
+                  onClick={swapChars}
+                  aria-label={L('สลับตัวที่ 1 กับตัวที่ 2', 'Swap hero 1 and hero 2')}
+                  title={L('สลับ', 'Swap')}
+                  className="pill grid h-10 w-10 place-items-center text-white/70 transition hover:border-gold hover:text-gold active:scale-90"
+                >
+                  <ArrowLeftRight className="h-4 w-4 rotate-90 sm:rotate-0" />
+                </button>
+              </div>
+            ),
+            // data-mhost = ฝั่งซ้าย/ขวา (อยู่กับที่) · กล่องอัศวิน (data-m) ย้ายฝั่งตอนสลับ → เลื่อนจากฝั่งเดิมไปฝั่งใหม่
+            <div key={i} data-mhost="" className="grid min-w-0">
+            <section key={uid} data-m={`c:${uid}`} className={`panel min-w-0 p-4 sm:p-5 ${leader === r ? 'panel-gold' : ''}`}>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setPicking(i)}
@@ -286,9 +316,9 @@ export default function AtkPage() {
                   className="relative aspect-square w-16 shrink-0 text-[11px] transition hover:-translate-y-0.5"
                 >
                   {c.id ? (
-                    <span data-mp={`hero:a${i}:${c.id}`} className="block h-full w-full"><UnitCard id={c.id} /></span>
+                    <span data-mp={`hero:${uid}:${c.id}`} className="block h-full w-full"><UnitCard id={c.id} /></span>
                   ) : (
-                    <span data-mp={`empty:a${i}`} className="slot-empty grid h-full w-full place-items-center rounded-[24%_4%_24%_4%] border border-dashed border-white/20 text-white/50">
+                    <span data-mp={`empty:${uid}`} className="slot-empty grid h-full w-full place-items-center rounded-[24%_4%_24%_4%] border border-dashed border-white/20 text-white/50">
                       <Plus className="h-1/3 w-1/3" />
                     </span>
                   )}
@@ -374,7 +404,8 @@ export default function AtkPage() {
                 </div>
               </dl>
             </section>
-          )
+            </div>,
+          ]
         })}
       </div>
 

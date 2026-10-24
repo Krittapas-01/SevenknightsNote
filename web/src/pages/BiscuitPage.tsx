@@ -3,6 +3,7 @@ import { zoomInPlace } from '../lib/zoom'
 import { DndContext, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { markDrop, useTeamMotion } from '../lib/teamMotion'
+import { afterModalClose } from '../lib/overlayMotion'
 import UnitCard from '../components/UnitCard'
 import UnitPicker from '../components/UnitPicker'
 import { FormationDiagram } from '../components/TeamModals'
@@ -77,9 +78,13 @@ export default function BiscuitPage() {
     swap(selected, i)
     setSelected(null)
   }
+  // คีย์ประจำช่อง (ไม่บันทึก) ย้ายตามค่าที่กรอกไว้ → ช่องกรอกเลื่อนตามการ์ดตอนสลับ
+  const uids = useRef(Array.from({ length: SLOT_COUNT }, (_, i) => `s${i}`))
   // ย้าย/สลับ 2 ช่อง พร้อมค่าที่กรอกไว้ (ใช้ทั้งกดเลือก และลากวาง)
   const swap = (a: number, b: number) => {
     if (a === b) return
+    const u = uids.current
+    ;[u[a], u[b]] = [u[b], u[a]]
     setState((s) => {
       const next = [...s.slots]
       ;[next[a], next[b]] = [next[b], next[a]]
@@ -98,9 +103,10 @@ export default function BiscuitPage() {
     }
   }
   const { pet, front, slots } = state
-  // แอนิเมชันแบบหน้าจัดทีม: ใส่ตัว = เด้ง+แสงทอง · เปลี่ยน/ล้างตัว = จางหาย+ประกายดาว · สลับ = เลื่อนไปช่องใหม่
+  // แอนิเมชันแบบหน้าจัดทีม: ใส่ตัว = เด้ง+แสงทอง · เปลี่ยน/ล้างตัว = จางหาย+ประกายดาว · สลับ = การ์ดและช่องกรอกเลื่อนไปช่องใหม่
+  // เปลี่ยนรูปแบบ = ช่องเลื่อนขึ้นลงด้วย CSS (.biscuit-col) → fixedHosts: ไม่ใช้ตำแหน่งที่จำไว้ (จะเก่า)
   const teamRef = useRef<HTMLDivElement>(null)
-  useTeamMotion(teamRef, slots.map((r) => r.id ?? '').join(','), true)
+  useTeamMotion(teamRef, slots.map((r, i) => `${r.id ?? ''}/${r.id || r.screen ? uids.current[i] : ''}`).join(','), true, { fixedHosts: true })
   const petBuff = pet.reduce((sum, v) => sum + num(v), 0)
   const formation = FORMATION_ATK.find((f) => f.front === front) ?? FORMATION_ATK[0]
   const isBack = (col: number) => !FRONT_COLS[front].includes(col)
@@ -115,10 +121,13 @@ export default function BiscuitPage() {
 
   const setSlot = (i: number, patch: Partial<Slot>) =>
     setState((s) => ({ ...s, slots: s.slots.map((r, j) => (j === i ? { ...r, ...patch } : r)) }))
+  // ปิดหน้าต่างเลือกก่อน แล้วค่อยใส่/เอาออก → เห็นการ์ดเด้ง/แสงทอง/ประกายดาวชัด ๆ ไม่จมอยู่หลังพื้นหลังมืด
   const pick = (i: number, id: string | null) => {
-    if (!id) setSlot(i, { ...EMPTY_SLOT })
-    else setSlot(i, { id })
     setPicking(null)
+    afterModalClose(() => {
+      if (!id) setSlot(i, { ...EMPTY_SLOT })
+      else setSlot(i, { id })
+    })
   }
 
   let filled = slots
@@ -144,6 +153,9 @@ export default function BiscuitPage() {
   const flipped = filled.filter(
     (r) => (screenRank.get(r.i)! < BISCUIT_TARGETS) !== (gameRank.get(r.i)! < BISCUIT_TARGETS),
   )
+  // อันดับเปลี่ยน (กรอกเลข/สลับช่อง/เปลี่ยนรูปแบบ) → แถวเลื่อนไปที่ใหม่ · แถวใหม่ค่อย ๆ โผล่
+  const rankRef = useRef<HTMLOListElement>(null)
+  useTeamMotion(rankRef, byGame.map((r) => uids.current[r.i]).join(','), true)
   const input = 'pill w-full min-w-0 px-1 py-1 text-center text-xs tabular-nums outline-none focus:border-gold sm:text-sm'
 
   return (
@@ -223,8 +235,10 @@ export default function BiscuitPage() {
                   )}
                 </button>
                 </DragSlot>
+                {/* data-mhost = กรอบของช่องกรอก (อยู่ทุกคอลัมน์) → สลับช่องแล้วช่องกรอกเลื่อนจากคอลัมน์เดิมไปคอลัมน์ใหม่ */}
+                <div data-mhost="" className="relative min-w-0">
                 {(r.id || r.screen) && (
-                  <>
+                  <div data-m={`v:${uids.current[i]}`} data-mpop="field" data-mfade="" className="flex min-w-0 flex-col gap-1.5">
                     <input value={r.screen} onChange={(e) => setSlot(i, { screen: e.target.value })} inputMode="decimal"
                       placeholder={tx('โจมตี')} aria-label={tx('โจมตีหน้าอัศวิน')} className={input} />
                     <input value={r.extra} onChange={(e) => setSlot(i, { extra: e.target.value })} inputMode="decimal"
@@ -232,8 +246,9 @@ export default function BiscuitPage() {
                     <span className="text-center text-[11px] text-white/45 tabular-nums">
                       {r.id && baseAtkOf(r.id) ? `base ${fmt(baseAtkOf(r.id)!)}` : tx('ไม่มี base')}
                     </span>
-                  </>
+                  </div>
                 )}
+                </div>
               </div>
             )
           })}
@@ -266,14 +281,16 @@ export default function BiscuitPage() {
       {filled.length > 0 && (
         <section className="biscuit-results panel panel-gold mt-8 p-4 sm:p-5">
           <h2 className="biscuit-section-label font-semibold text-gold">{tx('อันดับโจมตีในเกม')}</h2>
-          <ol className="mt-3 flex flex-col gap-2">
+          <ol ref={rankRef} className="mt-3 flex flex-col gap-2">
             {byGame.map((r, k) => {
               const gets = k < BISCUIT_TARGETS
               // ส่วนต่างกับเส้นตัด: ตัวที่ได้บัฟนำตัวที่ 3 อยู่เท่าไร / ตัวที่ไม่ได้ขาดอีกเท่าไร
               const gap = gets ? (cutoff !== undefined ? r.game - cutoff : undefined) : byGame[BISCUIT_TARGETS - 1].game - r.game
               return (
                 <li
-                  key={r.i}
+                  key={uids.current[r.i]}
+                  data-m={`r:${uids.current[r.i]}`}
+                  data-mpop="row"
                   className={`biscuit-result-row flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-3 py-2 ${gets ? 'biscuit-result-winner' : ''}`}
                 >
                   <span className="w-5 text-white/50 tabular-nums">{k + 1}</span>

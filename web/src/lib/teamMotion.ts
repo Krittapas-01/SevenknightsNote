@@ -29,6 +29,10 @@ const POP: Record<string, { k: Keyframe[]; o: KeyframeAnimationOptions }> = {
   empty: { k: [{ opacity: 0, transform: 'scale(.9)' }, { opacity: 1, transform: 'none' }], o: { duration: 260, easing: EASE } },
   // วงรูปแบบ / วงลำดับสกิล: หมุนเข้า
   orb: { k: [{ transform: 'rotate(-70deg) scale(.75)' }, { transform: 'none' }], o: { duration: 420, easing: BOUNCE } },
+  // ช่องกรอกใต้การ์ด (หน้าบิสกิต): เลื่อนลงจากใต้การ์ดที่เพิ่งใส่
+  field: { k: [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], o: { duration: 300, delay: 80, easing: EASE, fill: 'backwards' } },
+  // แถวในรายการอันดับ: ค่อย ๆ โผล่
+  row: { k: [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], o: { duration: 280, easing: EASE } },
 }
 
 /** ทำหลังเฟรมที่ตอบการกดวาดเสร็จแล้ว (rAF ซ้อน 2 ชั้น) — ของประดับที่เริ่มจากมองไม่เห็นอยู่แล้ว ไม่ต้องแย่งเวลาเฟรมแรกหลังกด */
@@ -92,12 +96,31 @@ function ghostOut(host: Element, card: Element) {
   sparkle(host)
 }
 
+/** ชิ้นที่ถูกเอาออก (ไม่ใช่การ์ด เช่น ช่องกรอก): เอาชิ้นเดิมมาวางทับที่เดิมแล้วจางหาย ไม่มีประกายดาว */
+function fadeOut(host: Element, el: Element) {
+  const g = document.createElement('span')
+  g.className = 'slot-ghost'
+  g.setAttribute('aria-hidden', 'true')
+  g.appendChild(el)
+  host.appendChild(g)
+  g.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-6px)' }], { duration: 200, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards' })
+    .finished.catch(() => {}).finally(() => g.remove())
+}
+
 /** ตัวที่เพิ่งลากมาวาง (ตั้งตอนปล่อย) → ช่องปลายทางวาบทองตรงที่ปล่อย แทนการเลื่อนจากช่องเดิม (การ์ดอยู่ใต้นิ้วแล้ว) */
 let dropped: { unit: string; at: number } | null = null
 export function markDrop(unit: string | null | undefined) {
   dropped = unit ? { unit, at: performance.now() } : null
 }
 const justDropped = (key: string) => !!dropped && performance.now() - dropped.at < 600 && key.slice(key.indexOf(':') + 1) === dropped.unit
+
+type TeamMotionOpts = {
+  /**
+   * กรอบช่องอยู่กับที่ (ไม่ขยับเองตามทีม) → ชิ้นที่ยังอยู่ช่องเดิมไม่ต้องเลื่อน · ย้ายช่อง = วัดกรอบเดิมกับกรอบใหม่ตอนนั้นเลย
+   * ใช้กับหน้าที่ช่องขยับด้วยวิธีอื่น (เช่น หน้าบิสกิตเปลี่ยนรูปแบบ = ช่องเลื่อนขึ้นลงด้วย CSS) — ตำแหน่งที่จำไว้จะเก่า
+   */
+  fixedHosts?: boolean
+}
 
 type Snap = {
   sig: string
@@ -110,6 +133,8 @@ type Snap = {
   pops: Set<string>
   /** การ์ดตัวละครในตอนนั้น (ไว้ทำเงาตอนถูกเอาออก) */
   cards: Map<string, { card: Element; host: Element | null }>
+  /** ชิ้น data-mfade (เช่น ช่องกรอกใต้การ์ด) → ถูกเอาออกแล้วจางหายในที่เดิม */
+  fades: Map<string, { el: Element; host: Element | null }>
 }
 
 function snap(el: HTMLElement, sig: string): Snap {
@@ -121,13 +146,17 @@ function snap(el: HTMLElement, sig: string): Snap {
   const keep = (k: string, m: Element) => {
     const card = m.querySelector('.unit-card')
     const host = m.closest('[data-mhost]')
-    if (card) cards.set(k, { card, host })
+    // การ์ดที่มีกรอบของตัวเองอยู่ข้างใน (ชิ้นใหญ่ที่ห่อการ์ดไว้ เช่น กล่องอัศวินหน้าเทียบพลัง) → เงาไปทำที่กรอบในนั้นแทน ไม่ทำทั้งกล่อง
+    if (card && card.closest('[data-mhost]') === host) cards.set(k, { card, host })
     return host
   }
+  const fades = new Map<string, { el: Element; host: Element | null }>()
   for (const m of Array.from(el.querySelectorAll<HTMLElement>('[data-m]'))) {
     const r = m.getBoundingClientRect()
     pos.set(m.dataset.m!, { x: (r.left - base.left) / z, y: (r.top - base.top) / z })
-    hosts.set(m.dataset.m!, keep(`m|${m.dataset.m}`, m))
+    const host = keep(`m|${m.dataset.m}`, m)
+    hosts.set(m.dataset.m!, host)
+    if (m.hasAttribute('data-mfade')) fades.set(m.dataset.m!, { el: m, host })
   }
   const pops = new Set<string>()
   for (const p of Array.from(el.querySelectorAll<HTMLElement>('[data-mp]'))) {
@@ -135,12 +164,14 @@ function snap(el: HTMLElement, sig: string): Snap {
     pops.add(k)
     if (k.startsWith('hero:')) keep(`p|${k}`, p)
   }
-  return { sig, w: base.width, h: base.height, pos, hosts, pops, cards }
+  return { sig, w: base.width, h: base.height, pos, hosts, pops, cards, fades }
 }
 
 /**
  * แอนิเมชันตอนจัดทีม (เฉพาะส่วนที่แก้อยู่) — ใช้กับทุกที่ที่ใส่/เอาออก/สลับตัวละคร
  * - data-m="คีย์" : ชิ้นที่ย้ายที่ได้ (อัศวิน) → ย้ายช่อง/เปลี่ยนรูปแบบ = เลื่อนไปที่ใหม่ (FLIP)
+ *   ใส่ data-mpop="ชนิด" ด้วย = ตอนโผล่ใหม่เด้งตามชนิดนั้นใน POP แทนแบบอัศวิน (เช่น ช่องกรอก/แถวอันดับ)
+ *   ใส่ data-mfade ด้วย = ตอนถูกเอาออกจางหายในกรอบเดิม (data-mhost ต้องเป็น position: relative)
  * - data-mp="ชนิด:คีย์" : ชิ้นที่เพิ่งโผล่ (คีย์ใหม่) → เด้งเข้าตามชนิดใน POP
  * - ตัวละครเพิ่งลงช่อง (data-m ใหม่ / data-mp "hero:") → เด้ง + แสงทองวาบ
  * - ตัวละครถูกเอาออก → การ์ดเดิมย่อจางหายในช่องเดิม (data-mhost = กรอบช่อง) + ประกายดาว
@@ -148,7 +179,8 @@ function snap(el: HTMLElement, sig: string): Snap {
  * เล่นเฉพาะตอนทีมเปลี่ยน (sig เปลี่ยน) ไม่เล่นตอนเปิดหน้า · ใช้ transform/opacity อย่างเดียว
  * วัดตำแหน่งเฉพาะตอน sig เปลี่ยน (เดิมวัดทุกครั้งที่วาดใหม่ เช่น กดเลือกช่อง = บังคับคำนวณหน้าในจังหวะกด)
  */
-export function useTeamMotion(root: RefObject<HTMLElement | null>, sig: string, enabled: boolean) {
+export function useTeamMotion(root: RefObject<HTMLElement | null>, sig: string, enabled: boolean, opts?: TeamMotionOpts) {
+  const fixedHosts = !!opts?.fixedHosts
   const prev = useRef<Snap | null>(null)
   useLayoutEffect(() => {
     const el = root.current
@@ -168,7 +200,8 @@ export function useTeamMotion(root: RefObject<HTMLElement | null>, sig: string, 
       const card = m.querySelector<HTMLElement>('.unit-card')
       if (card && (!a || !old.cards.has(`m|${k}`) || old.cards.get(`m|${k}`)!.card !== card)) card.style.animation = 'none'
       if (!a) {
-        m.animate(POP.hero.k, POP.hero.o) // เพิ่งใส่เข้ามา
+        const pop = POP[m.dataset.mpop ?? 'hero'] ?? POP.hero
+        m.animate(pop.k, pop.o) // เพิ่งใส่เข้ามา
         flashCard(card)
         continue
       }
@@ -184,10 +217,20 @@ export function useTeamMotion(root: RefObject<HTMLElement | null>, sig: string, 
       if (ho && hn && ho !== hn && ho.isConnected) {
         const r1 = ho.getBoundingClientRect(), r2 = hn.getBoundingClientRect()
         dx = (r1.left - r2.left) / z; dy = (r1.top - r2.top) / z
+      } else if (fixedHosts && ho && ho === hn) {
+        continue
       } else if (sameBox) {
         dx = a.x - b.x; dy = a.y - b.y
       }
-      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) m.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 340, easing: EASE })
+      if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) continue
+      const slide = m.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 340, easing: EASE })
+      // ย้ายช่อง: ยกช่องปลายทางขึ้นบนสุดระหว่างเลื่อน — ไม่งั้นการ์ดที่เลื่อนจะลอดใต้การ์ดช่องที่อยู่ท้าย ๆ
+      // ไม่มีกรอบช่อง (เช่น แถวอันดับ): ชิ้นที่ขยับขึ้น (อันดับดีขึ้น) อยู่บน ไม่ลอดใต้แถวที่เลื่อนลง
+      const lift = (ho && hn && ho !== hn ? hn : dy > 1 ? m : null) as HTMLElement | null
+      if (lift) {
+        lift.style.zIndex = '5'
+        slide.finished.catch(() => {}).finally(() => { lift.style.zIndex = '' })
+      }
     }
     for (const p of Array.from(el.querySelectorAll<HTMLElement>('[data-mp]'))) {
       const k = p.dataset.mp!
@@ -201,6 +244,10 @@ export function useTeamMotion(root: RefObject<HTMLElement | null>, sig: string, 
     for (const [k, { card, host }] of old.cards) {
       if (now.cards.has(k) || card.isConnected || !host?.isConnected) continue
       ghostOut(host, card)
+    }
+    for (const [k, { el: f, host }] of old.fades) {
+      if (now.fades.has(k) || f.isConnected || !host?.isConnected) continue
+      fadeOut(host, f)
     }
   })
 }

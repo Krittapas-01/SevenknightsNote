@@ -69,6 +69,15 @@ export function popIn(surface: HTMLElement, asSheet = sheet()) {
   }
 }
 
+/**
+ * ทำหลังหน้าต่างปิดเกือบเสร็จ (เช่น เลือกอัศวินจากหน้าต่างแล้ว) → แสงทอง/ประกายดาวในทีมไม่ไปเล่นอยู่หลังพื้นหลังมืดที่กำลังจาง
+ * ปิดแอนิเมชันอยู่ = ทำทันที
+ */
+export function afterModalClose(cb: () => void) {
+  if (!motionOK()) { cb(); return }
+  setTimeout(cb, sheet() ? 200 : 150)
+}
+
 /** กรอบหน้าต่างปิด (ย่อ+จางลง / มือถือเลื่อนลง) พร้อมพื้นหลังจางออก · คืนแอนิเมชันไว้รอจบหรือยกเลิก */
 export function popOut(surface: HTMLElement | null, backdrop: HTMLElement) {
   const s = sheet()
