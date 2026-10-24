@@ -305,9 +305,9 @@ function GroupRow({ g, now, onOpen }: { g: Group; now: number; onOpen: () => voi
       className="panel group relative flex min-h-[96px] w-full items-stretch overflow-hidden text-left transition hover:border-gold/60 sm:min-h-[128px]">
       {/* แบบร้านในเกม: ตัวหนังสือซ้าย รูปขวา (จางเข้าหาตัวหนังสือ) */}
       {art
-        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pack-art-r pointer-events-none absolute inset-y-0 right-0 h-full w-[45%] max-w-[340px] ${art.square ? 'object-contain py-2 pl-10 pr-3' : 'object-cover object-right'}`} />
+        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pack-art-r pointer-events-none absolute inset-y-0 right-0 h-full ${art.square ? 'w-[45%] max-w-[200px] object-contain py-2 pl-10 pr-3' : 'w-auto max-w-[55%] object-cover object-right'}`} />
         : <span className="pointer-events-none absolute inset-y-0 right-0 w-[45%] max-w-[340px] bg-gradient-to-l from-gold/15 to-transparent" />}
-      <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-3 pl-4 pr-[34%] sm:pl-6 sm:pr-[300px]">
+      <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-3 pl-4 pr-[34%] sm:pl-6 sm:pr-[220px]">
         <span className="flex items-start gap-2">
           <b className="min-w-0 flex-1 text-base leading-snug sm:text-xl">{groupName(g.name)}</b>
           {g.endsAt && <span className="flex shrink-0 items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[11px] text-white/70"><CalendarClock className="h-3 w-3" />{endsIn(g.endsAt, now)}</span>}
