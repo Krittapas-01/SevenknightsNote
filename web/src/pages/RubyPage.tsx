@@ -1,7 +1,7 @@
 import { ChevronDown, Clock, Coins, Flame, KeyRound, Minus, Plus, RotateCcw, Swords, Users } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import ruby from '../assets/ui/ruby.webp'
-import { DEFAULT_FARM_FORM, FARM_STORE_KEY, GUILD_CHECKIN, POWER_UP, dailyKeys, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
+import { DEFAULT_FARM_FORM, FARM_STORE_KEY, GUILD_CHECKIN, KEY_SHOPS, POWER_UP, dailyKeys, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 
 // คำนวณรูบี้ขายวิญญาณ: ต่อสู้ซ้ำด่านฟาร์มรูบี้ ซื้อกล่องกุญแจถึงขั้นไหนถึงคุ้ม · ข้อมูลเก็บในเครื่องนี้เท่านั้น
@@ -11,6 +11,7 @@ const MAX_TEAM = 5
 const num = (v: string, d = 0) => { const n = parseNum(v); return Number.isFinite(n) ? n : d }
 const bad = (v: string) => v.trim() !== '' && (!Number.isFinite(parseNum(v)) || parseNum(v) < 0)
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US')
+const fmt1 = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 })
 const signed = (n: number) => (Math.round(n) > 0 ? `+${fmt(n)}` : fmt(n))
 const big = (n: number) => (n >= 1e6 ? `${(n / 1e6).toLocaleString('en-US', { maximumFractionDigits: 2 })}M` : fmt(n))
 const hours = (sec: number) => {
@@ -46,7 +47,7 @@ function KeyToggle({ on, onClick, label, sub, keys }: { on: boolean; onClick: ()
         <span className={`block ${on ? '' : 'text-white/70'}`}>{label}</span>
         <span className="block text-xs text-white/45">{sub}</span>
       </span>
-      {keys !== undefined && <b className={`tabular-nums ${on ? '' : 'text-white/35'}`}>{on ? fmt(keys) : '–'}</b>}
+      {keys !== undefined && <b className={`tabular-nums ${on ? '' : 'text-white/35'}`}>{on ? fmt1(keys) : '–'}</b>}
     </button>
   )
 }
@@ -75,6 +76,8 @@ export default function RubyPage() {
   const [form, setForm] = useState(loadFarmForm)
   const [boxes, setBoxes] = useState<number | null>(null) // null = ใช้ค่าแนะนำ
   const [more, setMore] = useState(false)
+  const [shopsOpen, setShopsOpen] = useState(false)
+  const shopsOn = KEY_SHOPS.filter((x) => !form.shopsOff.includes(x.id)).length
   useEffect(() => { try { localStorage.setItem(FARM_STORE_KEY, JSON.stringify(form)) } catch { /* ไม่มี storage ก็ไม่เป็นไร */ } }, [form])
   const set = (k: { [K in keyof FarmForm]: FarmForm[K] extends string ? K : never }[keyof FarmForm], v: string) => setForm((f) => ({ ...f, [k]: v }))
   const setTier = (i: number, patch: Partial<{ boxes: string; price: string }>) =>
@@ -85,6 +88,8 @@ export default function RubyPage() {
   const toggle = (k: 'powerUp' | 'rubySupport') => setForm((f) => ({ ...f, [k]: !f[k] }))
   const soul = num(form.soul)
   const plan = useMemo(() => planFarm(input, soul), [input, soul])
+  // กล่องฟรีในร้านรูบี้ (ขั้นราคาแรกที่ราคา 0) อยู่ในขั้นราคากล่อง ไม่นับซ้ำในกุญแจฟรี
+  const freeBoxKeys = plan.prices.filter((p) => p === 0).length * input.keysPerBox
   const total = plan.prices.length
   const n = boxes === null ? plan.best : Math.min(boxes, total)
   const day = plan.days[n]
@@ -145,8 +150,13 @@ export default function RubyPage() {
       <section className="panel mt-5 p-4 sm:p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="flex items-center gap-2 font-semibold text-gold"><KeyRound className="h-5 w-5" />{L('กุญแจฟรีต่อวัน', 'Free keys per day')}</h2>
-          <span className="text-2xl font-extrabold tabular-nums">{fmt(keys.total)}</span>
+          <span className="text-2xl font-extrabold tabular-nums">{fmt1(keys.total)}</span>
         </div>
+        {freeBoxKeys > 0 && (
+          <p className="mt-0.5 text-right text-xs text-white/50 tabular-nums">
+            {L(`+ กล่องฟรีร้านรูบี้ ${fmt(freeBoxKeys)} ดอก = ${fmt1(keys.total + freeBoxKeys)}`, `+ free Ruby Shop box ${fmt(freeBoxKeys)} = ${fmt1(keys.total + freeBoxKeys)}`)}
+          </p>
+        )}
         <ul className="mt-3 flex flex-col gap-2 text-sm">
           <li className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-white/70">{L('ฟื้นเอง 1 ดอกทุก', 'Regen 1 key every')}</span>
@@ -179,6 +189,34 @@ export default function RubyPage() {
                 </button>
               ))}
             </div>
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="min-w-0 text-white/70">7K Pass <span className="text-xs text-white/45">{L('(กุญแจต่อ 28 วัน · ฟรี 690)', '(keys per 28 days · free 690)')}</span></span>
+            <input value={form.passKeys} onChange={(e) => set('passKeys', e.target.value)} inputMode="numeric" aria-label={L('กุญแจจาก 7K Pass ต่อ 28 วัน', '7K Pass keys per 28 days')}
+              aria-invalid={bad(form.passKeys) || undefined} className={`${numInput(form.passKeys)} ml-auto w-16 shrink-0 text-white`} />
+            <b className="w-12 shrink-0 text-right tabular-nums">{fmt1(keys.pass)}</b>
+          </li>
+          <li>
+            <button type="button" onClick={() => setShopsOpen((o) => !o)} aria-expanded={shopsOpen} className="flex w-full items-center gap-2 text-left">
+              <span className="min-w-0 text-white/70">{L('เช็กชื่อ · ภารกิจกิลด์ · ร้านค้า', 'Login · guild missions · shops')}{' '}
+                <span className="text-xs text-white/45">{L(`(เปิด ${shopsOn}/${KEY_SHOPS.length})`, `(${shopsOn}/${KEY_SHOPS.length} on)`)}</span></span>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-white/50 transition ${shopsOpen ? 'rotate-180' : ''}`} />
+              <b className="ml-auto tabular-nums">{fmt1(keys.shops)}</b>
+            </button>
+            {shopsOpen && (
+              <ul className="edit-arrive mt-2 flex flex-col gap-2 border-l border-white/10 pl-3">
+              {KEY_SHOPS.map((x) => {
+                const on = !form.shopsOff.includes(x.id)
+                return (
+                  <li key={x.id}>
+                    <KeyToggle on={on} keys={x.keys / x.days} label={L(x.th, x.en)}
+                      sub={L(`${fmt(x.keys)} กุญแจทุก ${x.days} วัน`, `${fmt(x.keys)} keys every ${x.days} days`)}
+                      onClick={() => setForm((f) => ({ ...f, shopsOff: on ? [...f.shopsOff, x.id] : f.shopsOff.filter((id) => id !== x.id) }))} />
+                  </li>
+                )
+              })}
+              </ul>
+            )}
           </li>
           <li className="flex items-center gap-2">
             <span className="text-white/70">{L('อื่น ๆ (อีเวนต์ ฯลฯ)', 'Other (events, etc.)')}</span>

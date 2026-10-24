@@ -194,6 +194,16 @@ export function planFarm(input: FarmInput, soulPrice: number): FarmPlan {
 export const FARM_STORE_KEY = '7k-note:ruby'
 /** แพ็ครายเดือน Daily Power Up Support: กุญแจฟื้นเร็วขึ้น 60 วิ (3 → 2 นาที) + 80 ดอก/วัน */
 export const POWER_UP = { regenCut: 60, dailyKeys: 80 }
+/** กุญแจจากร้านค้า/ภารกิจที่ได้เป็นรอบ (เฉลี่ยต่อวัน) · ปิดได้ทีละอัน */
+export const KEY_SHOPS: { id: string; th: string; en: string; keys: number; days: number }[] = [
+  { id: 'login', th: 'เช็กชื่อรายวัน (กล่องกุญแจ 2 กล่องทุก 5 วัน)', en: 'Daily login (2 key boxes every 5 days)', keys: 120, days: 5 },
+  { id: 'guildMission', th: 'รางวัลภารกิจกิลด์', en: 'Guild mission rewards', keys: 180, days: 7 },
+  { id: 'honor', th: 'ร้านค้าเกียรติยศ (รายสัปดาห์)', en: 'Honor Shop (weekly)', keys: 420, days: 7 },
+  { id: 'arena', th: 'ร้านค้าอารีน่า (รายเดือน)', en: 'Arena Shop (monthly)', keys: 1680, days: 28 },
+  { id: 'totalWar', th: 'ร้านค้าสงครามรวม (รายเดือน)', en: 'Total War Shop (monthly)', keys: 600, days: 28 },
+  { id: 'guild', th: 'ร้านค้ากิลด์ (รายสัปดาห์)', en: 'Guild Shop (weekly)', keys: 420, days: 7 },
+  { id: 'guildWar', th: 'ร้านค้าสงครามกิลด์ (รายเดือน)', en: 'Guild War Shop (monthly)', keys: 600, days: 28 },
+]
 /** เช็กอินกิลด์ (ตามจำนวนคนที่เช็กอินเมื่อวาน 1/10/15/20/25 คน) */
 export const GUILD_CHECKIN = [0, 14, 40, 52, 64, 80]
 type NumKey = Exclude<keyof FarmInput, 'tiers' | 'heroesPerSet' | 'freeKeys' | 'rubyBoost'>
@@ -202,6 +212,10 @@ export type FarmForm = Record<NumKey, string> & {
   team: number; tiers: { boxes: string; price: string }[]; soul: string; owned: string
   /** กุญแจฟื้น 1 ดอกทุกกี่วินาที (ก่อนลดจากแพ็ค) */
   regenSec: string; powerUp: boolean; shopKeys: string; missionKeys: string; guildKeys: number; extraKeys: string
+  /** 7K Pass: กุญแจต่อ 28 วัน (เส้นทางฟรี 690) */
+  passKeys: string
+  /** ร้านค้า/ภารกิจใน KEY_SHOPS ที่ปิดไว้ */
+  shopsOff: string[]
   rubySupport: boolean; rubyBoost: string
 }
 
@@ -214,7 +228,7 @@ export const DEFAULT_FARM_FORM: FarmForm = {
   team: FARM_DEFAULTS.heroesPerSet,
   tiers: FARM_DEFAULTS.tiers.map((t) => ({ boxes: s(t.boxes), price: s(t.price) })),
   soul: '100', owned: '',
-  regenSec: '180', powerUp: false, shopKeys: '30', missionKeys: '60', guildKeys: 80, extraKeys: '',
+  regenSec: '180', powerUp: false, shopKeys: '30', missionKeys: '60', guildKeys: 80, extraKeys: '', passKeys: '690', shopsOff: [],
   rubySupport: false, rubyBoost: '',
 }
 
@@ -230,6 +244,7 @@ export function loadFarmForm(): FarmForm {
       }
       if (typeof v.team === 'number' && v.team >= 1 && v.team <= 5) out.team = Math.round(v.team)
       if (GUILD_CHECKIN.includes(v.guildKeys)) out.guildKeys = v.guildKeys
+      if (Array.isArray(v.shopsOff)) out.shopsOff = v.shopsOff.filter((x: unknown) => typeof x === 'string')
       if (Array.isArray(v.tiers) && v.tiers.length) {
         out.tiers = v.tiers.slice(0, 6).map((t: { boxes?: unknown; price?: unknown } | null) => ({
           boxes: typeof t?.boxes === 'string' ? t.boxes : '', price: typeof t?.price === 'string' ? t.price : '',
@@ -260,6 +275,8 @@ export function dailyKeys(f: FarmForm) {
     shop: Math.max(0, val(f.shopKeys, 0)),
     missions: Math.max(0, val(f.missionKeys, 0)),
     guild: f.guildKeys,
+    pass: Math.max(0, val(f.passKeys, 0)) / 28,
+    shops: KEY_SHOPS.reduce((sum, x) => sum + (f.shopsOff.includes(x.id) ? 0 : x.keys / x.days), 0),
     extra: Math.max(0, val(f.extraKeys, 0)),
   }
   return { ...parts, powerUpRegen, total: Object.values(parts).reduce((a, b) => a + b, 0) }
