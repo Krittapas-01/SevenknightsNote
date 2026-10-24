@@ -2,6 +2,8 @@ import { ArrowUpRight, Calculator, Cookie, Eye, EyeOff, Gem, Shield, Swords } fr
 import { ImgPriority } from '../components/UnitCard'
 import { useState, type ComponentType, type FormEvent } from 'react'
 import { PACKS_ON } from '../lib/packs'
+import { RUBY_ON } from '../lib/rubyFarm'
+import RubyIcon from '../components/RubyIcon'
 import { Link, useNavigate } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
 import VsArena from '../components/VsArena'
@@ -19,6 +21,7 @@ const TOOLS: { to: string; label: string; sub: string; icon: ComponentType<{ cla
   { to: '/biscuit', label: tx('เช็กบัฟบิสกิต'), sub: L('บิสกิตจะบัฟลงตัวไหนในทีม', 'Which knights the biscuit buffs'), icon: Cookie },
   { to: '/atk', label: tx('เทียบพลังโจมตี'), sub: L('ใครตีแรงกว่า คิดแบบในเกม', 'Who hits harder, game math'), icon: Swords },
   { to: '/totalwar', label: tx('คำนวณแต้มเบ็ดเสร็จ'), sub: L('เวลารอบ อันดับ และเป้าคะแนนซีซัน', 'Round timer, ranks and season goals'), icon: Calculator },
+  ...(RUBY_ON ? [{ to: '/ruby', label: tx('คำนวณรูบี้ขายวิญญาณ'), sub: L('ฟาร์มรูบี้วันละเท่าไหร่ ใช้กี่ชั่วโมง', 'Daily ruby farm: how much, how long'), icon: RubyIcon }] : []),
   ...(PACKS_ON ? [{ to: '/packs', label: tx('เช็กความคุ้มค่าแพ็ค'), sub: L('แพ็คไหนคุ้มสุดตอนนี้', 'Which packs are worth it now'), icon: Gem }] : []),
 ]
 

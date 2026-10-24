@@ -12,7 +12,7 @@
  */
 
 /** แสดงหน้าคำนวณรูบี้ในเมนูและบันทึกอัปเดต (ปิด = ยังเข้าได้ทางลิงก์ /ruby เท่านั้น · Krit: รอสมบูรณ์ก่อน) */
-export const RUBY_ON = false
+export const RUBY_ON = true
 
 export type BoxTier = { boxes: number; price: number }
 
