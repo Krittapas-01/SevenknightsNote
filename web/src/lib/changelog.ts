@@ -35,7 +35,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
       { kind: 'new', groups: [
         g('คำนวณรูบี้ขายวิญญาณ (เมนู → คำนวณรูบี้ขายวิญญาณ)',
           'ต่อสู้ซ้ำด่านฟาร์มรูบี้: บอกว่าควรซื้อกล่องกุญแจกี่กล่อง ได้รูบี้สุทธิเท่าไหร่ ใช้เวลากี่ชั่วโมง ใช้ฮีโร่ Lv.1 กี่ตัว และได้ทองเท่าไหร่',
-          'นับกุญแจฟรีครบทุกทาง: ฟื้นเอง (ทุก 3 นาที) · กล่องฟรีร้านรายวัน · ภารกิจรายวัน · เช็กอินกิลด์ · 7K Pass · เช็กชื่อ · Relay · ภารกิจกิลด์ · ร้านค้า (เกียรติยศ อารีน่า สงครามรวม กิลด์ สงครามกิลด์) · ติ๊กแพ็ค Daily Power Up Support / Daily Ruby Support ได้',
+          'นับกุญแจฟรีที่ทุกคนได้ให้แล้ว (ฟื้นเอง ภารกิจ เช็กชื่อ 7K Pass Relay ร้านค้า ฯลฯ) · เลือกเองแค่เช็กอินกิลด์ และติ๊กแพ็ค Daily Power Up Support / Daily Ruby Support',
           'เลือกจำนวนฮีโร่ Lv.1 ในทีม (1–5 ตัว = 20–100 รูบี้ต่อ 10 รอบ) · ตั้ง "ราคาวิญญาณ" (เล่นเพิ่ม 1 ชม. ต้องได้กี่รูบี้) และเวลาที่เล่นได้ต่อวัน แล้วเว็บแนะนำให้',
           'เทียบทีละขั้นราคากล่อง (ฟรี / 50 / 80 / 100 รูบี้) ว่าคุ้ม เท่าทุน หรือขาดทุน · เลื่อนเลือกจำนวนกล่องเองได้ · แก้ค่าทุกอย่างได้ (กุญแจ เวลาต่อรอบ ทอง เควสต์ทำซ้ำ ราคากล่อง ดรอปฮีโร่)'),
       ] },
@@ -380,7 +380,7 @@ const CHANGELOG_EN: ChangelogEntry[] = [
       { kind: 'new', groups: [
         g('Ruby Farming Calculator (menu → Ruby Farming Calculator)',
           'Repeat-battle the Ruby Farming stage: see how many key boxes to buy, your net rubies, how many hours it takes, how many Lv.1 heroes you use, and the gold you get',
-          'Counts every free key: regen (every 3 min) · Daily Shop free box · daily missions · guild check-in · 7K Pass · login rewards · Relay · guild missions · shops (Honor, Arena, Total War, Guild, Guild War) · tick the Daily Power Up Support / Daily Ruby Support packs',
+          'Free keys everyone gets are counted for you (regen, missions, login, 7K Pass, Relay, shops, etc.) · you only pick your guild check-in and tick the Daily Power Up Support / Daily Ruby Support packs',
           'Pick how many Lv.1 heroes are in the team (1–5 = 20–100 rubies per 10 battles) · set your "soul price" (rubies one more hour must earn) and daily play time, and get a recommendation',
           'Compare each box price tier (free / 50 / 80 / 100 rubies): profit, break-even or loss · drag to try any number of boxes · every value is editable (keys, time per battle, gold, repeat quest, box prices, hero drops)'),
       ] },

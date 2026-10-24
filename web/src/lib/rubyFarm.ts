@@ -34,7 +34,7 @@ export type FarmInput = {
 }
 
 export const FARM_DEFAULTS: FarmInput = {
-  freeKeys: 480 + 30 + 60 + 80, // ฟื้นเอง + กล่องฟรีร้าน + ภารกิจรายวัน + เช็กอินกิลด์
+  freeKeys: 950, // ≈ กุญแจพื้นฐาน + เช็กอินกิลด์ 80 (หน้า /ruby คิดจริงจาก dailyKeys)
   keysPerBattle: 6,
   secPerBattle: 21,
   battlesPerSet: 10,
@@ -194,9 +194,13 @@ export function planFarm(input: FarmInput, soulPrice: number): FarmPlan {
 export const FARM_STORE_KEY = '7k-note:ruby'
 /** แพ็ครายเดือน Daily Power Up Support: กุญแจฟื้นเร็วขึ้น 60 วิ (3 → 2 นาที) + 80 ดอก/วัน */
 export const POWER_UP = { regenCut: 60, dailyKeys: 80 }
-/** กุญแจจากร้านค้า/ภารกิจที่ได้เป็นรอบ (เฉลี่ยต่อวัน) · ปิดได้ทีละอัน */
-export const KEY_SHOPS: { id: string; th: string; en: string; keys: number; days: number }[] = [
+/** กุญแจที่ทุกคนได้เท่ากัน (เฉลี่ยต่อวัน) — ไม่ต้องกรอก แสดงเป็นยอดพื้นฐานบรรทัดเดียว */
+export const BASE_KEYS: { id: string; th: string; en: string; keys: number; days: number }[] = [
+  { id: 'regen', th: 'ฟื้นเอง 1 ดอกทุก 3 นาที', en: 'Regen 1 key every 3 min', keys: 480, days: 1 },
+  { id: 'shopFree', th: 'กล่องฟรีร้านรายวัน', en: 'Daily Shop free box', keys: 30, days: 1 },
+  { id: 'missions', th: 'ภารกิจรายวัน (40 แต้ม 20 + 80 แต้ม 40)', en: 'Daily missions (40 pts 20 + 80 pts 40)', keys: 60, days: 1 },
   { id: 'login', th: 'เช็กชื่อรายวัน (กล่องกุญแจ 2 กล่องทุก 5 วัน)', en: 'Daily login (2 key boxes every 5 days)', keys: 120, days: 5 },
+  { id: 'pass', th: '7K Pass (เส้นทางฟรี)', en: '7K Pass (free track)', keys: 690, days: 28 },
   { id: 'relay', th: 'อีเวนต์ Relay (ฟรี 30 กุญแจ)', en: 'Relay event (30 free keys)', keys: 30, days: 14 },
   { id: 'guildMission', th: 'รางวัลภารกิจกิลด์', en: 'Guild mission rewards', keys: 180, days: 7 },
   { id: 'honor', th: 'ร้านค้าเกียรติยศ (รายสัปดาห์)', en: 'Honor Shop (weekly)', keys: 420, days: 7 },
@@ -205,18 +209,15 @@ export const KEY_SHOPS: { id: string; th: string; en: string; keys: number; days
   { id: 'guild', th: 'ร้านค้ากิลด์ (รายสัปดาห์)', en: 'Guild Shop (weekly)', keys: 420, days: 7 },
   { id: 'guildWar', th: 'ร้านค้าสงครามกิลด์ (รายเดือน)', en: 'Guild War Shop (monthly)', keys: 600, days: 28 },
 ]
+export const BASE_KEYS_PER_DAY = BASE_KEYS.reduce((sum, x) => sum + x.keys / x.days, 0)
 /** เช็กอินกิลด์ (ตามจำนวนคนที่เช็กอินเมื่อวาน 1/10/15/20/25 คน) */
 export const GUILD_CHECKIN = [0, 14, 40, 52, 64, 80]
 type NumKey = Exclude<keyof FarmInput, 'tiers' | 'heroesPerSet' | 'freeKeys' | 'rubyBoost'>
 /** ค่าในฟอร์มเป็นข้อความ (ช่องว่าง = ใช้ค่าเริ่มต้น) · team = ฮีโร่ Lv.1 ในทีม 1–5 */
 export type FarmForm = Record<NumKey, string> & {
   team: number; tiers: { boxes: string; price: string }[]; soul: string; owned: string
-  /** กุญแจฟื้น 1 ดอกทุกกี่วินาที (ก่อนลดจากแพ็ค) */
-  regenSec: string; powerUp: boolean; shopKeys: string; missionKeys: string; guildKeys: number; extraKeys: string
-  /** 7K Pass: กุญแจต่อ 28 วัน (เส้นทางฟรี 690) */
-  passKeys: string
-  /** ร้านค้า/ภารกิจใน KEY_SHOPS ที่ปิดไว้ */
-  shopsOff: string[]
+  /** ส่วนที่แต่ละคนต่างกัน: แพ็ค Power Up · เช็กอินกิลด์ · กุญแจอื่น ๆ (อีเวนต์ / 7K Pass พรีเมียม) */
+  powerUp: boolean; guildKeys: number; extraKeys: string
   rubySupport: boolean; rubyBoost: string
 }
 
@@ -229,7 +230,7 @@ export const DEFAULT_FARM_FORM: FarmForm = {
   team: FARM_DEFAULTS.heroesPerSet,
   tiers: FARM_DEFAULTS.tiers.map((t) => ({ boxes: s(t.boxes), price: s(t.price) })),
   soul: '100', owned: '',
-  regenSec: '180', powerUp: false, shopKeys: '30', missionKeys: '60', guildKeys: 80, extraKeys: '', passKeys: '690', shopsOff: [],
+  powerUp: false, guildKeys: 80, extraKeys: '',
   rubySupport: false, rubyBoost: '',
 }
 
@@ -245,7 +246,6 @@ export function loadFarmForm(): FarmForm {
       }
       if (typeof v.team === 'number' && v.team >= 1 && v.team <= 5) out.team = Math.round(v.team)
       if (GUILD_CHECKIN.includes(v.guildKeys)) out.guildKeys = v.guildKeys
-      if (Array.isArray(v.shopsOff)) out.shopsOff = v.shopsOff.filter((x: unknown) => typeof x === 'string')
       if (Array.isArray(v.tiers) && v.tiers.length) {
         out.tiers = v.tiers.slice(0, 6).map((t: { boxes?: unknown; price?: unknown } | null) => ({
           boxes: typeof t?.boxes === 'string' ? t.boxes : '', price: typeof t?.price === 'string' ? t.price : '',
@@ -266,18 +266,12 @@ const val = (v: string, d: number) => { const n = parseNum(v); return Number.isF
 
 /** กุญแจฟรีต่อวันแยกตามที่มา */
 export function dailyKeys(f: FarmForm) {
-  const base = Math.max(1, val(f.regenSec, 180))
-  const regen = Math.floor(86400 / base)
-  // แพ็คทำให้ฟื้นเร็วขึ้น → กุญแจฟื้นที่ได้เพิ่ม นับรวมในแพ็ค
-  const powerUpRegen = Math.floor(86400 / Math.max(1, base - POWER_UP.regenCut)) - regen
+  // แพ็คทำให้ฟื้นเร็วขึ้น 3 → 2 นาที (+240) + 80 ดอก/วัน
+  const powerUpRegen = Math.floor(86400 / 120) - Math.floor(86400 / 180)
   const parts = {
-    regen,
+    base: BASE_KEYS_PER_DAY,
     powerUp: f.powerUp ? powerUpRegen + POWER_UP.dailyKeys : 0,
-    shop: Math.max(0, val(f.shopKeys, 0)),
-    missions: Math.max(0, val(f.missionKeys, 0)),
     guild: f.guildKeys,
-    pass: Math.max(0, val(f.passKeys, 0)) / 28,
-    shops: KEY_SHOPS.reduce((sum, x) => sum + (f.shopsOff.includes(x.id) ? 0 : x.keys / x.days), 0),
     extra: Math.max(0, val(f.extraKeys, 0)),
   }
   return { ...parts, powerUpRegen, total: Object.values(parts).reduce((a, b) => a + b, 0) }

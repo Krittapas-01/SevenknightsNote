@@ -1,7 +1,7 @@
 import { ChevronDown, Clock, Coins, Flame, KeyRound, Minus, Plus, RotateCcw, Swords, Users } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import ruby from '../assets/ui/ruby.webp'
-import { DEFAULT_FARM_FORM, FARM_STORE_KEY, GUILD_CHECKIN, KEY_SHOPS, POWER_UP, dailyKeys, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
+import { DEFAULT_FARM_FORM, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, POWER_UP, dailyKeys, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 
 // คำนวณรูบี้ขายวิญญาณ: ต่อสู้ซ้ำด่านฟาร์มรูบี้ ซื้อกล่องกุญแจถึงขั้นไหนถึงคุ้ม · ข้อมูลเก็บในเครื่องนี้เท่านั้น
@@ -77,7 +77,6 @@ export default function RubyPage() {
   const [boxes, setBoxes] = useState<number | null>(null) // null = ใช้ค่าแนะนำ
   const [more, setMore] = useState(false)
   const [shopsOpen, setShopsOpen] = useState(false)
-  const shopsOn = KEY_SHOPS.filter((x) => !form.shopsOff.includes(x.id)).length
   useEffect(() => { try { localStorage.setItem(FARM_STORE_KEY, JSON.stringify(form)) } catch { /* ไม่มี storage ก็ไม่เป็นไร */ } }, [form])
   const set = (k: { [K in keyof FarmForm]: FarmForm[K] extends string ? K : never }[keyof FarmForm], v: string) => setForm((f) => ({ ...f, [k]: v }))
   const setTier = (i: number, patch: Partial<{ boxes: string; price: string }>) =>
@@ -158,26 +157,28 @@ export default function RubyPage() {
           </p>
         )}
         <ul className="mt-3 flex flex-col gap-2 text-sm">
-          <li className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-white/70">{L('ฟื้นเอง 1 ดอกทุก', 'Regen 1 key every')}</span>
-            <input value={form.regenSec} onChange={(e) => set('regenSec', e.target.value)} inputMode="numeric" aria-label={L('กุญแจฟื้นทุกกี่วินาที', 'Key regen seconds')}
-              aria-invalid={bad(form.regenSec) || undefined} className={`${numInput(form.regenSec)} w-16 text-white`} />
-            <span className="text-white/70">{L('วิ', 's')}</span>
-            <b className="ml-auto tabular-nums">{fmt(keys.regen)}</b>
+          <li>
+            <button type="button" onClick={() => setShopsOpen((o) => !o)} aria-expanded={shopsOpen} className="flex w-full items-center gap-2 text-left">
+              <span className="min-w-0 text-white/70">{L('พื้นฐานที่ทุกคนได้เท่ากัน', 'Base keys everyone gets')}{' '}
+                <span className="text-xs text-white/45">{L(`(${BASE_KEYS.length} อย่าง)`, `(${BASE_KEYS.length} sources)`)}</span></span>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-white/50 transition ${shopsOpen ? 'rotate-180' : ''}`} />
+              <b className="ml-auto tabular-nums">{fmt1(keys.base)}</b>
+            </button>
+            {shopsOpen && (
+              <ul className="edit-arrive mt-2 flex flex-col gap-1.5 border-l border-white/10 pl-3 text-xs">
+                {BASE_KEYS.map((x) => (
+                  <li key={x.id} className="flex items-baseline gap-2">
+                    <span className="min-w-0 text-white/65">{L(x.th, x.en)}
+                      {x.days > 1 && <span className="text-white/40">{L(` · ${fmt(x.keys)} ทุก ${x.days} วัน`, ` · ${fmt(x.keys)} every ${x.days} days`)}</span>}</span>
+                    <span className="ml-auto tabular-nums text-white/75">{fmt1(x.keys / x.days)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
           <KeyToggle on={form.powerUp} onClick={() => toggle('powerUp')} keys={keys.powerUp}
             label={L('แพ็ค Daily Power Up Support (฿149 / 28 วัน)', 'Daily Power Up Support (฿149 / 28 days)')}
-            sub={L(`กุญแจฟื้นเร็วขึ้น ${POWER_UP.regenCut} วิ (+${fmt(keys.powerUpRegen)} ดอก) + ${POWER_UP.dailyKeys} ดอกทุกวัน`, `Keys regen ${POWER_UP.regenCut} s faster (+${fmt(keys.powerUpRegen)}) + ${POWER_UP.dailyKeys} keys daily`)} />
-          <li className="flex items-center gap-2">
-            <span className="text-white/70">{L('กล่องฟรีร้านรายวัน', 'Daily Shop free box')}</span>
-            <input value={form.shopKeys} onChange={(e) => set('shopKeys', e.target.value)} inputMode="numeric" aria-label={L('กล่องฟรีร้านรายวัน', 'Daily Shop free box')}
-              aria-invalid={bad(form.shopKeys) || undefined} className={`${numInput(form.shopKeys)} ml-auto w-16 text-white`} />
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="min-w-0 text-white/70">{L('ภารกิจรายวัน', 'Daily missions')} <span className="text-xs text-white/45">{L('(40 แต้ม 20 + 80 แต้ม 40)', '(40 pts 20 + 80 pts 40)')}</span></span>
-            <input value={form.missionKeys} onChange={(e) => set('missionKeys', e.target.value)} inputMode="numeric" aria-label={L('กุญแจจากภารกิจรายวัน', 'Daily mission keys')}
-              aria-invalid={bad(form.missionKeys) || undefined} className={`${numInput(form.missionKeys)} ml-auto w-16 shrink-0 text-white`} />
-          </li>
+            sub={L(`กุญแจฟื้นเร็วขึ้น 60 วิ (+${fmt(keys.powerUpRegen)} ดอก) + ${POWER_UP.dailyKeys} ดอกทุกวัน`, `Keys regen 60 s faster (+${fmt(keys.powerUpRegen)}) + ${POWER_UP.dailyKeys} keys daily`)} />
           <li>
             <div className="flex items-center gap-2"><span className="text-white/70">{L('เช็กอินกิลด์', 'Guild check-in')}</span><b className="ml-auto tabular-nums">{fmt(keys.guild)}</b></div>
             <div className="mt-1.5 flex flex-wrap gap-1" role="radiogroup" aria-label={L('เช็กอินกิลด์', 'Guild check-in')}>
@@ -191,37 +192,9 @@ export default function RubyPage() {
             </div>
           </li>
           <li className="flex items-center gap-2">
-            <span className="min-w-0 text-white/70">7K Pass <span className="text-xs text-white/45">{L('(กุญแจต่อ 28 วัน · ฟรี 690)', '(keys per 28 days · free 690)')}</span></span>
-            <input value={form.passKeys} onChange={(e) => set('passKeys', e.target.value)} inputMode="numeric" aria-label={L('กุญแจจาก 7K Pass ต่อ 28 วัน', '7K Pass keys per 28 days')}
-              aria-invalid={bad(form.passKeys) || undefined} className={`${numInput(form.passKeys)} ml-auto w-16 shrink-0 text-white`} />
-            <b className="w-12 shrink-0 text-right tabular-nums">{fmt1(keys.pass)}</b>
-          </li>
-          <li>
-            <button type="button" onClick={() => setShopsOpen((o) => !o)} aria-expanded={shopsOpen} className="flex w-full items-center gap-2 text-left">
-              <span className="min-w-0 text-white/70">{L('เช็กชื่อ · ภารกิจกิลด์ · ร้านค้า', 'Login · guild missions · shops')}{' '}
-                <span className="text-xs text-white/45">{L(`(เปิด ${shopsOn}/${KEY_SHOPS.length})`, `(${shopsOn}/${KEY_SHOPS.length} on)`)}</span></span>
-              <ChevronDown className={`h-4 w-4 shrink-0 text-white/50 transition ${shopsOpen ? 'rotate-180' : ''}`} />
-              <b className="ml-auto tabular-nums">{fmt1(keys.shops)}</b>
-            </button>
-            {shopsOpen && (
-              <ul className="edit-arrive mt-2 flex flex-col gap-2 border-l border-white/10 pl-3">
-              {KEY_SHOPS.map((x) => {
-                const on = !form.shopsOff.includes(x.id)
-                return (
-                  <li key={x.id}>
-                    <KeyToggle on={on} keys={x.keys / x.days} label={L(x.th, x.en)}
-                      sub={L(`${fmt(x.keys)} กุญแจทุก ${x.days} วัน`, `${fmt(x.keys)} keys every ${x.days} days`)}
-                      onClick={() => setForm((f) => ({ ...f, shopsOff: on ? [...f.shopsOff, x.id] : f.shopsOff.filter((id) => id !== x.id) }))} />
-                  </li>
-                )
-              })}
-              </ul>
-            )}
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="text-white/70">{L('อื่น ๆ (อีเวนต์ ฯลฯ)', 'Other (events, etc.)')}</span>
-            <input value={form.extraKeys} onChange={(e) => set('extraKeys', e.target.value)} inputMode="numeric" placeholder="0" aria-label={L('กุญแจอื่น ๆ', 'Other keys')}
-              aria-invalid={bad(form.extraKeys) || undefined} className={`${numInput(form.extraKeys)} ml-auto w-16 text-white`} />
+            <span className="min-w-0 text-white/70">{L('อื่น ๆ', 'Other')} <span className="text-xs text-white/45">{L('(อีเวนต์ · 7K Pass พรีเมียม)', '(events · premium 7K Pass)')}</span></span>
+            <input value={form.extraKeys} onChange={(e) => set('extraKeys', e.target.value)} inputMode="numeric" placeholder="0" aria-label={L('กุญแจอื่น ๆ ต่อวัน', 'Other keys per day')}
+              aria-invalid={bad(form.extraKeys) || undefined} className={`${numInput(form.extraKeys)} ml-auto w-16 shrink-0 text-white`} />
           </li>
         </ul>
         <div className="mt-4 border-t border-white/10 pt-3 text-sm">
