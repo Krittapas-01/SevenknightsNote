@@ -47,12 +47,14 @@ type Props = {
   shot?: { guild: string; plan: string; heading: string }
   /** เปิดหน้าต่างลำดับการใช้สกิลของทีมนี้ (ส่งต่อให้ TeamPanel) */
   skillsReq?: number
+  /** ความเร็วบ้านศัตรูที่ทีมนี้จะตี (เทียบว่าใครได้ใช้สกิลก่อน) */
+  vsSpeed?: number
 }
 
 const baseId = (id: string) => baseName(getUnit(id)?.name ?? id)
 
 /** ทางเลือก 1 ทีมในไม้นั้น ๆ */
-export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack, main, onMakeMain, conflicts = [], blocked, part = 'all', onSaveHeroStats, shot, skillsReq }: Props) {
+export default function OptionCard({ option, index, total, editing, banned, onChange, onRemove, onMove, onPick, onLibrary, attack, main, onMakeMain, conflicts = [], blocked, part = 'all', onSaveHeroStats, shot, skillsReq, vsSpeed }: Props) {
   // บันทึกคอมพ์นี้เป็นรูป: render การ์ดแบบเว็บนอกจอ → รอรูปโหลด → ถ่าย
   const shotRef = useRef<HTMLDivElement>(null)
   const [shooting, setShooting] = useState(false)
@@ -185,6 +187,8 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
         onFormation={(front) => set(changeFormation(option.team, option.skills, front))}
         onMove={(from, to) => set(moveSlot(option.team, option.skills, from, to))}
         onSpeed={(speed) => set({ team: { ...option.team, speed } })}
+        vsSpeed={vsSpeed}
+        vsLabel={tx('บ้านศัตรู')}
         onSkills={(skills) => set({ skills })}
         onPlace={(ref, unit) => {
           const r = placeUnit(option.team, option.skills, ref, unit)

@@ -682,5 +682,12 @@
  "ผู้ดูแลเว็บเข้าดูข้อมูลของทุกกิลด์ได้ · ไม่แชร์ต่อให้ผู้อื่น": "The site admin can view every guild's data · it is never shared with anyone else",
  "ตั้งค่ากิลด์": "Guild settings",
  "ชื่อกิลด์": "Guild name",
- "เปลี่ยนชื่อแล้ว · ลิงก์กิลด์ใช้ได้เหมือนเดิม": "Renamed · the guild links still work"
+ "เปลี่ยนชื่อแล้ว · ลิงก์กิลด์ใช้ได้เหมือนเดิม": "Renamed · the guild links still work",
+ "ความเร็วทีม": "Team Speed",
+ "ทีมที่ความเร็วสูงกว่าได้ใช้สกิลก่อน": "The team with the higher Speed takes the first skill turn.",
+ "ลำดับอัศวินตามความเร็วโจมตี": "Heroes by attack speed",
+ "ยังไม่มีอัศวินในทีม": "No heroes in this team yet",
+ "ยังไม่มีความเร็วโจมตีของอัศวินในทีมนี้ ใส่ได้ที่ค่าความสามารถของอัศวิน": "No attack speed for these heroes yet. Add it in each hero's stats.",
+ "ความเร็วโจมตีรวม": "Total attack speed",
+ "ความเร็วเท่ากัน": "Same speed"
 }

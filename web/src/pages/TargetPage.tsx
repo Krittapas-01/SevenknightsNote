@@ -348,6 +348,8 @@ export default function TargetPage() {
         team={leftTeam}
         heroNotes={editingC ? draftNotes : curNotes}
         title={undefined}
+        vsSpeed={rightTeam.speed}
+        vsLabel={tx('บ้านศัตรู')}
         skills={leftSkills}
         editable={editingC}
         label={tx('ทีมแก้')}
@@ -374,6 +376,8 @@ export default function TargetPage() {
         variant="enemy"
         team={rightTeam}
         title={undefined}
+        vsSpeed={leftTeam.speed}
+        vsLabel={tx('ทีมแก้')}
         editable={editingT}
         label={tx('บ้านศัตรู')}
         skillsReq={tSkillsReq}

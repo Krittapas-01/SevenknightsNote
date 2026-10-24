@@ -1,6 +1,6 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { queueStyle } from '../lib/queue'
-import { Footprints, PawPrint, Plus, RotateCcw } from 'lucide-react'
+import { PawPrint, Plus, RotateCcw } from 'lucide-react'
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   EXTRA_COUNT, MAX_HEROES, MAX_SKILL_QUEUE, SLOT_COUNT, formationLabel, formationName, heroCount, nextEmpty, type SkillStep, type SlotRef, type Team,
@@ -9,6 +9,7 @@ import { FormationModal, SkillQueueModal } from './TeamModals'
 import { groupOfKey, keyOf, refOf, useDndHub } from './DndHub'
 import UnitCard, { MD_HERO_SIZES, UNIT_SLOT_RADIUS } from './UnitCard'
 import HeroDetailModal from './HeroDetailModal'
+import TeamSpeed from './TeamSpeed'
 import type { HeroNote } from '../lib/types'
 import type { HeroStats } from '../lib/stats'
 import { unitLabel } from '../data/heroes'
@@ -35,6 +36,9 @@ type Props = {
   onReset?: () => void
   onFormation?: (front: number) => void
   onSpeed?: (speed: number) => void
+  /** ความเร็วทีมฝั่งตรงข้าม → กล่องความเร็วบอกว่าใครได้ใช้สกิลก่อน */
+  vsSpeed?: number
+  vsLabel?: string
   /** ลำดับการใช้สกิล */
   skills?: SkillStep[]
   /** ถ้าส่งมา = แก้ลำดับสกิลได้ (กดวงกลมดาวล่างสุด) */
@@ -55,7 +59,7 @@ const GAP = 8
 const ROW_GAP = GAP
 
 export default function TeamPanel({
-  team, variant, title, label, size = 'md', editable, onSlotClick, onReset, onFormation, onSpeed,
+  team, variant, title, label, size = 'md', editable, onSlotClick, onReset, onFormation, onSpeed, vsSpeed, vsLabel,
   skills = [], onSkills, onMove, onPlace, blocked, heroNotes, onSaveHeroStats, className = '', skillsReq = 0,
 }: Props) {
   const hub = useDndHub()
@@ -292,24 +296,9 @@ export default function TeamPanel({
         )}
       </div>
 
-      {/* speed */}
+      {/* speed — กดรูปรอยเท้า = ลำดับอัศวินตามความเร็ว (แบบในเกม) */}
       <div data-noexport={!team.speed && !editable ? '' : undefined} className={`flex justify-end ${isSm ? 'mt-1.5' : 'mt-2.5'}`}>
-        <label data-tour="team-speed" className={`pill flex items-center gap-1.5 border-gold-deep/60 ${isSm ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-base'}`}>
-          <Footprints className={isSm ? 'h-3.5 w-3.5 text-gold' : 'h-5 w-5 text-gold'} />
-          {editable && onSpeed ? (
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={team.speed || ''}
-              placeholder="0"
-              onChange={(e) => onSpeed(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-              className="w-16 bg-transparent text-right font-bold tabular-nums text-gold outline-none placeholder:text-gold/60"
-            />
-          ) : (
-            <span className="min-w-6 text-right font-bold tabular-nums text-gold">{team.speed || 0}</span>
-          )}
-        </label>
+        <TeamSpeed team={team} heroNotes={heroNotes} small={isSm} onSpeed={editable ? onSpeed : undefined} vsSpeed={vsSpeed} vsLabel={vsLabel} />
       </div>
 
       {/* body */}
