@@ -43,6 +43,8 @@ try {
   const path = '/api/guild/' + a.id
   const team = { front: 2, slots: ['ทันจิโร่ awake', null, 'ซอรัน awake', null, 'ไอลีน'], pet: 'อีรีน', extras: [null, null, null, null], speed: 200, skills: [{ slot: 0, skill: 3 }] }
   let target, counter, plan
+  await check('guild name shorter than 3 characters rejected', async () => { for (const name of ['AB', ' ab ', 'กข']) assert.equal((await request('/api/guild', { method: 'POST', body: { name } })).status, 400) })
+  await check('3-character guild name accepted (Thai marks count)', async () => assert.equal((await request('/api/guild', { method: 'POST', body: { name: 'กิ้' } })).status, 201))
   await check('duplicate guild names rejected', async () => assert.equal((await request('/api/guild', { method: 'POST', body: { name: ' audit alpha ' } })).status, 409))
   await check('public guild read hides edit credentials', async () => { const r = await request(path); assert.equal(r.status, 200); assert.equal(r.data.guild.edit_hash, undefined); assert.equal(r.data.targets.length, 0) })
   await check('unauthorized write rejected', async () => assert.equal((await request(path + '/targets', { method: 'POST', body: { team } })).status, 403))
@@ -54,6 +56,7 @@ try {
   await check('cross-guild counter creation blocked', async () => assert.equal((await request('/api/guild/' + b.id + '/targets/' + target.id + '/counters', { method: 'POST', key: b.editKey, body: { team } })).status, 404))
   await check('counter update retains omitted hero notes', async () => { assert.equal((await request(path + '/counters/' + counter.id, { method: 'PUT', key: a.editKey, body: { team, skills: [{ slot: 0, skill: 3 }] } })).status, 200); const r = await request(path); assert.equal(r.data.targets[0].counters[0].heroNotes[0].stats.atk, 4500) })
   await check('plan save and reload retains awakening queue', async () => { const r = await request(path + '/plans', { method: 'POST', key: a.editKey, body: { title: 'Audit plan', data: { kind: 'attack', slots: [{ options: [{ team, skills: [{ slot: 0, skill: 3 }] }] }] } } }); assert.equal(r.status, 201); plan = r.data; assert.equal(plan.data.slots.length, 5); assert.equal(plan.data.slots[0].options[0].skills[0].skill, 3) })
+  await check('announcement rejects opponent guild name shorter than 3 characters', async () => assert.equal((await request(path + '/announcements', { method: 'POST', key: a.editKey, body: { body: 'Local test only', opponent: 'AB' } })).status, 400))
   await check('announcement rejects another guild plan', async () => assert.equal((await request('/api/guild/' + b.id + '/announcements', { method: 'POST', key: b.editKey, body: { planId: plan.id } })).status, 400))
   await check('announcement and pulse select correct plan', async () => { assert.equal((await request(path + '/announcements', { method: 'POST', key: a.editKey, body: { planId: plan.id, body: 'Local test only' } })).status, 201); assert.equal((await request(path + '/pulse')).data.activePlan.id, plan.id) })
   await check('pulse with current rev answers unchanged, new announcement changes it', async () => {

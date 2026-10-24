@@ -58,6 +58,7 @@ try {
   await check('role user cannot change password', async () => assert.equal((await request(path + '/password', { method: 'PUT', token, body: { password: 'hijack-123' } })).status, 403))
   await check('role user cannot change Discord settings', async () => assert.equal((await request(path + '/discord', { method: 'PUT', token, body: { mention: '', serverId: '999999', editRoles: ['888888'] } })).status, 403))
   await check('role user cannot rename guild', async () => assert.equal((await request(path + '/name', { method: 'PUT', token, body: { name: 'Hijacked' } })).status, 403))
+  await check('rename: name shorter than 3 characters rejected', async () => assert.equal((await request(path + '/name', { method: 'PUT', key, body: { name: ' AB ' } })).status, 400))
   await check('rename: empty name rejected', async () => assert.equal((await request(path + '/name', { method: 'PUT', key, body: { name: '   ' } })).status, 400))
   await check('rename: taken name rejected (case/space-insensitive)', async () => {
     await request('/api/guild', { method: 'POST', body: { name: 'Other Guild', password: 'other-pass-123' } })

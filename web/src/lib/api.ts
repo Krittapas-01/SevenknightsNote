@@ -119,6 +119,8 @@ const API_ERROR_EN: Record<string, string> = {
 }
 const API_ERROR_RE: [RegExp, (m: RegExpExecArray) => string][] = [
   [/^มีกิลด์ชื่อ "(.*)" อยู่แล้ว ลองใช้ชื่ออื่น$/, (m) => `A guild named "${m[1]}" already exists — try another name`],
+  [/^ชื่อกิลด์ต้องยาวอย่างน้อย (\d+) ตัวอักษร \(ในเกมตั้งชื่อสั้นกว่านี้ไม่ได้\)$/, (m) => `Guild name must be at least ${m[1]} characters (the game doesn't allow shorter names)`],
+  [/^ชื่อกิลด์ที่เจอต้องยาวอย่างน้อย (\d+) ตัวอักษร \(ในเกมตั้งชื่อสั้นกว่านี้ไม่ได้\)$/, (m) => `Opponent guild name must be at least ${m[1]} characters (the game doesn't allow shorter names)`],
   [/^กดถูกใจได้ไม่เกิน (\d+) ทีม$/, (m) => `You can like up to ${m[1]} teams`],
   [/^มีพรีเซตได้ไม่เกิน (\d+) ชุด ลบอันเก่าก่อน$/, (m) => `You can have up to ${m[1]} presets — delete an old one first`],
   [/^Discord ตอบกลับ (\d+) — ลิงก์อาจถูกลบหรือผิด$/, (m) => `Discord replied ${m[1]} — the link may be deleted or wrong`],

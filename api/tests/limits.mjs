@@ -55,7 +55,7 @@ try {
     const other = await fetch(new URL('/api/guild', base), { method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '5.6.7.8' }, body: JSON.stringify({ name: 'RLother', password: 'secret12' }) })
     assert.equal(other.status, 201)
   })
-  const g = (await request('/api/guild', { method: 'POST', body: { name: 'P2', password: 'pass1234' } })).data
+  const g = (await request('/api/guild', { method: 'POST', body: { name: 'Plan2', password: 'pass1234' } })).data
   const team = { front: 2, slots: ['a', null, 'b', null, null], pet: null, extras: [null, null, null, null], speed: 0 }
   const plan = (await request(`/api/guild/${g.id}/plans`, { method: 'POST', key: 'pass1234', body: { title: 'x', data: { kind: 'attack', slots: [{ options: [{ team }] }] } } })).data
   await check('plan save with matching base succeeds, stale base gets 409', async () => {
@@ -70,7 +70,7 @@ try {
   })
   await check('wrong-key failures cleaned up when guild deleted', async () => {
     await request(`/api/guild/${g.id}/check`, { key: 'wrong-key' })
-    const r = await request(`/api/guild/${g.id}`, { method: 'DELETE', key: 'pass1234', body: { confirmName: 'P2' } })
+    const r = await request(`/api/guild/${g.id}`, { method: 'DELETE', key: 'pass1234', body: { confirmName: 'Plan2' } })
     assert.equal(r.status, 200)
   })
   await check('target/counter limits 150/15', async () => {

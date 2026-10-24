@@ -27,6 +27,19 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
+    id: '2026-10-25',
+    version: '1.5.4',
+    date: '25 ต.ค. 2026',
+    title: 'Name Check',
+    summary: 'ชื่อกิลด์ต้องยาวอย่างน้อย 3 ตัวอักษร เหมือนในเกม',
+    sections: [
+      { kind: 'change', groups: [
+        g('ชื่อกิลด์',
+          'ตั้งชื่อกิลด์ เปลี่ยนชื่อกิลด์ และช่อง "กิลด์ที่เจอ" ตอนประกาศ ต้องยาวอย่างน้อย 3 ตัวอักษร เพราะในเกมตั้งชื่อสั้นกว่านี้ไม่ได้ · พิมพ์สั้นไปจะมีตัวหนังสือเตือนใต้ช่อง · กิลด์เดิมที่ชื่อสั้นอยู่แล้วยังใช้ได้ตามปกติ'),
+      ] },
+    ],
+  },
+  {
     id: '2026-10-24e',
     version: '1.5.4',
     date: '24 ต.ค. 2026',
@@ -411,6 +424,16 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
+  {
+    id: '2026-10-25', version: '1.5.4', date: '25 Oct 2026', title: 'Name Check',
+    summary: 'Guild names must be at least 3 characters, same as in the game',
+    sections: [
+      { kind: 'change', groups: [
+        g('Guild names',
+          'New guild names, guild renames and the "Guilds found" box in announcements now need at least 3 characters, because the game does not allow shorter names · a short name shows a warning under the box · existing guilds with short names keep working as before'),
+      ] },
+    ],
+  },
   {
     id: '2026-10-24e', version: '1.5.4', date: '24 Oct 2026', title: 'Skill Queue',
     summary: 'Full team details now lets you open the team\'s skill queue',

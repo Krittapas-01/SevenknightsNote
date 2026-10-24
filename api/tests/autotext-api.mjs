@@ -37,7 +37,7 @@ try {
     statements.push(...sql.split(';').map(s => s.trim()).filter(Boolean))
   }
   assert.equal((await request('/__audit_setup', { method: 'POST', body: statements })).status, 200)
-  const g = (await request('/api/guild', { method: 'POST', body: { name: 'AT', password: 'pass1234' } })).data
+  const g = (await request('/api/guild', { method: 'POST', body: { name: 'AutoText', password: 'pass1234' } })).data
   await check('autoText saved, trimmed, capped, returned', async () => {
     const r = await request(`/api/guild/${g.id}/schedule`, { method: 'PUT', key: 'pass1234', body: { autoAnnounce: true, autoText: { attack: '  ตี {วัน}  ', defense: 'x'.repeat(400) } } })
     assert.equal(r.status, 200); assert.equal(r.data.autoText.attack, 'ตี {วัน}'); assert.equal(r.data.autoText.defense.length, 300)

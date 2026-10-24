@@ -203,3 +203,9 @@ export const BOSS_PLACEHOLDER_EN = { end: '{end}', next: '{next}' }
 export const fillBoss = (text: string, b: { end: string; next: string }) =>
   text.split('{จบ}').join(thDay(b.end)).split(BOSS_PLACEHOLDER_EN.end).join(thDay(b.end))
     .split('{รอบใหม่}').join(thDay(b.next)).split(BOSS_PLACEHOLDER_EN.next).join(thDay(b.next))
+
+/** ชื่อในเกม (ชื่อกิลด์ / กิลด์ที่เจอ) ต้องยาวอย่างน้อยเท่านี้ — ในเกมตั้งชื่อสั้นกว่า 3 ตัวไม่ได้ */
+export const MIN_GAME_NAME = 3
+/** นับตัวอักษรแบบตัวต่อตัว (สระ/วรรณยุกต์ไทยนับ 1 ตัว · อีโมจิ 1 ตัว) — นับหลวมไว้ ชื่อที่เกมรับได้จะไม่โดนบล็อก */
+export const nameLength = (s: string) => [...s.trim()].length
+export const isShortGameName = (s: string) => nameLength(s) < MIN_GAME_NAME

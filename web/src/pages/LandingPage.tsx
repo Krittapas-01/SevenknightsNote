@@ -3,6 +3,7 @@ import { ImgPriority } from '../components/UnitCard'
 import { useState, type ComponentType, type FormEvent } from 'react'
 import { PACKS_ON } from '../lib/packs'
 import { RUBY_ON } from '../lib/rubyFarm'
+import { MIN_GAME_NAME, isShortGameName } from '../../../shared/game'
 import RubyIcon from '../components/RubyIcon'
 import { Link, useNavigate } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
@@ -44,6 +45,7 @@ export default function LandingPage() {
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
+    if (isShortGameName(name)) return setErr(L(`ชื่อกิลด์ต้องยาวอย่างน้อย ${MIN_GAME_NAME} ตัวอักษร (ในเกมตั้งชื่อสั้นกว่านี้ไม่ได้)`, `Guild name must be at least ${MIN_GAME_NAME} characters (the game doesn't allow shorter names)`))
     if (pw.trim().length < 6) return setErr(tx('รหัสแก้ไขต้องยาวอย่างน้อย 6 ตัวอักษร'))
     if (pw.trim() !== pw2.trim()) return setErr(tx('รหัสสองช่องไม่ตรงกัน'))
     setBusy(true)
@@ -86,6 +88,7 @@ export default function LandingPage() {
               placeholder={tx('เช่น Seven Knights TH')}
               className="pill mt-1.5 w-full px-4 py-2.5 outline-none focus:border-gold"
             />
+            {name.trim() && isShortGameName(name) && <span className="mt-1 block text-xs text-amber-300">{L(`อย่างน้อย ${MIN_GAME_NAME} ตัวอักษร (ในเกมตั้งชื่อสั้นกว่านี้ไม่ได้)`, `At least ${MIN_GAME_NAME} characters (the game doesn't allow shorter names)`)}</span>}
           </label>
           {/* รหัสแก้ไขกิลด์: บอกเฉพาะคนที่ให้แก้แผนได้ (เปลี่ยนทีหลังได้ที่ปุ่ม "รหัสแก้ไข") */}
           <label>
@@ -105,7 +108,7 @@ export default function LandingPage() {
               autoComplete="new-password" placeholder={L('พิมพ์รหัสอีกครั้ง', 'Type the code again')} className="pill mt-1.5 w-full px-4 py-2.5 outline-none focus:border-gold" />
           </label>
           <p className="text-xs text-white/45 sm:col-span-2">{tx('ใช้รหัสนี้ตอนจะแก้ไขกิลด์จากเครื่องอื่น บอกเฉพาะคนที่ให้แก้แผนได้ · เปลี่ยนทีหลังได้')}</p>
-          <button disabled={busy || !name.trim() || !pw.trim() || !pw2.trim()} className="btn-gold flex items-center justify-center gap-2 px-6 py-2.5 sm:col-span-2">
+          <button disabled={busy || !name.trim() || isShortGameName(name) || !pw.trim() || !pw2.trim()} className="btn-gold flex items-center justify-center gap-2 px-6 py-2.5 sm:col-span-2">
             {busy ? tx('กำลังสร้าง...') : tx('สร้างกิลด์')} <ArrowUpRight className="h-4 w-4" />
           </button>
         </form>
