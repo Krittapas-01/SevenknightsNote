@@ -1,6 +1,6 @@
-import { ArrowUpRight, Eye, EyeOff, Gem, Shield, Swords } from 'lucide-react'
+import { ArrowUpRight, Calculator, Cookie, Eye, EyeOff, Gem, Shield, Swords } from 'lucide-react'
 import { ImgPriority } from '../components/UnitCard'
-import { useState, type FormEvent } from 'react'
+import { useState, type ComponentType, type FormEvent } from 'react'
 import { PACKS_ON } from '../lib/packs'
 import { Link, useNavigate } from 'react-router'
 import TeamPanel from '../components/TeamPanel'
@@ -13,6 +13,14 @@ import { tx, L } from '../lib/i18n'
 const DEMO_ALLY: Team = { front: 2, slots: ['ลูดี้ awake', null, 'ยอนฮี', 'เรเชล', null], pet: 'อีรีน', extras: ['เจโอ', null, null, null], speed: 210 }
 const DEMO_ENEMY: Team = { front: 2, slots: ['เดลโลนส์ awake', 'ไอลีน', null, 'วาเนสซา', null], pet: 'ยอนจี', extras: ['ยู', 'โยรัง', 'เจโอ', null], speed: 198 }
 const DEMO_SKILLS = [{ slot: 2, skill: 1 as const }, { slot: 2, skill: 2 as const }, { slot: 3, skill: 1 as const }]
+
+// การ์ดเครื่องมือใต้ฟอร์มสร้างกิลด์ (ชื่อเดียวกับในเมนู ☰)
+const TOOLS: { to: string; label: string; sub: string; icon: ComponentType<{ className?: string }> }[] = [
+  { to: '/biscuit', label: tx('เช็กบัฟบิสกิต'), sub: L('บิสกิตจะบัฟลงตัวไหนในทีม', 'Which knights the biscuit buffs'), icon: Cookie },
+  { to: '/atk', label: tx('เทียบพลังโจมตี'), sub: L('ใครตีแรงกว่า คิดแบบในเกม', 'Who hits harder, game math'), icon: Swords },
+  { to: '/totalwar', label: tx('คำนวณแต้มเบ็ดเสร็จ'), sub: L('เวลารอบ อันดับ และเป้าคะแนนซีซัน', 'Round timer, ranks and season goals'), icon: Calculator },
+  ...(PACKS_ON ? [{ to: '/packs', label: tx('เช็กความคุ้มค่าแพ็ค'), sub: L('แพ็คไหนคุ้มสุดตอนนี้', 'Which packs are worth it now'), icon: Gem }] : []),
+]
 
 // ละอองทองหลังหัวเว็บ (ตำแหน่ง/จังหวะคงที่)
 const MOTES = [
@@ -102,15 +110,22 @@ export default function LandingPage() {
         <p className="relative mt-1 text-xs text-white/45">{tx('ผู้ดูแลเว็บเข้าดูข้อมูลของทุกกิลด์ได้ · ไม่แชร์ต่อให้ผู้อื่น')}</p>
         {err && <p className="mt-3 text-sm text-red-300">{err}</p>}
 
-        {/* เครื่องมือ: เช็กความคุ้มค่าแพ็ค */}
-        {PACKS_ON && <Link to="/packs" className="group relative mx-auto mt-6 flex max-w-xl items-center gap-3 rounded-2xl border border-gold/30 bg-black/20 px-4 py-3 text-left transition hover:border-gold hover:bg-gold/5">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold"><Gem className="h-5 w-5" /></span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold">{tx('เช็กความคุ้มค่าแพ็ค')}</span>
-            <span className="block text-xs text-white/55">{L('แพ็คไหนคุ้มสุดตอนนี้ · ใส่งบแล้วแนะนำให้', 'Which packs are worth it right now · budget picks')}</span>
-          </span>
-          <ArrowUpRight className="h-4 w-4 shrink-0 text-gold transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </Link>}
+        {/* เครื่องมือที่ใช้ได้โดยไม่ต้องมีกิลด์ (เดิมมีทางเข้าแค่ในเมนู ☰ เลยแทบไม่มีคนเจอ) */}
+        <nav aria-label={L('เครื่องมือ', 'Tools')} className="relative mx-auto mt-8 max-w-xl text-left">
+          <p className="mb-2 text-center text-xs font-medium tracking-wide text-white/45">{L('เครื่องมือ · ใช้ได้เลยไม่ต้องสร้างกิลด์', 'Tools · no guild needed')}</p>
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {TOOLS.map((t, i) => (
+              <Link key={t.to} to={t.to} className={`group flex items-center gap-3 rounded-2xl border border-gold/30 bg-black/20 px-4 py-3 transition hover:border-gold hover:bg-gold/5 ${TOOLS.length % 2 && i === TOOLS.length - 1 ? 'sm:col-span-2' : ''}`}>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold"><t.icon className="h-5 w-5" /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">{t.label}</span>
+                  <span className="block text-xs text-white/55">{t.sub}</span>
+                </span>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-gold transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </Link>
+            ))}
+          </div>
+        </nav>
       </section>
 
       <section className="arena-showcase relative mt-12 sm:mt-16">
