@@ -65,7 +65,7 @@ export default function TeamSpeed({ team, heroNotes, small, onSpeed, vsSpeed, vs
             value={speed || ''}
             placeholder="0"
             onChange={(e) => onSpeed(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-            className="w-16 bg-transparent text-right font-bold tabular-nums text-gold outline-none placeholder:text-gold/60"
+            className="w-16 bg-transparent text-right font-bold tabular-nums text-gold outline-none [appearance:textfield] placeholder:text-gold/60 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </label>
       ) : (
