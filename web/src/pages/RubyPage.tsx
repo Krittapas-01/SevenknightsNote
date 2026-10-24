@@ -6,7 +6,7 @@ import packRuby from '../assets/packs/ruby-support.webp'
 import packPass from '../assets/packs/7k-pass.webp'
 import packCheckin from '../assets/packs/premium-checkin.webp'
 import keyBox from '../assets/packs/items/chests.webp'
-import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, bestBattles, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
+import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 import RubyIcon from '../components/RubyIcon'
 import { motionOK } from '../lib/overlayMotion'
@@ -113,24 +113,23 @@ export default function RubyPage() {
   const keys = dailyKeys(form)
   const plan = useMemo(() => planFarm(input, 0), [input])
   const setSize = Math.max(1, Math.floor(input.battlesPerSet))
-  const maxBattles = plan.days[plan.prices.length].battles
-  // คุ้มที่สุด = ฟาร์มนานสุดที่ยังได้รูบี้สุทธิมากสุด (ซื้อกล่องทีละขั้นจนขั้นถัดไปไม่ได้เพิ่ม)
-  const bestB = useMemo(() => bestBattles(input, plan.prices, plan.days[plan.prices.length].battles), [input, plan])
-  // เปิดมาที่คุ้มสุด · แตะแถวในตารางเพื่อเลือกขั้นกล่องอื่น (จำเป็นขั้น ไม่บันทึก เปิดใหม่กลับไปคุ้มสุด)
+  // ซื้อกล่องทีละขั้นราคา และซื้อให้ครบทั้งขั้นเสมอ (กุญแจที่เหลือยกไปวันถัดไป) · ผลของแต่ละขั้น = ซื้อถึงท้ายขั้นนั้น
+  const tierResult = (row: TierRow) => ({ ...farmBattles(input, row.day.battles, plan.prices), boxes: row.day.boxes, cost: row.day.cost, net: row.day.net, leftKeys: row.day.leftKeys })
+  // คุ้มที่สุด = ขั้นสุดท้ายที่ซื้อทั้งขั้นแล้วรูบี้สุทธิยังเพิ่ม (planFarm)
+  const bars = useMemo(() => plan.rows.filter((row) => row.tier >= 0).map((row) => ({ row, hasBest: row.tier === plan.bestTier, res: tierResult(row) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [plan, input])
+  const bestRow = plan.rows.find((x) => x.tier === plan.bestTier) ?? plan.rows[0]
+  // เปิดมาที่คุ้มสุด · แตะแท่งเพื่อเลือกขั้นกล่องอื่น (จำเฉพาะตอนนี้ ไม่บันทึก เปิดใหม่กลับไปคุ้มสุด)
   const [pick, setPick] = useState<number | null>(null)
   const picked = pick === null ? undefined : plan.rows.find((x) => x.tier === pick)
-  const best = useMemo(() => farmBattles(input, bestB, plan.prices), [input, bestB, plan.prices])
-  // ขั้นที่มีคุ้มสุดอยู่ = คุ้มสุด (ซื้อต่อจนท้ายขั้นก็ไม่ได้เพิ่ม)
-  const battles = Math.min(picked && !(best.boxes >= picked.from && best.boxes <= picked.to) ? picked.day.battles : bestB, maxBattles)
-  const r = useMemo(() => farmBattles(input, battles, plan.prices), [input, battles, plan.prices])
-  const isBest = battles === bestB
-  // ตัวเลือกให้เทียบ = ขั้นราคากล่อง (ฟรี / 50 / 80 / 100) · ขั้นที่ "คุ้มสุด" อยู่ใช้ตัวเลขของคุ้มสุด (ซื้อเกินจากนั้นในขั้นเดียวกันไม่ได้เพิ่ม)
-  const bars = useMemo(() => plan.rows.filter((row) => row.tier >= 0).map((row) => {
-    const hasBest = best.boxes >= row.from && best.boxes <= row.to
-    return { row, hasBest, res: hasBest ? best : farmBattles(input, row.day.battles, plan.prices) }
-  }), [plan, input, best])
+  const shown = picked ?? bestRow
+  const r = useMemo(() => tierResult(shown),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [shown, input, plan])
+  const isBest = shown.tier === bestRow.tier
   const barMax = Math.max(1, ...bars.map((x) => x.res.net))
-  const selIdx = bars.findIndex((x) => x.res.battles === battles)
+  const selIdx = bars.findIndex((x) => x.row.tier === shown.tier)
   // ตัวเลขใหญ่เปลี่ยน → เด้งนิด ๆ + รูบี้หมุน (ขึ้น = หมุนขวา ลง = หมุนซ้าย)
   const bigRef = useRef<HTMLParagraphElement>(null)
   const gemRef = useRef<HTMLSpanElement>(null)
@@ -353,7 +352,7 @@ export default function RubyPage() {
                   style={{ width: `calc((100% - ${bars.length - 1} * 0.375rem) / ${bars.length})`, transform: `translateX(calc(${selIdx} * (100% + 0.375rem)))` }} />
               )}
               {bars.map(({ row, hasBest, res }, i) => {
-                const sel = res.battles === battles
+                const sel = row.tier === shown.tier
                 const h = res.net > 0 ? Math.max(8, (res.net / barMax) * 100) : 6
                 return (
                   <button key={row.tier} type="button" role="radio" aria-checked={sel} onClick={() => setPick(hasBest ? null : row.tier)}
