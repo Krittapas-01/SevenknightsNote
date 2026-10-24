@@ -174,7 +174,7 @@ export default function RubyPage() {
               <PackTile on={form.passPremium} onClick={() => toggle('passPremium')} img={packPass} label="7K Pass"
                 title={L(`${PAID_KEYS.passPremium.th}: ${fmt(PAID_KEYS.passPremium.keys)} กุญแจต่อ ${PAID_KEYS.passPremium.days} วัน`, `${PAID_KEYS.passPremium.en}: ${fmt(PAID_KEYS.passPremium.keys)} keys per ${PAID_KEYS.passPremium.days} days`)}
                 value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(PAID_KEYS.passPremium.keys / PAID_KEYS.passPremium.days)}</>} />
-              <PackTile on={form.premiumCheckin} onClick={() => toggle('premiumCheckin')} img={packCheckin} label="Check-in"
+              <PackTile on={form.premiumCheckin} onClick={() => toggle('premiumCheckin')} img={packCheckin} label="Check-in Prem"
                 title={L(`${PAID_KEYS.premiumCheckin.th}: ${fmt(PAID_KEYS.premiumCheckin.keys)} กุญแจต่อ ${PAID_KEYS.premiumCheckin.days} วัน`, `${PAID_KEYS.premiumCheckin.en}: ${fmt(PAID_KEYS.premiumCheckin.keys)} keys per ${PAID_KEYS.premiumCheckin.days} days`)}
                 value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(PAID_KEYS.premiumCheckin.keys / PAID_KEYS.premiumCheckin.days)}</>} />
             </div>
