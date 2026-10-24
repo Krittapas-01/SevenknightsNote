@@ -26,6 +26,21 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
+    id: '2026-10-24b',
+    version: '1.5.4',
+    date: '24 ต.ค. 2026',
+    title: 'Ruby Rush',
+    summary: 'หน้าใหม่: คำนวณรูบี้ขายวิญญาณ — ฟาร์มรูบี้ทั้งวัน ซื้อกล่องกุญแจถึงขั้นไหนถึงคุ้ม',
+    sections: [
+      { kind: 'new', groups: [
+        g('คำนวณรูบี้ขายวิญญาณ (เมนู → คำนวณรูบี้ขายวิญญาณ)',
+          'ต่อสู้ซ้ำด่านฟาร์มรูบี้: บอกว่าควรซื้อกล่องกุญแจกี่กล่อง ได้รูบี้สุทธิเท่าไหร่ ใช้เวลากี่ชั่วโมง ใช้ฮีโร่ Lv.1 กี่ตัว และได้ทองเท่าไหร่',
+          'เลือกจำนวนฮีโร่ Lv.1 ในทีม (1–5 ตัว = 20–100 รูบี้ต่อ 10 รอบ) · ตั้ง "ราคาวิญญาณ" (เล่นเพิ่ม 1 ชม. ต้องได้กี่รูบี้) และเวลาที่เล่นได้ต่อวัน แล้วเว็บแนะนำให้',
+          'เทียบทีละขั้นราคากล่อง (ฟรี / 50 / 80 / 100 รูบี้) ว่าคุ้ม เท่าทุน หรือขาดทุน · เลื่อนเลือกจำนวนกล่องเองได้ · แก้ค่าทุกอย่างได้ (กุญแจ เวลาต่อรอบ ทอง เควสต์ทำซ้ำ ราคากล่อง ดรอปฮีโร่)'),
+      ] },
+    ],
+  },
+  {
     id: '2026-10-24',
     version: '1.5.3',
     date: '24 ต.ค. 2026',
@@ -357,6 +372,18 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
+  {
+    id: '2026-10-24b', version: '1.5.4', date: '24 Oct 2026', title: 'Ruby Rush',
+    summary: 'New page: Ruby Farming Calculator — farm rubies all day and see how many key boxes are worth buying',
+    sections: [
+      { kind: 'new', groups: [
+        g('Ruby Farming Calculator (menu → Ruby Farming Calculator)',
+          'Repeat-battle the Ruby Farming stage: see how many key boxes to buy, your net rubies, how many hours it takes, how many Lv.1 heroes you use, and the gold you get',
+          'Pick how many Lv.1 heroes are in the team (1–5 = 20–100 rubies per 10 battles) · set your "soul price" (rubies one more hour must earn) and daily play time, and get a recommendation',
+          'Compare each box price tier (free / 50 / 80 / 100 rubies): profit, break-even or loss · drag to try any number of boxes · every value is editable (keys, time per battle, gold, repeat quest, box prices, hero drops)'),
+      ] },
+    ],
+  },
   {
     id: '2026-10-24', version: '1.5.3', date: '24 Oct 2026', title: 'Formation',
     summary: 'Team building like in the game, English mode on every page, no jumps when going back, and smoother still',

@@ -1,4 +1,4 @@
-import { Calculator, Coffee, Cookie, ExternalLink, Gem, Home, Megaphone, MessagesSquare, Settings, Shield, Sparkles, Swords, ThumbsUp, X } from 'lucide-react'
+import { Calculator, Coffee, Cookie, ExternalLink, Flame, Gem, Home, Megaphone, MessagesSquare, Settings, Shield, Sparkles, Swords, ThumbsUp, X } from 'lucide-react'
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState, type ComponentType } from 'react'
 import { NavLink } from 'react-router'
 import { getRecent, refreshRecent } from '../lib/api'
@@ -19,6 +19,7 @@ const NAV: { to: string; label: string; icon: ComponentType<{ className?: string
   { to: '/biscuit', label: tx('เช็กบัฟบิสกิต'), icon: Cookie },
   { to: '/totalwar', label: tx('คำนวณแต้มเบ็ดเสร็จ'), icon: Calculator },
   { to: '/atk', label: tx('เทียบพลังโจมตี'), icon: Swords },
+  { to: '/ruby', label: tx('คำนวณรูบี้ขายวิญญาณ'), icon: Flame },
   ...(PACKS_ON ? [{ to: '/packs', label: tx('เช็กความคุ้มค่าแพ็ค'), icon: Gem }] : []),
   { to: '/favorites', label: tx('พรีเซต & ทีมที่ชอบ'), icon: ThumbsUp },
 ]
