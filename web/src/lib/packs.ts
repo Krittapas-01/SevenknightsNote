@@ -72,8 +72,8 @@ const BASE_ITEMS: Record<PackBaseKey, ItemDef> = {
     note: ['ได้จากเรด/จบซีซั่นเท่านั้น · ราคาร้านสมเหตุสมผล', 'Raids/season rewards only · shop price is fair'] },
   oblivion: { th: 'Oblivion Essence (ขวดแดง)', en: 'Oblivion Essence', shop: 500, worth: 300, note: ['ค่าสูง แต่ร้านแพงไป', 'Valuable, but overpriced in the shop'] },
   memories: { th: 'Essence of Memories', en: 'Essence of Memories', shop: 20, worth: 0, note: ['เทียบยาก ไม่นับ', 'Hard to compare, not counted'] },
-  awakening: { th: 'Awakening Stone', en: 'Awakening Stone', shop: 400, worth: 0, rookie: 400,
-    note: ['ผู้เล่นเก่ามีล้นคลัง · ผู้เล่นใหม่ต้องการมาก', 'Veterans have plenty · new players need lots'] },
+  awakening: { th: 'Awakening Stone', en: 'Awakening Stone', shop: 400, worth: 0, rookie: 50,
+    note: ['ผู้เล่นเก่ามีล้นคลัง · ผู้เล่นใหม่ให้ 50 (เอาเงินไปซื้ออย่างอื่นคุ้มกว่า)', 'Veterans have plenty · new players: 50 (money is better spent elsewhere)'] },
   crystal: { th: 'Tuning Crystal', en: 'Tuning Crystal', shop: 3, worth: 2.54, note: ['กดตู้ของรัก 80 รูบี้ ได้ ≈31.5 ผลึก', 'A dedicated gear pull (80) gives ≈31.5'] },
   rankUp: { th: 'วัสดุเลื่อนขั้น', en: 'Rank Up material', shop: 10, worth: 0, note: ['หาง่ายเกินไป ไม่นับ', 'Too easy to get, not counted'] },
   spark: { th: 'Inner Spark', en: 'Inner Spark', shop: 1, worth: 0.28, note: ['จากรอบดันเจี้ยน Power Up', 'From Power Up Dungeon runs'] },
@@ -210,6 +210,26 @@ export function shopValue(p: Pick<Pack, 'items'>) {
 }
 export const priceOf = (p: Pick<Pack, 'price' | 'gems'>, m: Metric) => (m === 'gem' ? p.gems : p.price)
 /** รูบี้เทียบเท่าต่อ 1 บาท / 1 ปริซึม (0 = ไม่มีราคาแบบนั้น) */
+/** "อยากได้อะไร": ของที่คนมาหน้านี้ตามหา · นับเป็นหน่วยของมันเอง (กุญแจ 60 ดอก = 1 กล่อง) */
+export type Want = { id: string; icon: PackItemKey; keys: [PackItemKey, number][]; name: [string, string]; unit: [string, string] }
+export const WANTS: Want[] = [
+  { id: 'rubies', icon: 'rubies', keys: [['rubies', 1]], name: ['รูบี้', 'Rubies'], unit: ['รูบี้', 'rubies'] },
+  { id: 'chests', icon: 'chests', keys: [['chests', 1], ['keys', 1 / KEYS_PER_CHEST]], name: ['กล่องกุญแจ', 'Key chests'], unit: ['กล่อง', 'chests'] },
+  { id: 'pickup', icon: 'pickup', keys: [['pickup', 1]], name: ['ตั๋วพิคอัพ', 'Rate Up tickets'], unit: ['ใบ', 'tickets'] },
+  { id: 'permanent', icon: 'permanent', keys: [['permanent', 1]], name: ['ตั๋วถาวร', 'Hero tickets'], unit: ['ใบ', 'tickets'] },
+  { id: 'pet', icon: 'pet', keys: [['pet', 1]], name: ['ตั๋วสัตว์', 'Pet tickets'], unit: ['ใบ', 'tickets'] },
+  { id: 'petWish', icon: 'petWish', keys: [['petWish', 1], ['a_526', 1]], name: ['Pet Wish List', 'Pet Wish List'], unit: ['ใบ', 'vouchers'] },
+  { id: 'chaos', icon: 'chaos', keys: [['chaos', 1]], name: ['Chaos Essence', 'Chaos Essence'], unit: ['ขวด', 'bottles'] },
+  { id: 'crystal', icon: 'crystal', keys: [['crystal', 1]], name: ['Tuning Crystal', 'Tuning Crystal'], unit: ['ผลึก', 'crystals'] },
+]
+/** ได้ของที่อยากได้กี่ชิ้น (ช่อง Select นับตัวเลือกที่ให้ของนี้มากสุด) */
+export function amountOf(p: Pick<Pack, 'items'>, w: Want): number {
+  const mult = new Map(w.keys)
+  const fixed = itemsOf(p).filter((x) => !x.s).reduce((a, x) => a + x.n * (mult.get(x.k) ?? 0), 0)
+  const best = new Map<number, number>()
+  for (const x of itemsOf(p)) if (x.s) best.set(x.s, Math.max(best.get(x.s) ?? 0, x.n * (mult.get(x.k) ?? 0)))
+  return fixed + [...best.values()].reduce((a, b) => a + b, 0)
+}
 export function rateOf(p: Pick<Pack, 'items' | 'price' | 'gems'>, m: Metric, worth: Worth = DEFAULT_WORTH) {
   const price = priceOf(p, m)
   return price > 0 ? packValue(p, worth) / price : 0

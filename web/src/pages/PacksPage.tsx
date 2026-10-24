@@ -5,8 +5,8 @@ import PackTile, { Prism } from '../components/PackTile'
 import { api } from '../lib/api'
 import {
   ATLAS_CATS, CAT_NAME, GROUP_META, ITEMS, groupArt, groupName, shownItems, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, boughtCount, defaultWorth, itemName, itemsOf, loadWorthPrefs, packTab, packValue, periodLabel,
-  rateOf, recommend, saveWorthPrefs, setBought, shopValue, tierOf, worthTable,
-  type Metric, type Pack, type PackItemKey, type PackTab, type Profile, type Worth, type WorthPrefs,
+  WANTS, amountOf, priceOf, rateOf, recommend, saveWorthPrefs, setBought, shopValue, tierOf, worthTable,
+  type Metric, type Pack, type Want, type PackItemKey, type PackTab, type Profile, type Worth, type WorthPrefs,
 } from '../lib/packs'
 import { L } from '../lib/i18n'
 
@@ -14,6 +14,7 @@ const fmt = (n: number) => Math.round(n).toLocaleString('en-US')
 const num = (n: number) => (Number.isInteger(n) ? n.toLocaleString('en-US') : n.toLocaleString('en-US', { maximumFractionDigits: 2 }))
 const baht = (n: number) => `฿${n.toLocaleString('en-US', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`
 const BUDGET_KEY = '7k-note:packs-budget'
+const WANT_KEY = '7k-note:packs-want'
 
 const TAB_LABEL: Record<PackTab | 'values', [string, string]> = {
   monthly: ['รายเดือน', 'Monthly'], special: ['พิเศษ', 'Special'], limited: ['จำกัดเวลา', 'Limited Time'], daily: ['รายวัน', 'Daily'],
@@ -39,10 +40,13 @@ export default function PacksPage() {
   const [tab, setTab] = useState<PackTab | 'values' | null>(null)
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [budget, setBudget] = useState(() => { try { return localStorage.getItem(BUDGET_KEY) ?? '' } catch { return '' } })
+  const [wantId, setWantId] = useState<string | null>(() => { try { return localStorage.getItem(WANT_KEY) } catch { return null } })
+  const want = WANTS.find((w) => w.id === wantId) ?? null
   const now = Date.now()
 
   useEffect(() => { api.packs().then((r) => setPacks(r.packs)).catch((e) => setErr((e as Error).message)) }, [])
   useEffect(() => { try { localStorage.setItem(BUDGET_KEY, budget) } catch { /* ไม่มี storage */ } }, [budget])
+  useEffect(() => { try { if (wantId) localStorage.setItem(WANT_KEY, wantId); else localStorage.removeItem(WANT_KEY) } catch { /* ไม่มี storage */ } }, [wantId])
   const update = (p: Partial<WorthPrefs>) => setPrefs((old) => { const next = { ...old, ...p }; saveWorthPrefs(next); return next })
 
   const worth = useMemo(() => worthTable(prefs), [prefs])
@@ -100,7 +104,25 @@ export default function PacksPage() {
           options={[['baht', L('ต่อบาท', 'Per baht')], ['gem', <>{L('ต่อ', 'Per')} <Prism /></>]]} label={L('เทียบราคาแบบไหน', 'Compare by')} />
       </div>
 
-      {/* แท็บแบบร้านในเกม: มือถือเป็นแถบบน · จอกว้างเป็นคอลัมน์ซ้าย */}
+      {/* อยากได้อะไร: เลือกของ → จัดอันดับแพ็คที่ได้ของนั้นมากสุดต่อบาท (ทุกหมวด) */}
+      <div className="mt-4">
+        <p className="mb-1.5 text-sm font-semibold text-white/80">{L('อยากได้อะไร?', 'What do you want?')}</p>
+        <div role="radiogroup" aria-label={L('อยากได้อะไร', 'What do you want')} className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 sm:flex-wrap">
+          <button type="button" role="radio" aria-checked={!want} onClick={() => setWantId(null)}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-semibold transition ${!want ? 'border-gold/70 bg-gold/15 text-gold' : 'border-white/10 bg-black/20 text-white/70 hover:border-gold/40'}`}>
+            {L('คุ้มรวมทุกอย่าง', 'Best overall')}
+          </button>
+          {WANTS.map((w) => (
+            <button key={w.id} type="button" role="radio" aria-checked={want?.id === w.id} onClick={() => setWantId(w.id)}
+              className={`flex shrink-0 items-center gap-1 rounded-full border py-0.5 pl-0.5 pr-3 text-[13px] font-semibold transition ${want?.id === w.id ? 'border-gold/70 bg-gold/15 text-gold' : 'border-white/10 bg-black/20 text-white/70 hover:border-gold/40'}`}>
+              <WantIcon k={w.icon} />{L(...w.name)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {want ? <WantList want={want} groups={groups} metric={metric} onOpen={setOpenGroup} /> : (
+      /* แท็บแบบร้านในเกม: มือถือเป็นแถบบน · จอกว้างเป็นคอลัมน์ซ้าย */
       <div className="mt-5 md:grid md:grid-cols-[180px_1fr] md:gap-4">
         <div role="tablist" aria-label={L('หมวดแพ็ค', 'Pack tabs')} className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-2 md:mx-0 md:flex-col md:overflow-visible md:px-0">
           {[...tabs, 'values' as const].map((t) => (
@@ -126,6 +148,7 @@ export default function PacksPage() {
             )}
         </div>
       </div>
+      )}
 
       {/* แนะนำตามงบ */}
       <section className="panel panel-gold mt-8 p-5">
@@ -140,12 +163,17 @@ export default function PacksPage() {
         {budgetN > 0 && (
           plan.picks.length ? (
             <div className="mt-4">
-              <ul className="space-y-1.5">
+              <ul className="space-y-0.5">
                 {plan.picks.map(({ pack, n }) => (
-                  <li key={pack.id} className="flex items-center gap-2 text-sm">
-                    <Sparkles className="h-4 w-4 shrink-0 text-gold" />
-                    <span className="min-w-0 flex-1 truncate">{pack.group ? `${pack.group} · ` : ''}{baht(pack.price)}{n > 1 && <b className="text-gold"> ×{n}</b>}</span>
-                    <span className="tabular-nums text-white/70">{baht(pack.price * n)}</span>
+                  <li key={pack.id}>
+                    {/* กดแล้วเปิดแพ็คนั้นดูของ/ทุกขั้น */}
+                    <button type="button" onClick={() => setOpenGroup(pack.group || pack.name)}
+                      className="group flex w-full items-center gap-2 rounded-lg px-1 py-1 text-left text-sm transition hover:bg-white/5">
+                      <Sparkles className="h-4 w-4 shrink-0 text-gold" />
+                      <span className="min-w-0 flex-1 truncate underline decoration-white/25 underline-offset-4 group-hover:text-gold group-hover:decoration-gold">{groupName(pack.group || pack.name)} · {baht(pack.price)}{n > 1 && <b className="text-gold"> ×{n}</b>}</span>
+                      <span className="tabular-nums text-white/70">{baht(pack.price * n)}</span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-white/40 group-hover:text-gold" />
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -173,6 +201,64 @@ export default function PacksPage() {
           </div>
         )}
       </Modal>
+    </div>
+  )
+}
+
+/** ไอคอนของในปุ่ม "อยากได้อะไร" */
+function WantIcon({ k }: { k: PackItemKey }) {
+  return <span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full"><span className="scale-[0.62]"><PackTile k={k} n={0} size="sm" noCount /></span></span>
+}
+
+/** จัดอันดับขั้นแพ็คทุกหมวดที่ได้ของที่อยากได้ มากสุดต่อบาท (หรือต่อปริซึม) */
+function WantList({ want, groups, metric, onOpen }: { want: Want; groups: Group[]; metric: Metric; onOpen: (g: string) => void }) {
+  const rows = groups.flatMap((g) => g.rows.map((r) => {
+    const n = amountOf(r.p, want), price = priceOf(r.p, metric)
+    return { g, r, n, per: price > 0 ? n / price : 0 }
+  })).filter((x) => x.n > 0 && x.per > 0).sort((a, b) => b.per - a.per)
+  const top = rows[0]?.per ?? 0
+  const scale = top < 1 ? 100 : 1 // ของชิ้นใหญ่ (ตั๋ว/กล่อง) ได้ไม่ถึง 1 ชิ้นต่อบาท → คิดต่อ 100 บาท
+  const unit = metric === 'gem' ? <>{scale > 1 && '100'}<Prism /></> : scale > 1 ? '฿100' : L('บาท', 'baht')
+  const per = (v: number) => (v >= 10 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : v.toFixed(3))
+  return (
+    <div className="mt-4">
+      <p className="mb-2 text-xs text-white/50">
+        {L(`เรียงตาม${L(...want.name)}ที่ได้ต่อ`, `Ranked by ${L(...want.name)} per `)}{unit}{L(' (รวมทุกหมวด · ช่อง Select นับตัวเลือกที่ให้ของนี้ · % = ความคุ้มรวมทั้งแพ็ค)', ' (all tabs · Select slots count the option with this item · % = whole-pack value)')}
+      </p>
+      {!rows.length && <p className="py-12 text-center text-white/50">{L('ไม่มีแพ็คที่ให้ของนี้', 'No pack gives this item')}</p>}
+      <ol className="grid gap-2 xl:grid-cols-2">
+        {rows.map(({ g, r, n, per: v }, i) => {
+          const art = groupArt(g.name)
+          const done = r.bought >= r.p.limit
+          const t = tierOf(r.pct)
+          return (
+            <li key={r.p.id}>
+              <button type="button" onClick={() => onOpen(g.name)}
+                className={`panel group relative flex min-h-[84px] w-full items-center gap-2 overflow-hidden py-2.5 pl-1.5 pr-3 sm:gap-3 sm:pl-2 text-left transition hover:border-gold/60 sm:min-h-[96px] sm:pr-4 ${done ? 'opacity-55' : ''}`}>
+                <b className={`w-5 shrink-0 text-center text-base tabular-nums sm:w-7 sm:text-lg ${i < 3 ? 'text-gold' : 'text-white/45'}`}>{i + 1}</b>
+                <span className="relative h-12 w-12 shrink-0 sm:h-20 sm:w-20">
+                  {art && <img src={art.src} alt="" loading="lazy" draggable={false}
+                    className={`h-full w-full ${art.square ? 'object-contain' : art.atlas ? 'pack-art-atlas object-cover object-right' : 'object-cover object-left'}`} />}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <b className="text-[15px] leading-snug sm:text-base">{groupName(g.name)}</b>
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-[13px]">
+                    <span className="font-semibold text-white tabular-nums">{baht(r.p.price)}</span>
+                    <span className="text-white/60 tabular-nums">{L('ได้', 'gets')} {num(Math.round(n * 100) / 100)} {L(...want.unit)}</span>
+                    {r.pct > 0 && <span className={`rounded-full px-2 py-0.5 font-semibold ${t.cls}`}>{Math.round(r.pct)}%</span>}
+                    {done && <span className="font-semibold text-emerald-300">{L('ซื้อครบแล้ว', 'Maxed')}</span>}
+                  </span>
+                  <span className="h-1.5 overflow-hidden rounded-full bg-white/10"><span className="block h-full rounded-full bg-gold/80" style={{ width: `${Math.max(3, (v / top) * 100)}%` }} /></span>
+                </span>
+                <span className="shrink-0 text-right">
+                  <b className="block text-lg tabular-nums text-gold sm:text-xl">{per(v * scale)}</b>
+                  <span className="text-[11px] text-white/50">{L(...want.unit)} / {unit}</span>
+                </span>
+              </button>
+            </li>
+          )
+        })}
+      </ol>
     </div>
   )
 }
@@ -205,17 +291,17 @@ function GroupRow({ g, now, onOpen }: { g: Group; now: number; onOpen: () => voi
   const prices = g.rows.map((r) => r.p.price)
   return (
     <button type="button" onClick={onOpen}
-      className="panel group relative flex min-h-[72px] w-full items-stretch overflow-hidden text-left transition hover:border-gold/60">
+      className="panel group relative flex min-h-[84px] w-full sm:min-h-[96px] items-stretch overflow-hidden text-left transition hover:border-gold/60">
       {art
-        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pack-art-l pointer-events-none absolute inset-y-0 left-0 h-full w-[96px] sm:w-[120px] ${art.square ? 'object-contain p-2 pr-6' : art.atlas ? 'object-cover object-right' : 'object-cover object-left'}`} />
-        : <span className="pointer-events-none absolute inset-y-0 left-0 w-[96px] bg-gradient-to-r from-gold/15 to-transparent sm:w-[120px]" />}
-      <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-2 pl-[88px] pr-3 sm:pl-[112px]">
+        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pointer-events-none absolute inset-y-0 left-0 h-full w-[104px] sm:w-[136px] ${art.square ? 'pack-art-l object-contain p-2 pr-6' : art.atlas ? 'pack-art-atlas object-cover object-right' : 'pack-art-l object-cover object-left'}`} />
+        : <span className="pointer-events-none absolute inset-y-0 left-0 w-[104px] bg-gradient-to-r from-gold/15 to-transparent sm:w-[136px]" />}
+      <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-2.5 pl-[100px] pr-3 sm:pl-[132px] sm:pr-4">
         <span className="flex items-start gap-2">
-          <b className="min-w-0 flex-1 text-sm leading-snug">{groupName(g.name)}</b>
+          <b className="min-w-0 flex-1 text-[15px] leading-snug sm:text-base">{groupName(g.name)}</b>
           {g.endsAt && <span className="flex shrink-0 items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[11px] text-white/70"><CalendarClock className="h-3 w-3" />{endsIn(g.endsAt, now)}</span>}
         </span>
-        {meta?.sub && <span className="truncate text-xs leading-snug text-white/55">{L(...meta.sub)}</span>}
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        {meta?.sub && <span className="truncate text-xs leading-snug text-white/55 sm:text-[13px]">{L(...meta.sub)}</span>}
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-[13px]">
           {g.best > 0 && <span className={`rounded-full px-2 py-0.5 font-semibold ${t.cls}`}>{L('คุ้มสุด', 'Best')} {Math.round(g.best)}%</span>}
           <span className="text-white/50 tabular-nums">{g.rows.length} {L('ขั้น', g.rows.length === 1 ? 'tier' : 'tiers')} · {baht(Math.min(...prices))}{prices.length > 1 ? `–${baht(Math.max(...prices))}` : ''}</span>
           <ChevronRight className="ml-auto h-4 w-4 text-white/40 transition group-hover:translate-x-0.5 group-hover:text-gold" />

@@ -18,7 +18,7 @@ export const PACK_GROUPS: Record<string, { th: string; tab?: PackTab; art?: stri
   'Adventure Support S': { th: 'เพลย์บูสต์ S' },
   'Rate Up Summon Special': { th: 'เรียกพิกอัปสุดพิเศษ' },
   'Rate Up Summon Pack': { th: 'Rate Up Summon Pack', tab: 'special', art: 'rate-up-summon-pack' },
-  'Pet Summon Special': { th: 'เรียกสัตว์เลี้ยงสุดพิเศษ' },
+  'Pet Summon Special': { th: 'เรียกสัตว์เลี้ยงสุดพิเศษ', art: 'pet-summon-special' },
   'Pet Summon Pack': { th: 'Pet Summon Pack', tab: 'special', art: 'pet-summon-pack' },
   'Adventure Growth Relay': { th: 'รีเลย์พัฒนาการผจญภัย', tab: 'relay', art: 'adventure-growth-relay' },
   'Rate Up Summon Relay': { th: 'รีเลย์เรียกพิกอัป', tab: 'relay', art: 'rate-up-summon-relay' },
