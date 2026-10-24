@@ -905,6 +905,19 @@ html[data-theme="light"] .updates-rail-item.is-active { background: linear-gradi
 html[data-theme="light"] .updates-rail-dot { border-color: #a5a19a; }
 html[data-theme="light"] .updates-rail-item.is-active .updates-rail-dot { border-color: #c08a1e; background: #d9a93f; box-shadow: 0 0 0 3px #d9a93f33; }
 
+/* หน้าเช็กความคุ้มค่าแพ็ค: หน้าตาแบบร้านในเกม (ช่องของสีเข้มเหมือนกันทั้งธีมมืด/สว่าง) */
+.pack-tile { background: linear-gradient(180deg, #4a4a50, #2e2e33); box-shadow: inset 0 0 0 1px #ffffff1f, 0 1px 2px #0006; }
+.pack-tile.is-muted { opacity: .45; filter: grayscale(.7); }
+.pack-tile-n { color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
+.pack-tile-bonus { background: #111; color: #fff; }
+.pack-art-l {
+  -webkit-mask-image: linear-gradient(to left, transparent 0, #000 45%);
+  mask-image: linear-gradient(to left, transparent 0, #000 45%);
+}
+.pack-head { background: linear-gradient(180deg, #b39257, #8c6c34); color: #fff8e6; text-shadow: 0 1px 1px #0005; }
+.pack-price { background: #1b1b1f; color: #f6e7c1; }
+html[data-theme="light"] .pack-head { background: linear-gradient(180deg, #d6b779, #b8914a); color: #fffdf6; }
+
 /* รูปแพ็คในหน้าคำนวณรูบี้: จางจากซ้าย ให้ตัวหนังสืออ่านง่าย */
 .pack-art {
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 55%);

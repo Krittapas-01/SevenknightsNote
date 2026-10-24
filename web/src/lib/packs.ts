@@ -1,32 +1,151 @@
+import { PACK_ITEM_KEYS, PACK_TABS, type PackItemKey, type PackTab } from '../../../shared/packs'
 import { L } from './i18n'
+import artDemonSlayer from '../assets/packs/shop-demon-slayer.webp'
+import artSurpriseKey from '../assets/packs/shop-surprise-key.webp'
+import artRookieRuby from '../assets/packs/shop-rookie-ruby.webp'
+import artElite from '../assets/packs/shop-elite.webp'
+import artRookieCheer from '../assets/packs/shop-rookie-cheer.webp'
+import artFledgling from '../assets/packs/shop-fledgling.webp'
+import artPet500 from '../assets/packs/shop-pet-500.webp'
+import artAdventureS from '../assets/packs/shop-adventure-s.webp'
+import artRateUp from '../assets/packs/shop-rate-up.webp'
 
 /**
- * เช็กความคุ้มค่าแพ็ค — แปลงของในแพ็คเป็น "รูบี้เทียบเท่า" แล้วหารด้วยราคา (บาท)
- * - กล่องกุญแจ 1 กล่อง (60 กุญแจ) = ราคากล่องในร้านที่คนทั่วไปซื้อ (80–100 รูบี้) → ใช้ 100
- * - ตั๋วสุ่ม 1 ใบ = 100 รูบี้
- * - ตั๋วเรด / ของอื่น / โทปาซ: แสดงไว้ แต่ไม่นับ
+ * เช็กความคุ้มค่าแพ็ค — แปลงของในแพ็คเป็น "รูบี้เทียบเท่า" ตามค่าที่ผู้เล่นให้จริง (ไม่ใช่ราคาร้านรูบี้) แล้วหารด้วยราคา (บาท หรือ ปริซึม 💎)
+ * ค่าตั้งต้นจาก Krit (24 ต.ค. 2026) — ราคาร้านรูบี้แพงกว่าค่าจริง และรูบี้มีจำกัด จึงใช้เป็นแค่ตัวเทียบ
+ * - กล่องกุญแจ = 100: ฟาร์ม 4 ตัวได้ 80 รูบี้ + ช่องที่ 5 ไว้ฟาร์มของรัก/แหวน ≈ ฟาร์ม 5 ตัวได้ 100
+ * - ตั๋วกดได้ด้วยรูบี้ (100/ครั้ง · ของรัก 80) → ค่าไม่เกินนั้น แล้วลดตามความหายาก · Pet Wish List กดด้วยรูบี้ไม่ได้ = 200
+ * - ผลึก: กดตู้ของรัก 80 รูบี้ได้เฉลี่ย ≈31.5 ผลึก · วัสดุเลื่อนขั้น + Inner Spark: แบ่งค่ารอบดันเจี้ยน (เฉลี่ย 3 รอบแรก 150 รูบี้) ตามสัดส่วนราคาร้าน
  * เทียบเป็น % กับแพ็คฐาน (Monthly Key Bundle)
  */
-/** เปิด/ปิดหน้าเช็กความคุ้มค่าแพ็ค (ปิด = ซ่อนหน้า เมนู การ์ดหน้าแรก และบันทึกอัปเดต · หน้าแอดมินยังเตรียมข้อมูลได้) */
+/** เปิด/ปิดหน้าเช็กความคุ้มค่าแพ็ค (ปิด = ไม่อยู่ในเมนู หน้าแรก และบันทึกอัปเดต · ยังเข้าได้ทางลิงก์ /packs · หน้าแอดมินเตรียมข้อมูลได้) */
 export const PACKS_ON = false
 
-export const CHEST_RUBY = 100
-export const TICKET_RUBY = 100
 export const KEYS_PER_CHEST = 60
+export { PACK_ITEM_KEYS, PACK_TABS, type PackItemKey, type PackTab }
 
-export type PackItems = { rubies?: number; chests?: number; summon?: number; raid?: number; other?: string }
+/** ของ 1 ช่องในแพ็ค · b = ของแถม (ป้าย BONUS ในเกม) */
+export type ItemLine = { k: PackItemKey; n: number; b?: 1 }
+export type PackItems = {
+  list?: ItemLine[]; tab?: PackTab; other?: string
+  /** ข้อมูลรุ่นแรก (ก่อนมี list) */
+  rubies?: number; chests?: number; summon?: number; raid?: number
+}
 export type PackPeriod = 'once' | 'daily' | 'weekly' | 'monthly'
 export type Pack = {
   id: string; name: string; group: string; price: number; gems: number
   items: PackItems; limit: number; period: PackPeriod; endsAt: number | null; base: boolean; sort: number; updatedAt: number
 }
 
-/** มูลค่ารวม (รูบี้เทียบเท่า) */
-export function packValue(p: Pick<Pack, 'items'>) {
-  const it = p.items
-  return (it.rubies ?? 0) + (it.chests ?? 0) * CHEST_RUBY + (it.summon ?? 0) * TICKET_RUBY
+// ---------- ชนิดของ: ชื่อ ราคาร้านรูบี้ (ต่อ 1 ชิ้น) และค่าตั้งต้น ----------
+export type ItemDef = {
+  th: string; en: string
+  /** ราคาในร้านรูบี้ต่อ 1 ชิ้น (ไม่มี = ไม่ขายในร้าน) */
+  shop?: number
+  /** ค่าที่ให้ (รูบี้ต่อ 1 ชิ้น) — ผู้เล่นเก่า */
+  worth: number
+  /** ค่าที่ให้ถ้าเป็นผู้เล่นใหม่ (ไม่ใส่ = เท่าผู้เล่นเก่า) */
+  rookie?: number
+  /** ที่มาของค่า */
+  note?: [string, string]
+  /** ยังไม่รู้ว่าคืออะไร/ค่าเท่าไหร่ */
+  unknown?: boolean
 }
-export const perBaht = (p: Pack) => packValue(p) / p.price
+export const ITEMS: Record<PackItemKey, ItemDef> = {
+  rubies: { th: 'รูบี้', en: 'Rubies', worth: 1 },
+  chests: { th: 'กล่องกุญแจ (60 ดอก)', en: 'Key chest (60 keys)', shop: 100, worth: 100,
+    note: ['ฟาร์ม 4 ตัวได้ 80 + ช่องที่ 5 ไว้ฟาร์มของรัก/แหวน', 'Farming 4 heroes gives 80, plus a 5th slot for gear drops'] },
+  keys: { th: 'กุญแจ', en: 'Keys', worth: 100 / KEYS_PER_CHEST, note: ['1/60 ของกล่องกุญแจ', '1/60 of a key chest'] },
+  gold: { th: 'ทอง', en: 'Gold', worth: 0, note: ['ไม่นับ', 'Not counted'] },
+  pickup: { th: 'ตั๋วพิคอัพ (Rate Up)', en: 'Rate Up summon ticket', shop: 100, worth: 100, note: ['หายาก เท่าราคากดด้วยรูบี้', 'Rare: same as a ruby pull'] },
+  collab: { th: 'ตั๋วคอลแลป', en: 'Collab summon ticket', shop: 100, worth: 100, note: ['นาน ๆ มาที เท่าราคากดด้วยรูบี้', 'Rare: same as a ruby pull'] },
+  permanent: { th: 'ตั๋วถาวร (ม่วง)', en: 'Hero summon ticket', shop: 100, worth: 40, note: ['แจกบ่อย ได้เรื่อย ๆ', 'Handed out all the time'] },
+  pet: { th: 'ตั๋วสัตว์', en: 'Pet summon ticket', shop: 100, worth: 20, note: ['ไม่สำคัญเท่าตั๋วอัศวิน', 'Matters less than hero tickets'] },
+  petWish: { th: 'ตั๋ว Pet Wish List', en: 'Pet Wish List voucher', shop: 200, worth: 200, note: ['ตู้เดียวที่กดด้วยรูบี้ไม่ได้', 'The only banner rubies can’t pull'] },
+  equip: { th: 'ตั๋วของรัก', en: 'Dedicated gear ticket', shop: 80, worth: 80, note: ['เท่ากดตู้ของรักด้วยรูบี้', 'Same as a ruby pull'] },
+  card23: { th: 'การ์ด 2~3★', en: '2~3★ card', worth: 0, unknown: true },
+  card3: { th: 'การ์ด 3★', en: '3★ card', worth: 0, unknown: true },
+  chaos: { th: 'Chaos Essence (ขวดเหลือง)', en: 'Chaos Essence', shop: 120, worth: 70,
+    note: ['ได้จากเรด/จบซีซั่นเท่านั้น · กลาง ๆ', 'Raids/season rewards only · middling'] },
+  oblivion: { th: 'Oblivion Essence (ขวดแดง)', en: 'Oblivion Essence', shop: 500, worth: 300, note: ['ค่าสูง แต่ร้านแพงไป', 'Valuable, but overpriced in the shop'] },
+  memories: { th: 'Essence of Memories', en: 'Essence of Memories', shop: 20, worth: 0, note: ['เทียบยาก ไม่นับ', 'Hard to compare, not counted'] },
+  awakening: { th: 'Awakening Stone', en: 'Awakening Stone', shop: 400, worth: 0, rookie: 400,
+    note: ['ผู้เล่นเก่ามีล้นคลัง · ผู้เล่นใหม่ต้องการมาก', 'Veterans have plenty · new players need lots'] },
+  crystal: { th: 'Tuning Crystal', en: 'Tuning Crystal', shop: 3, worth: 2.54, note: ['กดตู้ของรัก 80 รูบี้ ได้ ≈31.5 ผลึก', 'A dedicated gear pull (80) gives ≈31.5'] },
+  rankUp: { th: 'วัสดุเลื่อนขั้น', en: 'Rank Up material', shop: 10, worth: 2.8, note: ['จากรอบดันเจี้ยน Power Up', 'From Power Up Dungeon runs'] },
+  spark: { th: 'Inner Spark', en: 'Inner Spark', shop: 1, worth: 0.28, note: ['จากรอบดันเจี้ยน Power Up', 'From Power Up Dungeon runs'] },
+  skillStone: { th: 'หินสกิล Brilliant', en: 'Brilliant Skill Stone', shop: 3000, worth: 2500, note: ['หายากมาก ส่วนใหญ่จากร้านรายเดือน', 'Very rare, mostly from the monthly shop'] },
+  raid: { th: 'ตั๋วเรด', en: 'Raid ticket', worth: 0, note: ['ไม่นับ', 'Not counted'] },
+  ore: { th: 'ก้อนสีส้ม', en: 'Orange ore', worth: 0, unknown: true },
+  star: { th: 'ดาวสีชมพู', en: 'Pink star', worth: 0, unknown: true },
+}
+export const itemName = (k: PackItemKey) => L(ITEMS[k].th, ITEMS[k].en)
+
+// ---------- ค่าที่ผู้ใช้ให้ (จำในเครื่อง) ----------
+export type Profile = 'vet' | 'rookie'
+export type Metric = 'baht' | 'gem'
+export type WorthPrefs = { profile: Profile; metric: Metric; worth: Partial<Record<PackItemKey, number>> }
+export type Worth = Record<PackItemKey, number>
+const PREFS_KEY = '7k-note:pack-worth'
+
+export const defaultWorth = (k: PackItemKey, profile: Profile) => (profile === 'rookie' && ITEMS[k].rookie !== undefined ? ITEMS[k].rookie! : ITEMS[k].worth)
+export function worthTable(prefs: Pick<WorthPrefs, 'profile' | 'worth'>): Worth {
+  const w = {} as Worth
+  for (const k of PACK_ITEM_KEYS) {
+    const own = prefs.worth[k]
+    w[k] = typeof own === 'number' && Number.isFinite(own) && own >= 0 ? own : defaultWorth(k, prefs.profile)
+  }
+  return w
+}
+export const DEFAULT_WORTH = worthTable({ profile: 'vet', worth: {} })
+
+export function loadWorthPrefs(): WorthPrefs {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')
+    const worth: WorthPrefs['worth'] = {}
+    for (const k of PACK_ITEM_KEYS) if (typeof raw.worth?.[k] === 'number') worth[k] = raw.worth[k]
+    return { profile: raw.profile === 'rookie' ? 'rookie' : 'vet', metric: raw.metric === 'gem' ? 'gem' : 'baht', worth }
+  } catch { return { profile: 'vet', metric: 'baht', worth: {} } }
+}
+export function saveWorthPrefs(p: WorthPrefs) {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)) } catch { /* ไม่มี storage */ }
+}
+
+// ---------- คำนวณ ----------
+const isKey = (k: unknown): k is PackItemKey => (PACK_ITEM_KEYS as readonly string[]).includes(k as string)
+/** ของในแพ็คเป็นรายการ (แปลงข้อมูลรุ่นแรกให้ด้วย) */
+export function itemsOf(p: Pick<Pack, 'items'>): ItemLine[] {
+  const it = p.items ?? {}
+  if (Array.isArray(it.list)) return it.list.filter((x) => isKey(x?.k) && x.n > 0)
+  const out: ItemLine[] = []
+  if (it.rubies) out.push({ k: 'rubies', n: it.rubies })
+  if (it.chests) out.push({ k: 'chests', n: it.chests })
+  if (it.summon) out.push({ k: 'pickup', n: it.summon })
+  if (it.raid) out.push({ k: 'raid', n: it.raid })
+  return out
+}
+/** แท็บในร้านของแพ็ค */
+export function packTab(p: Pack): PackTab {
+  const t = p.items?.tab ?? GROUP_META[p.group]?.tab
+  if (t && (PACK_TABS as readonly string[]).includes(t)) return t
+  return p.period === 'monthly' ? 'monthly' : p.period === 'daily' ? 'daily' : 'special'
+}
+
+/** มูลค่ารวม (รูบี้เทียบเท่า) ตามค่าที่ให้ */
+export function packValue(p: Pick<Pack, 'items'>, worth: Worth = DEFAULT_WORTH) {
+  return itemsOf(p).reduce((s, x) => s + x.n * worth[x.k], 0)
+}
+/** มูลค่าถ้าคิดตามราคาร้านรูบี้ (แบบเว็บอื่น) — ของที่ไม่มีในร้านใช้ค่าตั้งต้น */
+export function shopValue(p: Pick<Pack, 'items'>) {
+  return itemsOf(p).reduce((s, x) => s + x.n * (ITEMS[x.k].shop ?? DEFAULT_WORTH[x.k]), 0)
+}
+export const priceOf = (p: Pick<Pack, 'price' | 'gems'>, m: Metric) => (m === 'gem' ? p.gems : p.price)
+/** รูบี้เทียบเท่าต่อ 1 บาท / 1 ปริซึม (0 = ไม่มีราคาแบบนั้น) */
+export function rateOf(p: Pick<Pack, 'items' | 'price' | 'gems'>, m: Metric, worth: Worth = DEFAULT_WORTH) {
+  const price = priceOf(p, m)
+  return price > 0 ? packValue(p, worth) / price : 0
+}
+export const perBaht = (p: Pick<Pack, 'items' | 'price' | 'gems'>, worth?: Worth) => rateOf(p, 'baht', worth)
 
 export type Tier = { key: 'great' | 'good' | 'ok' | 'bad'; label: string; cls: string; bar: string }
 export function tierOf(pct: number): Tier {
@@ -41,6 +160,22 @@ export const periodLabel = (p: PackPeriod, n: number) =>
     : p === 'weekly' ? L(`สัปดาห์ละ ${n} ครั้ง`, `${n}× per week`)
       : p === 'monthly' ? L(`เดือนละ ${n} ครั้ง`, `${n}× per month`)
         : L(`ซื้อได้ ${n} ครั้ง`, `Limit ${n}`)
+
+// ---------- กลุ่มแพ็ค (แถบในร้าน): รูปแบนเนอร์ + คำอธิบาย · ชื่อกลุ่มตรงกับช่อง "กลุ่ม" ในหน้าแอดมิน ----------
+export type GroupMeta = { art?: string; sub?: [string, string]; tab?: PackTab }
+export const GROUP_META: Record<string, GroupMeta> = {
+  'Monthly Key Bundle': { sub: ['แพ็ครายเดือน ใช้เป็นเส้นฐาน 100%', 'Monthly pack, the 100% baseline'], tab: 'monthly' },
+  'Demon Slayer Summons Bonanza': { art: artDemonSlayer, sub: ['ตั๋วคอลแลปดาบพิฆาตอสูร ลดราคาพิเศษ', 'Demon Slayer summon voucher special sale'] },
+  'Surprise Adventurer Key Support Pack': { art: artSurpriseKey, sub: ['กล่องกุญแจ + Chaos Essence', 'Key bundles and Chaos Essence'] },
+  'Rookie Ruby Support Pack': { art: artRookieRuby, sub: ['แพ็ครูบี้สำหรับนักผจญภัย', 'Rubies for adventurers in need'] },
+  'Elite Adventurer Gameplay Special Pack': { art: artElite, sub: ['กล่องกุญแจ + ตั๋วเรด', 'Key bundles and raid tickets'] },
+  'Rookie Cheer Key Special Pack': { art: artRookieCheer, sub: ['รูบี้ + กล่องกุญแจ', 'Rubies and key bundles'] },
+  'Fledgling Adventurer Cheer Pack': { art: artFledgling, sub: ['แพ็คเสริมพลังสำหรับผู้เล่นใหม่', 'Power-up support for new adventurers'] },
+  '500 Days Celebration Pet Wish List Pack': { art: artPet500, sub: ['ฉลอง 500 วัน: ตั๋ว Pet Wish List', '500 days: Pet Wish List perks'] },
+  'Adventure Support S': { art: artAdventureS, sub: ['มาเฉพาะสุดสัปดาห์', 'Weekends only'] },
+  'Rate Up Summon Special': { art: artRateUp, sub: ['ตั๋วพิคอัพ ลดราคาพิเศษ', 'Rate Up hero summon voucher sale'] },
+  'Pet Summon Special': { sub: ['ตั๋วสัตว์ ลดราคาพิเศษ', 'Pet summon voucher sale'] },
+}
 
 // ---------- แพ็คที่ซื้อแล้ว (จำในเครื่อง) — รายวัน/สัปดาห์/เดือน นับใหม่ตามรอบรีเซ็ตของเกม (07:00 ไทย = 00:00 UTC) ----------
 const KEY = '7k-note:packs-bought'
@@ -69,15 +204,15 @@ export function setBought(p: Pack, n: number) {
  * แนะนำตามงบ: เลือกชุดแพ็ค (ไม่เกินจำนวนที่ยังซื้อได้) ให้ได้รูบี้เทียบเท่ารวมมากที่สุดในงบ
  * = bounded knapsack ราคาเป็นบาท (ปัดเป็นบาทเต็ม) · งบสูงสุด 100,000 บาท
  */
-export function recommend(packs: { pack: Pack; left: number }[], budget: number) {
+export function recommend(packs: { pack: Pack; left: number }[], budget: number, worth: Worth = DEFAULT_WORTH) {
   const B = Math.min(100_000, Math.max(0, Math.floor(budget)))
   const units: Pack[] = []
-  for (const { pack, left } of packs) for (let i = 0; i < left; i++) units.push(pack)
+  for (const { pack, left } of packs) if (pack.price > 0) for (let i = 0; i < left; i++) units.push(pack)
   if (!B || !units.length) return { picks: [] as { pack: Pack; n: number }[], spent: 0, value: 0 }
   const best = new Float64Array(B + 1)
   const take: Uint8Array[] = units.map(() => new Uint8Array(B + 1))
   units.forEach((p, i) => {
-    const w = Math.ceil(p.price), v = packValue(p)
+    const w = Math.ceil(p.price), v = packValue(p, worth)
     for (let b = B; b >= w; b--) {
       if (best[b - w] + v > best[b]) { best[b] = best[b - w] + v; take[i][b] = 1 }
     }
@@ -93,6 +228,6 @@ export function recommend(packs: { pack: Pack; left: number }[], budget: number)
       b -= Math.ceil(p.price)
     }
   }
-  const picks = [...counts.values()].sort((x, y) => perBaht(y.pack) - perBaht(x.pack))
+  const picks = [...counts.values()].sort((x, y) => perBaht(y.pack, worth) - perBaht(x.pack, worth))
   return { picks, spent: picks.reduce((s, x) => s + x.pack.price * x.n, 0), value: best[B] }
 }

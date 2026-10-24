@@ -41,6 +41,12 @@ const CHANGELOG_TH: ChangelogEntry[] = [
           'นับกุญแจฟรีที่ทุกคนได้ให้แล้ว (ฟื้นเอง ภารกิจ เช็กชื่อ 7K Pass Relay ร้านค้า ฯลฯ) · เลือกเองแค่เช็กอินกิลด์',
           'ติ๊กแพ็คที่ซื้อ (มีรูปแพ็ค): Daily Power Up Support, 7K Pass พรีเมียม, เช็กอินพรีเมียม (เพิ่มกุญแจ) และ Daily Ruby Support (อัศวินตันเร็วขึ้น 10 รอบแทน 11 · +200 รูบี้/วัน แสดงแยกจากที่ฟาร์ม)',
           'แก้ค่าที่ใช้คิดได้ทุกอย่าง (กุญแจ เวลาต่อรอบ ทอง เควสต์ทำซ้ำ ราคากล่อง)'),
+        ...(PACKS_ON ? [
+        g('เช็กความคุ้มค่าแพ็ค (เมนู → เช็กความคุ้มค่าแพ็ค)',
+          'หน้าตาเหมือนร้านในเกม: แท็บรายเดือน/พิเศษ/รายวัน → แถบแพ็คพร้อมรูป เวลาที่เหลือ และ % ขั้นที่คุ้มสุด → กดแล้วเห็นทุกขั้นราคา (ซื้อได้กี่ครั้ง ของในแพ็ค ป้าย BONUS ราคา ฿ และ 💎)',
+          'คิดจาก "ค่าจริง" ที่ผู้เล่นให้ ไม่ใช่ราคาร้านรูบี้ที่แพงเกินจริง: ตั๋วพิคอัพ/คอลแลป 100 · ตั๋วถาวร 40 · ตั๋วสัตว์ 20 · Pet Wish 200 · กล่องกุญแจ 100 · ขวดเหลือง 70 · ขวดแดง 300 · หินสกิล 2,500 ฯลฯ แก้เองได้ทุกชิ้นในแท็บ "ค่าของแต่ละชิ้น"',
+          'เลือกได้ว่าเป็นผู้เล่นเก่าหรือใหม่ (เช่น Awakening Stone ผู้เล่นเก่าไม่นับ) และเทียบต่อบาทหรือต่อปริซึม 💎 · เทียบเป็น % กับ Monthly Key Bundle (= 100%)',
+          'กดดูวิธีคิดของแต่ละขั้นได้ พร้อมมูลค่าถ้าคิดตามราคาร้าน (แบบเว็บอื่น) ไว้เทียบ · ใส่งบแล้วแนะนำชุดแพ็คที่คุ้มสุด · กด + แพ็คที่ซื้อแล้ว')] : []),
       ] },
     ],
   },
@@ -205,12 +211,6 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     summary: 'การสอนใช้แบบส่องปุ่มจริง เรียงลำดับทีมแก้ แอนิเมชันทั้งเว็บ และอ่านชื่อจากรูปแม่นขึ้น',
     sections: [
       { kind: 'new', groups: [
-        ...(PACKS_ON ? [
-        g('เช็กความคุ้มค่าแพ็ค (ใหม่)',
-          'หน้าใหม่ เข้าได้จากหน้าแรกหรือเมนู ☰: เรียงแพ็คในเกมจากคุ้มสุดไปน้อยสุด เทียบเป็น % กับ Monthly Key Bundle (= 100%)',
-          'คิดเป็นรูบี้ต่อบาท: กล่องกุญแจ 1 กล่อง (60 กุญแจ) = 100 รูบี้ · ตั๋วสุ่ม 1 ใบ = 100 รูบี้ · ตั๋วเรด โทปาซ และของอื่นแสดงไว้แต่ไม่นับ · กดดูวิธีคิดของแต่ละแพ็คได้',
-          'ใส่งบ (บาท) แล้วแนะนำชุดแพ็คที่ได้ของมากที่สุดในงบนั้น',
-          'กด + ที่แพ็คที่ซื้อไปแล้ว → ไม่แนะนำซ้ำเกินจำนวนที่ซื้อได้ · แพ็ครายวัน/สัปดาห์/เดือนนับใหม่เองตามรอบ 07:00')] : []),
         g('ปุ่มเปลี่ยนภาษา',
           'ปุ่ม 🌐 บนหัวเว็บ เปลี่ยน ไทย / English ได้ทุกหน้า (ถ้ากำลังแก้ทีมหรือแผนอยู่จะถามก่อน เพราะหน้าจะโหลดใหม่)',
           'เครื่องที่ไม่ได้ตั้งภาษาไทย เข้าครั้งแรกจะถามครั้งเดียวว่าจะใช้ภาษาอังกฤษไหม'),
@@ -389,6 +389,12 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'Free keys everyone gets are counted for you (regen, missions, login, 7K Pass, Relay, shops, etc.) · you only pick your guild check-in',
           'Tick the packs you have (with pack art): Daily Power Up Support, 7K Pass premium, premium check-in (more keys) and Daily Ruby Support (heroes max in 10 battles instead of 11 · +200 rubies/day, shown apart from farming)',
           'Every value is editable (keys, time per battle, gold, repeat quest, box prices)'),
+        ...(PACKS_ON ? [
+        g('Pack value checker (menu → Pack value checker)',
+          'Looks like the in-game shop: Monthly/Special/Daily tabs → pack banners with art, time left and the best tier’s % → tap to see every price tier (purchase limit, items, BONUS tags, ฿ and 💎 price)',
+          'Valued at what items are really worth to players, not the overpriced Ruby Shop: Rate Up/collab tickets 100 · hero tickets 40 · pet tickets 20 · Pet Wish 200 · key chest 100 · Chaos 70 · Oblivion 300 · Brilliant Skill Stone 2,500 and more, every item editable in the “Item values” tab',
+          'Pick veteran or new player (e.g. Awakening Stones count 0 for veterans) and compare per baht or per prism 💎 · shown as a % of the Monthly Key Bundle (= 100%)',
+          'Tap “Show math” on any tier, with the Ruby Shop-price value (like other sites) for comparison · enter a budget for the best combo · tap + on packs you’ve bought')] : []),
       ] },
     ],
   },
@@ -539,12 +545,6 @@ const CHANGELOG_EN: ChangelogEntry[] = [
     summary: 'Spotlight guides, counter ordering, animations everywhere and sharper screenshot name reading',
     sections: [
       { kind: 'new', groups: [
-        ...(PACKS_ON ? [
-        g('Pack value checker (new)',
-          'A new page, from the home page or the ☰ menu: in-game packs ranked from best to worst value, as a % of the Monthly Key Bundle (= 100%)',
-          'Measured in rubies per baht: 1 key chest (60 keys) = 100 rubies · 1 summon ticket = 100 rubies · raid tickets, topaz and extras are shown but not counted · tap a pack to see the math',
-          'Enter a budget (baht) to get the pack combo with the most value for it',
-          "Tap + on packs you've already bought so they aren't suggested past their limit · daily/weekly/monthly packs reset on their own at the 07:00 reset")] : []),
         g('Language button',
           'A 🌐 button at the top switches ไทย / English on every page (if you are editing a team or plan it asks first, since the page reloads)',
           "Devices not set to Thai get a one-time prompt offering English on the first visit"),
