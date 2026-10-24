@@ -94,8 +94,8 @@ export default function PacksPage() {
       <p className="eyebrow mb-1.5">PACK VALUE</p>
       <h1 className="gold-title text-3xl font-extrabold">{L('เช็กความคุ้มค่าแพ็ค', 'Pack value checker')}</h1>
       <p className="mt-2 text-sm leading-relaxed text-white/60">
-        {L('แปลงของในแพ็คเป็นรูบี้ตาม "ค่าจริง" ที่ผู้เล่นให้ (ไม่ใช่ราคาร้านรูบี้ที่แพงเกินจริง) แล้วเทียบกับ',
-          'Every pack is converted to rubies at what items are really worth to players (not the overpriced Ruby Shop), then compared with')}{' '}
+        {L('หลักง่าย ๆ: กล่องกุญแจเยอะ รูบี้เยอะ ราคาถูก = คุ้ม (1 กล่อง = 100 รูบี้) · ของอื่นคิดเป็นรูบี้ตามค่าที่เจ้าของเว็บให้ (ดูได้ในแท็บค่าของแต่ละชิ้น) · เทียบกับ',
+          'Rule of thumb: lots of key chests, lots of rubies, low price = good value (1 chest = 100 rubies) · other items count at the site owner’s ruby values (see Item values) · compared with')}{' '}
         <b className="text-gold">{base?.name ?? 'Monthly Key Bundle'}</b>{' '}{L('(= 100%)', '(= 100%)')}
       </p>
 
@@ -247,7 +247,7 @@ function WantList({ want, groups, metric, onOpen }: { want: Want; groups: Group[
                 <b className={`w-5 shrink-0 text-center text-base tabular-nums sm:w-7 sm:text-lg ${i < 3 ? 'text-gold' : 'text-white/45'}`}>{i + 1}</b>
                 <span className="relative h-12 w-12 shrink-0 sm:h-20 sm:w-20">
                   {art && <img src={art.src} alt="" loading="lazy" draggable={false}
-                    className={`h-full w-full ${art.square ? 'object-contain' : art.atlas ? 'pack-art-atlas object-cover object-right' : 'object-cover object-left'}`} />}
+                    className={`h-full w-full rounded-lg ${art.square ? 'object-contain' : 'object-cover object-right'}`} />}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <b className="text-[15px] leading-snug sm:text-base">{groupName(g.name)}</b>
@@ -301,10 +301,11 @@ function GroupRow({ g, now, onOpen }: { g: Group; now: number; onOpen: () => voi
   return (
     <button type="button" onClick={onOpen}
       className="panel group relative flex min-h-[84px] w-full sm:min-h-[96px] items-stretch overflow-hidden text-left transition hover:border-gold/60">
+      {/* แบบร้านในเกม: ตัวหนังสือซ้าย รูปขวา (จางเข้าหาตัวหนังสือ) */}
       {art
-        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pointer-events-none absolute inset-y-0 left-0 h-full w-[104px] sm:w-[136px] ${art.square ? 'pack-art-l object-contain p-2 pr-6' : art.atlas ? 'pack-art-atlas object-cover object-right' : 'pack-art-l object-cover object-left'}`} />
-        : <span className="pointer-events-none absolute inset-y-0 left-0 w-[104px] bg-gradient-to-r from-gold/15 to-transparent sm:w-[136px]" />}
-      <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-2.5 pl-[100px] pr-3 sm:pl-[132px] sm:pr-4">
+        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pack-art-r pointer-events-none absolute inset-y-0 right-0 h-full w-[132px] sm:w-[200px] ${art.square ? 'object-contain py-2 pl-10 pr-3' : 'object-cover object-right'}`} />
+        : <span className="pointer-events-none absolute inset-y-0 right-0 w-[132px] bg-gradient-to-l from-gold/15 to-transparent sm:w-[200px]" />}
+      <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-2.5 pl-4 pr-[96px] sm:pl-5 sm:pr-[150px]">
         <span className="flex items-start gap-2">
           <b className="min-w-0 flex-1 text-[15px] leading-snug sm:text-base">{groupName(g.name)}</b>
           {g.endsAt && <span className="flex shrink-0 items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[11px] text-white/70"><CalendarClock className="h-3 w-3" />{endsIn(g.endsAt, now)}</span>}
@@ -313,7 +314,6 @@ function GroupRow({ g, now, onOpen }: { g: Group; now: number; onOpen: () => voi
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-[13px]">
           {g.best > 0 && <span className={`rounded-full px-2 py-0.5 font-semibold ${t.cls}`}>{L('คุ้มสุด', 'Best')} {Math.round(g.best)}%</span>}
           <span className="text-white/50 tabular-nums">{g.rows.length} {L('ขั้น', g.rows.length === 1 ? 'tier' : 'tiers')} · {baht(Math.min(...prices))}{prices.length > 1 ? `–${baht(Math.max(...prices))}` : ''}</span>
-          <ChevronRight className="ml-auto h-4 w-4 text-white/40 transition group-hover:translate-x-0.5 group-hover:text-gold" />
         </span>
       </span>
     </button>
@@ -418,8 +418,8 @@ function ValuesTab({ prefs, worth, onChange, onReset }: { prefs: WorthPrefs; wor
       <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3">
         <Info className="h-4 w-4 shrink-0 text-white/40" />
         <p className="min-w-0 flex-1 text-xs leading-relaxed text-white/60">
-          {L('ของในร้านรูบี้แพงกว่าค่าจริง (ถ้าคุ้มจริงคงซื้อหมดแล้ว) จึงใช้ "ค่าที่ให้" แทน · ค่าตั้งต้นมาจากผู้เล่นจริง แก้เองได้ จำไว้ในเครื่องนี้',
-            'Ruby Shop prices are above real worth (if they were worth it, you’d buy them all), so packs use “your value” instead · defaults come from a real player, edit them freely, saved on this device')}
+          {L('ของในร้านรูบี้แพงกว่าค่าจริง (ถ้าคุ้มจริงคงซื้อหมดแล้ว) จึงใช้ "ค่าที่ให้" แทน · ค่าตั้งต้นเป็นความเห็นของเจ้าของเว็บ แก้เองได้ จำไว้ในเครื่องนี้',
+            'Ruby Shop prices are above real worth (if they were worth it, you’d buy them all), so packs use “your value” instead · defaults are the site owner’s opinion, edit them freely, saved on this device')}
         </p>
         <button type="button" disabled={!edited} onClick={onReset}
           className="flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs hover:border-gold disabled:opacity-30">

@@ -138,7 +138,8 @@ export type WorthPrefs = { profile: Profile; metric: Metric; worth: Partial<Reco
 export type Worth = Record<PackItemKey, number>
 const PREFS_KEY = '7k-note:pack-worth'
 
-export const defaultWorth = (k: PackItemKey, profile: Profile) => (profile === 'rookie' && ITEMS[k].rookie !== undefined ? ITEMS[k].rookie! : ITEMS[k].worth)
+/** ค่าตั้งต้น = ค่าที่ Krit ให้ (หลัก: กล่องเยอะ รูบี้เยอะ ราคาถูก = คุ้ม) · ไม่แยกผู้เล่นใหม่/เก่าแล้ว */
+export const defaultWorth = (k: PackItemKey, _profile?: Profile) => ITEMS[k].worth
 export function worthTable(prefs: Pick<WorthPrefs, 'profile' | 'worth'>): Worth {
   const w = {} as Worth
   for (const k of PACK_ITEM_KEYS) {
