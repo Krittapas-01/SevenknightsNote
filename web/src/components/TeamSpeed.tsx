@@ -27,7 +27,8 @@ export function speedOrder(team: Team, notes: HeroNote[] | undefined) {
 
 /**
  * ป้ายความเร็วทีม (รูปรอยเท้า) — กดแล้วเปิดกล่องแบบในเกม: อัศวินเรียงตามความเร็วโจมตี
- * แก้ทีมอยู่: พิมพ์ตัวเลขได้ และกดใช้ผลรวมความเร็วโจมตีของทุกตัวได้
+ * ทุกตัวมีความเร็วโจมตี = ความเร็วทีมคือผลรวม (ใส่ให้อัตโนมัติ ตอนบันทึกก็ใส่ให้ — fillSpeed ใน lib/teamSpeed)
+ * ไม่ครบ = ตอนแก้ทีมพิมพ์ตัวเลขเองได้ หรือเว้นไว้
  */
 export default function TeamSpeed({ team, heroNotes, small, onSpeed }: Props) {
   const [open, setOpen] = useState(false)
@@ -42,14 +43,15 @@ export default function TeamSpeed({ team, heroNotes, small, onSpeed }: Props) {
     return () => { window.removeEventListener('pointerdown', down, true); window.removeEventListener('keydown', key) }
   }, [open])
 
-  const speed = team.speed || 0
+  const order = speedOrder(team, heroNotes)
+  const speed = order.full ? order.total : team.speed || 0
   const icon = <Footprints className={small ? 'h-3.5 w-3.5 text-gold' : 'h-5 w-5 text-gold'} />
   const pillCls = `pill flex items-center gap-1.5 border-gold-deep/60 ${small ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-base'}`
   const title = tx('ความเร็วทีม')
 
   return (
     <div ref={boxRef} className="relative">
-      {onSpeed ? (
+      {onSpeed && !order.full ? (
         <label htmlFor={inputId} data-tour="team-speed" className={pillCls}>
           <button type="button" onClick={() => setOpen((v) => !v)} title={title} aria-expanded={open} className="-m-1 grid place-items-center rounded-full p-1 hover:bg-white/10">
             {icon}
@@ -66,20 +68,19 @@ export default function TeamSpeed({ team, heroNotes, small, onSpeed }: Props) {
           />
         </label>
       ) : (
-        <button type="button" data-tour="team-speed" onClick={() => setOpen((v) => !v)} title={title} aria-expanded={open}
+        <button type="button" data-tour="team-speed" onClick={() => setOpen((v) => !v)} title={order.full ? `${title} · ${tx('ผลรวมความเร็วโจมตีของทุกตัว')}` : title} aria-expanded={open}
           className={`${pillCls} hover:border-gold/70`}>
           {icon}
           <span className="min-w-6 text-right font-bold tabular-nums text-gold">{speed}</span>
         </button>
       )}
-      {open && <SpeedBox team={team} heroNotes={heroNotes} onSpeed={onSpeed} onClose={() => setOpen(false)} />}
+      {open && <SpeedBox order={order} speed={speed} editable={!!onSpeed} onClose={() => setOpen(false)} />}
     </div>
   )
 }
 
-function SpeedBox({ team, heroNotes, onSpeed, onClose }: Omit<Props, 'small'> & { onClose: () => void }) {
-  const { known, missing, total, full } = speedOrder(team, heroNotes)
-  const speed = team.speed || 0
+function SpeedBox({ order: o, speed, editable, onClose }: { order: ReturnType<typeof speedOrder>; speed: number; editable: boolean; onClose: () => void }) {
+  const { known, missing, total } = o
   const order = [...known, ...missing]
 
   return (
@@ -121,13 +122,12 @@ function SpeedBox({ team, heroNotes, onSpeed, onClose }: Omit<Props, 'small'> & 
             ? tx('ยังไม่มีความเร็วโจมตีของอัศวินในทีมนี้ ใส่ได้ที่ค่าความสามารถของอัศวิน')
             : L(`ยังไม่มีความเร็วโจมตีของ ${missing.map((x) => unitLabel(x.h)).join(', ')} (ใส่ได้ที่ค่าความสามารถของอัศวิน)`,
               `No attack speed yet for ${missing.map((x) => unitLabel(x.h)).join(', ')} (add it in the hero's stats)`)}
+          {editable && <span className="mt-1 block text-white/60">{tx('ทีมที่ยังไม่ครบ พิมพ์ความเร็วทีมเองได้ หรือเว้นไว้ก็ได้')}</span>}
         </p>
       ) : (
-        <div className="mt-2 flex items-center justify-between gap-2 rounded-xl bg-black/20 px-2.5 py-1.5">
-          <span className="text-xs text-white/60">{tx('ความเร็วโจมตีรวม')} <b className="tabular-nums text-gold">{total}</b></span>
-          {onSpeed && full && total !== speed && (
-            <button type="button" onClick={() => onSpeed(total)} className="btn-gold px-3 py-1 text-xs">{L(`ใช้ ${total}`, `Use ${total}`)}</button>
-          )}
+        <div className="mt-2 rounded-xl bg-black/20 px-2.5 py-1.5 text-xs text-white/60">
+          {tx('ความเร็วโจมตีรวม')} <b className="tabular-nums text-gold">{total}</b>
+          <span className="mt-0.5 block text-white/45">{tx('ทุกตัวมีความเร็วครบ ใส่เป็นความเร็วทีมให้อัตโนมัติ')}</span>
         </div>
       )}
 
