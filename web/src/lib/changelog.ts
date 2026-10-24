@@ -62,6 +62,8 @@ const CHANGELOG_TH: ChangelogEntry[] = [
       { kind: 'change', groups: [
         g('หน้าแรก',
           'มีการ์ดเครื่องมือใต้ช่องสร้างกิลด์: เช็กบัฟบิสกิต · เทียบพลังโจมตี · คำนวณแต้มเบ็ดเสร็จ ใช้ได้เลยไม่ต้องสร้างกิลด์ (เดิมอยู่แค่ในเมนู ☰)'),
+        g('เมนู ☰',
+          'แต่งลายแบบเมนูในเกม: หน้าที่เปิดอยู่มีกรอบทอง · เส้นคั่นมีดาวตรงกลาง · อัปเดตล่าสุดมีป้าย ! สีแดงเมื่อมีอัปเดตใหม่ · โลโก้ดาวคมชัดบนไอแพด/ไอโฟน'),
       ] },
     ],
   },
@@ -423,6 +425,8 @@ const CHANGELOG_EN: ChangelogEntry[] = [
       { kind: 'change', groups: [
         g('Home page',
           'Tool cards under the create-guild form: Biscuit buff check · Attack Compare · Total War points, usable without a guild (before, they were only in the ☰ menu)'),
+        g('☰ menu',
+          'In-game style touches: the open page has a gold frame · dividers have a star in the middle · Updates shows a red ! badge when there is a new update · the star logo looks sharp on iPad/iPhone'),
       ] },
     ],
   },

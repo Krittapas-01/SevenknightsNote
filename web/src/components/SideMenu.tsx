@@ -8,6 +8,7 @@ import Modal from './Modal'
 import { tx, L } from '../lib/i18n'
 import { openSupport } from './Support'
 import { slideItems } from '../lib/overlayMotion'
+import { BrandMark } from './BrandMark'
 
 // หน้าต่างตั้งค่าในเมนู โหลดตอนเปิดครั้งแรก (ไม่ต้องอยู่ในไฟล์หลักที่ทุกหน้าโหลด)
 import { PACKS_ON } from '../lib/packs'
@@ -54,8 +55,9 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
   // เปิดเมนู → รายการไล่เลื่อนเข้าทีละอัน (ก่อนวาดเฟรมแรก ไม่มีแวบเห็นของนิ่ง ๆ ก่อน)
   const nav = useRef<HTMLElement>(null)
   useLayoutEffect(() => { if (open && nav.current) slideItems(nav.current) }, [open])
+  // หน้าที่เปิดอยู่ = กรอบทองแบบปุ่มที่เลือกในเกม (.menu-item[aria-current] ใน index.css)
   const item = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 rounded-lg px-3 py-2 ${isActive ? 'bg-white/10 text-gold' : 'text-white/85 hover:bg-white/5'}`
+    `menu-item flex items-center gap-3 rounded-lg px-3 py-[7px] ${isActive ? 'text-gold' : 'text-white/85 hover:bg-white/5'}`
 
   return (
     <div className={`fixed inset-0 z-50 ${open ? '' : 'pointer-events-none'}`} aria-hidden={!open}>
@@ -66,8 +68,8 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
         className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-white/10 bg-[var(--surface-3)] p-4 shadow-2xl transition-transform ${open ? 'translate-x-0 duration-300 ease-[cubic-bezier(.16,1,.3,1)]' : '-translate-x-full duration-200 ease-in'}`}
       >
         <div className="mb-4 flex items-center justify-between">
-          <span className="flex items-center gap-2 text-lg font-bold">
-            <span className="text-gold">✦</span> 7K Note
+          <span className="flex items-center gap-2.5 text-lg font-bold">
+            <BrandMark /> 7K Note
           </span>
           <button onClick={onClose} aria-label={tx('ปิดเมนู')} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white">
             <X className="h-5 w-5" />
@@ -98,7 +100,8 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
           </span>
         </button>
 
-        <hr className="my-3 border-white/10" />
+        {/* เส้นคั่นมีดาวตรงกลาง แบบเมนูในเกม */}
+        <div className="menu-divider my-3" aria-hidden="true"><Star /></div>
         <p className="mb-1 px-3 text-xs text-white/45">{tx('กิลด์ที่เคยเปิด')}</p>
         {recent.length === 0 && <p className="px-3 py-2 text-sm text-white/40">{tx('ยังไม่มี เปิดลิงก์กิลด์แล้วจะขึ้นที่นี่')}</p>}
         {recent.map((r) => (
@@ -108,10 +111,12 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
         ))}
 
         {/* ล่างสุดของเมนู (mt-auto): อัปเดตล่าสุด + ตั้งค่า — แบบแอปทั่วไป */}
-        <div className="mt-auto border-t border-white/10 pt-3">
+        <div className="mt-auto pt-3">
+          <div className="menu-divider mb-3" aria-hidden="true"><Star /></div>
           <NavLink to="/updates" end onClick={onClose} className={item}>
             <Megaphone className="h-5 w-5 shrink-0" />{' '}{tx('อัปเดตล่าสุด')}
-            {hasUpdate && <span className="ml-auto rounded-full bg-red-500 px-1.5 text-[10px] font-bold leading-4 text-white">{tx('ใหม่')}</span>}
+            {/* มีอัปเดตใหม่ = ป้าย ! สีแดงแบบในเกม */}
+            {hasUpdate && <span className="menu-badge ml-auto" aria-label={tx('มีอัปเดตใหม่')} title={tx('มีอัปเดตใหม่')}>!</span>}
           </NavLink>
           {/* ตั้งค่าเปิดเป็นป๊อปอัป ไม่ต้องเปลี่ยนหน้า (ปิดแล้วอยู่หน้าเดิม) */}
           <button type="button" onClick={() => { onClose(); setSettings(true) }} className={`w-full ${item({ isActive: false })}`}>
@@ -123,5 +128,14 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
         <Suspense fallback={<p className="py-8 text-center text-white/50">{tx('กำลังโหลด...')}</p>}><SettingsBody onNavigate={() => setSettings(false)} /></Suspense>
       </Modal>
     </div>
+  )
+}
+
+/** ดาวกลางเส้นคั่น (ทรงเดียวกับโลโก้ BrandMark) */
+function Star() {
+  return (
+    <svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">
+      <path d="M8 .2C10.2 5.8 10.2 5.8 15.8 8 10.2 10.2 10.2 10.2 8 15.8 5.8 10.2 5.8 10.2 .2 8 5.8 5.8 5.8 5.8 8 .2Z" />
+    </svg>
   )
 }
