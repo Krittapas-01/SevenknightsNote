@@ -3,7 +3,7 @@
  * ค่าเริ่มต้นจากที่ Krit เล่นจริง (24 ต.ค. 2026):
  * - 1 รอบใช้ 6 กุญแจ ~21 วิ ได้ ~6,800 ทอง
  * - ทุก 10 รอบ ฮีโร่ Lv.1 5 ตัวเต็มเลเวล ได้ตัวละ 20 รูบี้ = 100 รูบี้ (นับเฉพาะชุดครบ 10 รอบ)
- * - กุญแจฟื้น 1 ดอก/2 นาที = 720/วัน (แพ็ค Daily Power Up Support: +80 ดอก/วัน) · ไม่มีเพดาน → ที่เหลือเก็บไว้วันถัดไปได้
+ * - กุญแจฟื้น 1 ดอก/3 นาที = 480/วัน (แพ็ค Daily Power Up Support: เร็วขึ้น 60 วิ → 2 นาที = 720/วัน + 80 ดอก/วัน) · ไม่มีเพดาน → ที่เหลือเก็บไว้วันถัดไปได้
  * - กุญแจฟรีอื่น ๆ: กล่องฟรีร้านรายวัน 30 · ภารกิจรายวัน 60 (40 แต้ม 20 + 80 แต้ม 40) · เช็กอินกิลด์ 14/40/52/64/80
  * - แพ็ค Daily Ruby Support: รูบี้จากฟาร์มเพิ่ม x% (+ 200 รูบี้/วัน ไม่นับในหน้านี้)
  * - เควสต์ทำซ้ำ: ทุก 160 รอบ ได้ 20 กุญแจ + 60,000 ทอง
@@ -34,7 +34,7 @@ export type FarmInput = {
 }
 
 export const FARM_DEFAULTS: FarmInput = {
-  freeKeys: 720 + 30 + 60 + 80, // ฟื้นเอง + กล่องฟรีร้าน + ภารกิจรายวัน + เช็กอินกิลด์
+  freeKeys: 480 + 30 + 60 + 80, // ฟื้นเอง + กล่องฟรีร้าน + ภารกิจรายวัน + เช็กอินกิลด์
   keysPerBattle: 6,
   secPerBattle: 21,
   battlesPerSet: 10,
@@ -192,8 +192,8 @@ export function planFarm(input: FarmInput, soulPrice: number): FarmPlan {
 /* ===== ค่าที่ผู้ใช้กรอกในหน้า /ruby (เก็บในเครื่อง) — หน้าอื่น (เช่น เช็กความคุ้มค่าแพ็ค) อ่านผ่าน loadFarmInput() ได้ ===== */
 
 export const FARM_STORE_KEY = '7k-note:ruby'
-/** แพ็ครายเดือน Daily Power Up Support: นับแค่กุญแจรายวัน (Krit: ไม่นับที่ฟื้นเร็วขึ้น) */
-export const POWER_UP = { dailyKeys: 80 }
+/** แพ็ครายเดือน Daily Power Up Support: กุญแจฟื้นเร็วขึ้น 60 วิ (3 → 2 นาที) + 80 ดอก/วัน */
+export const POWER_UP = { regenCut: 60, dailyKeys: 80 }
 /** เช็กอินกิลด์ (ตามจำนวนคนที่เช็กอินเมื่อวาน 1/10/15/20/25 คน) */
 export const GUILD_CHECKIN = [0, 14, 40, 52, 64, 80]
 type NumKey = Exclude<keyof FarmInput, 'tiers' | 'heroesPerSet' | 'freeKeys' | 'rubyBoost'>
@@ -214,7 +214,7 @@ export const DEFAULT_FARM_FORM: FarmForm = {
   team: FARM_DEFAULTS.heroesPerSet,
   tiers: FARM_DEFAULTS.tiers.map((t) => ({ boxes: s(t.boxes), price: s(t.price) })),
   soul: '100', owned: '',
-  regenSec: '120', powerUp: false, shopKeys: '30', missionKeys: '60', guildKeys: 80, extraKeys: '',
+  regenSec: '180', powerUp: false, shopKeys: '30', missionKeys: '60', guildKeys: 80, extraKeys: '',
   rubySupport: false, rubyBoost: '',
 }
 
@@ -250,16 +250,19 @@ const val = (v: string, d: number) => { const n = parseNum(v); return Number.isF
 
 /** กุญแจฟรีต่อวันแยกตามที่มา */
 export function dailyKeys(f: FarmForm) {
-  const regenSec = Math.max(1, val(f.regenSec, 120))
+  const base = Math.max(1, val(f.regenSec, 180))
+  const regen = Math.floor(86400 / base)
+  // แพ็คทำให้ฟื้นเร็วขึ้น → กุญแจฟื้นที่ได้เพิ่ม นับรวมในแพ็ค
+  const powerUpRegen = Math.floor(86400 / Math.max(1, base - POWER_UP.regenCut)) - regen
   const parts = {
-    regen: Math.floor(86400 / regenSec),
-    powerUp: f.powerUp ? POWER_UP.dailyKeys : 0,
+    regen,
+    powerUp: f.powerUp ? powerUpRegen + POWER_UP.dailyKeys : 0,
     shop: Math.max(0, val(f.shopKeys, 0)),
     missions: Math.max(0, val(f.missionKeys, 0)),
     guild: f.guildKeys,
     extra: Math.max(0, val(f.extraKeys, 0)),
   }
-  return { ...parts, regenSec, total: Object.values(parts).reduce((a, b) => a + b, 0) }
+  return { ...parts, powerUpRegen, total: Object.values(parts).reduce((a, b) => a + b, 0) }
 }
 
 export function farmInputOf(f: FarmForm): FarmInput {

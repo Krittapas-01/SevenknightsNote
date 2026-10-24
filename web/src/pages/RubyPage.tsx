@@ -157,7 +157,7 @@ export default function RubyPage() {
           </li>
           <KeyToggle on={form.powerUp} onClick={() => toggle('powerUp')} keys={keys.powerUp}
             label={L('แพ็ค Daily Power Up Support (฿149 / 28 วัน)', 'Daily Power Up Support (฿149 / 28 days)')}
-            sub={L(`+${POWER_UP.dailyKeys} กุญแจทุกวัน`, `+${POWER_UP.dailyKeys} keys daily`)} />
+            sub={L(`กุญแจฟื้นเร็วขึ้น ${POWER_UP.regenCut} วิ (+${fmt(keys.powerUpRegen)} ดอก) + ${POWER_UP.dailyKeys} ดอกทุกวัน`, `Keys regen ${POWER_UP.regenCut} s faster (+${fmt(keys.powerUpRegen)}) + ${POWER_UP.dailyKeys} keys daily`)} />
           <li className="flex items-center gap-2">
             <span className="text-white/70">{L('กล่องฟรีร้านรายวัน', 'Daily Shop free box')}</span>
             <input value={form.shopKeys} onChange={(e) => set('shopKeys', e.target.value)} inputMode="numeric" aria-label={L('กล่องฟรีร้านรายวัน', 'Daily Shop free box')}
