@@ -1,4 +1,4 @@
-import { ChevronRight, Footprints, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Footprints, X } from 'lucide-react'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { noteFor } from './HeroDetailModal'
 import UnitCard, { UNIT_SLOT_RADIUS } from './UnitCard'
@@ -71,8 +71,10 @@ export default function TeamSpeed({ team, heroNotes, small, onSpeed }: Props) {
   return (
     <div ref={boxRef} className="relative">
       <button type="button" data-tour="team-speed" onClick={() => setOpen((v) => !v)} title={`${tx('ความเร็วทีม')} · ${tx('ผลรวมความเร็วโจมตีของทุกตัว')}`} aria-expanded={show}
-        className={`${pillCls} hover:border-gold/70`}>
+        className={`${pillCls} border-gold/70 hover:bg-white/10 ${show ? 'bg-white/10' : ''}`}>
         {icon}{value}
+        {/* ลูกศร = กดดูลำดับอัศวินได้ (ทีมที่ความเร็วไม่ครบไม่มี) */}
+        <ChevronDown className={`${small ? '-ml-0.5 h-3 w-3' : '-ml-0.5 h-4 w-4'} text-gold/80 transition-transform ${show ? 'rotate-180' : ''}`} strokeWidth={3} />
       </button>
       {show && (
         <div data-noexport role="dialog" aria-label={tx('ความเร็วทีม')}
