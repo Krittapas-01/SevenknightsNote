@@ -1,7 +1,8 @@
 /**
  * คำนวณรูบี้ขายวิญญาณ — ฟาร์มรูบี้ด้วยการต่อสู้ซ้ำ (Ruby Farming) แล้วดูว่าซื้อกล่องกุญแจถึงขั้นไหนถึงคุ้ม
  * ค่าเริ่มต้นจากที่ Krit เล่นจริง (24 ต.ค. 2026):
- * - 1 รอบใช้ 6 กุญแจ ~21 วิ ได้ ~6,800 ทอง
+ * - 1 รอบใช้ 6 กุญแจ ~22 วิ ได้ ~6,800 ทอง (500 รอบ = 3,000 กุญแจ 3.4M ทอง)
+ * - อัศวินดรอป: 500 รอบได้ 2–3★ 140 ตัว (ใช้ฟาร์มต่อได้ = 28 ตัว/100 รอบ) + 1★ 26 ตัว (ไม่นับ)
  * - อัศวิน Lv.1 5 ตัวเต็มเลเวลทุก 11 รอบ (มีแพ็ค Daily Ruby Support = EXP เพิ่ม → 10 รอบ) ได้ตัวละ 20 รูบี้ = 100 รูบี้ (นับเฉพาะชุดครบ)
  * - กุญแจฟื้น 1 ดอก/3 นาที = 480/วัน (แพ็ค Daily Power Up Support: เร็วขึ้น 60 วิ → 2 นาที = 720/วัน + 80 ดอก/วัน) · ไม่มีเพดาน → ที่เหลือเก็บไว้วันถัดไปได้
  * - กุญแจฟรีอื่น ๆ: กล่องฟรีร้านรายวัน 30 · ภารกิจรายวัน 60 (40 แต้ม 20 + 80 แต้ม 40) · เช็กอินกิลด์ 14/40/52/64/80
@@ -28,7 +29,7 @@ export type FarmInput = {
   questGold: number
   keysPerBox: number
   tiers: BoxTier[]
-  /** อัศวินดรอปต่อรอบ (เฉลี่ย) */
+  /** อัศวิน 2–3★ ที่ดรอปต่อรอบ (เฉลี่ย ใช้ฟาร์มต่อได้) */
   heroDrop: number
   /** เล่นได้วันละกี่ชั่วโมง (สูงสุด 24) */
   maxHours: number
@@ -37,7 +38,7 @@ export type FarmInput = {
 export const FARM_DEFAULTS: FarmInput = {
   freeKeys: 950, // ≈ กุญแจพื้นฐาน + เช็กอินกิลด์ 80 (หน้า /ruby คิดจริงจาก dailyKeys)
   keysPerBattle: 6,
-  secPerBattle: 21,
+  secPerBattle: 22,
   battlesPerSet: 10,
   heroesPerSet: 5,
   rubyPerHero: 20,
@@ -52,7 +53,7 @@ export const FARM_DEFAULTS: FarmInput = {
     { boxes: 50, price: 80 },
     { boxes: 50, price: 100 },
   ],
-  heroDrop: 0,
+  heroDrop: 0.28,
   maxHours: 24,
 }
 
@@ -128,6 +129,8 @@ export type BattlesResult = {
   sets: number
   seconds: number
   heroes: number
+  /** อัศวิน 2–3★ ที่ดรอปคืนระหว่างฟาร์ม (ใช้ฟาร์มต่อได้) */
+  dropped: number
   rubies: number
   /** กุญแจที่ต้องใช้ (หักกุญแจคืนจากเควสต์ทำซ้ำแล้ว) */
   keysNeeded: number
@@ -161,7 +164,7 @@ export function farmBattles(input: FarmInput, battles: number, prices = boxPrice
   const heroes = sets * Math.floor(pos(input.heroesPerSet))
   const rubies = heroes * pos(input.rubyPerHero)
   return {
-    battles: b, sets, seconds: b * pos(input.secPerBattle, 1), heroes, rubies, keysNeeded, freeKeys, boxes, cost, net: rubies - cost,
+    battles: b, sets, seconds: b * pos(input.secPerBattle, 1), heroes, dropped: Math.round(b * pos(input.heroDrop)), rubies, keysNeeded, freeKeys, boxes, cost, net: rubies - cost,
     gold: b * pos(input.goldPerBattle) + quests * pos(input.questGold), quests,
     leftKeys: freeKeys + boxes * perBox - keysNeeded, overShop: want > prices.length, lastPrice: boxes ? prices[boxes - 1] : 0,
   }
@@ -280,6 +283,7 @@ type NumKey = Exclude<keyof FarmInput, 'tiers' | 'heroesPerSet' | 'freeKeys' | '
 /** ค่าในฟอร์มเป็นข้อความ (ช่องว่าง = ใช้ค่าเริ่มต้น) · team = อัศวิน Lv.1 ในทีม 1–5 */
 export type FarmForm = Record<NumKey, string> & {
   team: number; tiers: { boxes: string; price: string }[]
+  // heroDrop ในฟอร์ม = ตัวต่อ 100 รอบ (FarmInput เก็บเป็นต่อรอบ)
   /** รอบต่อชุดเมื่อไม่มีแพ็ค Daily Ruby Support (battlesPerSet = มีแพ็ค) */
   battlesPerSetBase: string
   /** เล่นได้วันละกี่ชั่วโมง (ว่าง = เท่าที่กุญแจฟรีพอ) */
@@ -294,7 +298,7 @@ export const DEFAULT_FARM_FORM: FarmForm = {
   keysPerBattle: s(FARM_DEFAULTS.keysPerBattle), secPerBattle: s(FARM_DEFAULTS.secPerBattle),
   battlesPerSet: s(FARM_DEFAULTS.battlesPerSet), rubyPerHero: s(FARM_DEFAULTS.rubyPerHero), goldPerBattle: s(FARM_DEFAULTS.goldPerBattle),
   questEvery: s(FARM_DEFAULTS.questEvery), questKeys: s(FARM_DEFAULTS.questKeys), questGold: s(FARM_DEFAULTS.questGold),
-  keysPerBox: s(FARM_DEFAULTS.keysPerBox), heroDrop: '',
+  keysPerBox: s(FARM_DEFAULTS.keysPerBox), heroDrop: s(Math.round(FARM_DEFAULTS.heroDrop * 100)),
   team: FARM_DEFAULTS.heroesPerSet,
   tiers: FARM_DEFAULTS.tiers.map((t) => ({ boxes: s(t.boxes), price: s(t.price) })),
   hours: '', battlesPerSetBase: s(RUBY_SUPPORT.battlesPerSetWithout),
@@ -311,6 +315,9 @@ export function loadFarmForm(): FarmForm {
         if (typeof v[k] === 'string' && typeof DEFAULT_FARM_FORM[k] === 'string') (out as Record<string, unknown>)[k] = v[k]
         if (typeof v[k] === 'boolean' && typeof DEFAULT_FARM_FORM[k] === 'boolean') (out as Record<string, unknown>)[k] = v[k]
       }
+      // ค่าเก่าที่เคยบันทึก → ค่าที่ Krit วัดใหม่ (500 รอบ)
+      if (out.secPerBattle === '21') out.secPerBattle = DEFAULT_FARM_FORM.secPerBattle
+      if (out.heroDrop.trim() === '') out.heroDrop = DEFAULT_FARM_FORM.heroDrop
       if (typeof v.team === 'number' && v.team >= 1 && v.team <= 5) out.team = Math.round(v.team)
       if (GUILD_CHECKIN.includes(v.guildKeys)) out.guildKeys = v.guildKeys
       if (Array.isArray(v.tiers) && v.tiers.length) {
@@ -352,7 +359,7 @@ export function farmInputOf(f: FarmForm): FarmInput {
     freeKeys: dailyKeys(f).total, keysPerBattle: val(f.keysPerBattle, D.keysPerBattle), secPerBattle: val(f.secPerBattle, D.secPerBattle),
     battlesPerSet: f.rubySupport ? val(f.battlesPerSet, RUBY_SUPPORT.battlesPerSet) : val(f.battlesPerSetBase, RUBY_SUPPORT.battlesPerSetWithout), heroesPerSet: f.team, rubyPerHero: val(f.rubyPerHero, 0),
     goldPerBattle: val(f.goldPerBattle, 0), questEvery: val(f.questEvery, 0), questKeys: val(f.questKeys, 0), questGold: val(f.questGold, 0),
-    keysPerBox: val(f.keysPerBox, 0), heroDrop: val(f.heroDrop, 0), maxHours: D.maxHours,
+    keysPerBox: val(f.keysPerBox, 0), heroDrop: val(f.heroDrop, D.heroDrop * 100) / 100, maxHours: D.maxHours,
     tiers: f.tiers.map((t) => ({ boxes: val(t.boxes, 0), price: val(t.price, 0) })),
   }
 }
