@@ -1,4 +1,4 @@
-import { Camera, CircleHelp, ClipboardPaste, History, Loader2, Plus, X } from 'lucide-react'
+import { Camera, ChevronRight, CircleHelp, ClipboardPaste, History, Loader2, PencilLine, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { baseName, getUnit, unitBase } from '../data/heroes'
 import { pickHero } from '../lib/heroPick'
@@ -13,6 +13,7 @@ import StatsHelp, { helpSeen, markHelpSeen } from './StatsHelp'
 import { tourSeen, useTour } from '../lib/tour'
 import { agoText, recallNote } from '../lib/myStats'
 import { tx, L } from '../lib/i18n'
+import { motionOK } from '../lib/teamMotion'
 
 /** ไอคอนค่าความสามารถแบบในเกม (จาก 7K Atlas) */
 const ICON_FILES = import.meta.glob('../assets/stats/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
@@ -74,8 +75,10 @@ export function upsertStats(notes: HeroNote[], hero: string, stats: HeroStats, e
 /**
  * ปุ่ม "อ่านค่าความสามารถจากรูป": เลือกรูป / วางรูป (Ctrl+V) → อ่านตัวเลข → ตรวจทาน → ใส่ให้อัศวินในทีม
  */
-export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }: {
+export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats, editRequest }: {
   team: (string | null)[]
+  /** ปุ่ม "แก้ค่าความสามารถ" ในแถวของอัศวิน → เปิดหน้าต่างที่ช่องกรอกของตัวนั้นเลย (seq เปลี่ยน = เปิดใหม่) */
+  editRequest?: { hero: string; seq: number } | null
   /** โน้ตเดิมของทีม — ส่งมา = ใส่เซต/เครื่องประดับ/คำอธิบายได้ด้วย (ดึงของเดิมของตัวที่เลือกมาให้แก้) */
   notes?: HeroNote[]
   onApply: (hero: string, stats: HeroStats, extra?: NoteExtra) => void
@@ -122,6 +125,17 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
     if (!helpSeen() && tourSeen('stats-import')) { setHelp(true); markHelpSeen() }
   }
   useTour('stats-import', open, 600)
+  useEffect(() => {
+    if (!editRequest) return
+    openImport()
+    setHero(heroes.find((h) => sameHero(h, editRequest.hero)) ?? heroes[0] ?? '')
+    setStep('details')
+    // มือถือ (คอลัมน์เดียว): กรอบใส่รูปอยู่บน → เลื่อนลงมาที่ช่องกรอกให้เลย
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      setTimeout(() => document.querySelector('[data-stats-details]')?.scrollIntoView({ block: 'start', behavior: motionOK() ? 'smooth' : 'auto' }), 80)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editRequest?.seq])
   const nameOf = (id: string) => unitBase(id)
   const mismatch = mismatchId ? nameOf(mismatchId) : null
   const canAdd = !!onAddHero && heroes.length < MAX_HEROES
@@ -250,7 +264,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
                 const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/'))
                 if (f) run(f)
               }}
-              className={`flex ${details ? 'min-h-48' : 'min-h-72'} w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed bg-black/20 hover:border-gold hover:text-gold ${dragging ? 'border-gold text-gold' : 'border-white/20 text-white/60'}`}>
+              className={`flex ${details ? 'min-h-48' : 'min-h-56 sm:min-h-72'} w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed bg-black/20 hover:border-gold hover:text-gold ${dragging ? 'border-gold text-gold' : 'border-white/20 text-white/60'}`}>
               {img ? <img src={img} alt={tx('ภาพค่าความสามารถ')} className="max-h-80 w-full object-contain" /> : (
                 <>
                   <Camera className="h-8 w-8" />
@@ -259,6 +273,23 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
                 </>
               )}
             </button>
+            {/* ทางเลือกไม่ใช้รูป — เดิมเป็นลิงก์ตัวเล็กด้านล่าง ผู้ใช้มองไม่เห็น → ปุ่มเต็มกว้างใต้กรอบรูป มีเส้น "หรือ" คั่น */}
+            {!details && progress === null && (
+              <>
+                <div className="my-3 flex items-center gap-3 text-xs text-white/40" aria-hidden>
+                  <span className="h-px flex-1 bg-white/15" />{L('หรือ', 'or')}<span className="h-px flex-1 bg-white/15" />
+                </div>
+                <button type="button" data-tour="stats-manual" onClick={() => setStep('details')}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-gold/50 bg-gold/10 px-4 py-3 text-left text-gold hover:border-gold hover:bg-gold/15">
+                  <PencilLine className="h-6 w-6 shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold">{L('กรอกค่าความสามารถเอง', 'Type stats yourself')}</span>
+                    <span className="block text-xs text-white/55">{gear ? L('ไม่ต้องใช้รูป · แก้ตัวเลขที่จดไว้ · ใส่เซต เครื่องประดับ คำอธิบาย', 'No screenshot needed · fix saved numbers · add sets, accessories, a note') : L('ไม่ต้องใช้รูป · แก้ตัวเลขที่จดไว้ได้', 'No screenshot needed · fix saved numbers too')}</span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0" />
+                </button>
+              </>
+            )}
             {progress !== null && (
               <div className="mt-3">
                 <div className="flex items-center gap-2 text-sm text-white/70"><Loader2 className="h-4 w-4 animate-spin" />{' '}{tx('กำลังอ่านตัวเลข…')}{' '}{Math.round(progress * 100)}%</div>
@@ -288,12 +319,6 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
                 </div>
               </div>
             )}
-            {!details && progress === null && (
-              <button type="button" onClick={() => setStep('details')}
-                className="mx-auto mt-4 block text-sm text-white/55 underline-offset-4 hover:text-gold hover:underline">
-                {tx('ไม่มีรูป? ข้ามไปกรอกเอง / แก้ของเดิม →')}
-              </button>
-            )}
             {noHero && !err && (
               <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
                 {tx('ไม่เจอชื่ออัศวินในทีมนี้ในภาพ — เช็กว่าเลือกตัวถูกด้านขวาก่อนกดใส่')}
@@ -301,7 +326,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
             )}
           </div>
 
-          {details && <div>
+          {details && <div data-stats-details className="scroll-mt-24">
             <label className="text-sm text-white/60">{tx('ของอัศวินตัวไหน')}</label>
             <div data-tour="stats-hero" className="mt-1 flex flex-wrap gap-2">
               {heroes.map((h) => (

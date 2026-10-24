@@ -62,6 +62,9 @@ const CHANGELOG_TH: ChangelogEntry[] = [
       { kind: 'change', groups: [
         g('หน้าแรก',
           'มีการ์ดเครื่องมือใต้ช่องสร้างกิลด์: เช็กบัฟบิสกิต · เทียบพลังโจมตี · คำนวณแต้มเบ็ดเสร็จ ใช้ได้เลยไม่ต้องสร้างกิลด์ (เดิมอยู่แค่ในเมนู ☰)'),
+        g('แก้ค่าความสามารถ',
+          'ตอนแก้ทีมแก้/แผน แต่ละอัศวินในตาราง "อุปกรณ์/ค่าความสามารถรายตัว" มีปุ่ม "แก้ค่าความสามารถ" (ยังไม่มีค่า = "ใส่ค่าความสามารถ") กดแล้วเปิดช่องกรอกของตัวนั้นเลย ค่าเดิมขึ้นให้แก้ต่อ ไม่ต้องหาปุ่มข้ามเอง',
+          'ปุ่ม "กรอกค่าความสามารถเอง" เห็นชัดขึ้น: เป็นปุ่มใหญ่ใต้กรอบใส่รูป มีเส้น "หรือ" คั่น (เดิมเป็นลิงก์ตัวเล็ก "ไม่มีรูป? ข้ามไปกรอกเอง") ไม่มีรูปก็พิมพ์ตัวเลขเอง หรือแก้ค่าที่จดไว้ได้เลย'),
       ] },
     ],
   },
@@ -423,6 +426,9 @@ const CHANGELOG_EN: ChangelogEntry[] = [
       { kind: 'change', groups: [
         g('Home page',
           'Tool cards under the create-guild form: Biscuit buff check · Attack Compare · Total War points, usable without a guild (before, they were only in the ☰ menu)'),
+        g('Edit stats',
+          'When editing a counter or plan, each hero in the "Per-hero gear/stats" table has an "Edit stats" button ("Add stats" if none yet) that opens the number fields for that hero, with saved values filled in',
+          'The "Type stats yourself" button is easier to spot: a big button under the image box with an "or" divider (before, it was a small "No screenshot? Skip…" link) — no screenshot needed to type numbers or fix saved ones'),
       ] },
     ],
   },

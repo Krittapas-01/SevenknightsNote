@@ -1,5 +1,5 @@
-import { Eraser, X } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { Eraser, PencilLine, X } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { hasStats } from '../lib/stats'
 import { StatsGrid, StatsImport, upsertStats, type NoteExtra } from './HeroStats'
 import type { HeroStats } from '../lib/stats'
@@ -10,7 +10,7 @@ import UnitCard from './UnitCard'
 import EquipmentEditor from './EquipmentEditor'
 import AddHeroNote from './AddHeroNote'
 import RecallStats from './RecallStats'
-import { tx } from '../lib/i18n'
+import { L, tx } from '../lib/i18n'
 
 /**
  * อุปกรณ์/ค่าความสามารถรายตัว แบบตารางใน 7k-combo:
@@ -30,10 +30,12 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
   /** ปุ่มเพิ่มเติมหน้าแถวปุ่ม (เช่น เลือกจากที่จดไว้) */
   leading?: ReactNode
 }) {
+  // ปุ่มแก้ค่าความสามารถในแถว → เปิดหน้าต่างอ่านค่า (ตัวเดียวกับปุ่มด้านบน) ที่ช่องกรอกของตัวนั้น
+  const [editReq, setEditReq] = useState<{ hero: string; seq: number } | null>(null)
   const addRow = editing && team && (
     <div className="flex flex-wrap items-center gap-x-3">
       {leading}
-      <StatsImport team={team} notes={notes} onApply={(hero, stats, extra) => onChange?.(upsertStats(notes, hero, stats, extra))} onAddHero={onAddHero} onAddWithStats={onAddWithStats} />
+      <StatsImport team={team} notes={notes} onApply={(hero, stats, extra) => onChange?.(upsertStats(notes, hero, stats, extra))} onAddHero={onAddHero} onAddWithStats={onAddWithStats} editRequest={editReq} />
       <AddHeroNote team={team} have={notes.map((n) => n.hero)} onAdd={(hero) => onChange?.([...notes, { hero, text: '', sets: [], rings: [] }].slice(0, 5))} />
     </div>
   )
@@ -91,11 +93,19 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
             {editing && (() => {
               const has = hasStats(n.stats) || n.sets.length > 0 || n.rings.length > 0 || !!n.text.trim()
               return (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                {team && (
+                  <button type="button" onClick={() => setEditReq((r) => ({ hero: n.hero, seq: (r?.seq ?? 0) + 1 }))}
+                    className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1 text-sm text-gold hover:border-gold hover:bg-gold/15">
+                    <PencilLine className="h-4 w-4" />{' '}{hasStats(n.stats) ? L('แก้ค่าความสามารถ', 'Edit stats') : L('ใส่ค่าความสามารถ', 'Add stats')}
+                  </button>
+                )}
                 <button type="button" disabled={!has} title={has ? tx('ล้างค่าความสามารถ เซต เครื่องประดับ และคำอธิบายของตัวนี้') : tx('ยังไม่มีข้อมูล')}
                   onClick={() => onChange?.(notes.map((x, j) => (j === i ? { ...x, stats: undefined, sets: [], rings: [], text: '' } : x)))}
-                  className="mt-2 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-red-300/80 hover:bg-red-500/15 hover:text-red-200 disabled:pointer-events-none disabled:opacity-30">
+                  className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-red-300/80 hover:bg-red-500/15 hover:text-red-200 disabled:pointer-events-none disabled:opacity-30">
                   <Eraser className="h-3.5 w-3.5" />{' '}{tx('ล้างข้อมูลตัวนี้')}
                 </button>
+                </div>
               )
             })()}
           </div>
