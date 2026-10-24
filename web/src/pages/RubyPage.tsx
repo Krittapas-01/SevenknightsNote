@@ -119,10 +119,6 @@ export default function RubyPage() {
   const battles = Math.min(wanted, maxBattles)
   const r = useMemo(() => farmBattles(input, battles, plan.prices), [input, battles, plan.prices])
   const perSet = form.team * num(form.rubyPerHero)
-  const stepHours = (d: number) => {
-    const h = auto ? Math.ceil((r.seconds / 3600) * 2) / 2 : typed
-    set('hours', String(Math.max(0, Math.min(24, Math.round((h + d) * 2) / 2))))
-  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -137,14 +133,16 @@ export default function RubyPage() {
       <section className="panel panel-gold mt-5 p-4 sm:p-5">
         <div className="grid gap-4 sm:grid-cols-[auto_1fr] sm:gap-6">
           <div>
-            <p className="text-sm font-medium text-gold">{L('ฮีโร่ Lv.1 ในทีม', 'Lv.1 heroes in the team')}</p>
-            <div className="mt-2 flex gap-1.5" role="radiogroup" aria-label={L('ฮีโร่ Lv.1 ในทีม', 'Lv.1 heroes in the team')}>
-              {Array.from({ length: MAX_TEAM }, (_, i) => i + 1).map((k) => (
-                <button key={k} type="button" role="radio" aria-checked={form.team === k} onClick={() => setForm((f) => ({ ...f, team: k }))}
-                  className={`pill grid h-10 w-10 place-items-center text-base font-bold tabular-nums ${form.team === k ? 'border-gold bg-gold/15 text-gold' : 'text-white/70 hover:border-gold'}`}>
-                  {k}
-                </button>
-              ))}
+            <p className="flex items-baseline gap-2 text-sm font-medium text-gold">{L('ฮีโร่ Lv.1 ในทีม', 'Lv.1 heroes in the team')}
+              <b className="text-lg tabular-nums text-white">{L(`${form.team} ตัว`, `${form.team}`)}</b></p>
+            <div className="mt-2 w-full sm:w-52">
+              <input type="range" min={1} max={MAX_TEAM} step={1} value={form.team} onChange={(e) => setForm((f) => ({ ...f, team: Number(e.target.value) }))}
+                aria-label={L('ฮีโร่ Lv.1 ในทีม', 'Lv.1 heroes in the team')} className="h-2 w-full cursor-pointer accent-gold" />
+              <div className="mt-0.5 flex justify-between px-0.5 text-xs tabular-nums" aria-hidden="true">
+                {Array.from({ length: MAX_TEAM }, (_, i) => i + 1).map((k) => (
+                  <span key={k} className={form.team === k ? 'font-bold text-gold' : 'text-white/40'}>{k}</span>
+                ))}
+              </div>
             </div>
             <p className="mt-1.5 flex items-center gap-1 text-xs text-white/55 tabular-nums">
               = <Ruby className="h-3.5 w-3.5" /><b className="text-white">{fmt(perSet)}</b>{L(` ทุก ${fmt(setSize)} รอบ`, ` every ${fmt(setSize)} battles`)}
@@ -153,13 +151,9 @@ export default function RubyPage() {
           <div className="min-w-0">
             <p className="text-sm font-medium text-gold">{L('เล่นได้วันละ', 'Play time per day')}</p>
             <div className="mt-2 flex items-center gap-1.5">
-              <button type="button" onClick={() => stepHours(-0.5)} disabled={battles <= 0} aria-label={L('ลดครึ่งชั่วโมง', 'Half an hour less')}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/15 hover:border-gold disabled:opacity-30"><Minus className="h-4 w-4" /></button>
               <input value={form.hours} onChange={(e) => set('hours', e.target.value)} inputMode="decimal" placeholder={hm(plan.days[freeN].seconds)}
                 aria-label={L('เล่นได้วันละกี่ชั่วโมง', 'Hours played per day')} aria-invalid={badHours(form.hours) || undefined}
                 className={`${INPUT} ${badHours(form.hours) ? '!border-red-400' : ''} h-10 w-24 text-lg font-bold text-white`} />
-              <button type="button" onClick={() => stepHours(0.5)} disabled={!auto && typed >= 24} aria-label={L('เพิ่มครึ่งชั่วโมง', 'Half an hour more')}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/15 hover:border-gold disabled:opacity-30"><Plus className="h-4 w-4" /></button>
               <span className="text-sm text-white/55">{L('ชม.', 'h')}</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
