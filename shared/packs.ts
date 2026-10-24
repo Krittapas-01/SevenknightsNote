@@ -19,7 +19,7 @@ export type PackItemKey = PackBaseKey | (typeof ATLAS_ITEMS)[number]['k']
 export const PACK_ITEM_KEYS: readonly PackItemKey[] = [...PACK_BASE_KEYS, ...ATLAS_ITEMS.map((x) => x.k)]
 
 /** แท็บในร้าน (เหมือนในเกม) */
-export const PACK_TABS = ['monthly', 'special', 'limited', 'daily', 'ruby', 'offer', 'relay', 'pass'] as const
+export const PACK_TABS = ['monthly', 'special', 'limited', 'daily', 'ruby', 'offer', 'relay', 'pass', 'event'] as const
 /** รอบที่ซื้อได้ใหม่ */
 export const PACK_PERIODS = ['once', 'daily', 'weekly', 'biweekly', 'monthly'] as const
 export type PackPeriod = (typeof PACK_PERIODS)[number]

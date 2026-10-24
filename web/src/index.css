@@ -916,11 +916,6 @@ html[data-theme="light"] .updates-rail-item.is-active .updates-rail-dot { border
   -webkit-mask-image: linear-gradient(to left, transparent 0, #000 35%);
   mask-image: linear-gradient(to left, transparent 0, #000 35%);
 }
-/* แบนเนอร์จาก 7K Atlas: จางเป็นวงรอบรูป ไม่ให้พื้นหลังส้มเป็นขอบแข็ง */
-.pack-art-atlas {
-  -webkit-mask-image: radial-gradient(ellipse 52% 56% at 58% 50%, #000 55%, transparent 100%);
-  mask-image: radial-gradient(ellipse 52% 56% at 58% 50%, #000 55%, transparent 100%);
-}
 .pack-head { background: linear-gradient(180deg, #b39257, #8c6c34); color: #fff8e6; text-shadow: 0 1px 1px #0005; }
 .pack-price { background: #1b1b1f; color: #f6e7c1; }
 html[data-theme="light"] .pack-head { background: linear-gradient(180deg, #d6b779, #b8914a); color: #fffdf6; }

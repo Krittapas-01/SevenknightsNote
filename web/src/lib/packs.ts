@@ -72,8 +72,8 @@ const BASE_ITEMS: Record<PackBaseKey, ItemDef> = {
     note: ['ได้จากเรด/จบซีซั่นเท่านั้น · ราคาร้านสมเหตุสมผล', 'Raids/season rewards only · shop price is fair'] },
   oblivion: { th: 'Oblivion Essence (ขวดแดง)', en: 'Oblivion Essence', shop: 500, worth: 300, note: ['ค่าสูง แต่ร้านแพงไป', 'Valuable, but overpriced in the shop'] },
   memories: { th: 'Essence of Memories', en: 'Essence of Memories', shop: 20, worth: 0, note: ['เทียบยาก ไม่นับ', 'Hard to compare, not counted'] },
-  awakening: { th: 'Awakening Stone', en: 'Awakening Stone', shop: 400, worth: 0, rookie: 50,
-    note: ['ผู้เล่นเก่ามีล้นคลัง · ผู้เล่นใหม่ให้ 50 (เอาเงินไปซื้ออย่างอื่นคุ้มกว่า)', 'Veterans have plenty · new players: 50 (money is better spent elsewhere)'] },
+  awakening: { th: 'Awakening Stone', en: 'Awakening Stone', shop: 400, worth: 0,
+    note: ['ผู้เล่นส่วนใหญ่มีล้นคลัง · ผู้เล่นใหม่ให้แค่ ~50 ก็พอ เอาเงินไปซื้ออย่างอื่นคุ้มกว่า', 'Most players have plenty · even new players: ~50 at most, money is better spent elsewhere'] },
   crystal: { th: 'Tuning Crystal', en: 'Tuning Crystal', shop: 3, worth: 2.54, note: ['กดตู้ของรัก 80 รูบี้ ได้ ≈31.5 ผลึก', 'A dedicated gear pull (80) gives ≈31.5'] },
   rankUp: { th: 'วัสดุเลื่อนขั้น', en: 'Rank Up material', shop: 10, worth: 0, note: ['หาง่ายเกินไป ไม่นับ', 'Too easy to get, not counted'] },
   spark: { th: 'Inner Spark', en: 'Inner Spark', shop: 1, worth: 0.28, note: ['จากรอบดันเจี้ยน Power Up', 'From Power Up Dungeon runs'] },
@@ -154,7 +154,7 @@ export function loadWorthPrefs(): WorthPrefs {
     const raw = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')
     const worth: WorthPrefs['worth'] = {}
     for (const k of PACK_ITEM_KEYS) if (typeof raw.worth?.[k] === 'number') worth[k] = raw.worth[k]
-    return { profile: raw.profile === 'rookie' ? 'rookie' : 'vet', metric: raw.metric === 'gem' ? 'gem' : 'baht', worth }
+    return { profile: 'vet', metric: raw.metric === 'gem' ? 'gem' : 'baht', worth }
   } catch { return { profile: 'vet', metric: 'baht', worth: {} } }
 }
 export function saveWorthPrefs(p: WorthPrefs) {

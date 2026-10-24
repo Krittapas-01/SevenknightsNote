@@ -11,7 +11,7 @@ type Form = {
   limit: string; period: PackPeriod; endsAt: string; base: boolean; sort: string
 }
 const EMPTY: Form = { name: '', group: '', price: '', gems: '', list: [{ k: 'rubies', n: '', b: false, s: 0 }], tab: 'special', other: '', limit: '1', period: 'once', endsAt: '', base: false, sort: '100' }
-const TAB_TH: Record<PackTab, string> = { monthly: 'รายเดือน', special: 'พิเศษ', limited: 'จำกัดเวลา', daily: 'รายวัน', ruby: 'ร้านรูบี้', offer: 'ข้อเสนอตามเงื่อนไข', relay: 'รีเลย์', pass: 'พาส' }
+const TAB_TH: Record<PackTab, string> = { monthly: 'รายเดือน', special: 'พิเศษ', limited: 'จำกัดเวลา', daily: 'รายวัน', ruby: 'ร้านรูบี้', offer: 'ข้อเสนอตามเงื่อนไข', relay: 'รีเลย์', pass: 'พาส', event: 'กิจกรรม' }
 
 const toForm = (p: Pack): Form => ({
   name: p.name, group: p.group, price: String(p.price), gems: p.gems ? String(p.gems) : '',

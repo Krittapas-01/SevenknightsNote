@@ -20,7 +20,7 @@ const HIDDEN_TABS: PackTab[] = ['offer']
 
 const TAB_LABEL: Record<PackTab | 'values', [string, string]> = {
   monthly: ['รายเดือน', 'Monthly'], special: ['พิเศษ', 'Special'], limited: ['จำกัดเวลา', 'Limited Time'], daily: ['รายวัน', 'Daily'],
-  ruby: ['ร้านรูบี้', 'Ruby top-up'], offer: ['ข้อเสนอตามเงื่อนไข', 'Conditional offers'], relay: ['รีเลย์', 'Relay'], pass: ['พาส', 'Passes'],
+  ruby: ['ร้านรูบี้', 'Ruby top-up'], offer: ['ข้อเสนอตามเงื่อนไข', 'Conditional offers'], relay: ['รีเลย์', 'Relay'], pass: ['พาส', 'Passes'], event: ['กิจกรรม', 'Events'],
   values: ['ค่าของแต่ละชิ้น', 'Item values'],
 }
 
@@ -70,7 +70,7 @@ export default function PacksPage() {
       map.set(name, g)
     }
     for (const g of map.values()) g.rows.sort((a, b) => a.p.price - b.p.price)
-    return [...map.values()].sort((a, b) => b.best - a.best)
+    return [...map.values()] // เรียงตามร้านในเกม (API ส่งมาตาม sort)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [packs, worth, metric, baseRate, tick])
 
@@ -99,10 +99,15 @@ export default function PacksPage() {
         <b className="text-gold">{base?.name ?? 'Monthly Key Bundle'}</b>{' '}{L('(= 100%)', '(= 100%)')}
       </p>
 
-      {/* ตั้งค่า: ผู้เล่นแบบไหน · เทียบต่อบาทหรือต่อปริซึม */}
+      {/* คำเตือน: เป็นความเห็นส่วนตัว ไม่ได้ชวนซื้อ (Krit) */}
+      <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-[13px] leading-relaxed text-amber-100/90">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+        <span>{L('ค่าความคุ้มในหน้านี้เป็นความคิดเห็นส่วนตัวของเจ้าของเว็บ ไม่ได้บังคับหรือชวนให้ซื้อ ก่อนจะซื้อแพ็คไหน ตัดสินใจให้ดีนะครับ',
+          'The values on this page are the site owner’s personal opinion. Nobody is telling you to buy anything, so think it over before you buy a pack.')}</span>
+      </p>
+
+      {/* ตั้งค่า: เทียบต่อบาทหรือต่อปริซึม */}
       <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-        <Seg value={prefs.profile} onChange={(v) => update({ profile: v })}
-          options={[['vet', L('ผู้เล่นเก่า', 'Veteran')], ['rookie', L('ผู้เล่นใหม่', 'New player')]]} label={L('ผู้เล่นแบบไหน', 'Player type')} />
         <Seg value={metric} onChange={(v) => update({ metric: v })}
           options={[['baht', L('ต่อบาท', 'Per baht')], ['gem', <>{L('ต่อ', 'Per')} <Prism /></>]]} label={L('เทียบราคาแบบไหน', 'Compare by')} />
       </div>
@@ -242,7 +247,7 @@ function WantList({ want, groups, metric, onOpen }: { want: Want; groups: Group[
                 <b className={`w-5 shrink-0 text-center text-base tabular-nums sm:w-7 sm:text-lg ${i < 3 ? 'text-gold' : 'text-white/45'}`}>{i + 1}</b>
                 <span className="relative h-12 w-12 shrink-0 sm:h-20 sm:w-20">
                   {art && <img src={art.src} alt="" loading="lazy" draggable={false}
-                    className={`h-full w-full ${art.square ? 'object-contain' : art.atlas ? 'pack-art-atlas object-cover object-right' : 'object-cover object-left'}`} />}
+                    className={`h-full w-full rounded-lg ${art.square ? 'object-contain' : 'object-cover object-center'}`} />}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <b className="text-[15px] leading-snug sm:text-base">{groupName(g.name)}</b>
@@ -297,7 +302,7 @@ function GroupRow({ g, now, onOpen }: { g: Group; now: number; onOpen: () => voi
     <button type="button" onClick={onOpen}
       className="panel group relative flex min-h-[84px] w-full sm:min-h-[96px] items-stretch overflow-hidden text-left transition hover:border-gold/60">
       {art
-        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pointer-events-none absolute inset-y-0 left-0 h-full w-[104px] sm:w-[136px] ${art.square ? 'pack-art-l object-contain p-2 pr-6' : art.atlas ? 'pack-art-atlas object-cover object-right' : 'pack-art-l object-cover object-left'}`} />
+        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pointer-events-none absolute inset-y-0 left-0 h-full w-[104px] sm:w-[136px] ${art.square ? 'pack-art-l object-contain p-2 pr-6' : art.atlas ? 'pack-art-l object-cover object-center' : 'pack-art-l object-cover object-left'}`} />
         : <span className="pointer-events-none absolute inset-y-0 left-0 w-[104px] bg-gradient-to-r from-gold/15 to-transparent sm:w-[136px]" />}
       <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-2.5 pl-[100px] pr-3 sm:pl-[132px] sm:pr-4">
         <span className="flex items-start gap-2">
