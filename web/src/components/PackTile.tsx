@@ -9,6 +9,9 @@ const ART = Object.fromEntries(
 ) as Partial<Record<PackItemKey, string>>
 
 /** ไอคอนปริซึม (สกุลเงินแพ็คในเกม) ขนาดเท่าตัวอักษร */
+/** รูปไอคอนของ (ไม่มีกรอบช่อง) */
+export const itemIcon = (k: PackItemKey): string | undefined => ART[k]
+
 export function Prism({ className = '' }: { className?: string }) {
   return <img src={prism} alt={L('ปริซึม', 'Prism')} draggable={false} className={`inline-block h-[1.1em] w-[1.1em] -translate-y-px align-middle ${className}`} />
 }

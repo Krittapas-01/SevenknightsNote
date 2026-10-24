@@ -1,7 +1,7 @@
 import { CalendarClock, ChevronDown, ChevronRight, Info, Minus, Plus, RotateCcw, Sparkles, Wallet } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import Modal from '../components/Modal'
-import PackTile, { Prism } from '../components/PackTile'
+import PackTile, { Prism, itemIcon } from '../components/PackTile'
 import { api } from '../lib/api'
 import {
   ATLAS_CATS, CAT_NAME, GROUP_META, ITEMS, groupArt, groupName, shownItems, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, boughtCount, defaultWorth, itemName, itemsOf, loadWorthPrefs, packTab, packValue, periodLabel,
@@ -15,6 +15,8 @@ const num = (n: number) => (Number.isInteger(n) ? n.toLocaleString('en-US') : n.
 const baht = (n: number) => `฿${n.toLocaleString('en-US', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`
 const BUDGET_KEY = '7k-note:packs-budget'
 const WANT_KEY = '7k-note:packs-want'
+/** หมวดที่ซ่อนไว้ (ข้อมูลยังอยู่ในฐาน): ข้อเสนอตามเงื่อนไข ซับซ้อนเกิน (Krit) */
+const HIDDEN_TABS: PackTab[] = ['offer']
 
 const TAB_LABEL: Record<PackTab | 'values', [string, string]> = {
   monthly: ['รายเดือน', 'Monthly'], special: ['พิเศษ', 'Special'], limited: ['จำกัดเวลา', 'Limited Time'], daily: ['รายวัน', 'Daily'],
@@ -57,6 +59,7 @@ export default function PacksPage() {
   const groups = useMemo(() => {
     const map = new Map<string, Group>()
     for (const p of packs ?? []) {
+      if (HIDDEN_TABS.includes(packTab(p))) continue
       const value = packValue(p, worth), rate = rateOf(p, metric, worth)
       const row: Row = { p, value, rate, pct: baseRate && rate ? (rate / baseRate) * 100 : 0, bought: boughtCount(p) }
       const name = p.group || p.name
@@ -114,7 +117,7 @@ export default function PacksPage() {
           </button>
           {WANTS.map((w) => (
             <button key={w.id} type="button" role="radio" aria-checked={want?.id === w.id} onClick={() => setWantId(w.id)}
-              className={`flex shrink-0 items-center gap-1 rounded-full border py-0.5 pl-0.5 pr-3 text-[13px] font-semibold transition ${want?.id === w.id ? 'border-gold/70 bg-gold/15 text-gold' : 'border-white/10 bg-black/20 text-white/70 hover:border-gold/40'}`}>
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border py-0.5 pl-1.5 pr-3 text-[13px] font-semibold transition ${want?.id === w.id ? 'border-gold/70 bg-gold/15 text-gold' : 'border-white/10 bg-black/20 text-white/70 hover:border-gold/40'}`}>
               <WantIcon k={w.icon} />{L(...w.name)}
             </button>
           ))}
@@ -207,7 +210,8 @@ export default function PacksPage() {
 
 /** ไอคอนของในปุ่ม "อยากได้อะไร" */
 function WantIcon({ k }: { k: PackItemKey }) {
-  return <span className="grid h-7 w-7 place-items-center overflow-hidden rounded-full"><span className="scale-[0.62]"><PackTile k={k} n={0} size="sm" noCount /></span></span>
+  const src = itemIcon(k)
+  return src ? <img src={src} alt="" draggable={false} className="h-7 w-7 shrink-0 object-contain" /> : null
 }
 
 /** จัดอันดับขั้นแพ็คทุกหมวดที่ได้ของที่อยากได้ มากสุดต่อบาท (หรือต่อปริซึม) */
