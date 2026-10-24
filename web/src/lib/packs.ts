@@ -87,7 +87,7 @@ const BASE_ITEMS: Record<PackBaseKey, ItemDef> = {
 /** ค่าตั้งต้นของไอเท็ม Atlas บางตัวที่เทียบกับของหลักได้ (ที่เหลือ = ยังไม่รู้ค่า ไม่นับ) */
 const ATLAS_WORTH: Partial<Record<PackItemKey, [number, [string, string]]>> = {
   a_203000037: [100, ['เลือกตั๋วเรียก 1 ใบ', 'Pick 1 summon voucher']],
-  a_526: [150, ['เท่าตั๋ว Pet Wish List', 'Same as a Pet Wish List voucher']],
+  a_526: [150, ['ตั๋วสัตว์พิเศษช่วงอีเวนต์ · ค่าเท่าตั๋ว Pet Wish List', 'Event-only pet voucher · worth the same as a Pet Wish List voucher']],
   // ค่าจาก 7K Atlas (ยังไม่มีค่าที่ผู้เล่นตั้งเอง)
   a_203000016: [20000, ['เลือกอัศวินตำนานได้ (L+ ด้วย) · ค่าจาก 7K Atlas', 'Pick a Legendary hero (L+ too) · 7K Atlas value']],
   a_202000055: [10000, ['สุ่มอัศวินตำนาน 1 ตัว · ค่าจาก 7K Atlas', 'A random Legendary hero · 7K Atlas value']],
