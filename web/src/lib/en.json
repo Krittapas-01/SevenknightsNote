@@ -685,10 +685,5 @@
  "เปลี่ยนชื่อแล้ว · ลิงก์กิลด์ใช้ได้เหมือนเดิม": "Renamed · the guild links still work",
  "ความเร็วทีม": "Team Speed",
  "ลำดับอัศวินตามความเร็วโจมตี": "Heroes by attack speed",
- "ยังไม่มีอัศวินในทีม": "No heroes in this team yet",
- "ยังไม่มีความเร็วโจมตีของอัศวินในทีมนี้ ใส่ได้ที่ค่าความสามารถของอัศวิน": "No attack speed for these heroes yet. Add it in each hero's stats.",
- "ความเร็วโจมตีรวม": "Total attack speed",
- "ผลรวมความเร็วโจมตีของทุกตัว": "total attack speed of every hero",
- "ทีมที่ยังไม่ครบ พิมพ์ความเร็วทีมเองได้ หรือเว้นไว้ก็ได้": "Until every hero has it, type the team speed yourself or leave it empty.",
- "ทุกตัวมีความเร็วครบ ใส่เป็นความเร็วทีมให้อัตโนมัติ": "Every hero has attack speed, so it's filled in as the team speed automatically."
+ "ผลรวมความเร็วโจมตีของทุกตัว": "total attack speed of every hero"
 }
