@@ -11,6 +11,7 @@ import { slideItems } from '../lib/overlayMotion'
 
 // หน้าต่างตั้งค่าในเมนู โหลดตอนเปิดครั้งแรก (ไม่ต้องอยู่ในไฟล์หลักที่ทุกหน้าโหลด)
 import { PACKS_ON } from '../lib/packs'
+import { RUBY_ON } from '../lib/rubyFarm'
 const loadSettings = () => import('../pages/SettingsPage')
 const SettingsBody = lazy(() => loadSettings().then((m) => ({ default: m.SettingsBody })))
 
@@ -20,7 +21,7 @@ const NAV: { to: string; label: string; icon: ComponentType<{ className?: string
   { to: '/biscuit', label: tx('เช็กบัฟบิสกิต'), icon: Cookie },
   { to: '/totalwar', label: tx('คำนวณแต้มเบ็ดเสร็จ'), icon: Calculator },
   { to: '/atk', label: tx('เทียบพลังโจมตี'), icon: Swords },
-  { to: '/ruby', label: tx('คำนวณรูบี้ขายวิญญาณ'), icon: RubyIcon },
+  ...(RUBY_ON ? [{ to: '/ruby', label: tx('คำนวณรูบี้ขายวิญญาณ'), icon: RubyIcon }] : []),
   ...(PACKS_ON ? [{ to: '/packs', label: tx('เช็กความคุ้มค่าแพ็ค'), icon: Gem }] : []),
   { to: '/favorites', label: tx('พรีเซต & ทีมที่ชอบ'), icon: ThumbsUp },
 ]

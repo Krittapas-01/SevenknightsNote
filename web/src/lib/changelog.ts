@@ -22,9 +22,11 @@ export const PATCH_KIND: Record<PatchKind, string> = EN
   ? { new: 'New features', change: 'Changes', fix: 'Bug fixes' }
   : { new: 'ฟีเจอร์ใหม่', change: 'การเปลี่ยนแปลง', fix: 'แก้บั๊ก' }
 import { PACKS_ON } from './packs'
+import { RUBY_ON } from './rubyFarm'
 const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGroup => ({ title, items: items.map((x) => (typeof x === 'string' ? { text: x } : x)) })
 
 const CHANGELOG_TH: ChangelogEntry[] = [
+  ...(RUBY_ON ? ([
   {
     id: '2026-10-24b',
     version: '1.5.4',
@@ -42,6 +44,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
       ] },
     ],
   },
+  ] satisfies ChangelogEntry[]) : []),
   {
     id: '2026-10-24',
     version: '1.5.3',
@@ -374,6 +377,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
+  ...(RUBY_ON ? ([
   {
     id: '2026-10-24b', version: '1.5.4', date: '24 Oct 2026', title: 'Ruby Rush',
     summary: 'New page: Ruby Farming Calculator — how many hours you play, how many battles, how many Lv.1 heroes, how many rubies',
@@ -388,6 +392,7 @@ const CHANGELOG_EN: ChangelogEntry[] = [
       ] },
     ],
   },
+  ] satisfies ChangelogEntry[]) : []),
   {
     id: '2026-10-24', version: '1.5.3', date: '24 Oct 2026', title: 'Formation',
     summary: 'Team building like in the game, English mode on every page, no jumps when going back, and smoother still',
