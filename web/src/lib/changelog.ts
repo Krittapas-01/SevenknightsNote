@@ -37,7 +37,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
       { kind: 'new', groups: [
         g('คำนวณรูบี้ขายวิญญาณ (เมนู → คำนวณรูบี้ขายวิญญาณ)',
           'เลือกแค่อัศวิน Lv.1 ในทีม (1–5 ตัว = 20–100 รูบี้ทุกครั้งที่อัศวินตัน: 11 รอบ หรือ 10 รอบถ้ามีแพ็ค Daily Ruby Support) แล้วเห็นเลยว่าฟาร์มได้กี่รอบ ใช้อัศวินกี่ตัว ได้รูบี้สุทธิเท่าไหร่ (หักค่ากล่องกุญแจแล้ว) และต้องซื้อกล่องกี่กล่อง',
-          'เปิดมาเห็นตัวเลขเดียวเด่น ๆ: รูบี้สุทธิต่อวันของตัวเลือก "คุ้มสุด" พร้อมเวลา อัศวิน และกล่องที่ต้องซื้อ · อยากเล่นน้อยลงแตะกราฟแท่งกล่องฟรี / 50 / 80 / 100 รูบี้ แล้วบอกว่าเสียรูบี้เท่าไหร่ เร็วขึ้นเท่าไหร่ · รายละเอียดอื่นซ่อนไว้ กดดูได้',
+          'เปิดมาเห็นตัวเลขเดียวเด่น ๆ: รูบี้สุทธิต่อวันของตัวเลือก "คุ้มสุด" พร้อมเวลา อัศวิน และกล่องที่ต้องซื้อ · อยากเล่นน้อยลงแตะกราฟแท่งกล่องฟรี / 50 / 80 / 100 รูบี้ แล้วบอกว่าเสียรูบี้เท่าไหร่ เร็วขึ้นเท่าไหร่ · รายละเอียดอื่นซ่อนไว้ กดดูได้ · ตัวเลขวิ่งและกราฟขยับตามทุกครั้งที่เปลี่ยน · บนคอมแบ่งสองฝั่ง ตัวใหญ่อ่านง่าย',
           'นับกุญแจฟรีที่ทุกคนได้ให้แล้ว (ฟื้นเอง ภารกิจ เช็กชื่อ 7K Pass Relay ร้านค้า ฯลฯ) · เลือกเองแค่เช็กอินกิลด์',
           'ติ๊กแพ็คที่ซื้อ (มีรูปแพ็ค): Daily Power Up Support, 7K Pass พรีเมียม, เช็กอินพรีเมียม (เพิ่มกุญแจ) และ Daily Ruby Support (อัศวินตันเร็วขึ้น 10 รอบแทน 11 · +200 รูบี้/วัน แสดงแยกจากที่ฟาร์ม)',
           'นับอัศวิน 2–3★ ที่ดรอปคืนระหว่างฟาร์มให้ด้วย (ประมาณเป็นช่วง จากที่วัดจริง 500 รอบ ~28 ตัวต่อ 100 รอบ) จะได้รู้คร่าว ๆ ว่าต้องเตรียมอัศวินเองกี่ตัว',
@@ -386,7 +386,7 @@ const CHANGELOG_EN: ChangelogEntry[] = [
       { kind: 'new', groups: [
         g('Ruby Farming Calculator (menu → Ruby Farming Calculator)',
           'Just pick the Lv.1 heroes in your team (1–5 = 20–100 rubies each time they max out: 11 battles, or 10 with Daily Ruby Support) to see your battles, heroes used, net rubies (after key box costs) and key boxes to buy',
-          'Opens on one big number: net rubies a day for the "Best" option, with time, heroes and boxes to buy · want to play less? Tap the free / 50 / 80 / 100-ruby box bars to see how many rubies you give up and how much time you save · other details stay folded away',
+          'Opens on one big number: net rubies a day for the "Best" option, with time, heroes and boxes to buy · want to play less? Tap the free / 50 / 80 / 100-ruby box bars to see how many rubies you give up and how much time you save · other details stay folded away · numbers count and bars move whenever something changes · two columns with large type on desktop',
           'Free keys everyone gets are counted for you (regen, missions, login, 7K Pass, Relay, shops, etc.) · you only pick your guild check-in',
           'Tick the packs you have (with pack art): Daily Power Up Support, 7K Pass premium, premium check-in (more keys) and Daily Ruby Support (heroes max in 10 battles instead of 11 · +200 rubies/day, shown apart from farming)',
           'Counts the 2–3★ heroes that drop back while farming (shown as a rough range, ~28 per 100 battles measured over 500 real battles) so you roughly know how many heroes to prepare',
