@@ -1223,7 +1223,13 @@ function cleanPack(b: any): Omit<PackRow, 'id' | 'updated_at'> | string {
     .map((x: any) => ({ k: String(x?.k ?? ''), n: nonNeg(x?.n, 1e9), ...(x?.b ? { b: 1 } : {}), ...(x?.s ? { s: Math.min(4, Math.max(1, Math.round(Number(x.s)) || 1)) } : {}) }))
     .filter((x: { k: string; n: number }) => (PACK_ITEM_KEYS as readonly string[]).includes(x.k) && x.n > 0)
   const tab = (PACK_TABS as readonly string[]).includes(it.tab) ? it.tab : undefined
-  const items = { list, ...(tab ? { tab } : {}), other: str(it.other, 120) }
+  // สิทธิพิเศษรายเดือน: บัฟ [ไทย, อังกฤษ] · จำนวนวัน · ได้รายวัน/รวม (โชว์อย่างเดียว ไม่ใช้คำนวณ)
+  const perks = (Array.isArray(it.perks) ? it.perks : []).slice(0, 5)
+    .map((x: any) => [str(x?.[0], 120), str(x?.[1], 120)]).filter((x: string[]) => x[0] || x[1])
+  const days = nonNeg(it.days, 366)
+  const d = it.daily
+  const daily = d && (PACK_ITEM_KEYS as readonly string[]).includes(d.k) && nonNeg(d.n, 1e9) > 0 ? { k: d.k, n: nonNeg(d.n, 1e9), total: nonNeg(d.total, 1e9) } : null
+  const items = { list, ...(tab ? { tab } : {}), other: str(it.other, 120), ...(perks.length ? { perks } : {}), ...(days ? { days } : {}), ...(daily ? { daily } : {}) }
   const period = (PACK_PERIODS as readonly string[]).includes(b?.period) ? b.period : 'once'
   const endsAt = b?.endsAt == null || b.endsAt === '' ? null : Number(b.endsAt)
   if (endsAt !== null && !Number.isFinite(endsAt)) return 'วันหมดอายุไม่ถูกต้อง'

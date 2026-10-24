@@ -149,8 +149,10 @@ export default function PacksPage() {
             ? <ValuesTab prefs={prefs} worth={worth} onChange={(k, v) => { const w = { ...prefs.worth }; if (v === undefined) delete w[k]; else w[k] = v; update({ worth: w }) }}
                 onReset={() => update({ worth: {} })} />
             : (
-              <div className="grid gap-2 xl:grid-cols-2">
-                {shown.map((g) => <GroupRow key={g.name} g={g} now={now} onOpen={() => setOpenGroup(g.name)} />)}
+              <div className="grid gap-3">
+                {shown.map((g) => active === 'monthly'
+                  ? <MonthlyCard key={g.name} g={g} onOpen={() => setOpenGroup(g.name)} />
+                  : <GroupRow key={g.name} g={g} now={now} onOpen={() => setOpenGroup(g.name)} />)}
                 {packs && !shown.length && <p className="py-12 text-center text-white/50">{L('ยังไม่มีแพ็คในหมวดนี้', 'No packs in this tab')}</p>}
               </div>
             )}
@@ -300,20 +302,68 @@ function GroupRow({ g, now, onOpen }: { g: Group; now: number; onOpen: () => voi
   const prices = g.rows.map((r) => r.p.price)
   return (
     <button type="button" onClick={onOpen}
-      className="panel group relative flex min-h-[84px] w-full sm:min-h-[96px] items-stretch overflow-hidden text-left transition hover:border-gold/60">
+      className="panel group relative flex min-h-[96px] w-full items-stretch overflow-hidden text-left transition hover:border-gold/60 sm:min-h-[128px]">
       {/* แบบร้านในเกม: ตัวหนังสือซ้าย รูปขวา (จางเข้าหาตัวหนังสือ) */}
       {art
-        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pack-art-r pointer-events-none absolute inset-y-0 right-0 h-full w-[132px] sm:w-[200px] ${art.square ? 'object-contain py-2 pl-10 pr-3' : 'object-cover object-right'}`} />
-        : <span className="pointer-events-none absolute inset-y-0 right-0 w-[132px] bg-gradient-to-l from-gold/15 to-transparent sm:w-[200px]" />}
-      <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-2.5 pl-4 pr-[96px] sm:pl-5 sm:pr-[150px]">
+        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pack-art-r pointer-events-none absolute inset-y-0 right-0 h-full w-[45%] max-w-[340px] ${art.square ? 'object-contain py-2 pl-10 pr-3' : 'object-cover object-right'}`} />
+        : <span className="pointer-events-none absolute inset-y-0 right-0 w-[45%] max-w-[340px] bg-gradient-to-l from-gold/15 to-transparent" />}
+      <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-3 pl-4 pr-[34%] sm:pl-6 sm:pr-[300px]">
         <span className="flex items-start gap-2">
-          <b className="min-w-0 flex-1 text-[15px] leading-snug sm:text-base">{groupName(g.name)}</b>
+          <b className="min-w-0 flex-1 text-base leading-snug sm:text-xl">{groupName(g.name)}</b>
           {g.endsAt && <span className="flex shrink-0 items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[11px] text-white/70"><CalendarClock className="h-3 w-3" />{endsIn(g.endsAt, now)}</span>}
         </span>
-        {meta?.sub && <span className="truncate text-xs leading-snug text-white/55 sm:text-[13px]">{L(...meta.sub)}</span>}
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-[13px]">
+        {meta?.sub && <span className="text-xs leading-snug text-white/60 sm:text-sm">{L(...meta.sub)}</span>}
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm">
           {g.best > 0 && <span className={`rounded-full px-2 py-0.5 font-semibold ${t.cls}`}>{L('คุ้มสุด', 'Best')} {Math.round(g.best)}%</span>}
           <span className="text-white/50 tabular-nums">{g.rows.length} {L('ขั้น', g.rows.length === 1 ? 'tier' : 'tiers')} · {baht(Math.min(...prices))}{prices.length > 1 ? `–${baht(Math.max(...prices))}` : ''}</span>
+        </span>
+      </span>
+    </button>
+  )
+}
+
+/** การ์ดสิทธิพิเศษรายเดือนแบบในเกม: ใหญ่เต็มแถว · บัฟ · ได้รวม/รายวัน · Bonus · ราคา */
+function MonthlyCard({ g, onOpen }: { g: Group; onOpen: () => void }) {
+  const r = g.rows[0]
+  const it = r.p.items
+  const art = groupArt(g.name)
+  const t = tierOf(r.pct)
+  const bonus = itemsOf(r.p).filter((x) => x.b)
+  const icon = (k: PackItemKey) => { const src = itemIcon(k); return src ? <img src={src} alt="" className="h-5 w-5 object-contain" /> : null }
+  return (
+    <button type="button" onClick={onOpen}
+      className="panel group relative flex w-full flex-col overflow-hidden text-left transition hover:border-gold/60">
+      {art && <img src={art.src} alt="" loading="lazy" draggable={false}
+        className="pack-art-r pointer-events-none absolute right-0 top-0 h-[112px] w-[50%] object-cover object-right sm:h-[calc(100%-44px)] sm:w-[55%]" />}
+      <span className="absolute right-3 top-3 rounded-full border border-white/25 bg-black/50 px-2.5 py-1 text-xs font-semibold text-white/90 backdrop-blur-sm">
+        {it.days ? L(`${it.days} วัน`, `${it.days} days`) : L('ไม่จำกัด', 'Unlimited')}
+      </span>
+      <span className="relative flex flex-1 flex-col gap-2 px-4 pb-3 pt-4 sm:min-h-[150px] sm:px-5 sm:pt-5">
+        <b className="max-w-[55%] text-lg leading-snug sm:max-w-none sm:pr-24 sm:text-xl">{groupName(g.name)}</b>
+        {!!it.perks?.length && (
+          <ul className="mt-6 flex max-w-[640px] flex-col gap-1 sm:mt-0">
+            {it.perks.map((x, i) => (
+              <li key={i} className="flex items-start gap-2 rounded-md bg-black/35 px-2.5 py-1 text-[13px] leading-snug text-white/85 sm:w-fit sm:text-sm">
+                <span className="text-gold">✦</span>{L(x[0], x[1])}
+              </li>
+            ))}
+          </ul>
+        )}
+        {bonus.length > 0 && (
+          <span className="flex w-fit items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-xs text-white/80 sm:self-end">
+            Bonus{bonus.map((x, i) => <span key={i} className="flex items-center gap-0.5 font-semibold tabular-nums">{icon(x.k)}×{num(x.n)}</span>)}
+          </span>
+        )}
+      </span>
+      <span className="relative flex min-h-[44px] flex-wrap items-center gap-2 bg-black/45 px-4 py-2 sm:px-5">
+        {it.daily && <>
+          <span className="flex items-center gap-1 rounded-full border border-gold/40 px-2.5 py-0.5 text-[13px]">{L('รวม', 'Total')} {icon(it.daily.k)}<b className="tabular-nums">×{num(it.daily.total)}</b></span>
+          <span className="flex items-center gap-1 rounded-full border border-gold/40 px-2.5 py-0.5 text-[13px]">{L('รายวัน', 'Daily')} {icon(it.daily.k)}<b className="tabular-nums">×{num(it.daily.n)}</b></span>
+        </>}
+        <span className="ml-auto flex items-center gap-2">
+          {r.pct > 0 && <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${t.cls}`}>{L('คุ้ม', 'Value')} {Math.round(r.pct)}%</span>}
+          <b className="text-lg tabular-nums text-white sm:text-xl">{baht(r.p.price)}</b>
+          {!!r.p.gems && <span className="text-sm text-white/70 tabular-nums">(<Prism />{r.p.gems})</span>}
         </span>
       </span>
     </button>

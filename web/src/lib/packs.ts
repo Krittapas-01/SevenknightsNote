@@ -30,6 +30,8 @@ export { ATLAS_CATS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, type AtlasCat, t
 export type ItemLine = { k: PackItemKey; n: number; b?: 1; s?: number }
 export type PackItems = {
   list?: ItemLine[]; tab?: PackTab; other?: string
+  /** สิทธิพิเศษรายเดือน: บัฟ [ไทย, อังกฤษ] · กี่วัน (ไม่มี = ไม่จำกัด) · ได้รายวัน/รวม */
+  perks?: [string, string][]; days?: number; daily?: { k: PackItemKey; n: number; total: number }
   /** ข้อมูลรุ่นแรก (ก่อนมี list) */
   rubies?: number; chests?: number; summon?: number; raid?: number
 }

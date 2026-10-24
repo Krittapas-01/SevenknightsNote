@@ -2,13 +2,14 @@ import { Pencil, Plus, Star, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Modal from './Modal'
 import { api, type PackInput } from '../lib/api'
-import { ATLAS_CATS, CAT_NAME, ITEMS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, itemName, itemsOf, packTab, packValue, perBaht, periodLabel, type ItemLine, type Pack, type PackItemKey, type PackPeriod, type PackTab } from '../lib/packs'
+import { ATLAS_CATS, CAT_NAME, ITEMS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, itemName, itemsOf, packTab, packValue, perBaht, periodLabel, type ItemLine, type Pack, type PackItemKey, type PackItems, type PackPeriod, type PackTab } from '../lib/packs'
 
 /** แอดมิน: จัดการแพ็คในหน้า "เช็กความคุ้มค่าแพ็ค" (เห็นทุกแพ็ค รวมที่หมดอายุแล้ว) */
 type Form = {
   name: string; group: string; price: string; gems: string
   list: { k: PackItemKey; n: string; b: boolean; s: number }[]; tab: PackTab; other: string
   limit: string; period: PackPeriod; endsAt: string; base: boolean; sort: string
+  extra?: Pick<PackItems, 'perks' | 'days' | 'daily'>
 }
 const EMPTY: Form = { name: '', group: '', price: '', gems: '', list: [{ k: 'rubies', n: '', b: false, s: 0 }], tab: 'special', other: '', limit: '1', period: 'once', endsAt: '', base: false, sort: '100' }
 const TAB_TH: Record<PackTab, string> = { monthly: 'รายเดือน', special: 'พิเศษ', limited: 'จำกัดเวลา', daily: 'รายวัน', ruby: 'ร้านรูบี้', offer: 'ข้อเสนอตามเงื่อนไข', relay: 'รีเลย์', pass: 'พาส', event: 'กิจกรรม' }
@@ -16,13 +17,14 @@ const TAB_TH: Record<PackTab, string> = { monthly: 'รายเดือน', s
 const toForm = (p: Pack): Form => ({
   name: p.name, group: p.group, price: String(p.price), gems: p.gems ? String(p.gems) : '',
   list: itemsOf(p).map((x) => ({ k: x.k, n: String(x.n), b: !!x.b, s: x.s ?? 0 })), tab: packTab(p), other: p.items.other ?? '',
+  extra: { perks: p.items.perks, days: p.items.days, daily: p.items.daily }, // ข้อมูลรายเดือนจาก migration (ไม่มีช่องแก้ แต่ไม่ให้หายตอนบันทึก)
   limit: String(p.limit), period: p.period, endsAt: p.endsAt ? new Date(p.endsAt).toISOString().slice(0, 10) : '', base: p.base, sort: String(p.sort),
 })
 const INPUT = 'w-full rounded-lg border border-white/15 bg-black/20 px-2.5 py-1.5 text-sm outline-none focus:border-gold'
 const num = (s: string) => Number(s) || 0
 const toInput = (f: Form): PackInput => ({
   name: f.name.trim(), group: f.group.trim(), price: num(f.price), gems: num(f.gems),
-  items: { list: f.list.filter((x) => num(x.n) > 0).map((x): ItemLine => ({ k: x.k, n: num(x.n), ...(x.b ? { b: 1 as const } : {}), ...(x.s ? { s: x.s } : {}) })), tab: f.tab, other: f.other.trim() },
+  items: { list: f.list.filter((x) => num(x.n) > 0).map((x): ItemLine => ({ k: x.k, n: num(x.n), ...(x.b ? { b: 1 as const } : {}), ...(x.s ? { s: x.s } : {}) })), tab: f.tab, other: f.other.trim(), ...f.extra },
   limit: Math.max(1, num(f.limit)), period: f.period,
   // วันที่ = หมดตอนเริ่มวันนั้น 00:00 UTC (07:00 ไทย = รอบรีเซ็ตเกม)
   endsAt: f.endsAt ? Date.parse(f.endsAt) : null, base: f.base, sort: num(f.sort),
