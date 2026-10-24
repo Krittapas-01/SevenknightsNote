@@ -165,7 +165,8 @@ export default function RubyPage() {
               <b className="w-12 shrink-0 text-right tabular-nums lg:w-16 lg:text-xl">{L(`${form.team} ตัว`, `${form.team}`)}</b>
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2 lg:mt-4 lg:gap-3">
+            <p className="mt-3 text-xs font-semibold text-white/55 lg:mt-4 lg:text-sm">{L('แพ็ครายเดือน', 'Monthly packs')}</p>
+            <div className="mt-1.5 grid grid-cols-2 gap-2 lg:mt-2 lg:gap-3">
               <PackTile on={form.powerUp} onClick={() => toggle('powerUp')} img={packPowerUp} label="Power Up"
                 title={L(`Daily Power Up Support (฿149 / 28 วัน): กุญแจฟื้นเร็วขึ้น + ${POWER_UP.dailyKeys} ดอก/วัน`, `Daily Power Up Support (฿149 / 28 days): faster key regen + ${POWER_UP.dailyKeys}/day`)}
                 value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(keys.powerUpRegen + POWER_UP.dailyKeys)}</>} />
@@ -359,7 +360,7 @@ export default function RubyPage() {
                     aria-label={L(`กล่อง ${tierName(row)}: ${signed(res.net)} รูบี้ · ${hours(res.seconds)}`, `${tierName(row)} boxes: ${signed(res.net)} rubies · ${hours(res.seconds)}`)}
                     className={`relative flex min-w-0 flex-col items-center rounded-xl px-1 pb-2 pt-2 transition active:scale-95 ${sel ? '' : 'hover:bg-white/[.05]'}`}>
                     <span className={`text-[11px] font-bold tabular-nums lg:text-base ${res.net > 0 ? (sel ? 'text-gold' : 'text-white/75') : 'text-red-300'}`}>{signed(res.net)}</span>
-                    <span className="mt-1 flex h-20 w-full items-end justify-center lg:h-48">
+                    <span className="mt-1 flex h-20 w-full items-end justify-center lg:h-52">
                       <span className={`ruby-bar w-7 rounded-t-md lg:w-14 lg:rounded-t-lg ${res.net <= 0 ? 'bg-red-400/50' : sel ? 'bg-gold' : 'bg-white/20'}`} style={{ height: `${h}%`, animationDelay: `${i * 70}ms` }} />
                     </span>
                     <img src={keyBox} alt="" draggable={false} className={`mt-1.5 h-7 w-7 transition lg:h-9 lg:w-9 ${sel ? '' : 'opacity-60 grayscale-[.4]'}`} />
