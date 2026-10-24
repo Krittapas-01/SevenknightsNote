@@ -25,3 +25,8 @@ Game artwork © Netmarble Corp. & Netmarble Nexus Inc. Native size (260×192), W
 - `shop-pet-500.webp`: 500 Days Celebration Pet Wish List Pack
 - `shop-adventure-s.webp`: Adventure Support S
 - `shop-rate-up.webp`: Rate Up Summon Special
+
+# Item icons (Pack Value page)
+
+`items/*.webp`: item icons from 7K Atlas (https://7katlas.com, Resource Codex `resource-codex.html`), fetched 2026-10-24, trimmed and resized to 96×96 WebP. File name = item key in `shared/packs.ts`.
+Game artwork © Netmarble Corp. & Netmarble Nexus Inc. Credit: 7K Atlas.

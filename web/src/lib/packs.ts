@@ -63,8 +63,8 @@ export const ITEMS: Record<PackItemKey, ItemDef> = {
   pet: { th: 'ตั๋วสัตว์', en: 'Pet summon ticket', shop: 100, worth: 20, note: ['ไม่สำคัญเท่าตั๋วอัศวิน', 'Matters less than hero tickets'] },
   petWish: { th: 'ตั๋ว Pet Wish List', en: 'Pet Wish List voucher', shop: 200, worth: 200, note: ['ตู้เดียวที่กดด้วยรูบี้ไม่ได้', 'The only banner rubies can’t pull'] },
   equip: { th: 'ตั๋วของรัก', en: 'Dedicated gear ticket', shop: 80, worth: 80, note: ['เท่ากดตู้ของรักด้วยรูบี้', 'Same as a ruby pull'] },
-  card23: { th: 'การ์ด 2~3★', en: '2~3★ card', worth: 0, unknown: true },
-  card3: { th: 'การ์ด 3★', en: '3★ card', worth: 0, unknown: true },
+  card23: { th: 'ตั๋วอัศวิน Common (2★)', en: 'Common Hero Ticket (2★)', worth: 0, unknown: true },
+  card3: { th: 'ตั๋วอัศวิน Uncommon (3★)', en: 'Uncommon Hero Ticket (3★)', worth: 0, unknown: true },
   chaos: { th: 'Chaos Essence (ขวดเหลือง)', en: 'Chaos Essence', shop: 120, worth: 70,
     note: ['ได้จากเรด/จบซีซั่นเท่านั้น · กลาง ๆ', 'Raids/season rewards only · middling'] },
   oblivion: { th: 'Oblivion Essence (ขวดแดง)', en: 'Oblivion Essence', shop: 500, worth: 300, note: ['ค่าสูง แต่ร้านแพงไป', 'Valuable, but overpriced in the shop'] },
@@ -76,8 +76,8 @@ export const ITEMS: Record<PackItemKey, ItemDef> = {
   spark: { th: 'Inner Spark', en: 'Inner Spark', shop: 1, worth: 0.28, note: ['จากรอบดันเจี้ยน Power Up', 'From Power Up Dungeon runs'] },
   skillStone: { th: 'หินสกิล Brilliant', en: 'Brilliant Skill Stone', shop: 3000, worth: 2500, note: ['หายากมาก ส่วนใหญ่จากร้านรายเดือน', 'Very rare, mostly from the monthly shop'] },
   raid: { th: 'ตั๋วเรด', en: 'Raid ticket', worth: 0, note: ['ไม่นับ', 'Not counted'] },
-  ore: { th: 'ก้อนสีส้ม', en: 'Orange ore', worth: 0, unknown: true },
-  star: { th: 'ดาวสีชมพู', en: 'Pink star', worth: 0, unknown: true },
+  ore: { th: 'Topaz', en: 'Topaz', worth: 0, unknown: true },
+  star: { th: 'Star Crystal', en: 'Star Crystal', worth: 0, unknown: true },
 }
 export const itemName = (k: PackItemKey) => L(ITEMS[k].th, ITEMS[k].en)
 
