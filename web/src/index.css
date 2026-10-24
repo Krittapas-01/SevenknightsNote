@@ -930,3 +930,8 @@ html[data-theme="light"] .pack-head { background: linear-gradient(180deg, #d6b77
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 55%);
   mask-image: linear-gradient(to right, transparent 0, #000 55%);
 }
+
+/* หน้าคำนวณรูบี้: แท่งโตขึ้นตอนเข้าหน้า (ทีละแท่ง) · ความสูงเปลี่ยนนุ่ม ๆ · กรอบที่เลือกเลื่อนตาม (เด้งนิด ๆ) */
+.ruby-bar { transform-origin: bottom; animation: ruby-bar-grow 650ms var(--motion-out) backwards; transition: height 520ms var(--motion-out), background-color 220ms ease; }
+@keyframes ruby-bar-grow { from { transform: scaleY(0); } }
+.ruby-pick { transition: transform 420ms cubic-bezier(.22, 1.4, .36, 1); }

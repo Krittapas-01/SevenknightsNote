@@ -1,5 +1,5 @@
 import { ChevronDown, Clock, Coins, KeyRound, Minus, Package, Plus, RotateCcw, Swords, Users } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import ruby from '../assets/ui/ruby.webp'
 import packPowerUp from '../assets/packs/power-up.webp'
 import packRuby from '../assets/packs/ruby-support.webp'
@@ -8,6 +8,7 @@ import packCheckin from '../assets/packs/premium-checkin.webp'
 import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, bestBattles, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 import RubyIcon from '../components/RubyIcon'
+import { motionOK } from '../lib/overlayMotion'
 
 // คำนวณรูบี้ขายวิญญาณ: เปิดมาเห็นตัวเลขเดียว (รูบี้สุทธิต่อวันของตัวเลือกคุ้มสุด) · อยากเล่นน้อยลงเลือกจากกราฟแท่งราคากล่อง · รายละเอียดซ่อนไว้ · ข้อมูลเก็บในเครื่องนี้เท่านั้น
 const MAX_TIERS = 6
@@ -46,29 +47,51 @@ function Field({ label, value, onChange, unit, placeholder, wide }: { label: str
   )
 }
 
+/** ตัวเลขวิ่งจากค่าเก่าไปค่าใหม่ (ease-out ~0.55 วิ) · re-render แค่ตัวเลขนี้ · ลดแอนิเมชัน = เปลี่ยนทันที */
+function Tween({ value, format, ms = 550 }: { value: number; format: (n: number) => string; ms?: number }) {
+  const [v, setV] = useState(value)
+  const cur = useRef(value)
+  useEffect(() => {
+    const from = cur.current
+    if (from === value || !motionOK()) { cur.current = value; setV(value); return }
+    const start = performance.now()
+    let id = 0
+    const step = (t: number) => {
+      const k = Math.min(1, (t - start) / ms)
+      cur.current = from + (value - from) * (1 - (1 - k) ** 3)
+      setV(cur.current)
+      if (k < 1) id = requestAnimationFrame(step)
+    }
+    id = requestAnimationFrame(step)
+    return () => { cancelAnimationFrame(id); cur.current = value }
+  }, [value, ms])
+  return <>{format(v)}</>
+}
+const POP = 'cubic-bezier(.22, 1.4, .36, 1)'
+
 /** แพ็คที่ติ๊กได้ · การ์ดเล็กมีรูปแพ็ค ชื่อสั้น และค่าที่ได้ต่อวัน */
 function PackTile({ on, onClick, img, label, value, title }: { on: boolean; onClick: () => void; img: string; label: string; value: ReactNode; title: string }) {
   return (
     <button type="button" role="switch" aria-checked={on} onClick={onClick} title={title} aria-label={title}
-      className={`relative min-w-0 overflow-hidden rounded-xl border text-left transition ${on ? 'border-gold bg-gold/10' : 'border-white/10 bg-white/[.03] hover:border-gold/40'}`}>
+      className={`relative min-w-0 overflow-hidden rounded-xl border text-left transition duration-300 active:scale-95 ${on ? 'border-gold bg-gold/10' : 'border-white/10 bg-white/[.03] hover:border-gold/40'}`}>
       <img src={img} alt="" draggable={false} loading="lazy"
-        className={`block h-11 w-full object-cover object-right transition lg:h-14 ${on ? '' : 'opacity-35 grayscale'}`} />
-      {on && <span className="absolute right-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-gold text-[10px] font-bold text-ink">✓</span>}
-      <span className="block px-1.5 pb-1.5 pt-1">
-        <span className={`block truncate text-[11px] font-semibold leading-tight ${on ? '' : 'text-white/60'}`}>{label}</span>
-        <span className={`mt-0.5 flex items-center gap-0.5 text-[10px] tabular-nums ${on ? 'text-gold' : 'text-white/40'}`}>{value}</span>
+        className={`block h-16 w-full object-cover object-right transition duration-300 sm:h-20 lg:h-28 ${on ? '' : 'opacity-35 grayscale'}`} />
+      {on && <span className="tag-pop absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-gold text-xs font-bold text-ink shadow lg:h-7 lg:w-7 lg:text-sm">✓</span>}
+      <span className="flex flex-col gap-0.5 px-2.5 py-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2 lg:px-3 lg:py-2.5">
+        <span className={`min-w-0 truncate text-sm font-semibold leading-tight lg:text-lg ${on ? '' : 'text-white/60'}`}>{label}</span>
+        <span className={`flex shrink-0 items-center gap-1 text-xs font-semibold tabular-nums lg:text-base ${on ? 'text-gold' : 'text-white/40'}`}>{value}</span>
       </span>
     </button>
   )
 }
 
 /** ตัวเลขรอง 3 ช่องใต้ตัวเลขใหญ่ */
-function Stat({ icon, value, unit, sub }: { icon: ReactNode; value: string; unit: string; sub?: ReactNode }) {
+function Stat({ icon, value, unit, sub }: { icon: ReactNode; value: ReactNode; unit: string; sub?: ReactNode }) {
   return (
     <div className="min-w-0 px-1 text-center">
-      <div className="flex items-center justify-center gap-1 text-white/45">{icon}</div>
-      <div className="mt-0.5 text-lg font-bold leading-tight tabular-nums lg:text-2xl">{value}<span className="ml-1 text-xs font-normal text-white/50">{unit}</span></div>
-      {sub && <div className="mt-0.5 truncate text-[10px] text-white/40 tabular-nums lg:text-xs">{sub}</div>}
+      <div className="flex items-center justify-center gap-1 text-white/45 lg:[&>svg]:h-5 lg:[&>svg]:w-5">{icon}</div>
+      <div className="mt-0.5 text-lg font-bold leading-tight tabular-nums lg:text-4xl">{value}<span className="ml-1 text-xs font-normal text-white/50 lg:text-base">{unit}</span></div>
+      {sub && <div className="mt-0.5 truncate text-[10px] text-white/40 tabular-nums lg:text-sm">{sub}</div>}
     </div>
   )
 }
@@ -89,9 +112,6 @@ export default function RubyPage() {
   const keys = dailyKeys(form)
   const plan = useMemo(() => planFarm(input, 0), [input])
   const setSize = Math.max(1, Math.floor(input.battlesPerSet))
-  // ว่าง = เล่นเท่าที่ไม่ต้องจ่ายรูบี้ (กุญแจฟรี + กล่องฟรี)
-  let freeN = 0
-  while (freeN < plan.prices.length && plan.prices[freeN] === 0) freeN++
   const maxBattles = plan.days[plan.prices.length].battles
   // คุ้มที่สุด = ฟาร์มนานสุดที่ยังได้รูบี้สุทธิมากสุด (ซื้อกล่องทีละขั้นจนขั้นถัดไปไม่ได้เพิ่ม)
   const bestB = useMemo(() => bestBattles(input, plan.prices, plan.days[plan.prices.length].battles), [input, plan])
@@ -109,6 +129,18 @@ export default function RubyPage() {
     return { row, hasBest, res: hasBest ? best : farmBattles(input, row.day.battles, plan.prices) }
   }), [plan, input, best])
   const barMax = Math.max(1, ...bars.map((x) => x.res.net))
+  const selIdx = bars.findIndex((x) => x.res.battles === battles)
+  // ตัวเลขใหญ่เปลี่ยน → เด้งนิด ๆ + รูบี้หมุน (ขึ้น = หมุนขวา ลง = หมุนซ้าย)
+  const bigRef = useRef<HTMLParagraphElement>(null)
+  const gemRef = useRef<HTMLSpanElement>(null)
+  const prevNet = useRef(r.net)
+  useEffect(() => {
+    const before = prevNet.current
+    prevNet.current = r.net
+    if (before === r.net || !motionOK()) return
+    bigRef.current?.animate([{ transform: 'scale(1.06)' }, { transform: 'none' }], { duration: 420, easing: POP })
+    gemRef.current?.animate([{ transform: `rotate(${r.net > before ? 18 : -18}deg) scale(1.25)` }, { transform: 'none' }], { duration: 520, easing: POP })
+  }, [r.net])
   const perSet = form.team * num(form.rubyPerHero)
   // ดรอปเป็นดวง → บอกเป็นช่วง (±10% ปัดหลักสิบ) ไม่ใช่เลขเป๊ะ
   const dropLo = Math.floor((r.dropped * 0.9) / 10) * 10
@@ -118,37 +150,37 @@ export default function RubyPage() {
   return (
     <div className="mx-auto max-w-xl lg:max-w-none">
       <p className="eyebrow mb-1.5">RUBY FARMING</p>
-      <h1 className="gold-title flex items-center gap-2 text-2xl font-extrabold sm:text-3xl"><RubyIcon className="h-7 w-7 shrink-0 text-gold" />{L('คำนวณรูบี้ขายวิญญาณ', 'Ruby Farming Calculator')}</h1>
+      <h1 className="gold-title flex items-center gap-2 pt-1.5 text-2xl font-extrabold leading-normal sm:text-3xl lg:text-4xl lg:leading-normal"><RubyIcon className="h-7 w-7 shrink-0 text-gold lg:h-9 lg:w-9" />{L('คำนวณรูบี้ขายวิญญาณ', 'Ruby Farming Calculator')}</h1>
 
       {/* มือถือ: เรียงลงมาตาม order · คอม (lg): ซ้าย = ตั้งค่า/รายละเอียด, ขวา = ผลลัพธ์/กราฟ */}
       <div className="flex flex-col lg:mt-5 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-x-5">
         <div className="contents lg:block">
           {/* ===== ตั้งค่า: ทีม · แพ็ค · กุญแจฟรี ===== */}
-          <section className="panel order-1 mt-4 p-3.5 sm:p-4 lg:mt-0">
+          <section className="panel order-1 mt-4 p-3.5 sm:p-4 lg:mt-0 lg:p-5">
             <div className="flex items-center gap-3">
-              <span className="shrink-0 text-sm text-white/65">{L('อัศวิน Lv.1', 'Lv.1 heroes')}</span>
+              <span className="shrink-0 text-sm text-white/65 lg:text-lg">{L('อัศวิน Lv.1', 'Lv.1 heroes')}</span>
               <input type="range" min={1} max={MAX_TEAM} step={1} value={form.team} onChange={(e) => setForm((f) => ({ ...f, team: Number(e.target.value) }))}
                 aria-label={L('อัศวิน Lv.1 ในทีม', 'Lv.1 heroes in the team')} className="h-2 min-w-0 flex-1 cursor-pointer accent-gold" />
-              <b className="w-12 shrink-0 text-right tabular-nums">{L(`${form.team} ตัว`, `${form.team}`)}</b>
+              <b className="w-12 shrink-0 text-right tabular-nums lg:w-16 lg:text-xl">{L(`${form.team} ตัว`, `${form.team}`)}</b>
             </div>
 
-            <div className="mt-3 grid grid-cols-4 gap-1.5">
+            <div className="mt-3 grid grid-cols-2 gap-2 lg:mt-4 lg:gap-3">
               <PackTile on={form.powerUp} onClick={() => toggle('powerUp')} img={packPowerUp} label="Power Up"
                 title={L(`Daily Power Up Support (฿149 / 28 วัน): กุญแจฟื้นเร็วขึ้น + ${POWER_UP.dailyKeys} ดอก/วัน`, `Daily Power Up Support (฿149 / 28 days): faster key regen + ${POWER_UP.dailyKeys}/day`)}
-                value={<><KeyRound className="h-2.5 w-2.5" />+{fmt(keys.powerUpRegen + POWER_UP.dailyKeys)}</>} />
+                value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(keys.powerUpRegen + POWER_UP.dailyKeys)}</>} />
               <PackTile on={form.rubySupport} onClick={() => toggle('rubySupport')} img={packRuby} label="Daily Ruby"
                 title={L(`Daily Ruby Support (฿249 / 28 วัน): อัศวินตันใน ${RUBY_SUPPORT.battlesPerSet} รอบ (ปกติ ${RUBY_SUPPORT.battlesPerSetWithout}) + ${RUBY_SUPPORT.dailyRubies} รูบี้/วัน`, `Daily Ruby Support (฿249 / 28 days): heroes max in ${RUBY_SUPPORT.battlesPerSet} battles (not ${RUBY_SUPPORT.battlesPerSetWithout}) + ${RUBY_SUPPORT.dailyRubies} rubies/day`)}
-                value={<><Ruby className="h-2.5 w-2.5" />+{fmt(RUBY_SUPPORT.dailyRubies)}</>} />
+                value={<><Ruby className="h-3.5 w-3.5" />+{fmt(RUBY_SUPPORT.dailyRubies)}</>} />
               <PackTile on={form.passPremium} onClick={() => toggle('passPremium')} img={packPass} label="7K Pass"
                 title={L(`${PAID_KEYS.passPremium.th}: ${fmt(PAID_KEYS.passPremium.keys)} กุญแจต่อ ${PAID_KEYS.passPremium.days} วัน`, `${PAID_KEYS.passPremium.en}: ${fmt(PAID_KEYS.passPremium.keys)} keys per ${PAID_KEYS.passPremium.days} days`)}
-                value={<><KeyRound className="h-2.5 w-2.5" />+{fmt(PAID_KEYS.passPremium.keys / PAID_KEYS.passPremium.days)}</>} />
+                value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(PAID_KEYS.passPremium.keys / PAID_KEYS.passPremium.days)}</>} />
               <PackTile on={form.premiumCheckin} onClick={() => toggle('premiumCheckin')} img={packCheckin} label={L('เช็กอิน+', 'Check-in+')}
                 title={L(`${PAID_KEYS.premiumCheckin.th}: ${fmt(PAID_KEYS.premiumCheckin.keys)} กุญแจต่อ ${PAID_KEYS.premiumCheckin.days} วัน`, `${PAID_KEYS.premiumCheckin.en}: ${fmt(PAID_KEYS.premiumCheckin.keys)} keys per ${PAID_KEYS.premiumCheckin.days} days`)}
-                value={<><KeyRound className="h-2.5 w-2.5" />+{fmt(PAID_KEYS.premiumCheckin.keys / PAID_KEYS.premiumCheckin.days)}</>} />
+                value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(PAID_KEYS.premiumCheckin.keys / PAID_KEYS.premiumCheckin.days)}</>} />
             </div>
 
             <div className="mt-3 border-t border-white/10 pt-1">
-              <button type="button" onClick={() => setKeysOpen((o) => !o)} aria-expanded={keysOpen} className="flex w-full items-center gap-2 py-1.5 text-left text-sm">
+              <button type="button" onClick={() => setKeysOpen((o) => !o)} aria-expanded={keysOpen} className="flex w-full items-center gap-2 py-1.5 text-left text-sm lg:py-2 lg:text-lg">
                 <KeyRound className="h-4 w-4 shrink-0 text-gold" />
                 <span className="min-w-0 flex-1 text-white/65">{L('กุญแจฟรีต่อวัน', 'Free keys per day')}</span>
                 <b className="tabular-nums">{fmt(keys.total)}</b>
@@ -158,8 +190,7 @@ export default function RubyPage() {
                 <ul className="edit-arrive mt-1 flex flex-col gap-2.5 rounded-xl bg-white/[.03] p-3 text-sm">
                   <li>
                     <button type="button" onClick={() => setBaseOpen((o) => !o)} aria-expanded={baseOpen} className="flex w-full items-center gap-2 text-left">
-                      <span className="min-w-0 text-white/70">{L('ที่ทุกคนได้เท่ากัน', 'Everyone gets')}{' '}
-                        <span className="text-xs text-white/45">{L(`(${BASE_KEYS.length} อย่าง)`, `(${BASE_KEYS.length} sources)`)}</span></span>
+                      <span className="min-w-0 text-white/70">{L('พื้นฐาน', 'Base')}</span>
                       <ChevronDown className={`h-4 w-4 shrink-0 text-white/50 transition ${baseOpen ? 'rotate-180' : ''}`} />
                       <b className="ml-auto tabular-nums">{fmt1(keys.base)}</b>
                     </button>
@@ -188,16 +219,13 @@ export default function RubyPage() {
                     </div>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="min-w-0 text-white/70">{L('อื่น ๆ', 'Other')} <span className="text-xs text-white/45">{L('(อีเวนต์ ฯลฯ)', '(events, etc.)')}</span></span>
+                    <span className="min-w-0 text-white/70">{L('อื่น ๆ', 'Other')}</span>
                     <input value={form.extraKeys} onChange={(e) => set('extraKeys', e.target.value)} inputMode="numeric" placeholder="0" aria-label={L('กุญแจอื่น ๆ ต่อวัน', 'Other keys per day')}
                       aria-invalid={bad(form.extraKeys) || undefined} className={`${numInput(form.extraKeys)} ml-auto w-16 shrink-0 text-white`} />
                   </li>
                   {keys.powerUp + keys.passPremium + keys.premiumCheckin > 0 && (
                     <li className="flex items-center gap-2"><span className="text-white/70">{L('จากแพ็คที่เลือก', 'From your packs')}</span>
                       <b className="ml-auto tabular-nums">{fmt1(keys.powerUp + keys.passPremium + keys.premiumCheckin)}</b></li>
-                  )}
-                  {freeN > 0 && (
-                    <li className="text-xs text-white/45">{L(`+ กล่องฟรีในร้านรูบี้ ${fmt(freeN * input.keysPerBox)} ดอก (นับรวมตอนซื้อกล่อง)`, `+ the free Ruby Shop box, ${fmt(freeN * input.keysPerBox)} keys (counted with box purchases)`)}</li>
                   )}
                 </ul>
               )}
@@ -207,24 +235,20 @@ export default function RubyPage() {
           {/* ===== รายละเอียด (มือถือพับไว้ · คอมกางตลอด ให้ฝั่งซ้ายไม่โล่ง) ===== */}
           <section className="panel order-4 mt-6 lg:mt-5">
             <button type="button" onClick={() => setInfoOpen((o) => !o)} aria-expanded={infoOpen} className="flex w-full items-center justify-between gap-2 p-4 text-left lg:pointer-events-none">
-              <span className="font-semibold">{L('รายละเอียด', 'Details')}</span>
+              <span className="font-semibold lg:text-lg">{L('รายละเอียด', 'Details')}</span>
               <ChevronDown className={`h-5 w-5 shrink-0 text-white/50 transition lg:hidden ${infoOpen ? 'rotate-180' : ''}`} />
             </button>
             {(
-              <ul className={`${infoOpen ? 'edit-arrive flex' : 'hidden lg:flex'} flex-col gap-2 border-t border-white/10 p-4 text-sm tabular-nums`}>
+              <ul className={`${infoOpen ? 'edit-arrive flex' : 'hidden lg:flex'} flex-col gap-2 border-t border-white/10 p-4 text-sm tabular-nums lg:gap-2.5 lg:px-5 lg:text-base`}>
                 <li className="flex items-center gap-2"><Ruby className="h-4 w-4" /><span className="text-white/65">{L('รูบี้จากฟาร์ม', 'Rubies from farming')}</span><b className="ml-auto">{fmt(r.rubies)}</b></li>
                 <li className="flex items-center gap-2"><Package className="h-4 w-4 text-white/45" /><span className="text-white/65">{L(`ค่ากล่อง ${fmt(r.boxes)} กล่อง`, `${fmt(r.boxes)} key boxes`)}</span><b className="ml-auto">−{fmt(r.cost)}</b></li>
-                <li className="flex items-center gap-2"><Swords className="h-4 w-4 text-white/45" /><span className="text-white/65">{L(`${fmt(r.battles)} รอบ · ทุก ${fmt(setSize)} รอบได้`, `${fmt(r.battles)} battles · every ${fmt(setSize)} gives`)}</span><b className="ml-auto flex items-center gap-1"><Ruby className="h-3.5 w-3.5" />{fmt(perSet)}</b></li>
+                <li className="flex items-center gap-2"><Swords className="h-4 w-4 text-white/45" /><span className="text-white/65">{L(`ทุก ${fmt(setSize)} รอบได้`, `Every ${fmt(setSize)} battles`)}</span><b className="ml-auto flex items-center gap-1"><Ruby className="h-3.5 w-3.5" />{fmt(perSet)}</b></li>
                 <li className="flex items-center gap-2"><KeyRound className="h-4 w-4 text-white/45" /><span className="text-white/65">{L('ใช้กุญแจ', 'Keys used')}</span><b className="ml-auto">{fmt(r.keysNeeded)}</b></li>
                 <li className="flex items-center gap-2"><Coins className="h-4 w-4 text-white/45" /><span className="text-white/65">{L('ได้ทอง', 'Gold')}</span><b className="ml-auto">{big(r.gold)}</b></li>
                 {r.dropped > 0 && r.heroes > 0 && (
-                  <li className="flex items-center gap-2"><Users className="h-4 w-4 text-white/45" /><span className="min-w-0 text-white/65">{L('อัศวิน 2–3★ ดรอปคืน → เตรียมเองราว', '2–3★ heroes drop back → prepare about')}</span>
+                  <li className="flex items-center gap-2"><Users className="h-4 w-4 text-white/45" /><span className="min-w-0 text-white/65">{L('อัศวินที่ต้องเตรียมเอง', 'Heroes to prepare')}</span>
                     <b className="ml-auto shrink-0">{fmt(Math.max(0, r.heroes - dropHi))}–{fmt(Math.max(0, r.heroes - dropLo))}</b></li>
                 )}
-                <li className="mt-1 text-xs leading-relaxed text-white/40">
-                  {L('นับรูบี้เฉพาะชุดที่ครบ · เควสต์ทำซ้ำคืนกุญแจระหว่างเล่น · กุญแจเหลือเก็บไว้วันถัดไป · ค่าเริ่มต้นจากที่ผู้เล่นจับเวลาจริง · รูปแพ็คจาก 7K Atlas · ข้อมูลเก็บในเครื่องนี้เท่านั้น',
-                    'Only full sets count · the repeat quest refunds keys while you play · leftover keys carry over · defaults come from a player’s own timing · pack art via 7K Atlas · data stays on this device')}
-                </li>
               </ul>
             )}
           </section>
@@ -232,20 +256,17 @@ export default function RubyPage() {
           {/* ===== ค่าที่ใช้คิด ===== */}
           <section className="panel order-5 mt-3">
             <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more} className="flex w-full items-center justify-between gap-2 p-4 text-left">
-              <span>
-                <span className="block font-semibold">{L('ค่าที่ใช้คิด (แก้ได้)', 'Game values (editable)')}</span>
-                <span className="block text-xs text-white/50">{L('กุญแจ · เวลา · ทอง · เควสต์ทำซ้ำ · ราคากล่อง', 'Keys · time · gold · repeat quest · box prices')}</span>
-              </span>
+              <span className="font-semibold lg:text-lg">{L('ค่าในเกม (แก้ได้)', 'Game values (editable)')}</span>
               <ChevronDown className={`h-5 w-5 shrink-0 text-white/50 transition ${more ? 'rotate-180' : ''}`} />
             </button>
             {more && (
               <div className="edit-arrive border-t border-white/10 p-4">
                 <p className="text-sm font-medium text-gold">{L('อัศวิน Lv.1', 'Lv.1 heroes')}</p>
                 <div className="mt-2 flex flex-wrap gap-3">
-                  <Field label={L('รูบี้ต่ออัศวินที่เต็มเลเวล', 'Rubies per maxed hero')} value={form.rubyPerHero} onChange={(v) => set('rubyPerHero', v)} unit={<Ruby />} />
-                  <Field label={L('รอบจนอัศวินตัน (ไม่มีแพ็ค)', 'Battles to max (no pack)')} value={form.battlesPerSetBase} onChange={(v) => set('battlesPerSetBase', v)} unit={L('รอบ', 'battles')} />
-                  <Field label={L('รอบจนอัศวินตัน (มี Daily Ruby)', 'Battles to max (Daily Ruby)')} value={form.battlesPerSet} onChange={(v) => set('battlesPerSet', v)} unit={L('รอบ', 'battles')} />
-                  <Field label={L('ดรอปอัศวิน 2–3★ ต่อ 100 รอบ', '2–3★ hero drops per 100 battles')} value={form.heroDrop} onChange={(v) => set('heroDrop', v)} unit={L('ตัว', 'heroes')} />
+                  <Field label={L('รูบี้ต่อตัวที่เต็ม', 'Rubies per maxed hero')} value={form.rubyPerHero} onChange={(v) => set('rubyPerHero', v)} unit={<Ruby />} />
+                  <Field label={L('รอบจนเต็ม (ไม่มีแพ็ค)', 'Battles to max (no pack)')} value={form.battlesPerSetBase} onChange={(v) => set('battlesPerSetBase', v)} unit={L('รอบ', 'battles')} />
+                  <Field label={L('รอบจนเต็ม (Daily Ruby)', 'Battles to max (Daily Ruby)')} value={form.battlesPerSet} onChange={(v) => set('battlesPerSet', v)} unit={L('รอบ', 'battles')} />
+                  <Field label={L('ดรอป 2–3★ ต่อ 100 รอบ', '2–3★ drops per 100 battles')} value={form.heroDrop} onChange={(v) => set('heroDrop', v)} unit={L('ตัว', 'heroes')} />
                 </div>
 
                 <p className="mt-5 text-sm font-medium text-gold">{L('กุญแจและการต่อสู้', 'Keys and battles')}</p>
@@ -262,7 +283,7 @@ export default function RubyPage() {
                   <Field label={L('ได้ทอง', 'Gold')} value={form.questGold} onChange={(v) => set('questGold', v)} unit={<Coins className="h-4 w-4" />} wide />
                 </div>
 
-                <p className="mt-5 text-sm font-medium text-gold">{L('กล่องกุญแจ (ราคารีเซ็ตทุกวัน 07:00)', 'Key boxes (prices reset daily at 07:00 TH)')}</p>
+                <p className="mt-5 text-sm font-medium text-gold">{L('กล่องกุญแจ', 'Key boxes')}</p>
                 <div className="mt-2"><Field label={L('กุญแจต่อกล่อง', 'Keys per box')} value={form.keysPerBox} onChange={(v) => set('keysPerBox', v)} unit={<KeyRound className="h-4 w-4" />} /></div>
                 <div className="mt-3 flex flex-col gap-2">
                   {form.tiers.map((t, i) => (
@@ -285,75 +306,78 @@ export default function RubyPage() {
                 )}
 
                 <button type="button" onClick={() => setForm(DEFAULT_FARM_FORM)}
-                  className="mt-5 flex items-center gap-1.5 text-xs text-white/55 hover:text-gold"><RotateCcw className="h-3.5 w-3.5" />{L('กลับเป็นค่าเริ่มต้นทั้งหมด', 'Reset everything to defaults')}</button>
+                  className="mt-5 flex items-center gap-1.5 text-xs text-white/55 hover:text-gold"><RotateCcw className="h-3.5 w-3.5" />{L('ค่าเริ่มต้น', 'Reset')}</button>
               </div>
             )}
           </section>
         </div>
         <div className="contents lg:block">
           {/* ===== ผลลัพธ์: ตัวเลขเดียวเด่น ===== */}
-          <section className="panel panel-gold order-2 mt-5 px-4 pb-4 pt-5 text-center lg:mt-0 lg:pb-5 lg:pt-6" aria-live="polite">
+          <section className="panel panel-gold order-2 mt-5 px-4 pb-4 pt-5 text-center lg:mt-0 lg:px-6 lg:pb-8 lg:pt-9" aria-live="polite">
             <div className="flex min-h-6 items-center justify-center gap-2">
               {isBest
-                ? <span className="rounded-full bg-gold px-2.5 py-0.5 text-xs font-bold text-ink">{L('★ คุ้มสุด', '★ Best value')}</span>
+                ? <span key="best" className="tag-pop rounded-full bg-gold px-2.5 py-0.5 text-xs font-bold text-ink lg:px-4 lg:py-1 lg:text-base">{L('★ คุ้มสุด', '★ Best value')}</span>
                 : (
-                  <>
+                  <span key="pick" className="tag-pop flex items-center gap-2">
                     <span className="text-xs text-white/55">{L(`ซื้อกล่องถึงราคา ${picked ? tierName(picked) : ''}`, `Boxes up to ${picked ? tierName(picked) : ''}`)}</span>
                     <button type="button" onClick={() => setPick(null)} className="rounded-full border border-gold/60 px-2.5 py-0.5 text-xs font-semibold text-gold hover:bg-gold/15">{L('★ กลับไปคุ้มสุด', '★ Back to best')}</button>
-                  </>
+                  </span>
                 )}
             </div>
-            <p className={`mt-2 flex items-center justify-center gap-2 text-5xl font-extrabold tabular-nums sm:text-6xl lg:text-7xl ${r.net >= 0 ? 'text-gold' : 'text-red-300'}`}>
-              <Ruby className="h-9 w-9 sm:h-11 sm:w-11 lg:h-14 lg:w-14" />{signed(r.net)}
+            <p ref={bigRef} className={`mt-2 flex items-center justify-center gap-2 text-5xl font-extrabold tabular-nums sm:text-6xl lg:text-8xl ${r.net >= 0 ? 'text-gold' : 'text-red-300'}`}>
+              <span ref={gemRef} className="inline-flex"><Ruby className="h-9 w-9 sm:h-11 sm:w-11 lg:h-20 lg:w-20" /></span><Tween value={r.net} format={signed} ms={650} />
             </p>
-            <p className="mt-1 text-sm text-white/55">
+            <p className="mt-1 text-sm text-white/55 lg:text-lg">
               {L('รูบี้สุทธิต่อวัน', 'net rubies a day')}
               {form.rubySupport && <span className="ml-1.5 whitespace-nowrap text-gold">{L(`+${fmt(RUBY_SUPPORT.dailyRubies)} จากแพ็ค`, `+${fmt(RUBY_SUPPORT.dailyRubies)} from pack`)}</span>}
             </p>
-            {!isBest && (
-              <p className="mt-1 text-xs tabular-nums text-white/45">
-                {L(`น้อยกว่าคุ้มสุด ${fmt(best.net - r.net)} · ${r.seconds <= best.seconds ? `เร็วกว่า ${hours(best.seconds - r.seconds)}` : `นานกว่า ${hours(r.seconds - best.seconds)}`}`,
-                  `${fmt(best.net - r.net)} less than best · ${r.seconds <= best.seconds ? `${hours(best.seconds - r.seconds)} shorter` : `${hours(r.seconds - best.seconds)} longer`}`)}
-              </p>
-            )}
 
-            <div className="mt-4 grid grid-cols-3 divide-x divide-white/10 rounded-2xl bg-white/[.04] py-2.5">
-              <Stat icon={<Clock className="h-4 w-4" />} value={hm(r.seconds)} unit={L('ชม.', 'h')} sub={L(`${fmt(r.battles)} รอบ`, `${fmt(r.battles)} battles`)} />
-              <Stat icon={<Users className="h-4 w-4" />} value={fmt(r.heroes)} unit={L('ตัว', 'heroes')}
+            <div className="mt-4 grid grid-cols-3 divide-x divide-white/10 rounded-2xl bg-white/[.04] py-2.5 lg:mt-5 lg:py-4">
+              <Stat icon={<Clock className="h-4 w-4" />} value={<Tween value={r.seconds} format={hm} />} unit={L('ชม.', 'h')} sub={L(`${fmt(r.battles)} รอบ`, `${fmt(r.battles)} battles`)} />
+              <Stat icon={<Users className="h-4 w-4" />} value={<Tween value={r.heroes} format={fmt} />} unit={L('ตัว', 'heroes')}
                 sub={r.dropped > 0 && r.heroes > 0 ? L(`ดรอปคืน ~${fmt(dropLo)}–${fmt(dropHi)}`, `~${fmt(dropLo)}–${fmt(dropHi)} back`) : undefined} />
-              <Stat icon={<Package className="h-4 w-4" />} value={fmt(r.boxes)} unit={L('กล่อง', 'boxes')}
+              <Stat icon={<Package className="h-4 w-4" />} value={<Tween value={r.boxes} format={fmt} />} unit={L('กล่อง', 'boxes')}
                 sub={r.cost ? <span className="inline-flex items-center gap-0.5"><Ruby className="h-2.5 w-2.5" />−{fmt(r.cost)}</span> : L('ไม่เสียรูบี้', 'no rubies')} />
             </div>
           </section>
 
           {/* ===== เลือกเล่นน้อยลง: กราฟแท่งตามราคากล่อง ===== */}
           <section className="order-3 mt-6 lg:mt-5 lg:rounded-2xl lg:border lg:border-white/10 lg:bg-white/[.02] lg:p-4">
-            <h2 className="text-sm font-semibold text-white/80">{L('อยากเล่นน้อยลง?', 'Want to play less?')}</h2>
-            <div className="mt-2 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }} role="radiogroup" aria-label={L('ซื้อกล่องถึงราคา', 'Boxes up to')}>
-              {bars.map(({ row, hasBest, res }) => {
+            <h2 className="text-sm font-semibold text-white/80 lg:text-lg">{L('อยากเล่นน้อยลง?', 'Want to play less?')}</h2>
+            <div className="relative mt-2 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }} role="radiogroup" aria-label={L('ซื้อกล่องถึงราคา', 'Boxes up to')}>
+              {/* กรอบทองเลื่อนไปแท่งที่เลือก */}
+              {selIdx >= 0 && (
+                <span aria-hidden="true" className="ruby-pick pointer-events-none absolute inset-y-0 left-0 rounded-xl bg-gold/15 ring-1 ring-gold"
+                  style={{ width: `calc((100% - ${bars.length - 1} * 0.375rem) / ${bars.length})`, transform: `translateX(calc(${selIdx} * (100% + 0.375rem)))` }} />
+              )}
+              {bars.map(({ row, hasBest, res }, i) => {
                 const sel = res.battles === battles
                 const h = res.net > 0 ? Math.max(8, (res.net / barMax) * 100) : 6
                 return (
                   <button key={row.tier} type="button" role="radio" aria-checked={sel} onClick={() => setPick(hasBest ? null : row.tier)}
                     aria-label={L(`กล่อง ${tierName(row)}: ${signed(res.net)} รูบี้ · ${hours(res.seconds)}`, `${tierName(row)} boxes: ${signed(res.net)} rubies · ${hours(res.seconds)}`)}
-                    className={`flex min-w-0 flex-col items-center rounded-xl px-1 pb-2 pt-2 transition ${sel ? 'bg-gold/15 ring-1 ring-gold' : 'hover:bg-white/[.05]'}`}>
-                    <span className={`text-[11px] font-bold tabular-nums lg:text-sm ${res.net > 0 ? (sel ? 'text-gold' : 'text-white/75') : 'text-red-300'}`}>{signed(res.net)}</span>
-                    <span className="mt-1 flex h-20 w-full items-end justify-center lg:h-36">
-                      <span className={`w-7 rounded-t-md transition-[height] lg:w-12 ${res.net <= 0 ? 'bg-red-400/50' : sel ? 'bg-gold' : 'bg-white/20'}`} style={{ height: `${h}%` }} />
+                    className={`relative flex min-w-0 flex-col items-center rounded-xl px-1 pb-2 pt-2 transition active:scale-95 ${sel ? '' : 'hover:bg-white/[.05]'}`}>
+                    <span className={`text-[11px] font-bold tabular-nums lg:text-lg ${res.net > 0 ? (sel ? 'text-gold' : 'text-white/75') : 'text-red-300'}`}>{signed(res.net)}</span>
+                    <span className="mt-1 flex h-20 w-full items-end justify-center lg:h-60">
+                      <span className={`ruby-bar w-7 rounded-t-md lg:w-16 lg:rounded-t-lg ${res.net <= 0 ? 'bg-red-400/50' : sel ? 'bg-gold' : 'bg-white/20'}`} style={{ height: `${h}%`, animationDelay: `${i * 70}ms` }} />
                     </span>
-                    <span className={`mt-1.5 flex items-center gap-0.5 text-xs font-semibold lg:text-sm ${sel ? 'text-gold' : 'text-white/70'}`}>
+                    <span className={`mt-1.5 flex items-center gap-0.5 text-xs font-semibold lg:mt-2 lg:text-lg ${sel ? 'text-gold' : 'text-white/70'}`}>
                       {row.price > 0 && <Ruby className="h-3 w-3" />}{tierName(row)}
                     </span>
-                    <span className="text-[10px] tabular-nums text-white/45 lg:text-xs">{hm(res.seconds)}</span>
-                    {hasBest && <span className="mt-0.5 text-[10px] font-bold text-gold">★</span>}
+                    <span className="text-[10px] tabular-nums text-white/45 lg:text-sm">{hm(res.seconds)}</span>
+                    {hasBest && <span className="mt-0.5 text-[10px] font-bold text-gold lg:text-sm">★</span>}
                   </button>
                 )
               })}
             </div>
-            <p className="mt-1.5 text-center text-[11px] text-white/40">{L('ราคากล่องกุญแจที่ซื้อถึง · เวลาเป็น ชม.:นาที', 'Key box price you buy up to · time in h:mm')}</p>
+            <p className="mt-1.5 text-center text-[11px] text-white/40 lg:mt-4 lg:text-sm">{L('ซื้อกล่องถึงราคา', 'Boxes bought up to')}</p>
           </section>
         </div>
       </div>
+
+      <p className="mt-6 text-xs leading-relaxed text-white/40 lg:text-sm">
+        {L('รูปแพ็คจาก 7K Atlas', 'Pack art via 7K Atlas')}
+      </p>
     </div>
   )
 }
