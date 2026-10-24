@@ -911,8 +911,8 @@ html[data-theme="light"] .updates-rail-item.is-active .updates-rail-dot { border
 .pack-tile-n { color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
 .pack-tile-bonus { background: #111; color: #fff; }
 .pack-art-l {
-  -webkit-mask-image: linear-gradient(to left, transparent 0, #000 45%);
-  mask-image: linear-gradient(to left, transparent 0, #000 45%);
+  -webkit-mask-image: linear-gradient(to left, transparent 0, #000 35%);
+  mask-image: linear-gradient(to left, transparent 0, #000 35%);
 }
 .pack-head { background: linear-gradient(180deg, #b39257, #8c6c34); color: #fff8e6; text-shadow: 0 1px 1px #0005; }
 .pack-price { background: #1b1b1f; color: #f6e7c1; }
