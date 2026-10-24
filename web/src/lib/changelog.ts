@@ -46,6 +46,19 @@ const CHANGELOG_TH: ChangelogEntry[] = [
   },
   ] satisfies ChangelogEntry[]) : []),
   {
+    id: '2026-10-24c',
+    version: '1.5.4',
+    date: '24 ต.ค. 2026',
+    title: 'Tool Belt',
+    summary: 'หน้าแรกมีการ์ดเครื่องมือ หาเช็กบัฟบิสกิต เทียบพลังโจมตี และคำนวณแต้มเบ็ดเสร็จเจอง่ายขึ้น',
+    sections: [
+      { kind: 'change', groups: [
+        g('หน้าแรก',
+          'มีการ์ดเครื่องมือใต้ช่องสร้างกิลด์: เช็กบัฟบิสกิต · เทียบพลังโจมตี · คำนวณแต้มเบ็ดเสร็จ ใช้ได้เลยไม่ต้องสร้างกิลด์ (เดิมอยู่แค่ในเมนู ☰)'),
+      ] },
+    ],
+  },
+  {
     id: '2026-10-24',
     version: '1.5.3',
     date: '24 ต.ค. 2026',
@@ -393,6 +406,16 @@ const CHANGELOG_EN: ChangelogEntry[] = [
     ],
   },
   ] satisfies ChangelogEntry[]) : []),
+  {
+    id: '2026-10-24c', version: '1.5.4', date: '24 Oct 2026', title: 'Tool Belt',
+    summary: 'Tool cards on the home page make Biscuit buff check, Attack Compare and Total War points easier to find',
+    sections: [
+      { kind: 'change', groups: [
+        g('Home page',
+          'Tool cards under the create-guild form: Biscuit buff check · Attack Compare · Total War points, usable without a guild (before, they were only in the ☰ menu)'),
+      ] },
+    ],
+  },
   {
     id: '2026-10-24', version: '1.5.3', date: '24 Oct 2026', title: 'Formation',
     summary: 'Team building like in the game, English mode on every page, no jumps when going back, and smoother still',
