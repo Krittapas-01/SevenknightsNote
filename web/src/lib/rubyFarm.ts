@@ -3,7 +3,9 @@
  * ค่าเริ่มต้นจากที่ Krit เล่นจริง (24 ต.ค. 2026):
  * - 1 รอบใช้ 6 กุญแจ ~21 วิ ได้ ~6,800 ทอง
  * - ทุก 10 รอบ ฮีโร่ Lv.1 5 ตัวเต็มเลเวล ได้ตัวละ 20 รูบี้ = 100 รูบี้ (นับเฉพาะชุดครบ 10 รอบ)
- * - กุญแจฟื้น 1 ดอก/นาที = 1,440/วัน (ไม่มีเพดานแล้ว → กุญแจที่เหลือเก็บไว้วันถัดไปได้)
+ * - กุญแจฟื้น 1 ดอก/2 นาที = 720/วัน (แพ็ค Daily Power Up Support: เร็วขึ้น 60 วิ → 1/นาที + 80 ดอก/วัน) · ไม่มีเพดาน → ที่เหลือเก็บไว้วันถัดไปได้
+ * - กุญแจฟรีอื่น ๆ: กล่องฟรีร้านรายวัน 30 · ภารกิจรายวัน 60 (40 แต้ม 20 + 80 แต้ม 40) · เช็กอินกิลด์ 14/40/52/64/80
+ * - แพ็ค Daily Ruby Support: รูบี้จากฟาร์มเพิ่ม x% (+ 200 รูบี้/วัน ไม่นับในหน้านี้)
  * - เควสต์ทำซ้ำ: ทุก 160 รอบ ได้ 20 กุญแจ + 60,000 ทอง
  * - กล่องกุญแจ 60 ดอก ราคาต่อวัน: กล่องแรกฟรี · 20 กล่องถัดไป 50 · 50 กล่องถัดไป 80 · 50 กล่องถัดไป 100 รูบี้
  */
@@ -17,6 +19,8 @@ export type FarmInput = {
   battlesPerSet: number
   heroesPerSet: number
   rubyPerHero: number
+  /** รูบี้จากฟาร์มเพิ่มกี่ % (แพ็ค Daily Ruby Support) */
+  rubyBoost: number
   goldPerBattle: number
   questEvery: number
   questKeys: number
@@ -30,12 +34,13 @@ export type FarmInput = {
 }
 
 export const FARM_DEFAULTS: FarmInput = {
-  freeKeys: 1440,
+  freeKeys: 720 + 30 + 60 + 80, // ฟื้นเอง + กล่องฟรีร้าน + ภารกิจรายวัน + เช็กอินกิลด์
   keysPerBattle: 6,
   secPerBattle: 21,
   battlesPerSet: 10,
   heroesPerSet: 5,
   rubyPerHero: 20,
+  rubyBoost: 0,
   goldPerBattle: 6800,
   questEvery: 160,
   questKeys: 20,
@@ -108,7 +113,7 @@ export function simulateDay(input: FarmInput, boxes: number, prices = boxPrices(
   const leftKeys = keys - battles * kpb + quests * qKeys
   const sets = battles / setSize
   const heroesUsed = sets * Math.floor(pos(input.heroesPerSet))
-  const rubies = heroesUsed * pos(input.rubyPerHero)
+  const rubies = heroesUsed * pos(input.rubyPerHero) * (1 + pos(input.rubyBoost) / 100)
   return {
     boxes: n, cost, keys, battles, sets, rubies, net: rubies - cost,
     gold: battles * pos(input.goldPerBattle) + quests * pos(input.questGold),
@@ -185,19 +190,30 @@ export function planFarm(input: FarmInput, soulPrice: number): FarmPlan {
 /* ===== ค่าที่ผู้ใช้กรอกในหน้า /ruby (เก็บในเครื่อง) — หน้าอื่น (เช่น เช็กความคุ้มค่าแพ็ค) อ่านผ่าน loadFarmInput() ได้ ===== */
 
 export const FARM_STORE_KEY = '7k-note:ruby'
-type NumKey = Exclude<keyof FarmInput, 'tiers' | 'heroesPerSet'>
+/** แพ็ครายเดือน Daily Power Up Support: กุญแจฟื้นเร็วขึ้นกี่วินาที + กุญแจรายวัน */
+export const POWER_UP = { regenCut: 60, dailyKeys: 80 }
+/** เช็กอินกิลด์ (ตามจำนวนคนที่เช็กอินเมื่อวาน 1/10/15/20/25 คน) */
+export const GUILD_CHECKIN = [0, 14, 40, 52, 64, 80]
+type NumKey = Exclude<keyof FarmInput, 'tiers' | 'heroesPerSet' | 'freeKeys' | 'rubyBoost'>
 /** ค่าในฟอร์มเป็นข้อความ (ช่องว่าง = ใช้ค่าเริ่มต้น) · team = ฮีโร่ Lv.1 ในทีม 1–5 */
-export type FarmForm = Record<NumKey, string> & { team: number; tiers: { boxes: string; price: string }[]; soul: string; owned: string }
+export type FarmForm = Record<NumKey, string> & {
+  team: number; tiers: { boxes: string; price: string }[]; soul: string; owned: string
+  /** กุญแจฟื้น 1 ดอกทุกกี่วินาที (ก่อนลดจากแพ็ค) */
+  regenSec: string; powerUp: boolean; shopKeys: string; missionKeys: string; guildKeys: number; extraKeys: string
+  rubySupport: boolean; rubyBoost: string
+}
 
 const s = (n: number) => String(n)
 export const DEFAULT_FARM_FORM: FarmForm = {
-  freeKeys: s(FARM_DEFAULTS.freeKeys), keysPerBattle: s(FARM_DEFAULTS.keysPerBattle), secPerBattle: s(FARM_DEFAULTS.secPerBattle),
+  keysPerBattle: s(FARM_DEFAULTS.keysPerBattle), secPerBattle: s(FARM_DEFAULTS.secPerBattle),
   battlesPerSet: s(FARM_DEFAULTS.battlesPerSet), rubyPerHero: s(FARM_DEFAULTS.rubyPerHero), goldPerBattle: s(FARM_DEFAULTS.goldPerBattle),
   questEvery: s(FARM_DEFAULTS.questEvery), questKeys: s(FARM_DEFAULTS.questKeys), questGold: s(FARM_DEFAULTS.questGold),
   keysPerBox: s(FARM_DEFAULTS.keysPerBox), heroDrop: '', maxHours: s(FARM_DEFAULTS.maxHours),
   team: FARM_DEFAULTS.heroesPerSet,
   tiers: FARM_DEFAULTS.tiers.map((t) => ({ boxes: s(t.boxes), price: s(t.price) })),
   soul: '100', owned: '',
+  regenSec: '120', powerUp: false, shopKeys: '30', missionKeys: '60', guildKeys: 80, extraKeys: '',
+  rubySupport: false, rubyBoost: '',
 }
 
 /** อ่านฟอร์มที่จำไว้ (รวมกับค่าเริ่มต้นทีละช่อง → ข้อมูลเก่าที่ขาดบางช่องไม่ทำให้หน้าพัง) */
@@ -207,9 +223,11 @@ export function loadFarmForm(): FarmForm {
     if (v && typeof v === 'object') {
       const out = { ...DEFAULT_FARM_FORM }
       for (const k of Object.keys(DEFAULT_FARM_FORM) as (keyof FarmForm)[]) {
-        if (k !== 'tiers' && k !== 'team' && typeof v[k] === 'string') (out as Record<string, unknown>)[k] = v[k]
+        if (typeof v[k] === 'string' && typeof DEFAULT_FARM_FORM[k] === 'string') (out as Record<string, unknown>)[k] = v[k]
+        if (typeof v[k] === 'boolean' && typeof DEFAULT_FARM_FORM[k] === 'boolean') (out as Record<string, unknown>)[k] = v[k]
       }
       if (typeof v.team === 'number' && v.team >= 1 && v.team <= 5) out.team = Math.round(v.team)
+      if (GUILD_CHECKIN.includes(v.guildKeys)) out.guildKeys = v.guildKeys
       if (Array.isArray(v.tiers) && v.tiers.length) {
         out.tiers = v.tiers.slice(0, 6).map((t: { boxes?: unknown; price?: unknown } | null) => ({
           boxes: typeof t?.boxes === 'string' ? t.boxes : '', price: typeof t?.price === 'string' ? t.price : '',
@@ -228,10 +246,24 @@ export const parseNum = (v: string) => {
 }
 const val = (v: string, d: number) => { const n = parseNum(v); return Number.isFinite(n) ? n : d }
 
+/** กุญแจฟรีต่อวันแยกตามที่มา */
+export function dailyKeys(f: FarmForm) {
+  const regenSec = Math.max(1, val(f.regenSec, 120) - (f.powerUp ? POWER_UP.regenCut : 0))
+  const parts = {
+    regen: Math.floor(86400 / regenSec),
+    powerUp: f.powerUp ? POWER_UP.dailyKeys : 0,
+    shop: Math.max(0, val(f.shopKeys, 0)),
+    missions: Math.max(0, val(f.missionKeys, 0)),
+    guild: f.guildKeys,
+    extra: Math.max(0, val(f.extraKeys, 0)),
+  }
+  return { ...parts, regenSec, total: Object.values(parts).reduce((a, b) => a + b, 0) }
+}
+
 export function farmInputOf(f: FarmForm): FarmInput {
   const D = FARM_DEFAULTS
   return {
-    freeKeys: val(f.freeKeys, 0), keysPerBattle: val(f.keysPerBattle, D.keysPerBattle), secPerBattle: val(f.secPerBattle, D.secPerBattle),
+    freeKeys: dailyKeys(f).total, rubyBoost: f.rubySupport ? Math.max(0, val(f.rubyBoost, 0)) : 0, keysPerBattle: val(f.keysPerBattle, D.keysPerBattle), secPerBattle: val(f.secPerBattle, D.secPerBattle),
     battlesPerSet: val(f.battlesPerSet, D.battlesPerSet), heroesPerSet: f.team, rubyPerHero: val(f.rubyPerHero, 0),
     goldPerBattle: val(f.goldPerBattle, 0), questEvery: val(f.questEvery, 0), questKeys: val(f.questKeys, 0), questGold: val(f.questGold, 0),
     keysPerBox: val(f.keysPerBox, 0), heroDrop: val(f.heroDrop, 0), maxHours: val(f.maxHours, D.maxHours),
@@ -248,7 +280,7 @@ export const loadFarmInput = () => farmInputOf(loadFarmForm())
  */
 export function rubiesPerKey(input: FarmInput = loadFarmInput()) {
   const setSize = Math.max(1, pos(input.battlesPerSet, 1))
-  const perBattle = (Math.floor(pos(input.heroesPerSet)) * pos(input.rubyPerHero)) / setSize
+  const perBattle = (Math.floor(pos(input.heroesPerSet)) * pos(input.rubyPerHero) * (1 + pos(input.rubyBoost) / 100)) / setSize
   const every = Math.floor(pos(input.questEvery))
   const netKeys = pos(input.keysPerBattle, 1) - (every > 0 ? pos(input.questKeys) / every : 0)
   return netKeys > 0 ? perBattle / netKeys : 0

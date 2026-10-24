@@ -1,7 +1,7 @@
 import { ChevronDown, Clock, Coins, Flame, KeyRound, Minus, Plus, RotateCcw, Swords, Users } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import ruby from '../assets/ui/ruby.webp'
-import { DEFAULT_FARM_FORM, FARM_STORE_KEY, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
+import { DEFAULT_FARM_FORM, FARM_STORE_KEY, GUILD_CHECKIN, POWER_UP, dailyKeys, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 
 // คำนวณรูบี้ขายวิญญาณ: ต่อสู้ซ้ำด่านฟาร์มรูบี้ ซื้อกล่องกุญแจถึงขั้นไหนถึงคุ้ม · ข้อมูลเก็บในเครื่องนี้เท่านั้น
@@ -37,6 +37,20 @@ function Field({ label, value, onChange, unit, placeholder, wide }: { label: str
   )
 }
 
+/** แพ็ค/แหล่งกุญแจที่เปิดปิดได้ */
+function KeyToggle({ on, onClick, label, sub, keys }: { on: boolean; onClick: () => void; label: string; sub: string; keys?: number }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} onClick={onClick} className="flex w-full items-start gap-2 text-left">
+      <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border text-xs font-bold ${on ? 'border-gold bg-gold text-ink' : 'border-white/25'}`}>{on ? '✓' : ''}</span>
+      <span className="min-w-0 flex-1">
+        <span className={`block ${on ? '' : 'text-white/70'}`}>{label}</span>
+        <span className="block text-xs text-white/45">{sub}</span>
+      </span>
+      {keys !== undefined && <b className={`tabular-nums ${on ? '' : 'text-white/35'}`}>{on ? fmt(keys) : '–'}</b>}
+    </button>
+  )
+}
+
 function Stat({ icon, label, value, sub }: { icon: ReactNode; label: string; value: ReactNode; sub?: ReactNode }) {
   return (
     <div className="rounded-xl bg-white/5 px-3 py-2">
@@ -62,11 +76,13 @@ export default function RubyPage() {
   const [boxes, setBoxes] = useState<number | null>(null) // null = ใช้ค่าแนะนำ
   const [more, setMore] = useState(false)
   useEffect(() => { try { localStorage.setItem(FARM_STORE_KEY, JSON.stringify(form)) } catch { /* ไม่มี storage ก็ไม่เป็นไร */ } }, [form])
-  const set = (k: keyof FarmForm, v: string) => setForm((f) => ({ ...f, [k]: v }))
+  const set = (k: { [K in keyof FarmForm]: FarmForm[K] extends string ? K : never }[keyof FarmForm], v: string) => setForm((f) => ({ ...f, [k]: v }))
   const setTier = (i: number, patch: Partial<{ boxes: string; price: string }>) =>
     setForm((f) => ({ ...f, tiers: f.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)) }))
 
   const input = useMemo(() => farmInputOf(form), [form])
+  const keys = dailyKeys(form)
+  const toggle = (k: 'powerUp' | 'rubySupport') => setForm((f) => ({ ...f, [k]: !f[k] }))
   const soul = num(form.soul)
   const plan = useMemo(() => planFarm(input, soul), [input, soul])
   const total = plan.prices.length
@@ -122,6 +138,65 @@ export default function RubyPage() {
                 'Soul price = the fewest net rubies one more hour of grinding must earn before buying the next tier · 0 = max profit, time be damned')}
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* ===== กุญแจฟรีต่อวัน ===== */}
+      <section className="panel mt-5 p-4 sm:p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="flex items-center gap-2 font-semibold text-gold"><KeyRound className="h-5 w-5" />{L('กุญแจฟรีต่อวัน', 'Free keys per day')}</h2>
+          <span className="text-2xl font-extrabold tabular-nums">{fmt(keys.total)}</span>
+        </div>
+        <ul className="mt-3 flex flex-col gap-2 text-sm">
+          <li className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-white/70">{L('ฟื้นเอง 1 ดอกทุก', 'Regen 1 key every')}</span>
+            <input value={form.regenSec} onChange={(e) => set('regenSec', e.target.value)} inputMode="numeric" aria-label={L('กุญแจฟื้นทุกกี่วินาที', 'Key regen seconds')}
+              aria-invalid={bad(form.regenSec) || undefined} className={`${numInput(form.regenSec)} w-16 text-white`} />
+            <span className="text-white/70">{L('วิ', 's')}{form.powerUp && <span className="text-emerald-300">{L(` − ${POWER_UP.regenCut} วิ`, ` − ${POWER_UP.regenCut} s`)}</span>}</span>
+            <b className="ml-auto tabular-nums">{fmt(keys.regen)}</b>
+          </li>
+          <KeyToggle on={form.powerUp} onClick={() => toggle('powerUp')} keys={keys.powerUp}
+            label={L('แพ็ค Daily Power Up Support (฿149 / 28 วัน)', 'Daily Power Up Support (฿149 / 28 days)')}
+            sub={L(`กุญแจฟื้นเร็วขึ้น ${POWER_UP.regenCut} วิ + ${POWER_UP.dailyKeys} ดอกทุกวัน`, `Keys regen ${POWER_UP.regenCut} s faster + ${POWER_UP.dailyKeys} keys daily`)} />
+          <li className="flex items-center gap-2">
+            <span className="text-white/70">{L('กล่องฟรีร้านรายวัน', 'Daily Shop free box')}</span>
+            <input value={form.shopKeys} onChange={(e) => set('shopKeys', e.target.value)} inputMode="numeric" aria-label={L('กล่องฟรีร้านรายวัน', 'Daily Shop free box')}
+              aria-invalid={bad(form.shopKeys) || undefined} className={`${numInput(form.shopKeys)} ml-auto w-16 text-white`} />
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="min-w-0 text-white/70">{L('ภารกิจรายวัน', 'Daily missions')} <span className="text-xs text-white/45">{L('(40 แต้ม 20 + 80 แต้ม 40)', '(40 pts 20 + 80 pts 40)')}</span></span>
+            <input value={form.missionKeys} onChange={(e) => set('missionKeys', e.target.value)} inputMode="numeric" aria-label={L('กุญแจจากภารกิจรายวัน', 'Daily mission keys')}
+              aria-invalid={bad(form.missionKeys) || undefined} className={`${numInput(form.missionKeys)} ml-auto w-16 shrink-0 text-white`} />
+          </li>
+          <li>
+            <div className="flex items-center gap-2"><span className="text-white/70">{L('เช็กอินกิลด์', 'Guild check-in')}</span><b className="ml-auto tabular-nums">{fmt(keys.guild)}</b></div>
+            <div className="mt-1.5 flex flex-wrap gap-1" role="radiogroup" aria-label={L('เช็กอินกิลด์', 'Guild check-in')}>
+              {GUILD_CHECKIN.map((k, i) => (
+                <button key={k} type="button" role="radio" aria-checked={form.guildKeys === k} onClick={() => setForm((f) => ({ ...f, guildKeys: k }))}
+                  title={i ? L(`เมื่อวานเช็กอิน ${[1, 10, 15, 20, 25][i - 1]}+ คน`, `${[1, 10, 15, 20, 25][i - 1]}+ checked in yesterday`) : undefined}
+                  className={`rounded-full border px-2.5 py-0.5 text-xs tabular-nums ${form.guildKeys === k ? 'border-gold bg-gold/15 text-gold' : 'border-white/15 text-white/55 hover:border-gold'}`}>
+                  {k ? L(`${[1, 10, 15, 20, 25][i - 1]}+ คน · ${k}`, `${[1, 10, 15, 20, 25][i - 1]}+ · ${k}`) : L('ไม่มี', 'None')}
+                </button>
+              ))}
+            </div>
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-white/70">{L('อื่น ๆ (อีเวนต์ ฯลฯ)', 'Other (events, etc.)')}</span>
+            <input value={form.extraKeys} onChange={(e) => set('extraKeys', e.target.value)} inputMode="numeric" placeholder="0" aria-label={L('กุญแจอื่น ๆ', 'Other keys')}
+              aria-invalid={bad(form.extraKeys) || undefined} className={`${numInput(form.extraKeys)} ml-auto w-16 text-white`} />
+          </li>
+        </ul>
+        <div className="mt-4 border-t border-white/10 pt-3 text-sm">
+          <KeyToggle on={form.rubySupport} onClick={() => toggle('rubySupport')}
+            label={L('แพ็ค Daily Ruby Support (฿249 / 28 วัน)', 'Daily Ruby Support (฿249 / 28 days)')}
+            sub={L('รูบี้จากด่านฟาร์มรูบี้เพิ่มขึ้น · ไม่นับ 200 รูบี้รายวันของแพ็ค', 'More rubies from Ruby Farming · the pack’s 200 daily rubies aren’t counted')} />
+          {form.rubySupport && (
+            <label className="mt-2 flex items-center gap-2 pl-7 text-white/70">
+              {L('รูบี้จากฟาร์มเพิ่ม', 'Farming rubies +')}
+              <input value={form.rubyBoost} onChange={(e) => set('rubyBoost', e.target.value)} inputMode="decimal" placeholder="?" aria-label={L('รูบี้จากฟาร์มเพิ่มกี่ %', 'Farming ruby boost %')}
+                aria-invalid={bad(form.rubyBoost) || undefined} className={`${numInput(form.rubyBoost)} w-16 text-white`} />%
+            </label>
+          )}
         </div>
       </section>
 
@@ -237,7 +312,6 @@ export default function RubyPage() {
 
             <p className="mt-5 text-sm font-medium text-gold">{L('กุญแจและการต่อสู้', 'Keys and battles')}</p>
             <div className="mt-2 flex flex-wrap gap-3">
-              <Field label={L('กุญแจฟรีต่อวัน', 'Free keys per day')} value={form.freeKeys} onChange={(v) => set('freeKeys', v)} unit={<KeyRound className="h-4 w-4" />} />
               <Field label={L('กุญแจต่อรอบ', 'Keys per battle')} value={form.keysPerBattle} onChange={(v) => set('keysPerBattle', v)} unit={<KeyRound className="h-4 w-4" />} />
               <Field label={L('เวลาต่อรอบ', 'Time per battle')} value={form.secPerBattle} onChange={(v) => set('secPerBattle', v)} unit={L('วิ', 's')} />
               <Field label={L('ทองต่อรอบ', 'Gold per battle')} value={form.goldPerBattle} onChange={(v) => set('goldPerBattle', v)} unit={<Coins className="h-4 w-4" />} wide />
