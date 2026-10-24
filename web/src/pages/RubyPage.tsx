@@ -5,6 +5,7 @@ import packPowerUp from '../assets/packs/power-up.webp'
 import packRuby from '../assets/packs/ruby-support.webp'
 import packPass from '../assets/packs/7k-pass.webp'
 import packCheckin from '../assets/packs/premium-checkin.webp'
+import keyBox from '../assets/packs/items/chests.webp'
 import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, bestBattles, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 import RubyIcon from '../components/RubyIcon'
@@ -358,10 +359,10 @@ export default function RubyPage() {
                     aria-label={L(`กล่อง ${tierName(row)}: ${signed(res.net)} รูบี้ · ${hours(res.seconds)}`, `${tierName(row)} boxes: ${signed(res.net)} rubies · ${hours(res.seconds)}`)}
                     className={`relative flex min-w-0 flex-col items-center rounded-xl px-1 pb-2 pt-2 transition active:scale-95 ${sel ? '' : 'hover:bg-white/[.05]'}`}>
                     <span className={`text-[11px] font-bold tabular-nums lg:text-base ${res.net > 0 ? (sel ? 'text-gold' : 'text-white/75') : 'text-red-300'}`}>{signed(res.net)}</span>
-                    <span className="mt-1 flex h-20 w-full items-end justify-center lg:h-52">
+                    <span className="mt-1 flex h-20 w-full items-end justify-center lg:h-48">
                       <span className={`ruby-bar w-7 rounded-t-md lg:w-14 lg:rounded-t-lg ${res.net <= 0 ? 'bg-red-400/50' : sel ? 'bg-gold' : 'bg-white/20'}`} style={{ height: `${h}%`, animationDelay: `${i * 70}ms` }} />
                     </span>
-                    <Package className={`mt-2 h-4 w-4 lg:h-5 lg:w-5 ${sel ? 'text-gold' : 'text-white/45'}`} aria-hidden="true" />
+                    <img src={keyBox} alt="" draggable={false} className={`mt-1.5 h-7 w-7 transition lg:h-9 lg:w-9 ${sel ? '' : 'opacity-60 grayscale-[.4]'}`} />
                     <span className={`mt-0.5 flex items-center gap-0.5 text-xs font-semibold lg:text-base ${sel ? 'text-gold' : 'text-white/70'}`}>
                       {row.price > 0 && <Ruby className="h-3 w-3" />}{tierName(row)}
                     </span>
@@ -371,7 +372,7 @@ export default function RubyPage() {
                 )
               })}
             </div>
-            <p className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-white/45 lg:mt-4 lg:text-sm"><Package className="h-3.5 w-3.5" aria-hidden="true" />{L('ราคากล่องกุญแจที่ซื้อถึง', 'Key box price you buy up to')}</p>
+            <p className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-white/45 lg:mt-4 lg:text-sm"><img src={keyBox} alt="" className="h-4 w-4 lg:h-5 lg:w-5" />{L('ราคากล่องกุญแจที่ซื้อถึง', 'Key box price you buy up to')}</p>
           </section>
         </div>
       </div>
