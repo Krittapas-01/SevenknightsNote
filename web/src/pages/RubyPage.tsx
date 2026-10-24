@@ -180,15 +180,15 @@ export default function RubyPage() {
             sub={L(`${hours(r.seconds)}`, `${hours(r.seconds)}`)} />
           <Big icon={<Users className="h-3.5 w-3.5" />} label={L('ฮีโร่ Lv.1', 'Lv.1 heroes')} value={fmt(r.heroes)}
             sub={L(`${form.team} ตัว × ${fmt(r.sets)} ชุด`, `${form.team} × ${fmt(r.sets)} sets`)} />
-          <Big icon={<Ruby className="h-3.5 w-3.5" />} label={L('ได้รูบี้', 'Rubies')} value={<span className="text-gold">{fmt(r.rubies)}</span>}
-            sub={L(`ทอง ${big(r.gold)}`, `${big(r.gold)} gold`)} />
+          <Big icon={<Ruby className="h-3.5 w-3.5" />} label={L('รูบี้สุทธิ', 'Net rubies')} value={<span className={r.net >= 0 ? 'text-gold' : 'text-red-300'}>{signed(r.net)}</span>}
+            sub={r.cost ? L(`ได้ ${fmt(r.rubies)} − กล่อง ${fmt(r.cost)}`, `${fmt(r.rubies)} − ${fmt(r.cost)} boxes`) : L('ไม่เสียค่ากล่อง', 'No box cost')} />
         </div>
 
         {/* กุญแจ / กล่อง / สุทธิ */}
         <div className="mt-3 rounded-xl bg-white/[.04] px-3 py-2.5 text-sm">
-          <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-white/70 tabular-nums">
-            <KeyRound className="h-4 w-4 shrink-0 text-white/50" />
-            {L(`ใช้กุญแจ ${fmt(r.keysNeeded)} · มีกุญแจฟรีวันละ ${fmt(r.freeKeys)}`, `Uses ${fmt(r.keysNeeded)} keys · ${fmt(r.freeKeys)} free keys a day`)}
+          <p className="flex items-start gap-1.5 text-white/70 tabular-nums">
+            <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-white/50" />
+            <span className="min-w-0">{L(`ใช้กุญแจ ${fmt(r.keysNeeded)} · มีกุญแจฟรีวันละ ${fmt(r.freeKeys)} · ได้ทอง ${big(r.gold)}`, `Uses ${fmt(r.keysNeeded)} keys · ${fmt(r.freeKeys)} free keys a day · ${big(r.gold)} gold`)}</span>
           </p>
           {r.boxes === 0
             ? <p className="mt-1 font-semibold text-emerald-300">{L('ไม่ต้องซื้อกล่องกุญแจ', 'No key boxes needed')}</p>
@@ -198,8 +198,6 @@ export default function RubyPage() {
               <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 tabular-nums">
                 <span className="font-semibold">{L(`ซื้อกล่องกุญแจ ${fmt(r.boxes)} กล่อง`, `Buy ${fmt(r.boxes)} key box${r.boxes > 1 ? 'es' : ''}`)}</span>
                 <span className="flex items-center gap-1 text-white/60">({r.cost ? <><Ruby className="h-3.5 w-3.5" />{fmt(r.cost)}</> : L('ฟรี', 'free')})</span>
-                <span className="text-white/45">→</span>
-                <span className={`flex items-center gap-1 font-semibold ${r.net > 0 ? 'text-gold' : 'text-red-300'}`}>{L('เหลือสุทธิ', 'Net')} <Ruby className="h-3.5 w-3.5" />{signed(r.net)}</span>
               </p>
             )}
           {wanted > maxBattles && (

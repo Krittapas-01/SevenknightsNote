@@ -34,7 +34,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     sections: [
       { kind: 'new', groups: [
         g('คำนวณรูบี้ขายวิญญาณ (เมนู → คำนวณรูบี้ขายวิญญาณ)',
-          'ใส่แค่ว่าเล่นได้วันละกี่ชั่วโมง กับฮีโร่ Lv.1 ในทีม (1–5 ตัว = 20–100 รูบี้ต่อ 10 รอบ) แล้วเห็นเลยว่าฟาร์มได้กี่รอบ ใช้ฮีโร่กี่ตัว ได้รูบี้เท่าไหร่ ต้องซื้อกล่องกุญแจกี่กล่อง และเหลือรูบี้สุทธิเท่าไหร่',
+          'ใส่แค่ว่าเล่นได้วันละกี่ชั่วโมง กับฮีโร่ Lv.1 ในทีม (1–5 ตัว = 20–100 รูบี้ต่อ 10 รอบ) แล้วเห็นเลยว่าฟาร์มได้กี่รอบ ใช้ฮีโร่กี่ตัว ได้รูบี้สุทธิเท่าไหร่ (หักค่ากล่องกุญแจแล้ว) และต้องซื้อกล่องกี่กล่อง',
           'ภาพรวมทีละขั้นราคากล่อง (ไม่ซื้อ / ฟรี / 50 / 80 / 100 รูบี้): รูบี้สุทธิ เวลา ฮีโร่ และรอบ พร้อมป้ายคุ้ม เท่าทุน หรือขาดทุน · แตะขั้นไหนก็ใช้เวลานั้นได้เลย',
           'นับกุญแจฟรีที่ทุกคนได้ให้แล้ว (ฟื้นเอง ภารกิจ เช็กชื่อ 7K Pass Relay ร้านค้า ฯลฯ) · เลือกเองแค่เช็กอินกิลด์',
           'ติ๊กแพ็คที่ซื้อ (มีรูปแพ็ค): Daily Power Up Support, 7K Pass พรีเมียม, เช็กอินพรีเมียม (เพิ่มกุญแจ) และ Daily Ruby Support (+200 รูบี้/วัน แสดงแยกจากที่ฟาร์ม)',
@@ -380,7 +380,7 @@ const CHANGELOG_EN: ChangelogEntry[] = [
     sections: [
       { kind: 'new', groups: [
         g('Ruby Farming Calculator (menu → Ruby Farming Calculator)',
-          'Just enter how many hours you play a day and the Lv.1 heroes in your team (1–5 = 20–100 rubies per 10 battles) to see your battles, heroes used, rubies earned, key boxes to buy and net rubies',
+          'Just enter how many hours you play a day and the Lv.1 heroes in your team (1–5 = 20–100 rubies per 10 battles) to see your battles, heroes used, net rubies (after key box costs) and key boxes to buy',
           'Overview for each box price tier (none / free / 50 / 80 / 100 rubies): net rubies, time, heroes and battles, tagged profit, break-even or loss · tap a tier to use its play time',
           'Free keys everyone gets are counted for you (regen, missions, login, 7K Pass, Relay, shops, etc.) · you only pick your guild check-in',
           'Tick the packs you have (with pack art): Daily Power Up Support, 7K Pass premium, premium check-in (more keys) and Daily Ruby Support (+200 rubies/day, shown apart from farming)',
