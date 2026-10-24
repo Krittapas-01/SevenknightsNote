@@ -32,11 +32,11 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     version: '1.5.4',
     date: '24 ต.ค. 2026',
     title: 'Ruby Rush',
-    summary: 'หน้าใหม่: คำนวณรูบี้ขายวิญญาณ — เล่นได้วันละกี่ชั่วโมง ฟาร์มได้กี่รอบ ใช้อัศวิน Lv.1 กี่ตัว ได้รูบี้เท่าไหร่',
+    summary: 'หน้าใหม่: คำนวณรูบี้ขายวิญญาณ — ฟาร์มคุ้มสุดได้กี่รอบ ใช้เวลากี่ชั่วโมง ใช้อัศวิน Lv.1 กี่ตัว ได้รูบี้เท่าไหร่',
     sections: [
       { kind: 'new', groups: [
         g('คำนวณรูบี้ขายวิญญาณ (เมนู → คำนวณรูบี้ขายวิญญาณ)',
-          'ใส่แค่ว่าเล่นได้วันละกี่ชั่วโมง กับอัศวิน Lv.1 ในทีม (1–5 ตัว = 20–100 รูบี้ทุกครั้งที่อัศวินตัน: 11 รอบ หรือ 10 รอบถ้ามีแพ็ค Daily Ruby Support) แล้วเห็นเลยว่าฟาร์มได้กี่รอบ ใช้อัศวินกี่ตัว ได้รูบี้สุทธิเท่าไหร่ (หักค่ากล่องกุญแจแล้ว) และต้องซื้อกล่องกี่กล่อง',
+          'เลือกแค่อัศวิน Lv.1 ในทีม (1–5 ตัว = 20–100 รูบี้ทุกครั้งที่อัศวินตัน: 11 รอบ หรือ 10 รอบถ้ามีแพ็ค Daily Ruby Support) แล้วเห็นเลยว่าฟาร์มได้กี่รอบ ใช้อัศวินกี่ตัว ได้รูบี้สุทธิเท่าไหร่ (หักค่ากล่องกุญแจแล้ว) และต้องซื้อกล่องกี่กล่อง',
           'เปิดมาเลือก "คุ้มสุด" ให้เลย (รูบี้สุทธิมากสุด) แล้วบอกว่าถ้าเล่นน้อยลงจะเสียรูบี้เท่าไหร่ ประหยัดเวลาและอัศวินเท่าไหร่ · ตารางเทียบกล่องฟรี / 50 / 80 / 100 รูบี้ (เวลา อัศวิน รูบี้สุทธิ) แตะแถวไหนก็เลือกได้',
           'นับกุญแจฟรีที่ทุกคนได้ให้แล้ว (ฟื้นเอง ภารกิจ เช็กชื่อ 7K Pass Relay ร้านค้า ฯลฯ) · เลือกเองแค่เช็กอินกิลด์',
           'ติ๊กแพ็คที่ซื้อ (มีรูปแพ็ค): Daily Power Up Support, 7K Pass พรีเมียม, เช็กอินพรีเมียม (เพิ่มกุญแจ) และ Daily Ruby Support (อัศวินตันเร็วขึ้น 10 รอบแทน 11 · +200 รูบี้/วัน แสดงแยกจากที่ฟาร์ม)',
@@ -381,11 +381,11 @@ const CHANGELOG_EN: ChangelogEntry[] = [
   ...(RUBY_ON ? ([
   {
     id: '2026-10-24b', version: '1.5.4', date: '24 Oct 2026', title: 'Ruby Rush',
-    summary: 'New page: Ruby Farming Calculator — how many hours you play, how many battles, how many Lv.1 heroes, how many rubies',
+    summary: 'New page: Ruby Farming Calculator — the best farm: how many battles, how many hours, how many Lv.1 heroes, how many rubies',
     sections: [
       { kind: 'new', groups: [
         g('Ruby Farming Calculator (menu → Ruby Farming Calculator)',
-          'Just enter how many hours you play a day and the Lv.1 heroes in your team (1–5 = 20–100 rubies each time they max out: 11 battles, or 10 with Daily Ruby Support) to see your battles, heroes used, net rubies (after key box costs) and key boxes to buy',
+          'Just pick the Lv.1 heroes in your team (1–5 = 20–100 rubies each time they max out: 11 battles, or 10 with Daily Ruby Support) to see your battles, heroes used, net rubies (after key box costs) and key boxes to buy',
           'Opens on the "Best" option (most net rubies) and shows how many rubies you give up, and how much time and how many heroes you save, if you play less · a table compares free / 50 / 80 / 100-ruby boxes (time, heroes, net rubies), tap a row to pick it',
           'Free keys everyone gets are counted for you (regen, missions, login, 7K Pass, Relay, shops, etc.) · you only pick your guild check-in',
           'Tick the packs you have (with pack art): Daily Power Up Support, 7K Pass premium, premium check-in (more keys) and Daily Ruby Support (heroes max in 10 battles instead of 11 · +200 rubies/day, shown apart from farming)',
