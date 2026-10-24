@@ -1,5 +1,12 @@
 # Skill icon sources
 
+## Skill descriptions (2026-10-24)
+
+`data/skillText.th.json` and `data/skillText.en.json` hold skill names, cooldowns, effects, skill upgrades and Transcendence bonuses for every hero in `data/skills.json`.
+Text comes from [7K Atlas](https://7katlas.com/codex.html) hero metadata ([Rare](https://7katlas.com/COMBINE/heroes-R.js), [Legendary](https://7katlas.com/COMBINE/heroes-L.js), [Legendary+](https://7katlas.com/COMBINE/heroes-Lplus.js), [Legendary++](https://7katlas.com/COMBINE/heroes-Lpp.js)) and its [Thai translations](https://7katlas.com/lang/th/heroes.js), retrieved 2026-10-24.
+Regenerate with `node scripts/import-skill-text.mjs` (read-only fetch, writes only those two files). Heroes are matched by the skill icons already in `data/skills.json`.
+No new images were added: passive and basic attack use generic icons.
+
 ## Demon Slayer update (2026-10-03)
 
 Added the icons referenced by the existing Tanjiro and Zenitsu entries in `data/skills.json`. [Atlas Legendary+ metadata](https://7katlas.com/COMBINE/heroes-Lplus.js) uses the same two active skill images for each hero's base and awakened forms.
