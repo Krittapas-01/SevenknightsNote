@@ -1,6 +1,6 @@
 import { baseName, getUnit, unitLabel } from '../data/heroes'
 import type { HeroNote } from '../lib/types'
-import EquipmentLoadout from './EquipmentLoadout'
+import { RingRow, SetRow } from './EquipmentLoadout'
 import Modal from './Modal'
 import UnitCard from './UnitCard'
 import { StatsGrid, StatsImport } from './HeroStats'
@@ -64,12 +64,12 @@ export default function HeroDetailModal({ hero, notes, onClose, onSaveStats }: {
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <section className="rounded-2xl border border-gold/15 bg-black/20 p-4">
           <h4 className="text-sm font-semibold text-gold">{tx('เครื่องประดับ')}</h4>
-          {note?.rings.length ? <EquipmentLoadout rings={note.rings} sets={[]} />
+          {note?.rings.length ? <div className="mt-3"><RingRow rings={note.rings} /></div>
             : <p className="mt-3 text-sm text-white/45">{tx('ยังไม่ได้ระบุเครื่องประดับ')}</p>}
         </section>
         <section className="rounded-2xl border border-gold/15 bg-black/20 p-4">
           <h4 className="text-sm font-semibold text-gold">{tx('เซตอุปกรณ์')}</h4>
-          {note?.sets.length ? <EquipmentLoadout sets={note.sets} rings={[]} />
+          {note?.sets.length ? <div className="mt-3"><SetRow sets={note.sets} /></div>
             : <p className="mt-3 text-sm text-white/45">{tx('ยังไม่ได้ระบุเซตอุปกรณ์')}</p>}
         </section>
       </div>

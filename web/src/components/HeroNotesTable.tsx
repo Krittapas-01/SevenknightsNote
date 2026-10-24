@@ -4,7 +4,7 @@ import { hasStats } from '../lib/stats'
 import { StatsGrid, StatsImport, upsertStats, type NoteExtra } from './HeroStats'
 import type { HeroStats } from '../lib/stats'
 import { unitBase } from '../data/heroes'
-import { ringImage, ringLabel, setIcon, setImages, setLabel } from '../data/equipment'
+import { RingRow, SetRow } from './EquipmentLoadout'
 import type { HeroNote } from '../lib/types'
 import UnitCard from './UnitCard'
 import EquipmentEditor from './EquipmentEditor'
@@ -43,36 +43,28 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
     {/* ปุ่มอ่านค่าความสามารถจากรูป / เพิ่มของรายตัว อยู่บนตาราง (เห็นก่อน ไม่ต้องเลื่อนลงไปหา) */}
     {addRow && <div className="mb-2">{addRow}</div>}
     <div className="@container overflow-hidden rounded-2xl border border-white/10">
-      {/* กว้างตามกล่องที่วาง (container query) — กล่องแคบเรียงซ้อน · กล่องกว้างเป็น 2 คอลัมน์
-          ช่องซ้าย 29rem = รูป + เซต 3 ช่องกับเครื่องประดับ 3 ช่องในบรรทัดเดียว + ปุ่ม "ใช้ค่าความสามารถล่าสุดของฉัน" ไม่ตัดบรรทัด
-          (เดิม 17rem → ป้าย "เครื่องประดับ" กับปุ่มหักเป็น 2 บรรทัด ขณะที่ช่องรายละเอียดว่างเกือบทั้งช่อง) */}
-      <div className="hidden grid-cols-[minmax(0,29rem)_1fr] bg-white/5 text-sm font-semibold text-white/70 @3xl:grid">
+      {/* กว้างตามกล่องที่วาง (container query) — การ์ดแคบในแผนเรียงซ้อน · หน้าบ้านศัตรูเป็น 2 คอลัมน์ */}
+      <div className="hidden grid-cols-[minmax(0,17rem)_1fr] bg-white/5 text-sm font-semibold text-white/70 @xl:grid">
         <div className="border-r border-white/10 px-4 py-2 text-center">{tx('อัศวิน')}</div>
         <div className="px-4 py-2 text-center">{tx('รายละเอียด')}</div>
       </div>
       {notes.map((n, i) => (
-        <div key={i} className={`grid grid-cols-1 border-white/10 @3xl:grid-cols-[minmax(0,29rem)_1fr] ${i ? 'border-t' : '@3xl:border-t'}`}>
-          {/* รูป | เซต/เครื่องประดับ · ปุ่ม "ใช้ค่าความสามารถล่าสุดของฉัน" อยู่ใต้เซต
-              กล่องแคบ (มือถือ) ข้างรูปเหลือไม่พอ → ปุ่มลงไปเต็มแถวใต้รูปแทน ไม่หักเป็น 2 บรรทัด */}
-          <div className="grid grid-cols-[4rem_minmax(0,1fr)] grid-rows-[auto_1fr] gap-x-3 border-white/10 p-3 @3xl:border-r">
-            <div className="text-center @min-[23rem]:row-span-2">
+        <div key={i} className={`grid grid-cols-1 border-white/10 @xl:grid-cols-[minmax(0,17rem)_1fr] ${i ? 'border-t' : '@xl:border-t'}`}>
+          <div className="flex gap-3 border-white/10 p-3 @xl:border-r">
+            <div className="w-16 shrink-0 text-center">
               <div className="aspect-[4/5] w-16 text-[12px]"><UnitCard id={n.hero} small /></div>
               <div className="mt-1 truncate text-xs text-white/60">{unitBase(n.hero)}</div>
             </div>
             {editing ? (
-              <>
-                <div className="min-w-0">
-                  <EquipmentEditor sets={n.sets} rings={n.rings}
-                    onChange={(sets, rings) => onChange?.(notes.map((x, j) => (j === i ? { ...x, sets, rings } : x)))} />
-                </div>
-                <div className="col-span-2 min-w-0 @min-[23rem]:col-span-1 @min-[23rem]:col-start-2">
-                  <RecallStats note={n} onApply={(v) => onChange?.(notes.map((x, j) => (j === i ? v : x)))} />
-                </div>
-              </>
+              <div className="min-w-0">
+                <EquipmentEditor sets={n.sets} rings={n.rings}
+                  onChange={(sets, rings) => onChange?.(notes.map((x, j) => (j === i ? { ...x, sets, rings } : x)))} />
+                <RecallStats note={n} onApply={(v) => onChange?.(notes.map((x, j) => (j === i ? v : x)))} />
+              </div>
             ) : (
               <div className="min-w-0 space-y-1.5">
-                <Slots label={tx('เซต')} items={n.sets.map((s) => ({ name: setLabel(s), src: setIcon(s) ?? setImages(s)[0] }))} />
-                <Slots label={tx('เครื่องประดับ')} items={n.rings.map((r) => ({ name: ringLabel(r), src: ringImage(r) }))} />
+                <RingRow rings={n.rings} label />
+                <SetRow sets={n.sets} label />
               </div>
             )}
           </div>
@@ -111,25 +103,5 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
       ))}
     </div>
     </>
-  )
-}
-
-/** ช่องของ 3 ช่องขึ้นไป (ไม่มีรูป = ขึ้นชื่อแทน, ชี้ค้างดูชื่อ) */
-function Slots({ label, items }: { label: string; items: { name: string; src?: string }[] }) {
-  const cells = [...items, ...Array.from({ length: Math.max(0, 3 - items.length) }, () => null)]
-  return (
-    <div>
-      <div className="mb-0.5 text-[11px] text-white/45">{label}</div>
-      <div className="flex flex-wrap gap-1">
-        {cells.map((it, k) => (
-          <span key={k} title={it?.name}
-            className={`grid h-10 w-10 place-items-center overflow-hidden rounded-lg border ${it ? 'border-gold/30 bg-black/30' : 'border-white/10 bg-white/[.03]'}`}>
-            {it && (it.src
-              ? <img src={it.src} alt={it.name} className="h-full w-full object-contain" loading="lazy" draggable={false} />
-              : <span className="px-0.5 text-center text-[8px] leading-tight text-white/70">{it.name}</span>)}
-          </span>
-        ))}
-      </div>
-    </div>
   )
 }
