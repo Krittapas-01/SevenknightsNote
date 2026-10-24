@@ -62,6 +62,8 @@ const CHANGELOG_TH: ChangelogEntry[] = [
       { kind: 'change', groups: [
         g('หน้าแรก',
           'มีการ์ดเครื่องมือใต้ช่องสร้างกิลด์: เช็กบัฟบิสกิต · เทียบพลังโจมตี · คำนวณแต้มเบ็ดเสร็จ ใช้ได้เลยไม่ต้องสร้างกิลด์ (เดิมอยู่แค่ในเมนู ☰)'),
+        g('อ่านค่าความสามารถจากรูป',
+          'ปุ่ม "กรอกค่าความสามารถเอง" เห็นชัดขึ้น: เป็นปุ่มใหญ่ใต้กรอบใส่รูป มีเส้น "หรือ" คั่น (เดิมเป็นลิงก์ตัวเล็ก "ไม่มีรูป? ข้ามไปกรอกเอง") ไม่มีรูปก็พิมพ์ตัวเลขเอง หรือแก้ค่าที่จดไว้ได้เลย'),
       ] },
     ],
   },
@@ -423,6 +425,8 @@ const CHANGELOG_EN: ChangelogEntry[] = [
       { kind: 'change', groups: [
         g('Home page',
           'Tool cards under the create-guild form: Biscuit buff check · Attack Compare · Total War points, usable without a guild (before, they were only in the ☰ menu)'),
+        g('Read stats from screenshot',
+          'The "Type stats yourself" button is easier to spot: a big button under the image box with an "or" divider (before, it was a small "No screenshot? Skip…" link) — no screenshot needed to type numbers or fix saved ones'),
       ] },
     ],
   },
