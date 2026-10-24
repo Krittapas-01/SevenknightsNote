@@ -75,11 +75,11 @@ function PackTile({ on, onClick, img, label, value, title }: { on: boolean; onCl
     <button type="button" role="switch" aria-checked={on} onClick={onClick} title={title} aria-label={title}
       className={`relative min-w-0 overflow-hidden rounded-xl border text-left transition duration-300 active:scale-95 ${on ? 'border-gold bg-gold/10' : 'border-white/10 bg-white/[.03] hover:border-gold/40'}`}>
       <img src={img} alt="" draggable={false} loading="lazy"
-        className={`block h-16 w-full object-cover object-right transition duration-300 sm:h-20 lg:h-28 ${on ? '' : 'opacity-35 grayscale'}`} />
-      {on && <span className="tag-pop absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-gold text-xs font-bold text-ink shadow lg:h-7 lg:w-7 lg:text-sm">✓</span>}
+        className={`block h-16 w-full object-cover object-right transition duration-300 sm:h-20 lg:h-24 ${on ? '' : 'opacity-35 grayscale'}`} />
+      {on && <span className="tag-pop absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-gold text-xs font-bold text-ink shadow lg:h-6 lg:w-6 lg:text-sm">✓</span>}
       <span className="flex flex-col gap-0.5 px-2.5 py-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2 lg:px-3 lg:py-2.5">
-        <span className={`min-w-0 truncate text-sm font-semibold leading-tight lg:text-lg ${on ? '' : 'text-white/60'}`}>{label}</span>
-        <span className={`flex shrink-0 items-center gap-1 text-xs font-semibold tabular-nums lg:text-base ${on ? 'text-gold' : 'text-white/40'}`}>{value}</span>
+        <span className={`min-w-0 truncate text-sm font-semibold leading-tight lg:text-base ${on ? '' : 'text-white/60'}`}>{label}</span>
+        <span className={`flex shrink-0 items-center gap-1 text-xs font-semibold tabular-nums lg:text-[15px] ${on ? 'text-gold' : 'text-white/40'}`}>{value}</span>
       </span>
     </button>
   )
@@ -90,7 +90,7 @@ function Stat({ icon, value, unit, sub }: { icon: ReactNode; value: ReactNode; u
   return (
     <div className="min-w-0 px-1 text-center">
       <div className="flex items-center justify-center gap-1 text-white/45 lg:[&>svg]:h-5 lg:[&>svg]:w-5">{icon}</div>
-      <div className="mt-0.5 text-lg font-bold leading-tight tabular-nums lg:text-4xl">{value}<span className="ml-1 text-xs font-normal text-white/50 lg:text-base">{unit}</span></div>
+      <div className="mt-0.5 text-lg font-bold leading-tight tabular-nums lg:text-3xl">{value}<span className="ml-1 text-xs font-normal text-white/50 lg:text-[15px]">{unit}</span></div>
       {sub && <div className="mt-0.5 truncate text-[10px] text-white/40 tabular-nums lg:text-sm">{sub}</div>}
     </div>
   )
@@ -150,7 +150,7 @@ export default function RubyPage() {
   return (
     <div className="mx-auto max-w-xl lg:max-w-none">
       <p className="eyebrow mb-1.5">RUBY FARMING</p>
-      <h1 className="gold-title flex items-center gap-2 pt-1.5 text-2xl font-extrabold leading-normal sm:text-3xl lg:text-4xl lg:leading-normal"><RubyIcon className="h-7 w-7 shrink-0 text-gold lg:h-9 lg:w-9" />{L('คำนวณรูบี้ขายวิญญาณ', 'Ruby Farming Calculator')}</h1>
+      <h1 className="gold-title flex items-center gap-2 pt-1.5 text-2xl font-extrabold leading-normal sm:text-3xl lg:text-3xl lg:leading-normal"><RubyIcon className="h-7 w-7 shrink-0 text-gold lg:h-9 lg:w-9" />{L('คำนวณรูบี้ขายวิญญาณ', 'Ruby Farming Calculator')}</h1>
 
       {/* มือถือ: เรียงลงมาตาม order · คอม (lg): ซ้าย = ตั้งค่า/รายละเอียด, ขวา = ผลลัพธ์/กราฟ */}
       <div className="flex flex-col lg:mt-5 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-x-5">
@@ -158,7 +158,7 @@ export default function RubyPage() {
           {/* ===== ตั้งค่า: ทีม · แพ็ค · กุญแจฟรี ===== */}
           <section className="panel order-1 mt-4 p-3.5 sm:p-4 lg:mt-0 lg:p-5">
             <div className="flex items-center gap-3">
-              <span className="shrink-0 text-sm text-white/65 lg:text-lg">{L('อัศวิน Lv.1', 'Lv.1 heroes')}</span>
+              <span className="shrink-0 text-sm text-white/65 lg:text-base">{L('อัศวิน Lv.1', 'Lv.1 heroes')}</span>
               <input type="range" min={1} max={MAX_TEAM} step={1} value={form.team} onChange={(e) => setForm((f) => ({ ...f, team: Number(e.target.value) }))}
                 aria-label={L('อัศวิน Lv.1 ในทีม', 'Lv.1 heroes in the team')} className="h-2 min-w-0 flex-1 cursor-pointer accent-gold" />
               <b className="w-12 shrink-0 text-right tabular-nums lg:w-16 lg:text-xl">{L(`${form.team} ตัว`, `${form.team}`)}</b>
@@ -174,13 +174,13 @@ export default function RubyPage() {
               <PackTile on={form.passPremium} onClick={() => toggle('passPremium')} img={packPass} label="7K Pass"
                 title={L(`${PAID_KEYS.passPremium.th}: ${fmt(PAID_KEYS.passPremium.keys)} กุญแจต่อ ${PAID_KEYS.passPremium.days} วัน`, `${PAID_KEYS.passPremium.en}: ${fmt(PAID_KEYS.passPremium.keys)} keys per ${PAID_KEYS.passPremium.days} days`)}
                 value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(PAID_KEYS.passPremium.keys / PAID_KEYS.passPremium.days)}</>} />
-              <PackTile on={form.premiumCheckin} onClick={() => toggle('premiumCheckin')} img={packCheckin} label={L('เช็กอิน+', 'Check-in+')}
+              <PackTile on={form.premiumCheckin} onClick={() => toggle('premiumCheckin')} img={packCheckin} label="Check-in"
                 title={L(`${PAID_KEYS.premiumCheckin.th}: ${fmt(PAID_KEYS.premiumCheckin.keys)} กุญแจต่อ ${PAID_KEYS.premiumCheckin.days} วัน`, `${PAID_KEYS.premiumCheckin.en}: ${fmt(PAID_KEYS.premiumCheckin.keys)} keys per ${PAID_KEYS.premiumCheckin.days} days`)}
                 value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(PAID_KEYS.premiumCheckin.keys / PAID_KEYS.premiumCheckin.days)}</>} />
             </div>
 
             <div className="mt-3 border-t border-white/10 pt-1">
-              <button type="button" onClick={() => setKeysOpen((o) => !o)} aria-expanded={keysOpen} className="flex w-full items-center gap-2 py-1.5 text-left text-sm lg:py-2 lg:text-lg">
+              <button type="button" onClick={() => setKeysOpen((o) => !o)} aria-expanded={keysOpen} className="flex w-full items-center gap-2 py-1.5 text-left text-sm lg:py-2 lg:text-base">
                 <KeyRound className="h-4 w-4 shrink-0 text-gold" />
                 <span className="min-w-0 flex-1 text-white/65">{L('กุญแจฟรีต่อวัน', 'Free keys per day')}</span>
                 <b className="tabular-nums">{fmt(keys.total)}</b>
@@ -235,11 +235,11 @@ export default function RubyPage() {
           {/* ===== รายละเอียด (มือถือพับไว้ · คอมกางตลอด ให้ฝั่งซ้ายไม่โล่ง) ===== */}
           <section className="panel order-4 mt-6 lg:mt-5">
             <button type="button" onClick={() => setInfoOpen((o) => !o)} aria-expanded={infoOpen} className="flex w-full items-center justify-between gap-2 p-4 text-left lg:pointer-events-none">
-              <span className="font-semibold lg:text-lg">{L('รายละเอียด', 'Details')}</span>
+              <span className="font-semibold lg:text-base">{L('รายละเอียด', 'Details')}</span>
               <ChevronDown className={`h-5 w-5 shrink-0 text-white/50 transition lg:hidden ${infoOpen ? 'rotate-180' : ''}`} />
             </button>
             {(
-              <ul className={`${infoOpen ? 'edit-arrive flex' : 'hidden lg:flex'} flex-col gap-2 border-t border-white/10 p-4 text-sm tabular-nums lg:gap-2.5 lg:px-5 lg:text-base`}>
+              <ul className={`${infoOpen ? 'edit-arrive flex' : 'hidden lg:flex'} flex-col gap-2 border-t border-white/10 p-4 text-sm tabular-nums lg:gap-2.5 lg:px-5 lg:text-[15px]`}>
                 <li className="flex items-center gap-2"><Ruby className="h-4 w-4" /><span className="text-white/65">{L('รูบี้จากฟาร์ม', 'Rubies from farming')}</span><b className="ml-auto">{fmt(r.rubies)}</b></li>
                 <li className="flex items-center gap-2"><Package className="h-4 w-4 text-white/45" /><span className="text-white/65">{L(`ค่ากล่อง ${fmt(r.boxes)} กล่อง`, `${fmt(r.boxes)} key boxes`)}</span><b className="ml-auto">−{fmt(r.cost)}</b></li>
                 <li className="flex items-center gap-2"><Swords className="h-4 w-4 text-white/45" /><span className="text-white/65">{L(`ทุก ${fmt(setSize)} รอบได้`, `Every ${fmt(setSize)} battles`)}</span><b className="ml-auto flex items-center gap-1"><Ruby className="h-3.5 w-3.5" />{fmt(perSet)}</b></li>
@@ -256,7 +256,7 @@ export default function RubyPage() {
           {/* ===== ค่าที่ใช้คิด ===== */}
           <section className="panel order-5 mt-3">
             <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more} className="flex w-full items-center justify-between gap-2 p-4 text-left">
-              <span className="font-semibold lg:text-lg">{L('ค่าในเกม (แก้ได้)', 'Game values (editable)')}</span>
+              <span className="font-semibold lg:text-base">{L('ค่าในเกม (แก้ได้)', 'Game values (editable)')}</span>
               <ChevronDown className={`h-5 w-5 shrink-0 text-white/50 transition ${more ? 'rotate-180' : ''}`} />
             </button>
             {more && (
@@ -316,7 +316,7 @@ export default function RubyPage() {
           <section className="panel panel-gold order-2 mt-5 px-4 pb-4 pt-5 text-center lg:mt-0 lg:px-6 lg:pb-8 lg:pt-9" aria-live="polite">
             <div className="flex min-h-6 items-center justify-center gap-2">
               {isBest
-                ? <span key="best" className="tag-pop rounded-full bg-gold px-2.5 py-0.5 text-xs font-bold text-ink lg:px-4 lg:py-1 lg:text-base">{L('★ คุ้มสุด', '★ Best value')}</span>
+                ? <span key="best" className="tag-pop rounded-full bg-gold px-2.5 py-0.5 text-xs font-bold text-ink lg:px-4 lg:py-1 lg:text-[15px]">{L('★ คุ้มสุด', '★ Best value')}</span>
                 : (
                   <span key="pick" className="tag-pop flex items-center gap-2">
                     <span className="text-xs text-white/55">{L(`ซื้อกล่องถึงราคา ${picked ? tierName(picked) : ''}`, `Boxes up to ${picked ? tierName(picked) : ''}`)}</span>
@@ -324,10 +324,10 @@ export default function RubyPage() {
                   </span>
                 )}
             </div>
-            <p ref={bigRef} className={`mt-2 flex items-center justify-center gap-2 text-5xl font-extrabold tabular-nums sm:text-6xl lg:text-8xl ${r.net >= 0 ? 'text-gold' : 'text-red-300'}`}>
-              <span ref={gemRef} className="inline-flex"><Ruby className="h-9 w-9 sm:h-11 sm:w-11 lg:h-20 lg:w-20" /></span><Tween value={r.net} format={signed} ms={650} />
+            <p ref={bigRef} className={`mt-2 flex items-center justify-center gap-2 text-5xl font-extrabold tabular-nums sm:text-6xl lg:text-7xl ${r.net >= 0 ? 'text-gold' : 'text-red-300'}`}>
+              <span ref={gemRef} className="inline-flex"><Ruby className="h-9 w-9 sm:h-11 sm:w-11 lg:h-16 lg:w-16" /></span><Tween value={r.net} format={signed} ms={650} />
             </p>
-            <p className="mt-1 text-sm text-white/55 lg:text-lg">
+            <p className="mt-1 text-sm text-white/55 lg:text-base">
               {L('รูบี้สุทธิต่อวัน', 'net rubies a day')}
               {form.rubySupport && <span className="ml-1.5 whitespace-nowrap text-gold">{L(`+${fmt(RUBY_SUPPORT.dailyRubies)} จากแพ็ค`, `+${fmt(RUBY_SUPPORT.dailyRubies)} from pack`)}</span>}
             </p>
@@ -343,7 +343,7 @@ export default function RubyPage() {
 
           {/* ===== เลือกเล่นน้อยลง: กราฟแท่งตามราคากล่อง ===== */}
           <section className="order-3 mt-6 lg:mt-5 lg:rounded-2xl lg:border lg:border-white/10 lg:bg-white/[.02] lg:p-4">
-            <h2 className="text-sm font-semibold text-white/80 lg:text-lg">{L('อยากเล่นน้อยลง?', 'Want to play less?')}</h2>
+            <h2 className="text-sm font-semibold text-white/80 lg:text-base">{L('อยากเล่นน้อยลง?', 'Want to play less?')}</h2>
             <div className="relative mt-2 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }} role="radiogroup" aria-label={L('ซื้อกล่องถึงราคา', 'Boxes up to')}>
               {/* กรอบทองเลื่อนไปแท่งที่เลือก */}
               {selIdx >= 0 && (
@@ -357,11 +357,11 @@ export default function RubyPage() {
                   <button key={row.tier} type="button" role="radio" aria-checked={sel} onClick={() => setPick(hasBest ? null : row.tier)}
                     aria-label={L(`กล่อง ${tierName(row)}: ${signed(res.net)} รูบี้ · ${hours(res.seconds)}`, `${tierName(row)} boxes: ${signed(res.net)} rubies · ${hours(res.seconds)}`)}
                     className={`relative flex min-w-0 flex-col items-center rounded-xl px-1 pb-2 pt-2 transition active:scale-95 ${sel ? '' : 'hover:bg-white/[.05]'}`}>
-                    <span className={`text-[11px] font-bold tabular-nums lg:text-lg ${res.net > 0 ? (sel ? 'text-gold' : 'text-white/75') : 'text-red-300'}`}>{signed(res.net)}</span>
-                    <span className="mt-1 flex h-20 w-full items-end justify-center lg:h-60">
-                      <span className={`ruby-bar w-7 rounded-t-md lg:w-16 lg:rounded-t-lg ${res.net <= 0 ? 'bg-red-400/50' : sel ? 'bg-gold' : 'bg-white/20'}`} style={{ height: `${h}%`, animationDelay: `${i * 70}ms` }} />
+                    <span className={`text-[11px] font-bold tabular-nums lg:text-base ${res.net > 0 ? (sel ? 'text-gold' : 'text-white/75') : 'text-red-300'}`}>{signed(res.net)}</span>
+                    <span className="mt-1 flex h-20 w-full items-end justify-center lg:h-52">
+                      <span className={`ruby-bar w-7 rounded-t-md lg:w-14 lg:rounded-t-lg ${res.net <= 0 ? 'bg-red-400/50' : sel ? 'bg-gold' : 'bg-white/20'}`} style={{ height: `${h}%`, animationDelay: `${i * 70}ms` }} />
                     </span>
-                    <span className={`mt-1.5 flex items-center gap-0.5 text-xs font-semibold lg:mt-2 lg:text-lg ${sel ? 'text-gold' : 'text-white/70'}`}>
+                    <span className={`mt-1.5 flex items-center gap-0.5 text-xs font-semibold lg:mt-2 lg:text-base ${sel ? 'text-gold' : 'text-white/70'}`}>
                       {row.price > 0 && <Ruby className="h-3 w-3" />}{tierName(row)}
                     </span>
                     <span className="text-[10px] tabular-nums text-white/45 lg:text-sm">{hm(res.seconds)}</span>
