@@ -247,7 +247,7 @@ function WantList({ want, groups, metric, onOpen }: { want: Want; groups: Group[
                 <b className={`w-5 shrink-0 text-center text-base tabular-nums sm:w-7 sm:text-lg ${i < 3 ? 'text-gold' : 'text-white/45'}`}>{i + 1}</b>
                 <span className="relative h-12 w-12 shrink-0 sm:h-20 sm:w-20">
                   {art && <img src={art.src} alt="" loading="lazy" draggable={false}
-                    className={`h-full w-full rounded-lg ${art.square ? 'object-contain' : 'object-cover object-center'}`} />}
+                    className={`h-full w-full ${art.square ? 'object-contain' : art.atlas ? 'pack-art-atlas object-cover object-right' : 'object-cover object-left'}`} />}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <b className="text-[15px] leading-snug sm:text-base">{groupName(g.name)}</b>
@@ -302,7 +302,7 @@ function GroupRow({ g, now, onOpen }: { g: Group; now: number; onOpen: () => voi
     <button type="button" onClick={onOpen}
       className="panel group relative flex min-h-[84px] w-full sm:min-h-[96px] items-stretch overflow-hidden text-left transition hover:border-gold/60">
       {art
-        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pointer-events-none absolute inset-y-0 left-0 h-full w-[104px] sm:w-[136px] ${art.square ? 'pack-art-l object-contain p-2 pr-6' : art.atlas ? 'pack-art-l object-cover object-center' : 'pack-art-l object-cover object-left'}`} />
+        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pointer-events-none absolute inset-y-0 left-0 h-full w-[104px] sm:w-[136px] ${art.square ? 'pack-art-l object-contain p-2 pr-6' : art.atlas ? 'pack-art-atlas object-cover object-right' : 'pack-art-l object-cover object-left'}`} />
         : <span className="pointer-events-none absolute inset-y-0 left-0 w-[104px] bg-gradient-to-r from-gold/15 to-transparent sm:w-[136px]" />}
       <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-2.5 pl-[100px] pr-3 sm:pl-[132px] sm:pr-4">
         <span className="flex items-start gap-2">

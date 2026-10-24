@@ -52,7 +52,7 @@ export const PACK_GROUPS: Record<string, { th: string; tab?: PackTab; art?: stri
   'Rookie Cheer Key Special Pack': { th: 'Rookie Cheer Key Special Pack' },
   'Fledgling Adventurer Cheer Pack': { th: 'Fledgling Adventurer Cheer Pack' },
   'Demon Slayer Summons Bonanza': { th: 'สิทธิประโยชน์เรียกดาบพิฆาตอสูร' },
-  'Demon Slayer: Kimetsu no Yaiba Summons Bonanza Part Two': { th: 'Demon Slayer: Kimetsu no Yaiba Summons Bonanza Part Two', tab: 'special', art: 'demon-slayer-kimetsu-no-yaiba-summons-bonanza-part-two', square: 1 },
+  'Demon Slayer: Kimetsu no Yaiba Summons Bonanza Part Two': { th: 'Demon Slayer: Kimetsu no Yaiba Summons Bonanza Part Two', tab: 'special', art: 'demon-slayer-kimetsu-no-yaiba-summons-bonanza-part-two' },
   'Rookie Ruby Support Pack': { th: 'Rookie Ruby Support Pack' },
   'Elite Adventurer Gameplay Special Pack': { th: 'Elite Adventurer Gameplay Special Pack' },
   'Surprise Adventurer Key Support Pack': { th: 'Surprise Adventurer Key Support Pack' },
