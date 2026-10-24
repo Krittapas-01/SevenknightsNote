@@ -14,7 +14,7 @@ import { hasStats } from '../lib/stats'
 import { baseName, getUnit, unitBase, unitLabel } from '../data/heroes'
 import { addHeroToTeam, changeFormation, moveSlot, placeUnit, type HeroNote, type SkillStep, type Team, type WarOption } from '../lib/types'
 import TeamPanel, { type SlotKind } from './TeamPanel'
-import { SkillQueueBoard } from './TeamModals'
+import { SkillQueueBoard, SkillQueueModal } from './TeamModals'
 import AtlasTeam from './AtlasTeam'
 import TeamCardLite from './TeamCardLite'
 import { SkillDetail, SkillStrip, hasSkillInfo, type SkillKind } from './HeroSkills'
@@ -259,6 +259,8 @@ export default function OptionCard({ option, index, total, editing, banned, onCh
 /** ปุ่ม "ดูรายละเอียดทั้งทีม" + หน้าต่างการ์ดอุปกรณ์/ค่าความสามารถรายตัว — ใช้ทุกที่ที่ดูทีม (แผน · หน้าบ้านศัตรู) */
 export function TeamGearButton({ team, skills = [], heroNotes, title, label, className = '' }: { team: Team; skills?: SkillStep[]; heroNotes: HeroNote[]; title?: string; label?: string; className?: string }) {
   const [open, setOpen] = useState(false)
+  // กดวงคิวสกิลในการ์ดทีม = เปิดหน้าต่างลำดับการใช้สกิล (ดูอย่างเดียว) ซ้อนบนรายละเอียดทั้งทีม
+  const [queueOpen, setQueueOpen] = useState(false)
   const heroes = team.slots.filter((id): id is string => !!id)
   if (!heroes.length) return null
   return (
@@ -268,12 +270,12 @@ export function TeamGearButton({ team, skills = [], heroNotes, title, label, cla
         <Users className="h-4 w-4" /> {label ?? tx('ดูรายละเอียดทั้งทีม')} ({heroes.length})
       </button>
       {open && (
-        <Modal open wide title={title ?? L(`รายละเอียดทั้งทีม (${heroes.length})`, `Full team details (${heroes.length})`)} onClose={() => setOpen(false)}>
+        <Modal open wide title={title ?? L(`รายละเอียดทั้งทีม (${heroes.length})`, `Full team details (${heroes.length})`)} onClose={() => { setOpen(false); setQueueOpen(false) }}>
           {/* คอมพ์ (รูปแบบ/สัตว์เลี้ยง/ตั้งลำดับการใช้สกิล) ซ้าย · อุปกรณ์/ค่าความสามารถรายตัวขวา */}
           <div className="grid items-start gap-5 lg:grid-cols-[300px_1fr]">
             {/* คอมพ์อยู่กึ่งกลางแนวตั้งของรายการอัศวิน (จอใหญ่) และค้างไว้ตอนเลื่อน */}
             <div className="@container mx-auto w-full max-w-[300px] lg:sticky lg:top-0 lg:self-center">
-              <TeamCardLite variant="ally" team={team} skills={skills}
+              <TeamCardLite variant="ally" team={team} skills={skills} onQueue={() => setQueueOpen(true)}
                 title={<span className="text-gold">{heroes.map((id) => unitBase(id)).join(' · ')}</span>} />
             </div>
             {/* 1 ตัว/แถว แบบกว้าง: อัศวิน+ของ ซ้าย · ค่าความสามารถขวา (ชื่อค่าความสามารถไม่โดนตัด) */}
@@ -283,9 +285,10 @@ export function TeamGearButton({ team, skills = [], heroNotes, title, label, cla
               ))}
             </ul>
           </div>
-          <button type="button" onClick={() => setOpen(false)} className="btn-gold mt-5 w-full">{tx('ปิดรายละเอียด')}</button>
+          <button type="button" onClick={() => { setOpen(false); setQueueOpen(false) }} className="btn-gold mt-5 w-full">{tx('ปิดรายละเอียด')}</button>
         </Modal>
       )}
+      {open && <SkillQueueModal open={queueOpen} team={team} skills={skills} onClose={() => setQueueOpen(false)} />}
     </>
   )
 }

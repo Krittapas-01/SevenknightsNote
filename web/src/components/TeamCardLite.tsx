@@ -26,9 +26,11 @@ type Props = {
   /** ล็อกความสูงการ์ด = ช่อง 3 แถว + ส่วนอื่น (px) — ค่าเริ่มต้น = มาตรฐาน (สูงเท่ากันทุกใบ ไม่ว่ารูปแบบแบบไหน) */
   /** ไม่ล็อกความสูง (ยืดตามที่วาง) */
   fluid?: boolean
+  /** ใส่ = วงคิวออกสกิลกดได้ (เปิดดูลำดับการใช้สกิล) · ไม่ใส่ = ดูอย่างเดียว (การ์ดในรายการยาว) */
+  onQueue?: () => void
 }
 
-function TeamCardLite({ team, skills = [], title, className = '', variant = 'enemy', unit, fluid = false }: Props) {
+function TeamCardLite({ team, skills = [], title, className = '', variant = 'enemy', unit, fluid = false, onQueue }: Props) {
   const frontIdx = Array.from({ length: team.front }, (_, i) => i)
   const backIdx = Array.from({ length: SLOT_COUNT - team.front }, (_, i) => team.front + i)
   const lit = Math.min(skills.length, MAX_SKILL_QUEUE)
@@ -74,9 +76,18 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
             <FormationStars front={team.front} />
             <span className="absolute -bottom-1.5 rounded-full bg-black/70 px-1.5 text-[10px] leading-4 text-white/85">{formationName(team.front)}</span>
           </div>
-          <div title={skills.length ? L(`ตั้งลำดับการใช้สกิล ${skills.length} ครั้ง`, `Skill queue set ${skills.length} times`) : tx('ตั้งลำดับการใช้สกิล')} className="orb relative mt-4 grid place-items-center" style={{ width: 'var(--s)', height: 'var(--s)' }}>
-            <QueueStars lit={lit} still />
-          </div>
+          {onQueue ? (
+            <button type="button" onClick={onQueue} title={L('ดูลำดับการใช้สกิล', 'View skill queue')}
+              aria-label={skills.length ? L(`ดูลำดับการใช้สกิล (ตั้งไว้ ${skills.length} ครั้ง)`, `View skill queue (${skills.length} set)`) : L('ดูลำดับการใช้สกิล (ยังไม่ได้ตั้ง)', 'View skill queue (not set)')}
+              className="orb relative mt-4 grid place-items-center transition-[filter,transform] hover:brightness-125 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold" style={{ width: 'var(--s)', height: 'var(--s)', borderRadius: '9999px' }}>
+              <QueueStars lit={lit} still />
+              <span className="absolute -bottom-1.5 whitespace-nowrap rounded-full bg-black/70 px-1.5 text-[10px] leading-4 text-white/85">{L('คิวสกิล', 'Queue')}</span>
+            </button>
+          ) : (
+            <div title={skills.length ? L(`ตั้งลำดับการใช้สกิล ${skills.length} ครั้ง`, `Skill queue set ${skills.length} times`) : tx('ตั้งลำดับการใช้สกิล')} className="orb relative mt-4 grid place-items-center" style={{ width: 'var(--s)', height: 'var(--s)' }}>
+              <QueueStars lit={lit} still />
+            </div>
+          )}
         </div>
       </div>
 
