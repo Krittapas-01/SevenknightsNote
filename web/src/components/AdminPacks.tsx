@@ -2,7 +2,7 @@ import { Pencil, Plus, Star, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Modal from './Modal'
 import { api, type PackInput } from '../lib/api'
-import { PACK_ITEM_KEYS, PACK_TABS, itemName, itemsOf, packTab, packValue, perBaht, periodLabel, type ItemLine, type Pack, type PackItemKey, type PackPeriod, type PackTab } from '../lib/packs'
+import { ATLAS_CATS, CAT_NAME, ITEMS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, itemName, itemsOf, packTab, packValue, perBaht, periodLabel, type ItemLine, type Pack, type PackItemKey, type PackPeriod, type PackTab } from '../lib/packs'
 
 /** แอดมิน: จัดการแพ็คในหน้า "เช็กความคุ้มค่าแพ็ค" (เห็นทุกแพ็ค รวมที่หมดอายุแล้ว) */
 type Form = {
@@ -113,14 +113,19 @@ export default function AdminPacks() {
               <F label="ชื่อแพ็ค *"><input required value={edit.f.name} onChange={(e) => set('name', e.target.value)} className={INPUT} /></F>
               <F label="กลุ่ม = ชื่อแถบในร้าน (เช่น Rookie Ruby Support Pack)"><input value={edit.f.group} onChange={(e) => set('group', e.target.value)} className={INPUT} /></F>
               <F label="ราคา (บาท) *"><input required type="number" min="1" step="0.01" value={edit.f.price} onChange={(e) => set('price', e.target.value)} className={INPUT} /></F>
-              <F label="ปริซึม 💎 (ราคาในเกม)"><input type="number" min="0" value={edit.f.gems} onChange={(e) => set('gems', e.target.value)} className={INPUT} /></F>
+              <F label="ปริซึม (ราคาในเกม)"><input type="number" min="0" value={edit.f.gems} onChange={(e) => set('gems', e.target.value)} className={INPUT} /></F>
             </div>
             <p className="pt-1 text-xs font-semibold text-gold/80">ของในแพ็ค (เรียงตามในเกม · ติ๊ก BONUS = ของแถม)</p>
             <div className="space-y-1.5">
               {edit.f.list.map((x, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <select value={x.k} onChange={(e) => setItem(i, { k: e.target.value as PackItemKey })} className={`${INPUT} min-w-0 flex-1`}>
-                    {PACK_ITEM_KEYS.map((k) => <option key={k} value={k}>{itemName(k)}</option>)}
+                    <optgroup label="ของหลัก">{PACK_BASE_KEYS.map((k) => <option key={k} value={k}>{itemName(k)}</option>)}</optgroup>
+                    {ATLAS_CATS.map((c) => (
+                      <optgroup key={c} label={CAT_NAME[c][0]}>
+                        {PACK_ITEM_KEYS.filter((k) => ITEMS[k].cat === c).map((k) => <option key={k} value={k}>{itemName(k)}</option>)}
+                      </optgroup>
+                    ))}
                   </select>
                   <input type="number" min="0" value={x.n} onChange={(e) => setItem(i, { n: e.target.value })} className={`${INPUT} w-28`} placeholder="จำนวน" />
                   <label className="flex shrink-0 items-center gap-1 text-xs"><input type="checkbox" checked={x.b} onChange={(e) => setItem(i, { b: e.target.checked })} /> BONUS</label>

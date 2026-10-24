@@ -4,7 +4,7 @@ import Modal from '../components/Modal'
 import PackTile, { Prism } from '../components/PackTile'
 import { api } from '../lib/api'
 import {
-  GROUP_META, ITEMS, PACK_ITEM_KEYS, PACK_TABS, boughtCount, defaultWorth, itemName, itemsOf, loadWorthPrefs, packTab, packValue, periodLabel,
+  ATLAS_CATS, CAT_NAME, GROUP_META, ITEMS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, boughtCount, defaultWorth, itemName, itemsOf, loadWorthPrefs, packTab, packValue, periodLabel,
   rateOf, recommend, saveWorthPrefs, setBought, shopValue, tierOf, worthTable,
   type Metric, type Pack, type PackItemKey, type PackTab, type Profile, type Worth, type WorthPrefs,
 } from '../lib/packs'
@@ -308,32 +308,53 @@ function ValuesTab({ prefs, worth, onChange, onReset }: { prefs: WorthPrefs; wor
         </button>
       </div>
       <ul className="divide-y divide-white/5">
-        {PACK_ITEM_KEYS.map((k) => {
-          const d = ITEMS[k]
-          const own = prefs.worth[k]
-          const def = defaultWorth(k, prefs.profile as Profile)
-          return (
-            <li key={k} className="flex items-center gap-3 px-4 py-2.5">
-              <PackTile k={k} n={1} size="sm" noCount muted={!(worth[k] > 0)} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium leading-snug">{itemName(k)}</span>
-                <span className="block text-[11px] leading-snug text-white/45">
-                  {d.unknown ? L('ยังไม่รู้ค่า · ใส่เองได้', 'Value unknown · set your own') : d.note ? L(...d.note) : ''}
-                  {d.shop !== undefined && <> · {L('ร้าน', 'shop')} {num(d.shop)}</>}
-                </span>
-              </span>
-              <label className={`pill flex items-center gap-1 px-2.5 py-1 ${own !== undefined ? 'border-gold/60' : ''}`}>
-                <input type="number" inputMode="decimal" min={0} step="any" value={own ?? ''} placeholder={num(def)}
-                  onChange={(e) => onChange(k, e.target.value === '' ? undefined : Math.max(0, Number(e.target.value) || 0))}
-                  aria-label={L(`ค่าของ ${d.th} (รูบี้)`, `${d.en} value (rubies)`)}
-                  className="w-16 bg-transparent text-right text-sm font-semibold tabular-nums outline-none placeholder:text-white/60" />
-                <span className="text-[11px] text-white/45">{L('รูบี้', 'rb')}</span>
-              </label>
-            </li>
-          )
-        })}
+        {PACK_BASE_KEYS.map((k) => <ValueRow key={k} k={k} prefs={prefs} worth={worth} onChange={onChange} />)}
       </ul>
+      {/* ไอเท็มอื่นทั้งหมดจาก 7K Atlas แยกตามหมวด (พับไว้ เปิดเองเมื่อมีค่าที่ตั้งเอง) */}
+      <p className="border-t border-white/10 px-4 pb-1 pt-3 text-xs font-semibold text-gold/80">{L('ไอเท็มอื่น ๆ (ใส่ค่าเองได้)', 'Other items (set your own values)')}</p>
+      {ATLAS_CATS.map((c) => {
+        const keys = PACK_ITEM_KEYS.filter((k) => ITEMS[k].cat === c)
+        const mine = keys.filter((k) => prefs.worth[k] !== undefined).length
+        return (
+          <details key={c} open={mine > 0} className="group border-t border-white/5">
+            <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm hover:text-gold">
+              <ChevronDown className="h-4 w-4 -rotate-90 text-white/40 transition group-open:rotate-0" />
+              <span className="flex-1">{L(...CAT_NAME[c])}</span>
+              <span className="text-xs text-white/40 tabular-nums">{mine > 0 && <b className="mr-1.5 text-gold">{L(`ตั้งเอง ${mine}`, `${mine} set`)}</b>}{keys.length}</span>
+            </summary>
+            <ul className="divide-y divide-white/5 bg-black/10">
+              {keys.map((k) => <ValueRow key={k} k={k} prefs={prefs} worth={worth} onChange={onChange} />)}
+            </ul>
+          </details>
+        )
+      })}
     </section>
+  )
+}
+
+/** แถวค่าของ 1 ชนิด: รูป ชื่อ ที่มา ราคาร้าน + ช่องใส่ค่าเอง */
+function ValueRow({ k, prefs, worth, onChange }: { k: PackItemKey; prefs: WorthPrefs; worth: Worth; onChange: (k: PackItemKey, v: number | undefined) => void }) {
+  const d = ITEMS[k]
+  const own = prefs.worth[k]
+  const def = defaultWorth(k, prefs.profile as Profile)
+  return (
+    <li className="flex items-center gap-3 px-4 py-2.5">
+      <PackTile k={k} n={1} size="sm" noCount muted={!(worth[k] > 0)} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium leading-snug">{itemName(k)}</span>
+        <span className="block text-[11px] leading-snug text-white/45">
+          {d.unknown ? L('ยังไม่รู้ค่า · ใส่เองได้', 'Value unknown · set your own') : d.note ? L(...d.note) : ''}
+          {d.shop !== undefined && <> · {L('ร้าน', 'shop')} {num(d.shop)}</>}
+        </span>
+      </span>
+      <label className={`pill flex items-center gap-1 px-2.5 py-1 ${own !== undefined ? 'border-gold/60' : ''}`}>
+        <input type="number" inputMode="decimal" min={0} step="any" value={own ?? ''} placeholder={num(def)}
+          onChange={(e) => onChange(k, e.target.value === '' ? undefined : Math.max(0, Number(e.target.value) || 0))}
+          aria-label={L(`ค่าของ ${d.th} (รูบี้)`, `${d.en} value (rubies)`)}
+          className="w-16 bg-transparent text-right text-sm font-semibold tabular-nums outline-none placeholder:text-white/60" />
+        <span className="text-[11px] text-white/45">{L('รูบี้', 'rb')}</span>
+      </label>
+    </li>
   )
 }
 

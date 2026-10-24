@@ -1,4 +1,5 @@
-import { PACK_ITEM_KEYS, PACK_TABS, type PackItemKey, type PackTab } from '../../../shared/packs'
+import { PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, type PackBaseKey, type PackItemKey, type PackTab } from '../../../shared/packs'
+import { ATLAS_CATS, ATLAS_ITEMS, type AtlasCat } from '../../../shared/atlasItems'
 import { L } from './i18n'
 import artDemonSlayer from '../assets/packs/shop-demon-slayer.webp'
 import artSurpriseKey from '../assets/packs/shop-surprise-key.webp'
@@ -22,7 +23,7 @@ import artRateUp from '../assets/packs/shop-rate-up.webp'
 export const PACKS_ON = false
 
 export const KEYS_PER_CHEST = 60
-export { PACK_ITEM_KEYS, PACK_TABS, type PackItemKey, type PackTab }
+export { ATLAS_CATS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, type AtlasCat, type PackItemKey, type PackTab }
 
 /** ของ 1 ช่องในแพ็ค · b = ของแถม (ป้าย BONUS ในเกม) */
 export type ItemLine = { k: PackItemKey; n: number; b?: 1 }
@@ -50,8 +51,10 @@ export type ItemDef = {
   note?: [string, string]
   /** ยังไม่รู้ว่าคืออะไร/ค่าเท่าไหร่ */
   unknown?: boolean
+  /** หมวดของไอเท็มจาก 7K Atlas (ไม่มี = ของหลัก) */
+  cat?: AtlasCat
 }
-export const ITEMS: Record<PackItemKey, ItemDef> = {
+const BASE_ITEMS: Record<PackBaseKey, ItemDef> = {
   rubies: { th: 'รูบี้', en: 'Rubies', worth: 1 },
   chests: { th: 'กล่องกุญแจ (60 ดอก)', en: 'Key chest (60 keys)', shop: 100, worth: 100,
     note: ['ฟาร์ม 4 ตัวได้ 80 + ช่องที่ 5 ไว้ฟาร์มของรัก/แหวน', 'Farming 4 heroes gives 80, plus a 5th slot for gear drops'] },
@@ -78,6 +81,34 @@ export const ITEMS: Record<PackItemKey, ItemDef> = {
   raid: { th: 'ตั๋วเรด', en: 'Raid ticket', worth: 0, note: ['ไม่นับ', 'Not counted'] },
   ore: { th: 'Topaz', en: 'Topaz', worth: 0, unknown: true },
   star: { th: 'Star Crystal', en: 'Star Crystal', worth: 0, unknown: true },
+}
+/** ค่าตั้งต้นของไอเท็ม Atlas บางตัวที่เทียบกับของหลักได้ (ที่เหลือ = ยังไม่รู้ค่า ไม่นับ) */
+const ATLAS_WORTH: Partial<Record<PackItemKey, [number, [string, string]]>> = {
+  a_203000037: [100, ['เลือกตั๋วเรียก 1 ใบ', 'Pick 1 summon voucher']],
+  a_526: [200, ['เท่าตั๋ว Pet Wish List', 'Same as a Pet Wish List voucher']],
+}
+export const ITEMS = {
+  ...BASE_ITEMS,
+  ...Object.fromEntries(ATLAS_ITEMS.map((x): [PackItemKey, ItemDef] => {
+    const w = ATLAS_WORTH[x.k]
+    return [x.k, w ? { th: x.th, en: x.en, cat: x.c, worth: w[0], note: w[1] } : { th: x.th, en: x.en, cat: x.c, worth: 0, unknown: true }]
+  })),
+} as Record<PackItemKey, ItemDef>
+/** ชื่อหมวด (ตามหมวดของ 7K Atlas) */
+export const CAT_NAME: Record<AtlasCat, [string, string]> = {
+  summonvouchers: ['ตั๋วเรียกอื่น ๆ', 'Other summon vouchers'],
+  tickets: ['ใบเรียก / ใบเลือกอัศวินและสัตว์เลี้ยง', 'Hero & pet tickets'],
+  materials: ['วัตถุดิบ', 'Materials'],
+  elements: ['ธาตุ / วัตถุดิบวิวัฒนาการ', 'Particles & rank up'],
+  petrelated: ['ไข่สัตว์เลี้ยง', 'Pet eggs'],
+  accessoryrelated: ['ของเสริมพลังเครื่องประดับ', 'Accessory refining'],
+  accessories: ['กล่องเครื่องประดับ', 'Accessory boxes'],
+  dedicatedequipment: ['อุปกรณ์เฉพาะ', 'Dedicated equipment'],
+  gears: ['กล่องอุปกรณ์', 'Equipment boxes'],
+  essentials: ['ของพื้นฐาน', 'Essentials'],
+  shopping: ['เหรียญร้านค้า', 'Shop currencies'],
+  entrytokens: ['ตั๋ว / ตราเข้าเล่น', 'Entry tokens'],
+  misc: ['อื่น ๆ', 'Other'],
 }
 export const itemName = (k: PackItemKey) => L(ITEMS[k].th, ITEMS[k].en)
 
