@@ -207,15 +207,22 @@ export default function RubyPage() {
 
         {/* อัศวินที่ดรอปคืน / กุญแจ / กล่อง */}
         <div className="mt-3 rounded-xl bg-white/[.04] px-3 py-2.5 text-sm">
-          {r.dropped > 0 && r.heroes > 0 && (
-            <p className="mb-1.5 flex items-start gap-1.5 border-b border-white/10 pb-1.5 tabular-nums">
-              <Users className="mt-0.5 h-4 w-4 shrink-0 text-white/50" />
-              <span className="min-w-0">
-                <span className="text-white/70">{L(`ดรอปอัศวิน 2–3★ คืน ~${fmt(r.dropped)} ตัว (ใช้ฟาร์มต่อได้) · `, `~${fmt(r.dropped)} 2–3★ heroes drop back (usable for farming) · `)}</span>
-                <span className="font-semibold">{L(`เตรียมเองแค่ ~${fmt(Math.max(0, r.heroes - r.dropped))} ตัว`, `prepare only ~${fmt(Math.max(0, r.heroes - r.dropped))}`)}</span>
-              </span>
-            </p>
-          )}
+          {r.dropped > 0 && r.heroes > 0 && (() => {
+            // ดรอปเป็นดวง → บอกเป็นช่วงกว้าง ๆ (±10% ปัดหลักสิบ) ไม่ใช่เลขเป๊ะ
+            const lo = Math.floor((r.dropped * 0.9) / 10) * 10
+            const hi = Math.ceil((r.dropped * 1.1) / 10) * 10
+            const needLo = Math.max(0, r.heroes - hi)
+            const needHi = Math.max(0, r.heroes - lo)
+            return (
+              <p className="mb-1.5 flex items-start gap-1.5 border-b border-white/10 pb-1.5 tabular-nums">
+                <Users className="mt-0.5 h-4 w-4 shrink-0 text-white/50" />
+                <span className="min-w-0">
+                  <span className="text-white/70">{L(`ดรอปอัศวิน 2–3★ คืนราว ${fmt(lo)}–${fmt(hi)} ตัว (ใช้ฟาร์มต่อได้) · `, `About ${fmt(lo)}–${fmt(hi)} 2–3★ heroes drop back (usable for farming) · `)}</span>
+                  <span className="font-semibold">{L(`เตรียมเองราว ${fmt(needLo)}–${fmt(needHi)} ตัว`, `prepare about ${fmt(needLo)}–${fmt(needHi)}`)}</span>
+                </span>
+              </p>
+            )
+          })()}
           <p className="flex items-start gap-1.5 text-white/70 tabular-nums">
             <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-white/50" />
             <span className="min-w-0">{L(`ใช้กุญแจ ${fmt(r.keysNeeded)} · มีกุญแจฟรีวันละ ${fmt(r.freeKeys)} · ได้ทอง ${big(r.gold)}`, `Uses ${fmt(r.keysNeeded)} keys · ${fmt(r.freeKeys)} free keys a day · ${big(r.gold)} gold`)}</span>
