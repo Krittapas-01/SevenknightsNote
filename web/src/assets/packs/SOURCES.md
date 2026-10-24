@@ -31,3 +31,8 @@ Game artwork © Netmarble Corp. & Netmarble Nexus Inc. Native size (260×192), W
 `items/*.webp`: item icons from 7K Atlas (https://7katlas.com, Resource Codex `resource-codex.html`), fetched 2026-10-24, trimmed and resized to 96×96 WebP. File name = item key in `shared/packs.ts`.
 `items/a_<id>.webp`: every other Resource Codex item (123 icons, hero portraits and the real-world tie-in logo left out), named by 7K Atlas item id; names and Thai names in `shared/atlasItems.ts` are 7K Atlas's. `items/prism.webp`: Prism currency icon.
 Game artwork © Netmarble Corp. & Netmarble Nexus Inc. Credit: 7K Atlas.
+
+# Pack banners from 7K Atlas (Pack Value page)
+
+`atlas/*.webp`: pack banners and thumbnails from 7K Atlas (https://7katlas.com, `tierlist-packs.html`), fetched 2026-10-24, resized to 152 px high (item-art thumbnails to 128×128) WebP. File name = pack group name in `web/src/lib/packGroups.gen.ts`. Pack contents, prices and Thai names in `api/migrations/0027_atlas_packs.sql` also come from 7K Atlas.
+Game artwork © Netmarble Corp. & Netmarble Nexus Inc. Credit: 7K Atlas.

@@ -1,4 +1,5 @@
-import { PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, type PackBaseKey, type PackItemKey, type PackTab } from '../../../shared/packs'
+import { PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, type PackBaseKey, type PackItemKey, type PackPeriod, type PackTab } from '../../../shared/packs'
+import { PACK_GROUPS } from './packGroups.gen'
 import { ATLAS_CATS, ATLAS_ITEMS, type AtlasCat } from '../../../shared/atlasItems'
 import { L } from './i18n'
 import artDemonSlayer from '../assets/packs/shop-demon-slayer.webp'
@@ -23,16 +24,15 @@ import artRateUp from '../assets/packs/shop-rate-up.webp'
 export const PACKS_ON = false
 
 export const KEYS_PER_CHEST = 60
-export { ATLAS_CATS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, type AtlasCat, type PackItemKey, type PackTab }
+export { ATLAS_CATS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, type AtlasCat, type PackItemKey, type PackPeriod, type PackTab }
 
-/** ของ 1 ช่องในแพ็ค · b = ของแถม (ป้าย BONUS ในเกม) · s = ตัวเลือกของช่อง "Select" (เลือกได้ 1 อย่างจากทุกบรรทัดที่มี s) */
-export type ItemLine = { k: PackItemKey; n: number; b?: 1; s?: 1 }
+/** ของ 1 ช่องในแพ็ค · b = ของแถม (ป้าย BONUS ในเกม) · s = ตัวเลือกของช่อง "Select" กลุ่มที่ s (เลือกได้ 1 อย่างจากทุกบรรทัดที่มี s เดียวกัน) */
+export type ItemLine = { k: PackItemKey; n: number; b?: 1; s?: number }
 export type PackItems = {
   list?: ItemLine[]; tab?: PackTab; other?: string
   /** ข้อมูลรุ่นแรก (ก่อนมี list) */
   rubies?: number; chests?: number; summon?: number; raid?: number
 }
-export type PackPeriod = 'once' | 'daily' | 'weekly' | 'monthly'
 export type Pack = {
   id: string; name: string; group: string; price: number; gems: number
   items: PackItems; limit: number; period: PackPeriod; endsAt: number | null; base: boolean; sort: number; updatedAt: number
@@ -86,6 +86,12 @@ const BASE_ITEMS: Record<PackBaseKey, ItemDef> = {
 const ATLAS_WORTH: Partial<Record<PackItemKey, [number, [string, string]]>> = {
   a_203000037: [100, ['เลือกตั๋วเรียก 1 ใบ', 'Pick 1 summon voucher']],
   a_526: [200, ['เท่าตั๋ว Pet Wish List', 'Same as a Pet Wish List voucher']],
+  // ค่าจาก 7K Atlas (ยังไม่มีค่าที่ผู้เล่นตั้งเอง)
+  a_203000016: [20000, ['เลือกอัศวินตำนานได้ (L+ ด้วย) · ค่าจาก 7K Atlas', 'Pick a Legendary hero (L+ too) · 7K Atlas value']],
+  a_202000055: [10000, ['สุ่มอัศวินตำนาน 1 ตัว · ค่าจาก 7K Atlas', 'A random Legendary hero · 7K Atlas value']],
+  a_203000069: [20000, ['เลือกสัตว์เลี้ยงตำนาน 5★ · ค่าจาก 7K Atlas', 'Pick a 5★ Legendary pet · 7K Atlas value']],
+  a_304000004: [10000, ['ไข่ตำนาน · ค่าจาก 7K Atlas', 'Legendary egg · 7K Atlas value']],
+  a_202000067: [10000, ['ราคาร้าน Topaz · ค่าจาก 7K Atlas', 'Topaz Shop price · 7K Atlas value']],
 }
 export const ITEMS = {
   ...BASE_ITEMS,
@@ -94,6 +100,19 @@ export const ITEMS = {
     return [x.k, w ? { th: x.th, en: x.en, cat: x.c, worth: w[0], note: w[1] } : { th: x.th, en: x.en, cat: x.c, worth: 0, unknown: true }]
   })),
 } as Record<PackItemKey, ItemDef>
+/** รูปแบนเนอร์กลุ่มจาก 7K Atlas (assets/packs/atlas/<slug>.webp) */
+const ATLAS_ART = Object.fromEntries(
+  Object.entries(import.meta.glob<string>('../assets/packs/atlas/*.webp', { eager: true, import: 'default' }))
+    .map(([path, url]) => [path.slice(path.lastIndexOf('/') + 1, -5), url]),
+) as Record<string, string>
+/** รูปของกลุ่มแพ็ค: รูปจากคลิปในเกม (GROUP_META) ก่อน แล้วค่อยรูปจาก 7K Atlas · square = รูปไอเท็ม ไม่ใช่แบนเนอร์ */
+export function groupArt(g: string): { src: string; square: boolean; atlas: boolean } | null {
+  if (GROUP_META[g]?.art) return { src: GROUP_META[g].art!, square: false, atlas: false }
+  const m = PACK_GROUPS[g]
+  return m?.art && ATLAS_ART[m.art] ? { src: ATLAS_ART[m.art], square: !!m.square, atlas: true } : null
+}
+/** ชื่อกลุ่ม: โหมดไทยใช้คำแปลของ 7K Atlas ถ้ามี */
+export const groupName = (g: string) => L(PACK_GROUPS[g]?.th ?? g, g)
 /** ชื่อหมวด (ตามหมวดของ 7K Atlas) */
 export const CAT_NAME: Record<AtlasCat, [string, string]> = {
   summonvouchers: ['ตั๋วเรียกอื่น ๆ', 'Other summon vouchers'],
@@ -157,23 +176,28 @@ export function itemsOf(p: Pick<Pack, 'items'>): ItemLine[] {
 }
 /** แท็บในร้านของแพ็ค */
 export function packTab(p: Pack): PackTab {
-  const t = p.items?.tab ?? GROUP_META[p.group]?.tab
+  const t = p.items?.tab ?? GROUP_META[p.group]?.tab ?? PACK_GROUPS[p.group]?.tab
   if (t && (PACK_TABS as readonly string[]).includes(t)) return t
   return p.period === 'monthly' ? 'monthly' : p.period === 'daily' ? 'daily' : 'special'
 }
 
 /** ตัวเลือกที่คุ้มสุดของช่อง "Select" ตามค่าที่ให้ (ไม่มีช่องเลือก = null) */
-export function bestPick(lines: ItemLine[], val: (k: PackItemKey) => number) {
+export function bestPick(lines: ItemLine[], val: (k: PackItemKey) => number, s = 1) {
   let best: ItemLine | null = null
-  for (const x of lines) if (x.s && (!best || x.n * val(x.k) > best.n * val(best.k))) best = x
+  for (const x of lines) if (x.s === s && (!best || x.n * val(x.k) > best.n * val(best.k))) best = x
   return best
 }
 /** ช่องที่แสดง/นับจริง: ของตายตัว + ช่องเลือก 1 ช่อง (ใช้ตัวเลือกที่คุ้มสุด วางที่ตำแหน่งตัวเลือกแรก) */
 export function shownItems(p: Pick<Pack, 'items'>, val: (k: PackItemKey) => number) {
   const all = itemsOf(p)
-  const best = bestPick(all, val)
-  const firstPick = all.findIndex((x) => x.s)
-  return all.flatMap((x, i) => (!x.s ? [x] : i === firstPick && best ? [best] : []))
+  const seen = new Set<number>()
+  return all.flatMap((x) => {
+    if (!x.s) return [x]
+    if (seen.has(x.s)) return []
+    seen.add(x.s)
+    const best = bestPick(all, val, x.s)
+    return best ? [best] : []
+  })
 }
 /** มูลค่ารวม (รูบี้เทียบเท่า) ตามค่าที่ให้ */
 export function packValue(p: Pick<Pack, 'items'>, worth: Worth = DEFAULT_WORTH) {
@@ -203,13 +227,14 @@ export function tierOf(pct: number): Tier {
 export const periodLabel = (p: PackPeriod, n: number) =>
   p === 'daily' ? L(`วันละ ${n} ครั้ง`, `${n}× per day`)
     : p === 'weekly' ? L(`สัปดาห์ละ ${n} ครั้ง`, `${n}× per week`)
+      : p === 'biweekly' ? L(`2 สัปดาห์ละ ${n} ครั้ง`, `${n}× per 2 weeks`)
       : p === 'monthly' ? L(`เดือนละ ${n} ครั้ง`, `${n}× per month`)
         : L(`ซื้อได้ ${n} ครั้ง`, `Limit ${n}`)
 
 // ---------- กลุ่มแพ็ค (แถบในร้าน): รูปแบนเนอร์ + คำอธิบาย · ชื่อกลุ่มตรงกับช่อง "กลุ่ม" ในหน้าแอดมิน ----------
 export type GroupMeta = { art?: string; sub?: [string, string]; tab?: PackTab }
 export const GROUP_META: Record<string, GroupMeta> = {
-  'Monthly Key Bundle': { sub: ['แพ็ครายเดือน ใช้เป็นเส้นฐาน 100%', 'Monthly pack, the 100% baseline'], tab: 'monthly' },
+  'Monthly Key Bundle': { sub: ['แพ็ครายเดือน ใช้เป็นเส้นฐาน 100%', 'Monthly pack, the 100% baseline'], tab: 'limited' },
   'Demon Slayer Summons Bonanza': { art: artDemonSlayer, sub: ['ตั๋วคอลแลปดาบพิฆาตอสูร ลดราคาพิเศษ', 'Demon Slayer summon voucher special sale'] },
   'Surprise Adventurer Key Support Pack': { art: artSurpriseKey, sub: ['กล่องกุญแจ + Chaos Essence', 'Key bundles and Chaos Essence'] },
   'Rookie Ruby Support Pack': { art: artRookieRuby, sub: ['แพ็ครูบี้สำหรับนักผจญภัย', 'Rubies for adventurers in need'] },
@@ -230,6 +255,7 @@ export function periodKey(period: PackPeriod, now = Date.now()) {
   const d = new Date(now)
   if (period === 'daily') return d.toISOString().slice(0, 10)
   if (period === 'monthly') return d.toISOString().slice(0, 7)
+  if (period === 'biweekly') return 'b' + Math.floor((now - 345_600_000) / 1_209_600_000) // รอบ 14 วันนับจากวันจันทร์
   if (period === 'weekly') { const mon = new Date(now - ((d.getUTCDay() + 6) % 7) * 86_400_000); return 'w' + mon.toISOString().slice(0, 10) }
   return 'once'
 }

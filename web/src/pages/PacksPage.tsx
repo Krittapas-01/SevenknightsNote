@@ -4,7 +4,7 @@ import Modal from '../components/Modal'
 import PackTile, { Prism } from '../components/PackTile'
 import { api } from '../lib/api'
 import {
-  ATLAS_CATS, CAT_NAME, GROUP_META, ITEMS, shownItems, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, boughtCount, defaultWorth, itemName, itemsOf, loadWorthPrefs, packTab, packValue, periodLabel,
+  ATLAS_CATS, CAT_NAME, GROUP_META, ITEMS, groupArt, groupName, shownItems, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, boughtCount, defaultWorth, itemName, itemsOf, loadWorthPrefs, packTab, packValue, periodLabel,
   rateOf, recommend, saveWorthPrefs, setBought, shopValue, tierOf, worthTable,
   type Metric, type Pack, type PackItemKey, type PackTab, type Profile, type Worth, type WorthPrefs,
 } from '../lib/packs'
@@ -17,6 +17,7 @@ const BUDGET_KEY = '7k-note:packs-budget'
 
 const TAB_LABEL: Record<PackTab | 'values', [string, string]> = {
   monthly: ['รายเดือน', 'Monthly'], special: ['พิเศษ', 'Special'], limited: ['จำกัดเวลา', 'Limited Time'], daily: ['รายวัน', 'Daily'],
+  ruby: ['ร้านรูบี้', 'Ruby top-up'], offer: ['ข้อเสนอตามเงื่อนไข', 'Conditional offers'], relay: ['รีเลย์', 'Relay'], pass: ['พาส', 'Passes'],
   values: ['ค่าของแต่ละชิ้น', 'Item values'],
 }
 
@@ -190,7 +191,7 @@ function Seg<T extends string>({ value, onChange, options, label }: { value: T; 
 function GroupTitle({ g, now }: { g: Group; now: number }) {
   return (
     <span className="flex flex-wrap items-center gap-2">
-      <span>{g.name}</span>
+      <span>{groupName(g.name)}</span>
       {g.endsAt && <span className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-normal text-white/70"><CalendarClock className="h-3.5 w-3.5" />{endsIn(g.endsAt, now)}</span>}
     </span>
   )
@@ -199,29 +200,49 @@ function GroupTitle({ g, now }: { g: Group; now: number }) {
 /** แถบแพ็ค 1 กลุ่มแบบในร้าน: รูปซ้าย ชื่อ/คำอธิบายขวา + % ขั้นที่คุ้มสุด */
 function GroupRow({ g, now, onOpen }: { g: Group; now: number; onOpen: () => void }) {
   const meta = GROUP_META[g.name]
+  const art = groupArt(g.name)
   const t = tierOf(g.best)
   const prices = g.rows.map((r) => r.p.price)
   return (
     <button type="button" onClick={onOpen}
       className="panel group relative flex min-h-[72px] w-full items-stretch overflow-hidden text-left transition hover:border-gold/60">
-      {meta?.art
-        ? <img src={meta.art} alt="" loading="lazy" draggable={false} className="pack-art-l pointer-events-none absolute inset-y-0 left-0 h-full w-[96px] object-cover object-left sm:w-[120px]" />
+      {art
+        ? <img src={art.src} alt="" loading="lazy" draggable={false} className={`pack-art-l pointer-events-none absolute inset-y-0 left-0 h-full w-[96px] sm:w-[120px] ${art.square ? 'object-contain p-2 pr-6' : art.atlas ? 'object-cover object-right' : 'object-cover object-left'}`} />
         : <span className="pointer-events-none absolute inset-y-0 left-0 w-[96px] bg-gradient-to-r from-gold/15 to-transparent sm:w-[120px]" />}
       <span className="relative flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-2 pl-[88px] pr-3 sm:pl-[112px]">
         <span className="flex items-start gap-2">
-          <b className="min-w-0 flex-1 text-sm leading-snug">{g.name}</b>
+          <b className="min-w-0 flex-1 text-sm leading-snug">{groupName(g.name)}</b>
           {g.endsAt && <span className="flex shrink-0 items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[11px] text-white/70"><CalendarClock className="h-3 w-3" />{endsIn(g.endsAt, now)}</span>}
         </span>
         {meta?.sub && <span className="truncate text-xs leading-snug text-white/55">{L(...meta.sub)}</span>}
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           {g.best > 0 && <span className={`rounded-full px-2 py-0.5 font-semibold ${t.cls}`}>{L('คุ้มสุด', 'Best')} {Math.round(g.best)}%</span>}
-          <span className="text-white/50 tabular-nums">{g.rows.length} {L('ขั้น', 'tiers')} · {baht(Math.min(...prices))}{prices.length > 1 ? `–${baht(Math.max(...prices))}` : ''}</span>
+          <span className="text-white/50 tabular-nums">{g.rows.length} {L('ขั้น', g.rows.length === 1 ? 'tier' : 'tiers')} · {baht(Math.min(...prices))}{prices.length > 1 ? `–${baht(Math.max(...prices))}` : ''}</span>
           <ChevronRight className="ml-auto h-4 w-4 text-white/40 transition group-hover:translate-x-0.5 group-hover:text-gold" />
         </span>
       </span>
     </button>
   )
 }
+
+/** คำอธิบายของอื่น ๆ ที่ใช้บ่อย (ข้อความจากแอดมินเป็นไทย) → อังกฤษในโหมดอังกฤษ · ส่วนที่ไม่รู้จักแสดงตามเดิม */
+const OTHER_EN: Record<string, string> = {
+  'มีหลายแบบ ของคล้ายกัน': 'several versions with similar items',
+  'เลือกของแถม 1 อย่าง': 'pick 1 bonus item',
+  'อัศวินตำนาน (L+)': 'Legendary hero (L+)',
+  'อัศวินตำนาน (L)': 'Legendary hero (L)',
+  'หรือ อัศวินตำนาน (L+)': 'or a Legendary hero (L+)',
+  'หรือ อัศวินตำนาน (L)': 'or a Legendary hero (L)',
+  'Leah (วัตถุดิบ)': 'Leah (material)',
+  'สัตว์เลี้ยงหายาก 6★': 'Rare pet 6★',
+  'บัฟถาวร: วิ่งซ้ำ +300 รอบ': 'Permanent buff: +300 repeat runs',
+  'กุญแจสูงสุด +55 (ไม่นับเป็นรูบี้)': 'max keys +55 (not counted as rubies)',
+}
+const otherEn = (x: string) => {
+  const relay = /^ขั้น (\d+) \+ ขั้นฟรี (\d+)–(\d+) รวมกัน$/.exec(x)
+  return relay ? `step ${relay[1]} + free steps ${relay[2]}–${relay[3]} combined` : OTHER_EN[x.trim()] ?? x
+}
+const otherText = (s: string) => s.split(' · ').map((x) => L(x, otherEn(x))).join(' · ')
 
 /** การ์ด 1 ขั้นราคาแบบในเกม: หัว "ซื้อได้" · ช่องของ (BONUS) · ราคา ฿ (ปริซึม) + % ความคุ้ม */
 function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; worth: Worth; metric: Metric; base: Pack | null; baseRate: number; onBought: (p: Pack, n: number) => void }) {
@@ -250,12 +271,12 @@ function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; wort
           {rate > 0 && <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold sm:text-xs ${t.cls}`}>{t.label}</span>}
           <span className="mt-1 block text-[11px] leading-tight text-white/50 tabular-nums sm:text-[13px]">{rate ? <>{rate.toFixed(1)} / {unit}</> : L('ไม่มีราคาปริซึม', 'No prism price')}</span>
         </div>
-        {/* ช่องของ 2 แถวแบบในเกม */}
-        <div className="ml-auto grid min-w-0 gap-1.5 sm:gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(items.length / 2))}, auto)` }}>
+        {/* ช่องของ 2 แถวแบบในเกม (สูงสุด 3 คอลัมน์ ไม่งั้นล้นการ์ดตอนของเยอะ เช่นพาส) */}
+        <div className="ml-auto grid min-w-0 gap-1.5 sm:gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(3, Math.max(1, Math.ceil(items.length / 2)))}, auto)` }}>
           {items.map((x, i) => <PackTile key={i} k={x.k} n={x.n} bonus={!!x.b} pick={!!x.s} muted={!(worth[x.k] > 0)} />)}
         </div>
       </div>
-      {p.items.other && <p className="-mt-1 px-3 pb-2 text-right text-[11px] text-white/45">+ {p.items.other}</p>}
+      {p.items.other && <p className="-mt-1 px-3 pb-2 text-right text-[11px] text-white/45">{p.items.other.startsWith('ขั้น ') ? '' : '+ '}{otherText(p.items.other)}</p>}
       <div className="pack-price flex items-center justify-center gap-1.5 py-1.5 text-lg font-bold tabular-nums sm:py-2 sm:text-xl">
         {baht(p.price)}{!!p.gems && <span className="text-sm font-semibold opacity-80">(<Prism />{p.gems})</span>}
       </div>

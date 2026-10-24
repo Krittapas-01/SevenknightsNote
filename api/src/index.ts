@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { currentSeason } from '../../shared/season'
-import { MAX_PACK_ITEMS, PACK_ITEM_KEYS, PACK_TABS } from '../../shared/packs'
+import { MAX_PACK_ITEMS, PACK_ITEM_KEYS, PACK_PERIODS, PACK_TABS } from '../../shared/packs'
 import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT, bossRevivalDay, fillBoss, DAY_NAMES, DAY_PLACEHOLDER, DAY_PLACEHOLDER_EN, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay } from '../../shared/game'
 
 type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string; /** Discord user ID ที่เข้าหน้า /admin ได้ (คั่นด้วย ,) */ ADMIN_DISCORD_IDS?: string }
@@ -1200,7 +1200,6 @@ app.get('/api/admin/stats', async (c) => {
 
 // ---------- แพ็คในเกม (หน้าเช็กความคุ้มค่าแพ็ค) — ทุกคนอ่านได้ · แอดมินเพิ่ม/แก้/ลบ ----------
 type PackRow = { id: string; name: string; group_name: string; price: number; gems: number; items: string; limit_count: number; limit_period: string; ends_at: number | null; is_base: number; sort: number; updated_at: number }
-const PACK_PERIODS = ['once', 'daily', 'weekly', 'monthly']
 const packOut = (r: PackRow) => {
   let items: any = {}
   try { items = JSON.parse(r.items) } catch { /* ข้อมูลเสีย = ว่าง */ }
@@ -1221,11 +1220,11 @@ function cleanPack(b: any): Omit<PackRow, 'id' | 'updated_at'> | string {
   const it = b?.items ?? {}
   // ของในแพ็ค = รายการ { k ชนิด (shared/packs.ts), n จำนวน, b = ของแถม, s = ตัวเลือกของช่อง Select (เลือกได้ 1) }
   const list = (Array.isArray(it.list) ? it.list : []).slice(0, MAX_PACK_ITEMS)
-    .map((x: any) => ({ k: String(x?.k ?? ''), n: nonNeg(x?.n, 1e9), ...(x?.b ? { b: 1 } : {}), ...(x?.s ? { s: 1 } : {}) }))
+    .map((x: any) => ({ k: String(x?.k ?? ''), n: nonNeg(x?.n, 1e9), ...(x?.b ? { b: 1 } : {}), ...(x?.s ? { s: Math.min(4, Math.max(1, Math.round(Number(x.s)) || 1)) } : {}) }))
     .filter((x: { k: string; n: number }) => (PACK_ITEM_KEYS as readonly string[]).includes(x.k) && x.n > 0)
   const tab = (PACK_TABS as readonly string[]).includes(it.tab) ? it.tab : undefined
   const items = { list, ...(tab ? { tab } : {}), other: str(it.other, 120) }
-  const period = PACK_PERIODS.includes(b?.period) ? b.period : 'once'
+  const period = (PACK_PERIODS as readonly string[]).includes(b?.period) ? b.period : 'once'
   const endsAt = b?.endsAt == null || b.endsAt === '' ? null : Number(b.endsAt)
   if (endsAt !== null && !Number.isFinite(endsAt)) return 'วันหมดอายุไม่ถูกต้อง'
   return { name, group_name: str(b?.group, 80), price, gems: nonNeg(b?.gems), items: JSON.stringify(items), limit_count: Math.max(1, nonNeg(b?.limit, 999)), limit_period: period, ends_at: endsAt, is_base: b?.base ? 1 : 0, sort: nonNeg(b?.sort, 9999) }

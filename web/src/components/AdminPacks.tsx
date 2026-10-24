@@ -7,22 +7,22 @@ import { ATLAS_CATS, CAT_NAME, ITEMS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS,
 /** แอดมิน: จัดการแพ็คในหน้า "เช็กความคุ้มค่าแพ็ค" (เห็นทุกแพ็ค รวมที่หมดอายุแล้ว) */
 type Form = {
   name: string; group: string; price: string; gems: string
-  list: { k: PackItemKey; n: string; b: boolean; s: boolean }[]; tab: PackTab; other: string
+  list: { k: PackItemKey; n: string; b: boolean; s: number }[]; tab: PackTab; other: string
   limit: string; period: PackPeriod; endsAt: string; base: boolean; sort: string
 }
-const EMPTY: Form = { name: '', group: '', price: '', gems: '', list: [{ k: 'rubies', n: '', b: false, s: false }], tab: 'special', other: '', limit: '1', period: 'once', endsAt: '', base: false, sort: '100' }
-const TAB_TH: Record<PackTab, string> = { monthly: 'รายเดือน', special: 'พิเศษ', limited: 'จำกัดเวลา', daily: 'รายวัน' }
+const EMPTY: Form = { name: '', group: '', price: '', gems: '', list: [{ k: 'rubies', n: '', b: false, s: 0 }], tab: 'special', other: '', limit: '1', period: 'once', endsAt: '', base: false, sort: '100' }
+const TAB_TH: Record<PackTab, string> = { monthly: 'รายเดือน', special: 'พิเศษ', limited: 'จำกัดเวลา', daily: 'รายวัน', ruby: 'ร้านรูบี้', offer: 'ข้อเสนอตามเงื่อนไข', relay: 'รีเลย์', pass: 'พาส' }
 
 const toForm = (p: Pack): Form => ({
   name: p.name, group: p.group, price: String(p.price), gems: p.gems ? String(p.gems) : '',
-  list: itemsOf(p).map((x) => ({ k: x.k, n: String(x.n), b: !!x.b, s: !!x.s })), tab: packTab(p), other: p.items.other ?? '',
+  list: itemsOf(p).map((x) => ({ k: x.k, n: String(x.n), b: !!x.b, s: x.s ?? 0 })), tab: packTab(p), other: p.items.other ?? '',
   limit: String(p.limit), period: p.period, endsAt: p.endsAt ? new Date(p.endsAt).toISOString().slice(0, 10) : '', base: p.base, sort: String(p.sort),
 })
 const INPUT = 'w-full rounded-lg border border-white/15 bg-black/20 px-2.5 py-1.5 text-sm outline-none focus:border-gold'
 const num = (s: string) => Number(s) || 0
 const toInput = (f: Form): PackInput => ({
   name: f.name.trim(), group: f.group.trim(), price: num(f.price), gems: num(f.gems),
-  items: { list: f.list.filter((x) => num(x.n) > 0).map((x): ItemLine => ({ k: x.k, n: num(x.n), ...(x.b ? { b: 1 as const } : {}), ...(x.s ? { s: 1 as const } : {}) })), tab: f.tab, other: f.other.trim() },
+  items: { list: f.list.filter((x) => num(x.n) > 0).map((x): ItemLine => ({ k: x.k, n: num(x.n), ...(x.b ? { b: 1 as const } : {}), ...(x.s ? { s: x.s } : {}) })), tab: f.tab, other: f.other.trim() },
   limit: Math.max(1, num(f.limit)), period: f.period,
   // วันที่ = หมดตอนเริ่มวันนั้น 00:00 UTC (07:00 ไทย = รอบรีเซ็ตเกม)
   endsAt: f.endsAt ? Date.parse(f.endsAt) : null, base: f.base, sort: num(f.sort),
@@ -88,7 +88,7 @@ export default function AdminPacks() {
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">฿{p.price.toLocaleString()}</td>
                   <td className="px-3 py-2 text-xs text-white/70">
-                    {itemsOf(p).map((x) => `${itemName(x.k)} ${x.n.toLocaleString()}${x.b ? '*' : ''}${x.s ? ' (เลือก)' : ''}`).join(' · ')}
+                    {itemsOf(p).map((x) => `${itemName(x.k)} ${x.n.toLocaleString()}${x.b ? '*' : ''}${x.s ? ` (เลือก${x.s > 1 ? x.s : ''})` : ''}`).join(' · ')}
                     {p.items.other && <div className="text-white/40">{p.items.other}</div>}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{pct}%</td>
@@ -115,7 +115,7 @@ export default function AdminPacks() {
               <F label="ราคา (บาท) *"><input required type="number" min="1" step="0.01" value={edit.f.price} onChange={(e) => set('price', e.target.value)} className={INPUT} /></F>
               <F label="ปริซึม (ราคาในเกม)"><input type="number" min="0" value={edit.f.gems} onChange={(e) => set('gems', e.target.value)} className={INPUT} /></F>
             </div>
-            <p className="pt-1 text-xs font-semibold text-gold/80">ของในแพ็ค (เรียงตามในเกม · ติ๊ก BONUS = ของแถม · ติ๊ก "ให้เลือก" = ตัวเลือกของช่อง Select เลือกได้ 1 อย่าง)</p>
+            <p className="pt-1 text-xs font-semibold text-gold/80">ของในแพ็ค (เรียงตามในเกม · ติ๊ก BONUS = ของแถม · "เลือก ช่อง N" = ตัวเลือกของช่อง Select เลือกได้ 1 อย่างต่อช่อง)</p>
             <div className="space-y-1.5">
               {edit.f.list.map((x, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -129,13 +129,15 @@ export default function AdminPacks() {
                   </select>
                   <input type="number" min="0" value={x.n} onChange={(e) => setItem(i, { n: e.target.value })} className={`${INPUT} w-28`} placeholder="จำนวน" />
                   <label className="flex shrink-0 items-center gap-1 text-xs"><input type="checkbox" checked={x.b} onChange={(e) => setItem(i, { b: e.target.checked })} /> BONUS</label>
-                  <label className="flex shrink-0 items-center gap-1 text-xs" title="ช่อง Select: ติ๊กทุกตัวเลือก ระบบนับอันที่คุ้มสุด"><input type="checkbox" checked={x.s} onChange={(e) => setItem(i, { s: e.target.checked })} /> ให้เลือก</label>
+                  <select value={x.s} title="ช่อง Select: ตัวเลือกในช่องเดียวกันใส่เลขเดียวกัน ระบบนับอันที่คุ้มสุด" onChange={(e) => setItem(i, { s: Number(e.target.value) })} className={`${INPUT} w-24 shrink-0 text-xs`}>
+                    <option value={0}>ไม่ใช่ตัวเลือก</option>{[1, 2, 3, 4].map((g) => <option key={g} value={g}>เลือก ช่อง {g}</option>)}
+                  </select>
                   <button type="button" aria-label="ลบช่องนี้" onClick={() => setEdit((ed) => ed && { ...ed, f: { ...ed.f, list: ed.f.list.filter((_, j) => j !== i) } })}
                     className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-red-300"><X className="h-4 w-4" /></button>
                 </div>
               ))}
               {edit.f.list.length < 12 && (
-                <button type="button" onClick={() => setEdit((ed) => ed && { ...ed, f: { ...ed.f, list: [...ed.f.list, { k: 'rubies', n: '', b: true, s: false }] } })}
+                <button type="button" onClick={() => setEdit((ed) => ed && { ...ed, f: { ...ed.f, list: [...ed.f.list, { k: 'rubies', n: '', b: true, s: 0 }] } })}
                   className="flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-xs hover:border-gold"><Plus className="h-3.5 w-3.5" /> เพิ่มช่อง</button>
               )}
             </div>
@@ -151,7 +153,7 @@ export default function AdminPacks() {
               <F label="ซื้อได้ (ครั้ง)"><input type="number" min="1" value={edit.f.limit} onChange={(e) => set('limit', e.target.value)} className={INPUT} /></F>
               <F label="รอบ">
                 <select value={edit.f.period} onChange={(e) => set('period', e.target.value)} className={INPUT}>
-                  <option value="once">ตลอด</option><option value="daily">ต่อวัน</option><option value="weekly">ต่อสัปดาห์</option><option value="monthly">ต่อเดือน</option>
+                  <option value="once">ตลอด</option><option value="daily">ต่อวัน</option><option value="weekly">ต่อสัปดาห์</option><option value="biweekly">ต่อ 2 สัปดาห์</option><option value="monthly">ต่อเดือน</option>
                 </select>
               </F>
               <F label="หมดวันที่ (07:00)"><input type="date" value={edit.f.endsAt} onChange={(e) => set('endsAt', e.target.value)} className={INPUT} /></F>
