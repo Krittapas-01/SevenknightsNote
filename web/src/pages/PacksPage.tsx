@@ -165,9 +165,9 @@ export default function PacksPage() {
           'Prices/contents follow the in-game (Thai) shop and may change with events · item values are players’ opinions you can edit, not financial advice · pack art from the game © Netmarble · 7K Note is not affiliated with Netmarble')}
       </p>
 
-      <Modal open={!!group} title={group ? <GroupTitle g={group} now={now} /> : ''} onClose={() => setOpenGroup(null)}>
+      <Modal wide open={!!group} title={group ? <GroupTitle g={group} now={now} /> : ''} onClose={() => setOpenGroup(null)}>
         {group && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
             {group.rows.map((r) => <TierCard key={r.p.id} r={r} worth={worth} metric={metric} base={base} baseRate={baseRate} onBought={changeBought} />)}
           </div>
         )}
@@ -239,24 +239,24 @@ function TierCard({ r, worth, metric, base, baseRate, onBought }: { r: Row; wort
   const unit = metric === 'gem' ? <Prism /> : L('บาท', 'baht')
   return (
     <article className={`overflow-hidden rounded-2xl border transition ${p.base ? 'border-gold/70' : 'border-white/10'} bg-black/20 ${done ? 'opacity-55' : ''}`}>
-      <div className="pack-head flex items-center justify-center gap-2 px-3 py-1 text-xs font-semibold">
+      <div className="pack-head flex items-center justify-center gap-2 px-3 py-1 text-xs font-semibold sm:py-1.5 sm:text-sm">
         {L(`ซื้อได้ ${left}/${p.limit}`, `Purchase limit ${left}/${p.limit}`)}
         {p.period !== 'once' && <span className="font-normal opacity-80">· {periodLabel(p.period, p.limit)}</span>}
         {p.base && <span className="rounded-full bg-black/25 px-1.5 text-[10px]">{L('เส้นฐาน', 'Baseline')}</span>}
       </div>
-      <div className="flex items-center gap-3 p-3">
-        <div className="w-[84px] shrink-0 text-center">
-          <b className={`block text-2xl font-extrabold tabular-nums ${pct >= 100 ? 'text-gold' : 'text-white/85'}`}>{rate ? `${Math.round(pct)}%` : '—'}</b>
-          {rate > 0 && <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.cls}`}>{t.label}</span>}
-          <span className="mt-1 block text-[11px] leading-tight text-white/50 tabular-nums">{rate ? <>{rate.toFixed(1)} / {unit}</> : L('ไม่มีราคาปริซึม', 'No prism price')}</span>
+      <div className="flex items-center gap-3 p-3 sm:p-4">
+        <div className="w-[84px] shrink-0 text-center sm:w-[120px]">
+          <b className={`block text-2xl font-extrabold tabular-nums sm:text-4xl ${pct >= 100 ? 'text-gold' : 'text-white/85'}`}>{rate ? `${Math.round(pct)}%` : '—'}</b>
+          {rate > 0 && <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold sm:text-xs ${t.cls}`}>{t.label}</span>}
+          <span className="mt-1 block text-[11px] leading-tight text-white/50 tabular-nums sm:text-[13px]">{rate ? <>{rate.toFixed(1)} / {unit}</> : L('ไม่มีราคาปริซึม', 'No prism price')}</span>
         </div>
         {/* ช่องของ 2 แถวแบบในเกม */}
-        <div className="ml-auto grid min-w-0 gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(items.length / 2))}, auto)` }}>
+        <div className="ml-auto grid min-w-0 gap-1.5 sm:gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(items.length / 2))}, auto)` }}>
           {items.map((x, i) => <PackTile key={i} k={x.k} n={x.n} bonus={!!x.b} pick={!!x.s} muted={!(worth[x.k] > 0)} />)}
         </div>
       </div>
       {p.items.other && <p className="-mt-1 px-3 pb-2 text-right text-[11px] text-white/45">+ {p.items.other}</p>}
-      <div className="pack-price flex items-center justify-center gap-1.5 py-1.5 text-lg font-bold tabular-nums">
+      <div className="pack-price flex items-center justify-center gap-1.5 py-1.5 text-lg font-bold tabular-nums sm:py-2 sm:text-xl">
         {baht(p.price)}{!!p.gems && <span className="text-sm font-semibold opacity-80">(<Prism />{p.gems})</span>}
       </div>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
