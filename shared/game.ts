@@ -206,6 +206,6 @@ export const fillBoss = (text: string, b: { end: string; next: string }) =>
 
 /** ชื่อในเกม (ชื่อกิลด์ / กิลด์ที่เจอ) ต้องยาวอย่างน้อยเท่านี้ — ในเกมตั้งชื่อสั้นกว่า 3 ตัวไม่ได้ */
 export const MIN_GAME_NAME = 3
-/** นับตัวอักษรแบบตัวต่อตัว (สระ/วรรณยุกต์ไทยนับ 1 ตัว · อีโมจิ 1 ตัว) — นับหลวมไว้ ชื่อที่เกมรับได้จะไม่โดนบล็อก */
-export const nameLength = (s: string) => [...s.trim()].length
+/** นับตัวอักษรแบบในเกม: สระบน/ล่าง วรรณยุกต์ และเครื่องหมายที่ซ้อนบนตัวอื่นไม่นับ (เช่น "กี้" = 1 ตัว · "กา" = 2 ตัว) */
+export const nameLength = (s: string) => [...s.trim().replace(/\p{M}/gu, '')].length
 export const isShortGameName = (s: string) => nameLength(s) < MIN_GAME_NAME

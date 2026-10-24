@@ -44,7 +44,8 @@ try {
   const team = { front: 2, slots: ['ทันจิโร่ awake', null, 'ซอรัน awake', null, 'ไอลีน'], pet: 'อีรีน', extras: [null, null, null, null], speed: 200, skills: [{ slot: 0, skill: 3 }] }
   let target, counter, plan
   await check('guild name shorter than 3 characters rejected', async () => { for (const name of ['AB', ' ab ', 'กข']) assert.equal((await request('/api/guild', { method: 'POST', body: { name } })).status, 400) })
-  await check('3-character guild name accepted (Thai marks count)', async () => assert.equal((await request('/api/guild', { method: 'POST', body: { name: 'กิ้' } })).status, 201))
+  await check('Thai marks above/below do not count toward 3 characters', async () => { for (const name of ['กี้', 'กี้ก']) assert.equal((await request('/api/guild', { method: 'POST', body: { name } })).status, 400) })
+  await check('3 real characters accepted (spacing vowels count)', async () => assert.equal((await request('/api/guild', { method: 'POST', body: { name: 'กี้กา' } })).status, 201))
   await check('duplicate guild names rejected', async () => assert.equal((await request('/api/guild', { method: 'POST', body: { name: ' audit alpha ' } })).status, 409))
   await check('public guild read hides edit credentials', async () => { const r = await request(path); assert.equal(r.status, 200); assert.equal(r.data.guild.edit_hash, undefined); assert.equal(r.data.targets.length, 0) })
   await check('unauthorized write rejected', async () => assert.equal((await request(path + '/targets', { method: 'POST', body: { team } })).status, 403))

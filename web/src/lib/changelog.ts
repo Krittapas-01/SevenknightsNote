@@ -35,7 +35,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     sections: [
       { kind: 'change', groups: [
         g('ชื่อกิลด์',
-          'ตั้งชื่อกิลด์ เปลี่ยนชื่อกิลด์ และช่อง "กิลด์ที่เจอ" ตอนประกาศ ต้องยาวอย่างน้อย 3 ตัวอักษร เพราะในเกมตั้งชื่อสั้นกว่านี้ไม่ได้ · พิมพ์สั้นไปจะมีตัวหนังสือเตือนใต้ช่อง · กิลด์เดิมที่ชื่อสั้นอยู่แล้วยังใช้ได้ตามปกติ'),
+          'ตั้งชื่อกิลด์ เปลี่ยนชื่อกิลด์ และช่อง "กิลด์ที่เจอ" ตอนประกาศ ต้องยาวอย่างน้อย 3 ตัวอักษร เพราะในเกมตั้งชื่อสั้นกว่านี้ไม่ได้ · นับแบบในเกม: สระบน/ล่างและวรรณยุกต์ไม่นับ (เช่น "กี้" = 1 ตัว) · พิมพ์สั้นไปจะมีตัวหนังสือเตือนใต้ช่อง · กิลด์เดิมที่ชื่อสั้นอยู่แล้วยังใช้ได้ตามปกติ'),
       ] },
     ],
   },
@@ -430,7 +430,7 @@ const CHANGELOG_EN: ChangelogEntry[] = [
     sections: [
       { kind: 'change', groups: [
         g('Guild names',
-          'New guild names, guild renames and the "Guilds found" box in announcements now need at least 3 characters, because the game does not allow shorter names · a short name shows a warning under the box · existing guilds with short names keep working as before'),
+          'New guild names, guild renames and the "Guilds found" box in announcements now need at least 3 characters, because the game does not allow shorter names · counted like the game: Thai vowel and tone marks above or below a letter do not count · a short name shows a warning under the box · existing guilds with short names keep working as before'),
       ] },
     ],
   },
