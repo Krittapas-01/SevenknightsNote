@@ -197,6 +197,7 @@ export const POWER_UP = { regenCut: 60, dailyKeys: 80 }
 /** กุญแจจากร้านค้า/ภารกิจที่ได้เป็นรอบ (เฉลี่ยต่อวัน) · ปิดได้ทีละอัน */
 export const KEY_SHOPS: { id: string; th: string; en: string; keys: number; days: number }[] = [
   { id: 'login', th: 'เช็กชื่อรายวัน (กล่องกุญแจ 2 กล่องทุก 5 วัน)', en: 'Daily login (2 key boxes every 5 days)', keys: 120, days: 5 },
+  { id: 'relay', th: 'อีเวนต์ Relay (ฟรี 30 กุญแจ)', en: 'Relay event (30 free keys)', keys: 30, days: 14 },
   { id: 'guildMission', th: 'รางวัลภารกิจกิลด์', en: 'Guild mission rewards', keys: 180, days: 7 },
   { id: 'honor', th: 'ร้านค้าเกียรติยศ (รายสัปดาห์)', en: 'Honor Shop (weekly)', keys: 420, days: 7 },
   { id: 'arena', th: 'ร้านค้าอารีน่า (รายเดือน)', en: 'Arena Shop (monthly)', keys: 1680, days: 28 },
