@@ -66,7 +66,7 @@ const BASE_ITEMS: Record<PackBaseKey, ItemDef> = {
   collab: { th: 'ตั๋วคอลแลป', en: 'Collab summon ticket', shop: 100, worth: 100, note: ['นาน ๆ มาที เท่าราคากดด้วยรูบี้', 'Rare: same as a ruby pull'] },
   permanent: { th: 'ตั๋วถาวร (ม่วง)', en: 'Hero summon ticket', shop: 100, worth: 70, note: ['แจกบ่อย ได้เรื่อย ๆ', 'Handed out all the time'] },
   pet: { th: 'ตั๋วสัตว์', en: 'Pet summon ticket', shop: 100, worth: 60, note: ['สำคัญน้อยกว่าตั๋วม่วงนิดหน่อย', 'A bit less than a hero summon ticket'] },
-  petWish: { th: 'ตั๋ว Pet Wish List', en: 'Pet Wish List voucher', shop: 200, worth: 200, note: ['ตู้เดียวที่กดด้วยรูบี้ไม่ได้', 'The only banner rubies can’t pull'] },
+  petWish: { th: 'ตั๋ว Pet Wish List', en: 'Pet Wish List voucher', shop: 200, worth: 150, note: ['ตู้เดียวที่กดด้วยรูบี้ไม่ได้ · ร้านแพงไปนิด', 'The only banner rubies can’t pull · shop is a bit pricey'] },
   equip: { th: 'ตั๋วของรัก', en: 'Dedicated gear ticket', shop: 80, worth: 80, note: ['เท่ากดตู้ของรักด้วยรูบี้', 'Same as a ruby pull'] },
   card23: { th: 'ตั๋วอัศวิน Common (2★)', en: 'Common Hero Ticket (2★)', worth: 0, unknown: true },
   card3: { th: 'ตั๋วอัศวิน Uncommon (3★)', en: 'Uncommon Hero Ticket (3★)', worth: 0, unknown: true },
@@ -87,7 +87,7 @@ const BASE_ITEMS: Record<PackBaseKey, ItemDef> = {
 /** ค่าตั้งต้นของไอเท็ม Atlas บางตัวที่เทียบกับของหลักได้ (ที่เหลือ = ยังไม่รู้ค่า ไม่นับ) */
 const ATLAS_WORTH: Partial<Record<PackItemKey, [number, [string, string]]>> = {
   a_203000037: [100, ['เลือกตั๋วเรียก 1 ใบ', 'Pick 1 summon voucher']],
-  a_526: [200, ['เท่าตั๋ว Pet Wish List', 'Same as a Pet Wish List voucher']],
+  a_526: [150, ['เท่าตั๋ว Pet Wish List', 'Same as a Pet Wish List voucher']],
   // ค่าจาก 7K Atlas (ยังไม่มีค่าที่ผู้เล่นตั้งเอง)
   a_203000016: [20000, ['เลือกอัศวินตำนานได้ (L+ ด้วย) · ค่าจาก 7K Atlas', 'Pick a Legendary hero (L+ too) · 7K Atlas value']],
   a_202000055: [10000, ['สุ่มอัศวินตำนาน 1 ตัว · ค่าจาก 7K Atlas', 'A random Legendary hero · 7K Atlas value']],
