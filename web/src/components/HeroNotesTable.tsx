@@ -4,7 +4,7 @@ import { hasStats } from '../lib/stats'
 import { StatsGrid, StatsImport, upsertStats, type NoteExtra } from './HeroStats'
 import type { HeroStats } from '../lib/stats'
 import { unitBase } from '../data/heroes'
-import { ringImage, setIcon, setImages } from '../data/equipment'
+import { RingRow, SetRow } from './EquipmentLoadout'
 import type { HeroNote } from '../lib/types'
 import UnitCard from './UnitCard'
 import EquipmentEditor from './EquipmentEditor'
@@ -63,8 +63,8 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
               </div>
             ) : (
               <div className="min-w-0 space-y-1.5">
-                <Slots label={tx('เซต')} items={n.sets.map((s) => ({ name: `ชุด${s}`, src: setIcon(s) ?? setImages(s)[0] }))} />
-                <Slots label={tx('เครื่องประดับ')} items={n.rings.map((r) => ({ name: r, src: ringImage(r) }))} />
+                <RingRow rings={n.rings} label />
+                <SetRow sets={n.sets} label />
               </div>
             )}
           </div>
@@ -103,25 +103,5 @@ export default function HeroNotesTable({ notes, editing, onChange, team, onAddHe
       ))}
     </div>
     </>
-  )
-}
-
-/** ช่องของ 3 ช่องขึ้นไป (ไม่มีรูป = ขึ้นชื่อแทน, ชี้ค้างดูชื่อ) */
-function Slots({ label, items }: { label: string; items: { name: string; src?: string }[] }) {
-  const cells = [...items, ...Array.from({ length: Math.max(0, 3 - items.length) }, () => null)]
-  return (
-    <div>
-      <div className="mb-0.5 text-[11px] text-white/45">{label}</div>
-      <div className="flex flex-wrap gap-1">
-        {cells.map((it, k) => (
-          <span key={k} title={it?.name}
-            className={`grid h-10 w-10 place-items-center overflow-hidden rounded-lg border ${it ? 'border-gold/30 bg-black/30' : 'border-white/10 bg-white/[.03]'}`}>
-            {it && (it.src
-              ? <img src={it.src} alt={it.name} className="h-full w-full object-contain" loading="lazy" draggable={false} />
-              : <span className="px-0.5 text-center text-[8px] leading-tight text-white/70">{it.name}</span>)}
-          </span>
-        ))}
-      </div>
-    </div>
   )
 }
