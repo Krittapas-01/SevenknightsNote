@@ -12,9 +12,6 @@ type Props = {
   small?: boolean
   /** ส่งมา = พิมพ์ความเร็วทีมได้ */
   onSpeed?: (speed: number) => void
-  /** ความเร็วทีมฝั่งตรงข้าม (มีค่า > 0 = โชว์ว่าใครได้ใช้สกิลก่อน) */
-  vsSpeed?: number
-  vsLabel?: string
 }
 
 /** อัศวินในทีมเรียงตามความเร็วโจมตี (มากไปน้อย, เท่ากัน = ตามช่อง) · ตัวที่ยังไม่มีค่าอยู่ท้าย */
@@ -29,10 +26,10 @@ export function speedOrder(team: Team, notes: HeroNote[] | undefined) {
 }
 
 /**
- * ป้ายความเร็วทีม (รูปรอยเท้า) — กดแล้วเปิดกล่องแบบในเกม: ทีมที่เร็วกว่าได้ใช้สกิลก่อน + อัศวินเรียงตามความเร็ว
+ * ป้ายความเร็วทีม (รูปรอยเท้า) — กดแล้วเปิดกล่องแบบในเกม: อัศวินเรียงตามความเร็วโจมตี
  * แก้ทีมอยู่: พิมพ์ตัวเลขได้ และกดใช้ผลรวมความเร็วโจมตีของทุกตัวได้
  */
-export default function TeamSpeed({ team, heroNotes, small, onSpeed, vsSpeed, vsLabel }: Props) {
+export default function TeamSpeed({ team, heroNotes, small, onSpeed }: Props) {
   const [open, setOpen] = useState(false)
   const inputId = useId()
   const boxRef = useRef<HTMLDivElement>(null)
@@ -75,16 +72,15 @@ export default function TeamSpeed({ team, heroNotes, small, onSpeed, vsSpeed, vs
           <span className="min-w-6 text-right font-bold tabular-nums text-gold">{speed}</span>
         </button>
       )}
-      {open && <SpeedBox team={team} heroNotes={heroNotes} onSpeed={onSpeed} vsSpeed={vsSpeed} vsLabel={vsLabel} onClose={() => setOpen(false)} />}
+      {open && <SpeedBox team={team} heroNotes={heroNotes} onSpeed={onSpeed} onClose={() => setOpen(false)} />}
     </div>
   )
 }
 
-function SpeedBox({ team, heroNotes, onSpeed, vsSpeed, vsLabel, onClose }: Omit<Props, 'small'> & { onClose: () => void }) {
+function SpeedBox({ team, heroNotes, onSpeed, onClose }: Omit<Props, 'small'> & { onClose: () => void }) {
   const { known, missing, total, full } = speedOrder(team, heroNotes)
   const speed = team.speed || 0
   const order = [...known, ...missing]
-  const diff = speed - (vsSpeed || 0)
 
   return (
     <div data-noexport role="dialog" aria-label={tx('ความเร็วทีม')}
@@ -97,7 +93,6 @@ function SpeedBox({ team, heroNotes, onSpeed, vsSpeed, vsLabel, onClose }: Omit<
           <X className="h-4 w-4" />
         </button>
       </div>
-      <p className="mt-2 leading-snug text-white/75">{tx('ทีมที่ความเร็วสูงกว่าได้ใช้สกิลก่อน')}</p>
 
       {order.length > 0 && (
         <div className="mt-3">
@@ -136,14 +131,6 @@ function SpeedBox({ team, heroNotes, onSpeed, vsSpeed, vsLabel, onClose }: Omit<
         </div>
       )}
 
-      {!!vsSpeed && speed > 0 && (
-        <div className={`mt-2 rounded-xl border px-2.5 py-1.5 text-xs leading-snug ${diff > 0 ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200' : diff < 0 ? 'border-red-400/40 bg-red-500/10 text-red-200' : 'border-white/15 bg-white/5 text-white/75'}`}>
-          {L(`${vsLabel ?? 'อีกฝั่ง'} ${vsSpeed}`, `${vsLabel ?? 'Other side'} ${vsSpeed}`)}{' · '}
-          <b>{diff > 0 ? L(`เร็วกว่า ${diff} ได้ใช้สกิลก่อน`, `${diff} faster, takes the first skill turn`)
-            : diff < 0 ? L(`ช้ากว่า ${-diff} อีกฝั่งได้ใช้สกิลก่อน`, `${-diff} slower, the other side goes first`)
-            : tx('ความเร็วเท่ากัน')}</b>
-        </div>
-      )}
     </div>
   )
 }

@@ -684,10 +684,8 @@
  "ชื่อกิลด์": "Guild name",
  "เปลี่ยนชื่อแล้ว · ลิงก์กิลด์ใช้ได้เหมือนเดิม": "Renamed · the guild links still work",
  "ความเร็วทีม": "Team Speed",
- "ทีมที่ความเร็วสูงกว่าได้ใช้สกิลก่อน": "The team with the higher Speed takes the first skill turn.",
  "ลำดับอัศวินตามความเร็วโจมตี": "Heroes by attack speed",
  "ยังไม่มีอัศวินในทีม": "No heroes in this team yet",
  "ยังไม่มีความเร็วโจมตีของอัศวินในทีมนี้ ใส่ได้ที่ค่าความสามารถของอัศวิน": "No attack speed for these heroes yet. Add it in each hero's stats.",
- "ความเร็วโจมตีรวม": "Total attack speed",
- "ความเร็วเท่ากัน": "Same speed"
+ "ความเร็วโจมตีรวม": "Total attack speed"
 }

@@ -944,7 +944,6 @@ export default function PlanPage() {
           }
           onPick={(kind, index) => setPicker({ target: 'opt', s, o, kind, index })}
           skillsReq={skillReq && skillReq.s === s && skillReq.o === o ? skillReq.n : 0}
-          vsSpeed={isAtk ? slot.vs?.speed : undefined}
           onLibrary={slot.kind === 'attack' && !ATTACK_LIBRARY ? undefined : () => setLibrary({ s, o })}
           attack={slot.kind === 'attack'}
           main={slot.kind === 'attack' && o === mainIndex(slot)}

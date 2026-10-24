@@ -36,9 +36,6 @@ type Props = {
   onReset?: () => void
   onFormation?: (front: number) => void
   onSpeed?: (speed: number) => void
-  /** ความเร็วทีมฝั่งตรงข้าม → กล่องความเร็วบอกว่าใครได้ใช้สกิลก่อน */
-  vsSpeed?: number
-  vsLabel?: string
   /** ลำดับการใช้สกิล */
   skills?: SkillStep[]
   /** ถ้าส่งมา = แก้ลำดับสกิลได้ (กดวงกลมดาวล่างสุด) */
@@ -59,7 +56,7 @@ const GAP = 8
 const ROW_GAP = GAP
 
 export default function TeamPanel({
-  team, variant, title, label, size = 'md', editable, onSlotClick, onReset, onFormation, onSpeed, vsSpeed, vsLabel,
+  team, variant, title, label, size = 'md', editable, onSlotClick, onReset, onFormation, onSpeed,
   skills = [], onSkills, onMove, onPlace, blocked, heroNotes, onSaveHeroStats, className = '', skillsReq = 0,
 }: Props) {
   const hub = useDndHub()
@@ -298,7 +295,7 @@ export default function TeamPanel({
 
       {/* speed — กดรูปรอยเท้า = ลำดับอัศวินตามความเร็ว (แบบในเกม) */}
       <div data-noexport={!team.speed && !editable ? '' : undefined} className={`flex justify-end ${isSm ? 'mt-1.5' : 'mt-2.5'}`}>
-        <TeamSpeed team={team} heroNotes={heroNotes} small={isSm} onSpeed={editable ? onSpeed : undefined} vsSpeed={vsSpeed} vsLabel={vsLabel} />
+        <TeamSpeed team={team} heroNotes={heroNotes} small={isSm} onSpeed={editable ? onSpeed : undefined} />
       </div>
 
       {/* body */}
