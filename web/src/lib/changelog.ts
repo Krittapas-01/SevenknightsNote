@@ -77,7 +77,8 @@ const CHANGELOG_TH: ChangelogEntry[] = [
           'หน้ากิลด์ แท็บบ้านศัตรู: พิมพ์ค้นหาเร็ว ๆ บนมือถือแล้วตัวอักษรไม่หายแล้ว (เดิมพิมพ์ "rachel" อาจเหลือ "rl") · ตัวอักษร ปุ่มแท็ก และแท็บแผนสงคราม/บ้านศัตรู ขึ้นจอทันทีที่กด (มือถือช้าเร็วขึ้นราว 7–10 เท่า) รายการการ์ดค่อยตามมา'),
         g('หน้าอัปเดต', 'หน้าอัปเดตโฉมใหม่: แถบเลือกแพทช์ (คอม = เส้นเวลาด้านซ้าย · มือถือ = ปุ่มเลื่อนข้าง) · อัปเดตย่อยอยู่ในการ์ดแพทช์เดียวกัน เรียงตามวัน · นับให้ว่ามีใหม่/เปลี่ยน/แก้บั๊กกี่ข้อ · แพทช์เก่าย่อไว้ กดดูได้ · แชร์ลิงก์ไปแพทช์ที่ต้องการได้'),
         g('ตารางอุปกรณ์/ค่าความสามารถรายตัว',
-          'ตอนแก้ทีมแก้/แผน จอกว้าง ช่องอัศวินกว้างขึ้น เซต เครื่องประดับ และปุ่ม "ใช้ค่าความสามารถล่าสุดของฉัน" อยู่บรรทัดเดียว ไม่หักคำเป็น 2 บรรทัดแล้ว · มือถือ ปุ่มนี้อยู่ใต้รูปอัศวินแทน'),
+          'ตอนแก้ทีมแก้/แผน จอกว้าง ช่องอัศวินกว้างขึ้น เซต เครื่องประดับ และปุ่ม "ใช้ค่าความสามารถล่าสุดของฉัน" อยู่บรรทัดเดียว ไม่หักคำเป็น 2 บรรทัดแล้ว · มือถือ ปุ่มนี้อยู่ใต้รูปอัศวินแทน',
+          'รายละเอียดทั้งทีม: แหวนกับเซตของแต่ละอัศวินแยกเป็นแถว มีหัวข้อ "เครื่องประดับ" / "เซต" และช่องครบ 3 ช่องเหมือนในเกม ไม่ปนกันแล้ว'),
       ] },
       { kind: 'fix', groups: [
         g('ทีมแก้',
@@ -422,7 +423,8 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'Guild page, Enemy defenses tab: typing fast on a phone no longer drops letters (typing "rachel" could end up as "rl") · letters, tag filters and the War plans / Enemy defenses tabs respond the moment you tap (about 7–10× faster on slow phones), the card list follows right after'),
         g('Updates page', 'Redesigned updates page: patch picker (desktop = timeline on the left · phone = scrollable chips) · small updates sit inside their patch card by date · counts of new/changed/fixed · older patches collapsed, tap to open · link straight to a patch'),
         g('Per-hero gear/stats table',
-          'Counter and plan editors: on wide screens the hero column is wider, so sets, accessories and the "Use my latest stats" button stay on one line instead of breaking onto two · on phones that button sits under the hero portrait'),
+          'Counter and plan editors: on wide screens the hero column is wider, so sets, accessories and the "Use my latest stats" button stay on one line instead of breaking onto two · on phones that button sits under the hero portrait',
+          'Full team details: each hero\'s rings and set now sit in their own labeled rows (Accessories / Set) with 3 slots like in the game, instead of one mixed row'),
       ] },
       { kind: 'fix', groups: [
         g('Counters',
