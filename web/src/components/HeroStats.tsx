@@ -13,6 +13,7 @@ import StatsHelp, { helpSeen, markHelpSeen } from './StatsHelp'
 import { tourSeen, useTour } from '../lib/tour'
 import { agoText, recallNote } from '../lib/myStats'
 import { tx, L } from '../lib/i18n'
+import { motionOK } from '../lib/teamMotion'
 
 /** ไอคอนค่าความสามารถแบบในเกม (จาก 7K Atlas) */
 const ICON_FILES = import.meta.glob('../assets/stats/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
@@ -74,8 +75,10 @@ export function upsertStats(notes: HeroNote[], hero: string, stats: HeroStats, e
 /**
  * ปุ่ม "อ่านค่าความสามารถจากรูป": เลือกรูป / วางรูป (Ctrl+V) → อ่านตัวเลข → ตรวจทาน → ใส่ให้อัศวินในทีม
  */
-export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }: {
+export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats, editRequest }: {
   team: (string | null)[]
+  /** ปุ่ม "แก้ค่าความสามารถ" ในแถวของอัศวิน → เปิดหน้าต่างที่ช่องกรอกของตัวนั้นเลย (seq เปลี่ยน = เปิดใหม่) */
+  editRequest?: { hero: string; seq: number } | null
   /** โน้ตเดิมของทีม — ส่งมา = ใส่เซต/เครื่องประดับ/คำอธิบายได้ด้วย (ดึงของเดิมของตัวที่เลือกมาให้แก้) */
   notes?: HeroNote[]
   onApply: (hero: string, stats: HeroStats, extra?: NoteExtra) => void
@@ -122,6 +125,17 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
     if (!helpSeen() && tourSeen('stats-import')) { setHelp(true); markHelpSeen() }
   }
   useTour('stats-import', open, 600)
+  useEffect(() => {
+    if (!editRequest) return
+    openImport()
+    setHero(heroes.find((h) => sameHero(h, editRequest.hero)) ?? heroes[0] ?? '')
+    setStep('details')
+    // มือถือ (คอลัมน์เดียว): กรอบใส่รูปอยู่บน → เลื่อนลงมาที่ช่องกรอกให้เลย
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      setTimeout(() => document.querySelector('[data-stats-details]')?.scrollIntoView({ block: 'start', behavior: motionOK() ? 'smooth' : 'auto' }), 80)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editRequest?.seq])
   const nameOf = (id: string) => unitBase(id)
   const mismatch = mismatchId ? nameOf(mismatchId) : null
   const canAdd = !!onAddHero && heroes.length < MAX_HEROES
@@ -312,7 +326,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats }:
             )}
           </div>
 
-          {details && <div>
+          {details && <div data-stats-details className="scroll-mt-24">
             <label className="text-sm text-white/60">{tx('ของอัศวินตัวไหน')}</label>
             <div data-tour="stats-hero" className="mt-1 flex flex-wrap gap-2">
               {heroes.map((h) => (
