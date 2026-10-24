@@ -31,9 +31,11 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     version: '1.5.4',
     date: '24 ต.ค. 2026',
     title: 'Skill Book',
-    summary: 'ดูรายละเอียดทั้งทีม กดดูสกิลของอัศวินแต่ละตัวได้แล้ว',
+    summary: 'ดูรายละเอียดทั้งทีม กดดูคิวออกสกิล และสกิลของอัศวินแต่ละตัวได้แล้ว',
     sections: [
       { kind: 'new', groups: [
+        g('ดูคิวออกสกิล (ดูรายละเอียดทั้งทีม ในหน้าบ้านศัตรูและแผนวอร์)',
+          'กดวงดาว "คิวสกิล" ในการ์ดทีมด้านซ้าย เปิดหน้าต่างลำดับการใช้สกิลของทีมนั้นได้เลย เห็นว่าอัศวินตัวไหนใช้สกิลไหนเป็นลำดับที่เท่าไหร่'),
         g('ดูสกิลอัศวิน (ดูรายละเอียดทั้งทีม ในหน้าบ้านศัตรูและแผนวอร์)',
           'อัศวินแต่ละตัวมีแถวไอคอนสกิลแบบในเกม: สกิลอเวค · สกิลบน · สกิลล่าง · แพสซีฟ · โจมตีพื้นฐาน กดไอคอนแล้วคำอธิบายขึ้นใต้แถวนั้น กดซ้ำเพื่อปิด',
           'บอกคูลดาวน์ เป้าหมาย และผลของสกิลทีละข้อ บัฟเป็นสีฟ้า ดีบัฟเป็นสีแดง · มีผลเพิ่มเมื่ออัปเกรดสกิลและข้ามขีดจำกัด · กด "คำอธิบายผล" ดูว่าบัฟ/ดีบัฟแต่ละตัวทำอะไร',
@@ -415,9 +417,11 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 const CHANGELOG_EN: ChangelogEntry[] = [
   {
     id: '2026-10-24e', version: '1.5.4', date: '24 Oct 2026', title: 'Skill Book',
-    summary: 'Full team details now lets you tap to see each hero\'s skills',
+    summary: 'Full team details now lets you open the skill queue and each hero\'s skills',
     sections: [
       { kind: 'new', groups: [
+        g('Skill queue (full team details, on enemy defense and war plan pages)',
+          'Tap the "Queue" star orb on the team card on the left to open that team\'s skill queue: which hero uses which skill, in what order'),
         g('Hero skills (full team details, on enemy defense and war plan pages)',
           'Each hero has a row of skill icons like in the game: Awake skill · Top skill · Bottom skill · Passive · Basic attack. Tap an icon to show its description under that row, tap again to close',
           'Shows cooldown, targets and each effect, with buffs in blue and debuffs in red · includes skill upgrade and Transcendence bonuses · open "Effect glossary" to see what each buff/debuff does',
