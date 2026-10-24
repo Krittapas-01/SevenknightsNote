@@ -108,6 +108,35 @@ h1, h2, h3 { text-wrap: balance; }
 .panel-gold::before,
 .panel-gold::after { color: #fff1c9; text-shadow: 0 0 8px rgba(244, 213, 141, 0.9); }
 
+/* ---------- เมนูหลัก (☰): รายการเดิม + ลายแบบเมนูในเกม ---------- */
+/* หน้าที่เปิดอยู่: กรอบทอง + แสงทองจาง ๆ (NavLink ใส่ aria-current="page" ให้เอง) */
+.menu-item { border: 1px solid transparent; }
+.menu-item[aria-current="page"] {
+  border-color: #c9a35a99;
+  background: linear-gradient(90deg, #f4d58d1f, #f4d58d08 70%, transparent);
+  box-shadow: inset 0 0 0 1px #0a102566, inset 3px 0 0 #f4d58d, 0 0 12px #f4d58d12;
+}
+/* ป้าย ! สีแดงแบบในเกม */
+.menu-badge {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1.5px solid #ffc9c9b3;
+  background: linear-gradient(180deg, #ff5c5c, #d01f1f);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 3px #00000066;
+}
+/* เส้นคั่นมีดาวตรงกลาง */
+.menu-divider { display: flex; align-items: center; gap: 10px; color: #8f9bbb; }
+.menu-divider::before, .menu-divider::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #8292bc59); }
+.menu-divider::after { background: linear-gradient(270deg, transparent, #8292bc59); }
+
 /* ช่องฮีโร่ว่าง */
 .slot-empty {
   border-radius: 10px;
@@ -744,6 +773,14 @@ html[data-theme="light"] .panel-enemy {
 html[data-theme="light"] .panel::before, html[data-theme="light"] .panel::after { color: #a5a19a; }
 html[data-theme="light"] .panel-gold::before, html[data-theme="light"] .panel-gold::after,
 html[data-theme="light"] .guild-banner::after { color: #d9a93f; text-shadow: 0 0 6px #ffffff, 0 0 10px #f4d58d; }
+html[data-theme="light"] .menu-item[aria-current="page"] {
+  border-color: #c9a35a;
+  background: linear-gradient(90deg, #f4d58d55, #f4d58d14 70%, transparent);
+  box-shadow: inset 3px 0 0 #c08a1e, 0 1px 2px #322e281a;
+}
+html[data-theme="light"] .menu-divider { color: #a5a19a; }
+html[data-theme="light"] .menu-divider::before { background: linear-gradient(90deg, transparent, #b3afa8); }
+html[data-theme="light"] .menu-divider::after { background: linear-gradient(270deg, transparent, #b3afa8); }
 html[data-theme="light"] .modal-surface { background: linear-gradient(160deg, #f7f6f5, #f0efee); }
 html[data-theme="light"] .modal-backdrop { background-color: #27241f66; }
 html[data-theme="light"] .nav-progress { background: linear-gradient(90deg, #a2783a, #d9b56d 70%, #c9a35a); box-shadow: 0 0 8px #c9a35a88; }
