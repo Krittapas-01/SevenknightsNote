@@ -204,14 +204,14 @@ export default function RubyPage() {
             </div>
           </section>
 
-          {/* ===== รายละเอียด ===== */}
+          {/* ===== รายละเอียด (มือถือพับไว้ · คอมกางตลอด ให้ฝั่งซ้ายไม่โล่ง) ===== */}
           <section className="panel order-4 mt-6 lg:mt-5">
-            <button type="button" onClick={() => setInfoOpen((o) => !o)} aria-expanded={infoOpen} className="flex w-full items-center justify-between gap-2 p-4 text-left">
+            <button type="button" onClick={() => setInfoOpen((o) => !o)} aria-expanded={infoOpen} className="flex w-full items-center justify-between gap-2 p-4 text-left lg:pointer-events-none">
               <span className="font-semibold">{L('รายละเอียด', 'Details')}</span>
-              <ChevronDown className={`h-5 w-5 shrink-0 text-white/50 transition ${infoOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-5 w-5 shrink-0 text-white/50 transition lg:hidden ${infoOpen ? 'rotate-180' : ''}`} />
             </button>
-            {infoOpen && (
-              <ul className="edit-arrive flex flex-col gap-2 border-t border-white/10 p-4 text-sm tabular-nums">
+            {(
+              <ul className={`${infoOpen ? 'edit-arrive flex' : 'hidden lg:flex'} flex-col gap-2 border-t border-white/10 p-4 text-sm tabular-nums`}>
                 <li className="flex items-center gap-2"><Ruby className="h-4 w-4" /><span className="text-white/65">{L('รูบี้จากฟาร์ม', 'Rubies from farming')}</span><b className="ml-auto">{fmt(r.rubies)}</b></li>
                 <li className="flex items-center gap-2"><Package className="h-4 w-4 text-white/45" /><span className="text-white/65">{L(`ค่ากล่อง ${fmt(r.boxes)} กล่อง`, `${fmt(r.boxes)} key boxes`)}</span><b className="ml-auto">−{fmt(r.cost)}</b></li>
                 <li className="flex items-center gap-2"><Swords className="h-4 w-4 text-white/45" /><span className="text-white/65">{L(`${fmt(r.battles)} รอบ · ทุก ${fmt(setSize)} รอบได้`, `${fmt(r.battles)} battles · every ${fmt(setSize)} gives`)}</span><b className="ml-auto flex items-center gap-1"><Ruby className="h-3.5 w-3.5" />{fmt(perSet)}</b></li>
