@@ -15,15 +15,21 @@
  * ด่าน Ruby Farming ที่เลือกได้ (ค่าจากหน้าต่าง Repeat Battle ในเกม 500 รอบ, Krit 25 ต.ค. 2026)
  * - ด่านปกติ: 3,000 กุญแจ · ทอง 3.3M · รูบี้ 5,000 · อัศวิน 1–3★ 139 (ทองใช้ที่ Krit วัดจริง 6,800/รอบ · ดรอปที่ใช้ได้จริง 140/500)
  * - ด่านฝันร้าย (ด่านล่าสุด): เล่น 2 ทีม (12 กุญแจ/รอบ) · 10 ช่อง ต้องมีตัวแบกทีมละ 1 → อัศวิน Lv.1 ได้ 8 ตัว (ตัวละ 20 รูบี้ · 500 รอบ = 50 ชุด × 8 × 20 = 8,000) · ทอง 15.6M · อัศวิน 3–4★ 303 · สู้ 6 วิ/รอบ (+ โหลด)
+ * goldPerBattle = ทองพื้นฐาน ไม่มีโบนัส (เกมประมาณ 500 รอบ: ปกติ 3.3M = 6,000 × 1.1 Elena · ฝันร้าย 15.6M = 24,000 × 1.3 Mick+Elena · Krit 25 ต.ค.)
  * secPerBattle ในด่าน/ฟอร์ม = เวลาสู้ที่เกมบอก · เว็บบวกโหลด LOAD_SEC ให้เอง (Krit: โหลด 15–17 วิ ไม่ต้องให้คนปรับเอง)
  * เลือกด่าน = ตั้งค่าในฟอร์มตามนี้ + จำนวนอัศวินเต็มทีม (ยังแก้เองต่อได้)
  */
 /** เวลาโหลดต่อรอบ (เริ่มรอบใหม่) ที่บวกให้เอง · Krit วัด 15–17 วิ */
 export const LOAD_SEC = 16
 
+/** โบนัสทองจาก Ruby Farming (บวกกันตรง ๆ: 24,000 × (1 + 20% + 10%) = 31,200 ตรงกับเกม)
+ * - Mick (สัตว์เลี้ยง): +20% · เสริมสกิล 22/24/26% (แก้ได้ในค่าในเกม) · ซ้ำกันไม่ซ้อน
+ * - Elena's Blessing (Unlimited): +10% · นับให้ทุกคน (Krit: ทุกคนซื้อ) */
+export const GOLD_BONUS = { mick: 20, elena: 10 }
+
 export const STAGES = [
-  { id: 'first', th: 'ด่านปกติ', en: 'Normal', keysPerBattle: 6, goldPerBattle: 6800, rubyPerHero: 20, heroDrop: 28, secPerBattle: 21, maxTeam: 5 },
-  { id: 'latest', th: 'ด่านฝันร้าย', en: 'Nightmare', keysPerBattle: 12, goldPerBattle: 31200, rubyPerHero: 20, heroDrop: 60, secPerBattle: 6, maxTeam: 8 },
+  { id: 'first', th: 'ด่านปกติ', en: 'Normal', keysPerBattle: 6, goldPerBattle: 6000, rubyPerHero: 20, heroDrop: 28, secPerBattle: 21, maxTeam: 5 },
+  { id: 'latest', th: 'ด่านฝันร้าย', en: 'Nightmare', keysPerBattle: 12, goldPerBattle: 24000, rubyPerHero: 20, heroDrop: 60, secPerBattle: 6, maxTeam: 8 },
 ] as const
 export type StageId = (typeof STAGES)[number]['id']
 export const stageOf = (id: string) => STAGES.find((x) => x.id === id) ?? STAGES[0]
@@ -63,7 +69,7 @@ export const FARM_DEFAULTS: FarmInput = {
   battlesPerSet: 10,
   heroesPerSet: 5,
   rubyPerHero: 20,
-  goldPerBattle: 6800,
+  goldPerBattle: 6000,
   questEvery: 160,
   questKeys: 20,
   questGold: 60000,
@@ -315,6 +321,8 @@ export type FarmForm = Record<NumKey, string> & {
   /** ส่วนที่แต่ละคนต่างกัน: เช็กอินกิลด์ · กุญแจอื่น ๆ · แพ็ค */
   powerUp: boolean; guildKeys: number; extraKeys: string
   passPremium: boolean; premiumCheckin: boolean; rubySupport: boolean
+  /** โบนัสทองจาก Mick (mickPct %) · Elena's Blessing นับให้เสมอ */
+  mick: boolean; mickPct: string
 }
 
 const s = (n: number) => String(n)
@@ -327,6 +335,7 @@ export const DEFAULT_FARM_FORM: FarmForm = {
   tiers: FARM_DEFAULTS.tiers.map((t) => ({ boxes: s(t.boxes), price: s(t.price) })),
   hours: '', stage: 'first', battlesPerSetBase: s(RUBY_SUPPORT.battlesPerSetWithout),
   powerUp: false, guildKeys: 80, extraKeys: '', passPremium: false, premiumCheckin: false, rubySupport: false,
+  mick: false, mickPct: s(GOLD_BONUS.mick),
 }
 
 /** อ่านฟอร์มที่จำไว้ (รวมกับค่าเริ่มต้นทีละช่อง → ข้อมูลเก่าที่ขาดบางช่องไม่ทำให้หน้าพัง) */
@@ -341,6 +350,9 @@ export function loadFarmForm(): FarmForm {
       }
       // ค่าเก่าที่เคยบันทึก (22 = เวลาเก่า · 37/24 = เวลารวมโหลด) → เวลาสู้ที่เกมบอก (เว็บบวกโหลดให้เอง)
       if (['22', '37', '24'].includes(out.secPerBattle)) out.secPerBattle = out.secPerBattle === '24' ? '6' : DEFAULT_FARM_FORM.secPerBattle
+      // ทองเก่า (รวมโบนัส) → ทองพื้นฐาน
+      if (out.goldPerBattle === '6800') out.goldPerBattle = '6000'
+      if (out.goldPerBattle === '31200') out.goldPerBattle = '24000'
       if (out.heroDrop.trim() === '') out.heroDrop = DEFAULT_FARM_FORM.heroDrop
       if (STAGES.some((x) => x.id === v.stage)) out.stage = v.stage
       if (typeof v.team === 'number' && v.team >= 1 && v.team <= stageOf(out.stage).maxTeam) out.team = Math.round(v.team)
@@ -378,12 +390,15 @@ export function dailyKeys(f: FarmForm) {
   return { ...parts, powerUpRegen, total: Object.values(parts).reduce((a, b) => a + b, 0) }
 }
 
+/** ตัวคูณทอง (โบนัสบวกกัน): Elena เสมอ + Mick ถ้าเปิด */
+export const goldMultiplier = (f: FarmForm) => 1 + ((f.mick ? Math.max(0, val(f.mickPct, GOLD_BONUS.mick)) : 0) + GOLD_BONUS.elena) / 100
+
 export function farmInputOf(f: FarmForm): FarmInput {
   const D = FARM_DEFAULTS
   return {
     freeKeys: dailyKeys(f).total, keysPerBattle: val(f.keysPerBattle, D.keysPerBattle), secPerBattle: val(f.secPerBattle, D.secPerBattle - LOAD_SEC) + LOAD_SEC,
     battlesPerSet: f.rubySupport ? val(f.battlesPerSet, RUBY_SUPPORT.battlesPerSet) : val(f.battlesPerSetBase, RUBY_SUPPORT.battlesPerSetWithout), heroesPerSet: f.team, rubyPerHero: val(f.rubyPerHero, 0),
-    goldPerBattle: val(f.goldPerBattle, 0), questEvery: val(f.questEvery, 0), questKeys: val(f.questKeys, 0), questGold: val(f.questGold, 0),
+    goldPerBattle: val(f.goldPerBattle, 0) * goldMultiplier(f), questEvery: val(f.questEvery, 0), questKeys: val(f.questKeys, 0), questGold: val(f.questGold, 0),
     keysPerBox: val(f.keysPerBox, 0), heroDrop: val(f.heroDrop, D.heroDrop * 100) / 100, maxHours: D.maxHours,
     tiers: f.tiers.map((t) => ({ boxes: val(t.boxes, 0), price: val(t.price, 0) })),
   }

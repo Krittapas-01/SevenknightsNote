@@ -7,7 +7,7 @@ import packRuby from '../assets/packs/ruby-support.webp'
 import packPass from '../assets/packs/7k-pass.webp'
 import packCheckin from '../assets/packs/premium-checkin.webp'
 import keyBox from '../assets/packs/items/chests.webp'
-import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, LOAD_SEC, STAGES, stageForm, stageOf, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
+import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, LOAD_SEC, GOLD_BONUS, STAGES, goldMultiplier, stageForm, stageOf, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 import RubyIcon from '../components/RubyIcon'
 import { motionOK } from '../lib/overlayMotion'
@@ -108,10 +108,11 @@ export default function RubyPage() {
   const set = (k: { [K in keyof FarmForm]: FarmForm[K] extends string ? K : never }[keyof FarmForm], v: string) => setForm((f) => ({ ...f, [k]: v }))
   const setTier = (i: number, patch: Partial<{ boxes: string; price: string }>) =>
     setForm((f) => ({ ...f, tiers: f.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)) }))
-  const toggle = (k: 'powerUp' | 'rubySupport' | 'passPremium' | 'premiumCheckin') => setForm((f) => ({ ...f, [k]: !f[k] }))
+  const toggle = (k: 'powerUp' | 'rubySupport' | 'passPremium' | 'premiumCheckin' | 'mick') => setForm((f) => ({ ...f, [k]: !f[k] }))
 
   const input = useMemo(() => farmInputOf(form), [form])
   const keys = dailyKeys(form)
+  const mickPct = Math.round((goldMultiplier({ ...form, mick: true }) - 1) * 100 - GOLD_BONUS.elena)
   const plan = useMemo(() => planFarm(input, 0), [input])
   const setSize = Math.max(1, Math.floor(input.battlesPerSet))
   // ซื้อกล่องทีละขั้นราคา และซื้อให้ครบทั้งขั้นเสมอ (กุญแจที่เหลือยกไปวันถัดไป) · ผลของแต่ละขั้น = ซื้อถึงท้ายขั้นนั้น
@@ -176,7 +177,13 @@ export default function RubyPage() {
               <b className="w-12 shrink-0 text-right tabular-nums lg:w-16 lg:text-xl">{L(`${form.team} ตัว`, `${form.team}`)}</b>
             </div>
 
-            <p className="mt-3 text-xs font-semibold text-white/55 lg:mt-3 lg:text-sm">{L('แพ็ครายเดือน', 'Monthly packs')}</p>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-white/55 lg:text-sm">{L('แพ็ครายเดือน', 'Monthly packs')}</p>
+              {/* สัตว์เลี้ยง Mick: ทองเพิ่ม (ไม่กระทบรูบี้) · วางบรรทัดเดียวกับหัวข้อ ให้คอมยังพอดีจอเดียว */}
+              <button type="button" role="switch" aria-checked={form.mick} onClick={() => toggle('mick')}
+                title={L(`สัตว์เลี้ยง Mick: ทองจาก Ruby Farming +${mickPct}%`, `Mick pet: +${mickPct}% gold from Ruby Farming`)}
+                className={`${CHIP(form.mick)} flex shrink-0 items-center gap-1`}><Coins className="h-3.5 w-3.5" />{L(`มี Mick · ทอง +${mickPct}%`, `Mick pet · gold +${mickPct}%`)}</button>
+            </div>
             <div className="mt-1.5 grid grid-cols-2 gap-2 lg:mt-2 lg:gap-3">
               <PackTile on={form.powerUp} onClick={() => toggle('powerUp')} img={packPowerUp} label="Power Up"
                 title={L(`Daily Power Up Support (฿149 / 28 วัน): กุญแจฟื้นเร็วขึ้น + ${POWER_UP.dailyKeys} ดอก/วัน`, `Daily Power Up Support (฿149 / 28 days): faster key regen + ${POWER_UP.dailyKeys}/day`)}
@@ -286,7 +293,8 @@ export default function RubyPage() {
                 <div className="mt-2 flex flex-wrap gap-3">
                   <Field label={L('กุญแจต่อรอบ', 'Keys per battle')} value={form.keysPerBattle} onChange={(v) => set('keysPerBattle', v)} unit={<KeyRound className="h-4 w-4" />} />
                   <Field label={L('เวลาสู้ต่อรอบ (ตามเกม)', 'Fight time (in game)')} value={form.secPerBattle} onChange={(v) => set('secPerBattle', v)} unit={L(`วิ + โหลด ${LOAD_SEC}`, `s + ${LOAD_SEC} load`)} />
-                  <Field label={L('ทองต่อรอบ', 'Gold per battle')} value={form.goldPerBattle} onChange={(v) => set('goldPerBattle', v)} unit={<Coins className="h-4 w-4" />} wide />
+                  <Field label={L('ทองพื้นฐานต่อรอบ', 'Base gold per battle')} value={form.goldPerBattle} onChange={(v) => set('goldPerBattle', v)} unit={<Coins className="h-4 w-4" />} wide />
+                  <Field label={L('Mick ทองเพิ่ม', 'Mick gold bonus')} value={form.mickPct} onChange={(v) => set('mickPct', v)} unit="%" />
                 </div>
 
                 <p className="mt-5 text-sm font-medium text-gold">{L('เควสต์ทำซ้ำ', 'Repeat quest')}</p>
