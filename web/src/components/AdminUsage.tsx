@@ -44,9 +44,9 @@ export default function AdminUsage() {
             <thead className="bg-black/30 text-left text-xs text-white/50">
               <tr>
                 <th className="px-3 py-2 font-medium">{L('ฟีเจอร์', 'Feature')}</th>
-                <th className="px-3 py-2 text-right font-medium">{L('วันนี้', 'Today')}</th>
-                <th className="px-3 py-2 text-right font-medium">{L('7 วัน', '7 days')}</th>
-                <th className="px-3 py-2 text-right font-medium">{L('30 วัน', '30 days')}</th>
+                <th className="whitespace-nowrap px-3 py-2 text-right font-medium">{L('วันนี้', 'Today')}</th>
+                <th className="whitespace-nowrap px-3 py-2 text-right font-medium">{L('7 วัน', '7 days')}</th>
+                <th className="whitespace-nowrap px-3 py-2 text-right font-medium">{L('30 วัน', '30 days')}</th>
               </tr>
             </thead>
             <tbody>

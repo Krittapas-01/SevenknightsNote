@@ -27,6 +27,27 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
+    id: '2026-10-25b',
+    version: '1.6.1',
+    date: '25 ต.ค. 2026',
+    title: 'Heads Up',
+    summary: 'แจ้งเตือน Discord ก่อนหมดเวลา 1 ชม. · แชร์ลิงก์ใน Discord แล้วเห็นชื่อกิลด์และรูปทีม · ประกาศใหม่ขึ้นเร็วขึ้น · สำรองข้อมูลทุกคืน',
+    sections: [
+      { kind: 'new', groups: [
+        g('แจ้งเตือนก่อนหมดเวลา (เชื่อม Discord)',
+          'เปิดได้ในหน้า "เชื่อม Discord": วันตีส่ง 23:00 (ตีได้ถึง 00:00) · วันจัดบ้านส่ง 17:00 (แก้ทีมได้ถึง 18:00) · ช่วงพัก Season ไม่ส่ง · แท็กยศเดียวกับประกาศ · ค่าเริ่มต้นปิดไว้'),
+        g('ตัวอย่างลิงก์ใน Discord',
+          'แชร์ลิงก์กิลด์ บ้านศัตรู หรือแผนวอร์ใน Discord แล้วขึ้นกล่องตัวอย่าง: ลิงก์บ้านศัตรูขึ้นชื่อและรูปอัศวินทั้ง 3 ตัว จำนวนทีมแก้ และแท็ก · ลิงก์แผนขึ้นชื่อแผน · ลิงก์กิลด์ขึ้นชื่อกิลด์ · ลิงก์แก้ไข (มีรหัส) ไม่แสดงรหัสในตัวอย่าง'),
+      ] },
+      { kind: 'change', groups: [
+        g(undefined,
+          'ประกาศใหม่และข้อมูลที่คนอื่นแก้ ขึ้นเร็วขึ้น: ระหว่างใช้งานเช็กทุก 30 วิ (เดิม 60 วิ) · แท็บที่เปิดทิ้งไว้ยังเช็กทุก 5 นาทีเหมือนเดิม',
+          'สำรองข้อมูลทั้งเว็บทุกคืนตอนตี 3 เก็บย้อนหลัง 90 วัน',
+          'นับจำนวนครั้งที่ใช้แต่ละฟีเจอร์ (เช่น อ่านค่าจากรูป บันทึกรูป หน้าคำนวณ) แบบไม่ระบุตัวตน เพื่อดูว่าควรพัฒนาส่วนไหนต่อ — ไม่เก็บลิงก์ ชื่อกิลด์ หรือข้อมูลผู้ใช้'),
+      ] },
+    ],
+  },
+  {
     id: '2026-10-25',
     version: '1.6',
     date: '25 ต.ค. 2026',
@@ -390,6 +411,24 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
+  {
+    id: '2026-10-25b', version: '1.6.1', date: '25 Oct 2026', title: 'Heads Up',
+    summary: 'Discord reminder 1 hour before time runs out · guild links show the guild and team in Discord · new announcements show up faster · nightly backups',
+    sections: [
+      { kind: 'new', groups: [
+        g('Reminder before time runs out (Connect Discord)',
+          'Turn it on in "Connect Discord": attack days at 23:00 (attacks close 00:00) · defense days at 17:00 (team edits close 18:00) · not sent between Seasons · tags the same role as announcements · off by default'),
+        g('Link previews in Discord',
+          'Share a guild, enemy team or war plan link in Discord to get a preview: enemy team links show all 3 knights with portraits, the number of counters and tags · plan links show the plan name · guild links show the guild name · edit links (with the key) never show the key in the preview'),
+      ] },
+      { kind: 'change', groups: [
+        g(undefined,
+          'New announcements and edits by others show up faster: every 30 s while you use the site (was 60 s) · tabs left open still check every 5 minutes',
+          'The whole site is backed up every night at 03:00 and kept for 90 days',
+          'Counts how often each feature is used (e.g. read stats from image, save image, calculators) anonymously, to see what to improve next — no links, guild names or user data'),
+      ] },
+    ],
+  },
   {
     id: '2026-10-25', version: '1.6', date: '25 Oct 2026', title: 'Formation',
     summary: 'The biggest patch yet: Ruby Farming Calculator · pack value checker · team building like in the game · tool cards on the home page · skill queue in full team details · automatic team speed · English mode on every page · smoother, with no page jumps',
