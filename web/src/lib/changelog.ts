@@ -36,6 +36,8 @@ const CHANGELOG_TH: ChangelogEntry[] = [
       { kind: 'change', groups: [
         g('ชื่อกิลด์',
           'ตั้งชื่อกิลด์ เปลี่ยนชื่อกิลด์ และช่อง "กิลด์ที่เจอ" ตอนประกาศ ต้องยาวอย่างน้อย 3 ตัวอักษร เพราะในเกมตั้งชื่อสั้นกว่านี้ไม่ได้ · นับแบบในเกม: สระบน/ล่างและวรรณยุกต์ไม่นับ (เช่น "กี้" = 1 ตัว) · พิมพ์สั้นไปจะมีตัวหนังสือเตือนใต้ช่อง · กิลด์เดิมที่ชื่อสั้นอยู่แล้วยังใช้ได้ตามปกติ'),
+        g('รายละเอียดทั้งทีม',
+          'ข้อความของแต่ละอัศวินมีหัวข้อเล็ก "รายละเอียด" กำกับ แบบเดียวกับหัวข้อเครื่องประดับ/เซต อ่านแยกออกง่ายขึ้น (ไม่มีข้อความ = ไม่โชว์หัวข้อ)'),
       ] },
     ],
   },
@@ -431,6 +433,8 @@ const CHANGELOG_EN: ChangelogEntry[] = [
       { kind: 'change', groups: [
         g('Guild names',
           'New guild names, guild renames and the "Guilds found" box in announcements now need at least 3 characters, because the game does not allow shorter names · counted like the game: Thai vowel and tone marks above or below a letter do not count · a short name shows a warning under the box · existing guilds with short names keep working as before'),
+        g('Full team details',
+          'Each hero note now has a small "Notes" label, like the Accessories / Set labels, so it is easier to tell apart (no note = no label)'),
       ] },
     ],
   },

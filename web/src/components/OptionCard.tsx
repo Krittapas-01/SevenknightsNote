@@ -303,7 +303,7 @@ function GearNote({ note, wide }: { note: HeroNote; wide?: boolean }) {
         </div>
         <EquipmentLoadout sets={note.sets} rings={note.rings} />
         {!note.sets.length && !note.rings.length && <p className="mt-2 text-white/45">{tx('ยังไม่ได้ระบุอุปกรณ์')}</p>}
-        {note.text && <p className="mt-3 whitespace-pre-wrap break-words text-white/80">{note.text}</p>}
+        <NoteText text={note.text} />
       </div>
       <div className="min-w-0">
         {hasStats(note.stats) ? <StatsGrid stats={note.stats} size="lg" className="!mt-0" /> : <p className="text-white/45">{tx('ยังไม่ได้ระบุค่าความสามารถ')}</p>}
@@ -316,12 +316,23 @@ function GearNote({ note, wide }: { note: HeroNote; wide?: boolean }) {
         <div className="h-16 w-16 shrink-0"><UnitCard id={note.hero} showName={false} small /></div>
         <span className="break-words font-semibold text-gold">{unitLabel(note.hero)}</span>
       </div>
-      {note.text && <p className="mt-3 whitespace-pre-wrap break-words text-white/80">{note.text}</p>}
+      <NoteText text={note.text} />
       <EquipmentLoadout sets={note.sets} rings={note.rings} />
       <StatsGrid stats={note.stats} />
       {!hasStats(note.stats) && !note.text.trim() && <p className="mt-3 text-white/45">{tx('ยังไม่ได้ระบุค่าความสามารถ')}</p>}
       {!note.sets.length && !note.rings.length && <p className="mt-2 text-white/45">{tx('ยังไม่ได้ระบุอุปกรณ์')}</p>}
     </li>
+  )
+}
+
+/** คำอธิบายรายตัว มีหัวข้อเล็ก "รายละเอียด" แบบเดียวกับหัวข้อแถวเครื่องประดับ/เซต (ไม่มีข้อความ = ไม่โชว์) */
+function NoteText({ text }: { text: string }) {
+  if (!text.trim()) return null
+  return (
+    <div className="mt-3">
+      <div className="mb-0.5 text-[11px] text-white/45">{L('รายละเอียด', 'Notes')}</div>
+      <p className="whitespace-pre-wrap break-words text-white/80">{text}</p>
+    </div>
   )
 }
 
