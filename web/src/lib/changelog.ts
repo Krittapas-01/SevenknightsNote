@@ -31,7 +31,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     version: '1.6',
     date: '25 ต.ค. 2026',
     title: 'Formation',
-    summary: 'แพตช์ใหญ่สุดของเว็บ: หน้าคำนวณรูบี้ขายวิญญาณ · จัดทีมแบบในเกม · การ์ดเครื่องมือในหน้าแรก · ดูคิวสกิลในรายละเอียดทั้งทีม · ความเร็วทีมใส่ให้เอง · โหมดภาษาอังกฤษครบทุกหน้า · ลื่นขึ้นและหน้าไม่กระโดด',
+    summary: 'แพตช์ใหญ่สุดของเว็บ: หน้าคำนวณรูบี้ขายวิญญาณ · เช็กความคุ้มค่าแพ็ค · จัดทีมแบบในเกม · การ์ดเครื่องมือในหน้าแรก · ดูคิวสกิลในรายละเอียดทั้งทีม · ความเร็วทีมใส่ให้เอง · โหมดภาษาอังกฤษครบทุกหน้า · ลื่นขึ้นและหน้าไม่กระโดด',
     sections: [
       { kind: 'new', groups: [
         ...(RUBY_ON ? [
@@ -42,12 +42,13 @@ const CHANGELOG_TH: ChangelogEntry[] = [
           'ติ๊กแพ็คที่ซื้อ (มีรูปแพ็ค): Daily Power Up Support, 7K Pass พรีเมียม, เช็กอินพรีเมียม (เพิ่มกุญแจ) และ Daily Ruby Support (อัศวินตันเร็วขึ้น 10 รอบแทน 11 · +200 รูบี้/วัน แสดงแยกจากที่ฟาร์ม)',
           'นับอัศวิน 2–3★ ที่ดรอปคืนระหว่างฟาร์มให้ด้วย (ประมาณเป็นช่วง จากที่วัดจริง 500 รอบ ~28 ตัวต่อ 100 รอบ) จะได้รู้คร่าว ๆ ว่าต้องเตรียมอัศวินเองกี่ตัว',
           'แก้ค่าที่ใช้คิดได้ทุกอย่าง (กุญแจ เวลาต่อรอบ ทอง เควสต์ทำซ้ำ ราคากล่อง)'),
+        ] : []),
         ...(PACKS_ON ? [
-        g('เช็กความคุ้มค่าแพ็ค (เมนู → เช็กความคุ้มค่าแพ็ค)',
-          'หน้าตาเหมือนร้านในเกม: แท็บรายเดือน/พิเศษ/รายวัน → แถบแพ็คพร้อมรูป เวลาที่เหลือ และ % ขั้นที่คุ้มสุด → กดแล้วเห็นทุกขั้นราคา (ซื้อได้กี่ครั้ง ของในแพ็ค ป้าย BONUS ราคา ฿ และ 💎)',
-          'คิดจาก "ค่าจริง" ที่ผู้เล่นให้ ไม่ใช่ราคาร้านรูบี้ที่แพงเกินจริง: ตั๋วพิคอัพ/คอลแลป 100 · ตั๋วถาวร 40 · ตั๋วสัตว์ 20 · Pet Wish 200 · กล่องกุญแจ 100 · ขวดเหลือง 70 · ขวดแดง 300 · หินสกิล 2,500 ฯลฯ แก้เองได้ทุกชิ้นในแท็บ "ค่าของแต่ละชิ้น"',
-          'เลือกได้ว่าเป็นผู้เล่นเก่าหรือใหม่ (เช่น Awakening Stone ผู้เล่นเก่าไม่นับ) และเทียบต่อบาทหรือต่อปริซึม 💎 · เทียบเป็น % กับ Monthly Key Bundle (= 100%)',
-          'กดดูวิธีคิดของแต่ละขั้นได้ พร้อมมูลค่าถ้าคิดตามราคาร้าน (แบบเว็บอื่น) ไว้เทียบ · ใส่งบแล้วแนะนำชุดแพ็คที่คุ้มสุด · กด + แพ็คที่ซื้อแล้ว')] : []),
+        g('เช็กความคุ้มค่าแพ็ค (เมนู ☰ หรือการ์ดในหน้าแรก)',
+          'หน้าตาเหมือนร้านในเกม: แท็บหมวดเรียงแบบในเกม → แถบแพ็คพร้อมรูป เวลาที่เหลือ และ % ของขั้นที่คุ้มสุด → กดแล้วเห็นทุกขั้นราคา (ซื้อได้กี่ครั้ง ของในแพ็ค ป้าย BONUS ราคา ฿ และ 💎) · แท็บรายเดือนเป็นการ์ดใหญ่แบบในเกม',
+          'หลักง่าย ๆ: กล่องกุญแจเยอะ รูบี้เยอะ ราคาถูก = คุ้ม (1 กล่อง = 100 รูบี้) · ของอื่นคิดเป็นรูบี้ตาม "ค่าจริง" ไม่ใช่ราคาร้านรูบี้ที่แพงเกินจริง เช่น ตั๋วพิคอัพ/คอลแลป 100 · ตั๋วถาวร 70 · ตั๋วสัตว์ 60 · ตั๋ว Pet Wish List 150 · ขวดเหลือง 80 · ขวดแดง 300 · หินสกิล Brilliant 2,500 · แก้เองได้ทุกชิ้นในแท็บ "ค่าของแต่ละชิ้น"',
+          'เทียบต่อบาทหรือต่อปริซึม 💎 · เทียบเป็น % กับ Monthly Key Bundle (= 100%) · "อยากได้อะไร?" เลือกของที่อยากได้ แล้วเรียงแพ็คที่ให้ของนั้นคุ้มสุด',
+          'กดดูวิธีคิดของแต่ละขั้นได้ พร้อมมูลค่าถ้าคิดตามราคาร้านรูบี้ (แบบเว็บอื่น) ไว้เทียบ · ใส่งบแล้วเลือกชุดแพ็คที่คุ้มสุดให้ · กด + แพ็คที่ซื้อแล้ว · ค่าความคุ้มเป็นความเห็นของเจ้าของเว็บ ไม่ได้ชวนให้ซื้อ'),
         ] : []),
         g('จัดทีมแบบในเกม',
           'แตะเลือกช่องแล้วกรอบเรืองแสงทอง · ใส่อัศวินแล้วแฟลชทอง · เอาออกแล้วการ์ดจางหายพร้อมประกายทอง · ลากการ์ดไปวาง ช่องปลายทางแฟลชทอง และการ์ดที่ลากยกขึ้นเอียงชัดขึ้น',
@@ -388,7 +389,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 const CHANGELOG_EN: ChangelogEntry[] = [
   {
     id: '2026-10-25', version: '1.6', date: '25 Oct 2026', title: 'Formation',
-    summary: 'The biggest patch yet: Ruby Farming Calculator · team building like in the game · tool cards on the home page · skill queue in full team details · automatic team speed · English mode on every page · smoother, with no page jumps',
+    summary: 'The biggest patch yet: Ruby Farming Calculator · pack value checker · team building like in the game · tool cards on the home page · skill queue in full team details · automatic team speed · English mode on every page · smoother, with no page jumps',
     sections: [
       { kind: 'new', groups: [
         ...(RUBY_ON ? [
@@ -399,12 +400,13 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'Tick the packs you have (with pack art): Daily Power Up Support, 7K Pass premium, premium check-in (more keys) and Daily Ruby Support (heroes max in 10 battles instead of 11 · +200 rubies/day, shown apart from farming)',
           'Counts the 2–3★ heroes that drop back while farming (shown as a rough range, ~28 per 100 battles measured over 500 real battles) so you roughly know how many heroes to prepare',
           'Every value is editable (keys, time per battle, gold, repeat quest, box prices)'),
+        ] : []),
         ...(PACKS_ON ? [
-        g('Pack value checker (menu → Pack value checker)',
-          'Looks like the in-game shop: Monthly/Special/Daily tabs → pack banners with art, time left and the best tier’s % → tap to see every price tier (purchase limit, items, BONUS tags, ฿ and 💎 price)',
-          'Valued at what items are really worth to players, not the overpriced Ruby Shop: Rate Up/collab tickets 100 · hero tickets 40 · pet tickets 20 · Pet Wish 200 · key chest 100 · Chaos 70 · Oblivion 300 · Brilliant Skill Stone 2,500 and more, every item editable in the “Item values” tab',
-          'Pick veteran or new player (e.g. Awakening Stones count 0 for veterans) and compare per baht or per prism 💎 · shown as a % of the Monthly Key Bundle (= 100%)',
-          'Tap “Show math” on any tier, with the Ruby Shop-price value (like other sites) for comparison · enter a budget for the best combo · tap + on packs you’ve bought')] : []),
+        g('Pack value checker (menu ☰ or the home page card)',
+          'Looks like the in-game shop: category tabs in game order → pack banners with art, time left and the best tier’s % → tap to see every price tier (purchase limit, items, BONUS tags, ฿ and 💎 price) · the Monthly tab uses big in-game style cards',
+          'Rule of thumb: lots of key chests, lots of rubies, low price = good value (1 chest = 100 rubies) · other items count at what they are really worth, not the overpriced Ruby Shop: Rate Up/collab tickets 100 · hero tickets 70 · pet tickets 60 · Pet Wish List voucher 150 · Chaos 80 · Oblivion 300 · Brilliant Skill Stone 2,500 · every item editable in the “Item values” tab',
+          'Compare per baht or per prism 💎 · shown as a % of the Monthly Key Bundle (= 100%) · “What do you want?” picks an item and ranks the packs that give it best',
+          'Tap “Show math” on any tier, with the Ruby Shop-price value (like other sites) for comparison · enter a budget for the best combo · tap + on packs you’ve bought · the values are the site owner’s opinion, not a push to buy'),
         ] : []),
         g('Team building like in the game',
           'Tapping a slot gives it a gold glow · adding a hero flashes gold · removing one fades the card out with gold sparkles · dropping a dragged card flashes the slot it lands on, and the dragged card lifts and tilts more clearly',

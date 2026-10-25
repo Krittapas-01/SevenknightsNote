@@ -21,7 +21,7 @@ import artRateUp from '../assets/packs/shop-rate-up.webp'
  * เทียบเป็น % กับแพ็คฐาน (Monthly Key Bundle)
  */
 /** เปิด/ปิดหน้าเช็กความคุ้มค่าแพ็ค (ปิด = ไม่อยู่ในเมนู หน้าแรก และบันทึกอัปเดต · ยังเข้าได้ทางลิงก์ /packs · หน้าแอดมินเตรียมข้อมูลได้) */
-export const PACKS_ON = false
+export const PACKS_ON = true
 
 export const KEYS_PER_CHEST = 60
 export { ATLAS_CATS, PACK_BASE_KEYS, PACK_ITEM_KEYS, PACK_TABS, type AtlasCat, type PackItemKey, type PackPeriod, type PackTab }

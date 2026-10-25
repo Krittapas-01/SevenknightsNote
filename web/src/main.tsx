@@ -72,7 +72,6 @@ createRoot(document.getElementById('root')!).render(
           <Route path="g/:gid/p/:pid" element={<Suspense fallback={loading}><PlanPage /></Suspense>} />
           <Route path="biscuit" element={<Suspense fallback={loading}><BiscuitPage /></Suspense>} />
           <Route path="totalwar" element={<Suspense fallback={loading}><TotalWarPage /></Suspense>} />
-          {/* ยังซ่อนจากเมนู (PACKS_ON) แต่เข้าทางลิงก์ได้ ไว้ให้ Krit ดูก่อนเปิด */}
           <Route path="packs" element={<Suspense fallback={loading}><PacksPage /></Suspense>} />
           <Route path="atk" element={<Suspense fallback={loading}><AtkPage /></Suspense>} />
           <Route path="ruby" element={<Suspense fallback={loading}><RubyPage /></Suspense>} />
