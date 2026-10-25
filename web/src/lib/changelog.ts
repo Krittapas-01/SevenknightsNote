@@ -27,6 +27,20 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
+    id: '2026-10-25s',
+    version: '1.5.4',
+    date: '25 ต.ค. 2026',
+    title: 'Team Speed',
+    summary: 'ทีมที่อัศวินทุกตัวมีความเร็วโจมตี ความเร็วทีมใส่ให้อัตโนมัติ และกดดูลำดับอัศวินตามความเร็วได้แบบในเกม',
+    sections: [
+      { kind: 'change', groups: [
+        g('ความเร็วทีม (ป้ายรูปรอยเท้า)',
+          'ทีมที่อัศวินทุกตัวมีความเร็วโจมตี (จากค่าความสามารถที่จดไว้): ความเร็วทีม = ผลรวมของทุกตัว ใส่ให้อัตโนมัติ (ไม่ต้องตอบหน้าต่าง "ใส่ความเร็วทีมไหม?" ตอนบันทึกแล้ว) และกดป้ายแล้วเห็นกล่องแบบในเกม: อัศวินเรียงตามความเร็วโจมตี เร็วสุดอยู่ซ้าย พร้อมตัวเลขของแต่ละตัว',
+          'ทีมที่ยังไม่ครบ ป้ายเหมือนเดิม พิมพ์ความเร็วทีมเองได้หรือเว้นไว้'),
+      ] },
+    ],
+  },
+  {
     id: '2026-10-25',
     version: '1.5.4',
     date: '25 ต.ค. 2026',
@@ -426,6 +440,17 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
+  {
+    id: '2026-10-25s', version: '1.5.4', date: '25 Oct 2026', title: 'Team Speed',
+    summary: 'Teams where every hero has attack speed get the team speed filled in automatically, with an in-game style speed order box',
+    sections: [
+      { kind: 'change', groups: [
+        g('Team speed (footprint pill)',
+          'Teams where every hero has attack speed (from saved stats): the team speed is their total, filled in automatically (no more "Add team speed?" window when saving), and tapping the pill shows an in-game style box with the heroes in attack speed order, fastest on the left, each with their number',
+          'Teams with missing speeds keep the old pill: type the team speed yourself or leave it empty'),
+      ] },
+    ],
+  },
   {
     id: '2026-10-25', version: '1.5.4', date: '25 Oct 2026', title: 'Name Check',
     summary: 'Guild names must be at least 3 characters, same as in the game',

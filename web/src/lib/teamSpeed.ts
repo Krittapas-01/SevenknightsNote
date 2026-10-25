@@ -15,3 +15,9 @@ export function autoSpeed(team: Team, notes: HeroNote[] | undefined) {
   }
   return { total, have, need: heroes.length, full: heroes.length > 0 && have === heroes.length }
 }
+
+/** ทุกตัวมีความเร็วโจมตี → ความเร็วทีม = ผลรวม (ใส่ให้อัตโนมัติ) · ไม่ครบ = ใช้ค่าที่ตั้งเอง (หรือไม่ตั้ง) */
+export function fillSpeed(team: Team, notes: HeroNote[] | undefined): Team {
+  const spd = autoSpeed(team, notes)
+  return spd.full && spd.total !== (team.speed || 0) ? { ...team, speed: spd.total } : team
+}
