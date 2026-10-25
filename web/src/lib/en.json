@@ -682,5 +682,8 @@
  "ผู้ดูแลเว็บเข้าดูข้อมูลของทุกกิลด์ได้ · ไม่แชร์ต่อให้ผู้อื่น": "The site admin can view every guild's data · it is never shared with anyone else",
  "ตั้งค่ากิลด์": "Guild settings",
  "ชื่อกิลด์": "Guild name",
- "เปลี่ยนชื่อแล้ว · ลิงก์กิลด์ใช้ได้เหมือนเดิม": "Renamed · the guild links still work"
+ "เปลี่ยนชื่อแล้ว · ลิงก์กิลด์ใช้ได้เหมือนเดิม": "Renamed · the guild links still work",
+ "ความเร็วทีม": "Team Speed",
+ "ลำดับอัศวินตามความเร็วโจมตี": "Heroes by attack speed",
+ "ผลรวมความเร็วโจมตีของทุกตัว": "total attack speed of every hero"
 }

@@ -38,7 +38,7 @@ import TagEditor from '../components/TagEditor'
 import LikeButton from '../components/LikeButton'
 import { PresetPickerButton, SavePresetButton } from '../components/Presets'
 import { rememberNotes } from '../lib/myStats'
-import { autoSpeed } from '../lib/teamSpeed'
+import { fillSpeed } from '../lib/teamSpeed'
 import HelpLink from '../components/HelpLink'
 import { shakeScreen } from '../lib/shake'
 import { useMediaQuery } from '../lib/useMediaQuery'
@@ -76,7 +76,6 @@ export default function TargetPage() {
   const tSkillOk = useRef(false)
   const [skillsReq, setSkillsReq] = useState(0)
   const [tSkillsReq, setTSkillsReq] = useState(0)
-  const [speedAsk, setSpeedAsk] = useState<{ total: number; need: number } | null>(null) // ถามใส่ความเร็วรวมตอนบันทึกทีมแก้
   const allStrip = useRef<HTMLDivElement>(null)
   const allDrag = useDragScroll(allStrip)
   const [delAsk, setDelAsk] = useState<string | null>(null) // ทีมแก้ที่กดลบครั้งแรกแล้ว (รอกดยืนยัน)
@@ -268,17 +267,12 @@ export default function TargetPage() {
       nav(`/g/${gid}?tab=targets`, { replace: true })
     })
   }
-  // จัดทีมเสร็จ (กดบันทึก) แล้วทุกตัวมีความเร็วโจมตีในค่าความสามารถ → ถามก่อนว่าจะใส่ผลรวมเป็นความเร็วทีมไหม (state speedAsk อยู่ด้านบน)
-  const saveCounter = (speed?: number) => {
-    // ทุกทีมต้องมีสัตว์เลี้ยง (เช็คก่อนถามความเร็ว)
+  // ทุกตัวมีความเร็วโจมตีในค่าความสามารถ → ความเร็วทีม = ผลรวม (ใส่ให้เลย) · ไม่ครบ = ใช้ค่าที่ตั้งเอง
+  const saveCounter = () => {
+    // ทุกทีมต้องมีสัตว์เลี้ยง
     if (heroCount(cDraft.team) > 0 && !cDraft.team.pet) { setErr(tx('เลือกสัตว์เลี้ยงก่อน')); shakeScreen(); return }
     if (!skillOk.current && skillShort(cDraft.team, cDraft.skills)) { setSkillAsk({ which: 'counter', have: cDraft.skills.length }); return }
-    if (speed === undefined && heroCount(cDraft.team) > 0) {
-      const spd = autoSpeed(cDraft.team, cDraft.heroNotes)
-      if (spd.full && spd.total !== cDraft.team.speed) return setSpeedAsk({ total: spd.total, need: spd.need })
-    }
-    setSpeedAsk(null)
-    const team = speed === undefined ? cDraft.team : { ...cDraft.team, speed }
+    const team = fillSpeed(cDraft.team, cDraft.heroNotes)
     return run(async () => {
       if (heroCount(team) === 0) throw new Error(tx('ใส่อัศวินอย่างน้อย 1 ตัว'))
       // ทีมแก้ซ้ำในบ้านเดียวกัน (อัศวินชุดเดียวกัน) ห้ามจดซ้ำ
@@ -600,23 +594,6 @@ export default function TargetPage() {
         </p>
       )}
 
-      <Modal open={!!speedAsk} title={tx('ใส่ความเร็วทีมไหม?')} onClose={() => setSpeedAsk(null)}>
-        {speedAsk && (
-          <div className="text-center">
-            <p className="text-white/80">{tx('ความเร็วโจมตีของ')}{' '}{speedAsk.need}{' '}{tx('ตัวรวมกัน')}</p>
-            <p className="mt-1 text-4xl font-bold tabular-nums text-gold">{speedAsk.total}</p>
-            {!!cDraft.team.speed && <p className="mt-1 text-sm text-white/50">{tx('ตอนนี้ใส่ไว้')}{' '}{cDraft.team.speed}</p>}
-            <div className="mt-5 flex justify-center gap-2">
-              <button className="pill px-4 py-2 text-sm text-white/80 hover:bg-white/10" disabled={busy} onClick={() => saveCounter(cDraft.team.speed)}>
-                {tx('ไม่ใส่ บันทึกเลย')}
-              </button>
-              <button className="btn-gold px-5 py-2" disabled={busy} onClick={() => saveCounter(speedAsk.total)}>
-                {tx('ใส่')}{' '}{speedAsk.total}{' '}{tx('แล้วบันทึก')}
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
 
       {/* ดูทีมแก้ทั้งหมดพร้อมกัน (แบบ 7k-combo) · กดการ์ดเพื่อเปิดทีมนั้น */}
       <Modal open={showAll} title={L(`ทีมแก้ทั้งหมด (${counters.length})`, `All counters (${counters.length})`)} onClose={() => setShowAll(false)} wide>
