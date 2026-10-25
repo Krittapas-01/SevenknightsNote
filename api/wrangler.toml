@@ -33,6 +33,12 @@ preview_database_id = "00000000-0000-0000-0000-000000000000"
 binding = "BACKUP"
 bucket_name = "7k-note-backup"
 
+# นับการใช้ปุ่ม/ฟีเจอร์ (POST /api/usage) — dataset สร้างเองตอนเขียนครั้งแรก
+# หน้า /admin อ่านได้เมื่อตั้ง token: npx wrangler secret put CF_API_TOKEN  (สิทธิ์ Account → Account Analytics → Read)
+[[analytics_engine_datasets]]
+binding = "USAGE"
+dataset = "usage_7knote"
+
 # Workers Logs (ดู log ใน dashboard → 7k-note-api → Observability) — ต้องตรงกับที่ตั้งใน dashboard
 # ไม่งั้น deploy.cmd รอบหน้าจะปิด log กลับไปเอง · ห้าม console.log ข้อมูลลับ (webhook, edit key, token) เพราะ log ถูกเก็บไว้
 [observability.logs]

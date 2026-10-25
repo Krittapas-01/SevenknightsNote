@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react'
 import { zoomInPlace } from '../lib/zoom'
 import { DndContext, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useTrackFirstChange } from '../lib/usage'
 import { markDrop, useTeamMotion } from '../lib/teamMotion'
 import { afterModalClose } from '../lib/overlayMotion'
 import UnitCard from '../components/UnitCard'
@@ -65,6 +66,7 @@ const fmt = (n: number) => Math.round(n).toLocaleString(LOCALE)
 
 export default function BiscuitPage() {
   const [state, setState] = useState(load)
+  useTrackFirstChange('biscuit', state)
   const [picking, setPicking] = useState<number | null>(null)
   // แบบหน้าจัดทีม: กดตัวที่มีอยู่ 1 ครั้ง = เลือก · กดซ้ำ = เปลี่ยนตัว · กดช่องอื่น = สลับตำแหน่ง
   const [selected, setSelected] = useState<number | null>(null)

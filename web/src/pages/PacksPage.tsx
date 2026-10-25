@@ -1,5 +1,6 @@
 import { CalendarClock, ChevronDown, ChevronRight, Info, Minus, Plus, RotateCcw, Sparkles, Wallet } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { track } from '../lib/usage'
 import Modal from '../components/Modal'
 import PackTile, { Prism, itemIcon } from '../components/PackTile'
 import { api } from '../lib/api'
@@ -36,6 +37,7 @@ type Group = { name: string; tab: PackTab; rows: Row[]; best: number; endsAt: nu
 /** หน้าเช็กความคุ้มค่าแพ็ค: หน้าตาแบบร้านในเกม (แท็บ → แถบแพ็ค → กดดูทุกขั้น) · คิดจากค่าที่ผู้เล่นให้จริง ไม่ใช่ราคาร้านรูบี้ */
 export default function PacksPage() {
   const [packs, setPacks] = useState<Pack[] | null>(null)
+  useEffect(() => track('packs'), [])
   const [err, setErr] = useState<string | null>(null)
   const [tick, bump] = useState(0) // ติ๊กซื้อแล้ว → คำนวณใหม่
   const [prefs, setPrefs] = useState<WorthPrefs>(loadWorthPrefs)

@@ -1,5 +1,6 @@
 import { Camera, ChevronRight, CircleHelp, ClipboardPaste, History, Loader2, PencilLine, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { track } from '../lib/usage'
 import { baseName, getUnit, unitBase } from '../data/heroes'
 import { pickHero } from '../lib/heroPick'
 import { readImageText } from '../lib/ocr'
@@ -204,6 +205,7 @@ export function StatsImport({ team, notes, onApply, onAddHero, onAddWithStats, e
     try {
       // name = บรรทัดชื่ออัศวินที่ครอปมาอ่านแยก (แม่นกว่าอ่านจากทั้งภาพ)
       const { text, name } = await readImageText(file, setProgress)
+      track('ocr')
       setRaw(name ? `${L('ชื่อ', 'Name')}: ${name}\n---\n${text}` : text)
       const s = parseStats(text)
       setStats(s)

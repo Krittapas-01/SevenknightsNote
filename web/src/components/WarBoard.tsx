@@ -1,6 +1,7 @@
 import { Bot, CalendarDays, ChevronDown, ClipboardList, Megaphone, Settings2, Shield, Swords } from 'lucide-react'
 import { PLAN_KIND_LABEL, planKind } from '../lib/types'
 import { useEffect, useState } from 'react'
+import { track } from '../lib/usage'
 import { Link } from 'react-router'
 import { api } from '../lib/api'
 import { notifyGuildChanged } from '../lib/usePulse'
@@ -191,6 +192,7 @@ function ComposeModal({ open, onClose, gid, data, activeIds, todayType, reload }
     setErr(null)
     try {
       await api.announce(gid, { body: body.trim(), planId: planId || null, opponent: opponent.trim() })
+      track('announce')
       await reload()
       setBody('')
       setOpponent('')

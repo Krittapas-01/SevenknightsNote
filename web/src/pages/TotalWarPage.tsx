@@ -1,5 +1,6 @@
 import { Clock, Pencil, Target } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useTrackFirstChange } from '../lib/usage'
 import RankEmblem from '../components/RankEmblem'
 import './TotalWarPage.css'
 import profileFrame from '../assets/totalwar-ranks/profile-frame.webp'
@@ -60,6 +61,7 @@ export default function TotalWarPage() {
   const [score, setScore] = useState(() => { try { return localStorage.getItem(STORE_KEY) ?? '' } catch { return '' } })
   const [rate, setRate] = useState('')
   const [target, setTarget] = useState(3)
+  useTrackFirstChange('totalwar', `${score}|${rate}|${target}`)
   const [now, setNow] = useState(Date.now())
   const scoreInput = useRef<HTMLInputElement>(null)
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t) }, [])

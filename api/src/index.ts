@@ -2,10 +2,15 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { currentSeason } from '../../shared/season'
 import { MAX_PACK_ITEMS, PACK_ITEM_KEYS, PACK_PERIODS, PACK_TABS } from '../../shared/packs'
+import { USAGE_EVENTS, USAGE_MAX_COUNT } from '../../shared/usage'
 import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT, bossRevivalDay, fillBoss, DAY_NAMES, DAY_PLACEHOLDER, DAY_PLACEHOLDER_EN, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay, MIN_GAME_NAME, isShortGameName, WAR_REMINDER_TEXT, warReminderDue } from '../../shared/game'
 
 type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string; /** Discord user ID ที่เข้าหน้า /admin ได้ (คั่นด้วย ,) */ ADMIN_DISCORD_IDS?: string
-  /** R2 (private) เก็บไฟล์สำรองฐานข้อมูลทุกคืน */ BACKUP?: R2Bucket }
+  /** R2 (private) เก็บไฟล์สำรองฐานข้อมูลทุกคืน */ BACKUP?: R2Bucket
+  /** Workers Analytics Engine: นับการใช้ปุ่ม/ฟีเจอร์ (shared/usage.ts) */ USAGE?: AnalyticsEngineDataset
+  /** wrangler secret (ไม่บังคับ): token สิทธิ์ Account Analytics: Read — ให้หน้า /admin อ่านสถิติปุ่มได้ */ CF_API_TOKEN?: string
+  /** Account ID ของ Cloudflare (ไม่ใส่ = หาเองจาก token) */ CF_ACCOUNT_ID?: string
+  /** dev เท่านั้น: ชี้ Cloudflare API ไป mock */ CF_API_BASE?: string }
 
 type Team = {
   front: number // จำนวนช่องแถวหน้า (1-4) ที่เหลือเป็นแถวหลัง รวม 5 ช่อง
@@ -1207,6 +1212,59 @@ app.get('/api/admin/stats', async (c) => {
     c.env.DB.prepare('SELECT COUNT(DISTINCT user_id) AS n FROM sessions WHERE expires_at > ?').bind(now),
   ])
   return c.json({ now, guilds: guilds.results, discordUsers: (users.results[0] as any)?.n ?? 0 })
+})
+
+// ---------- สถิติการใช้ปุ่ม/ฟีเจอร์ (Workers Analytics Engine) ----------
+// เว็บส่ง { events: { ocr: 2, ... } } ตอนปิด/ซ่อนแท็บ (sendBeacon, text/plain) · รับเฉพาะชื่อใน USAGE_EVENTS · ไม่เก็บ URL/IP/กิลด์
+const USAGE_DATASET = 'usage_7knote' // ต้องตรงกับ [[analytics_engine_datasets]] ใน wrangler.toml
+app.post('/api/usage', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  const ev = body?.events
+  if (ev && typeof ev === 'object' && c.env.USAGE) {
+    for (const k of USAGE_EVENTS) {
+      const n = Math.min(USAGE_MAX_COUNT, Math.floor(Number(ev[k]) || 0))
+      if (n > 0) c.env.USAGE.writeDataPoint({ blobs: [k], doubles: [n], indexes: [k] })
+    }
+  }
+  return c.body(null, 204)
+})
+
+/** หน้าแอดมิน: จำนวนครั้งต่อฟีเจอร์ วันนี้ (วันในเกม) / 7 วัน / 30 วัน — อ่านผ่าน Analytics Engine SQL API (ต้องตั้ง CF_API_TOKEN) */
+app.get('/api/admin/usage', async (c) => {
+  c.header('Cache-Control', 'no-store')
+  if (!(await isAdmin(c))) return c.json({ error: 'not found' }, 404)
+  const token = c.env.CF_API_TOKEN
+  if (!token) return c.json({ configured: false })
+  const base = c.env.CF_API_BASE || 'https://api.cloudflare.com/client/v4'
+  const headers = { Authorization: `Bearer ${token}` }
+  let account = c.env.CF_ACCOUNT_ID || ''
+  if (!account) {
+    const r = await fetch(`${base}/accounts?per_page=5`, { headers })
+    const d: any = r.ok ? await r.json() : null
+    account = d?.result?.[0]?.id || ''
+    if (!account) return c.json({ configured: true, error: `accounts ${r.status}` })
+  }
+  const sqlText = `SELECT blob1 AS event, toStartOfInterval(timestamp, INTERVAL '1' DAY) AS day, SUM(_sample_interval * double1) AS n
+    FROM ${USAGE_DATASET} WHERE timestamp > NOW() - INTERVAL '30' DAY GROUP BY event, day`
+  const r = await fetch(`${base}/accounts/${account}/analytics_engine/sql`, { method: 'POST', headers, body: sqlText })
+  if (!r.ok) return c.json({ configured: true, error: `analytics ${r.status}` })
+  const d: any = await r.json()
+  const now = Date.now()
+  // วันในเกมเริ่ม 07:00 ไทย = 00:00 UTC → วันของ Analytics Engine (UTC) = วันในเกมพอดี
+  const today = gameDayKey(now)
+  const week = gameDayKey(now - 6 * 86400_000)
+  const out = new Map<string, { event: string; today: number; d7: number; d30: number }>()
+  for (const row of (Array.isArray(d?.data) ? d.data : []) as { event: string; day: string; n: number | string }[]) {
+    if (!(USAGE_EVENTS as readonly string[]).includes(row.event)) continue
+    const day = String(row.day).slice(0, 10)
+    const n = Math.round(Number(row.n) || 0)
+    const o = out.get(row.event) ?? { event: row.event, today: 0, d7: 0, d30: 0 }
+    o.d30 += n
+    if (day >= week) o.d7 += n
+    if (day === today) o.today += n
+    out.set(row.event, o)
+  }
+  return c.json({ configured: true, rows: USAGE_EVENTS.map((e) => out.get(e) ?? { event: e, today: 0, d7: 0, d30: 0 }) })
 })
 
 // ---------- แพ็คในเกม (หน้าเช็กความคุ้มค่าแพ็ค) — ทุกคนอ่านได้ · แอดมินเพิ่ม/แก้/ลบ ----------

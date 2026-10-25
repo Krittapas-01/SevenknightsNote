@@ -1,5 +1,6 @@
 import { ArrowLeftRight, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useTrackFirstChange } from '../lib/usage'
 import { useTeamMotion } from '../lib/teamMotion'
 import { afterModalClose } from '../lib/overlayMotion'
 import UnitCard from '../components/UnitCard'
@@ -105,6 +106,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 export default function AtkPage() {
   const [state, setState] = useState(load)
+  useTrackFirstChange('atk', state)
   const [picking, setPicking] = useState<number | null>(null)
   const { pet, potential, front, buffs, debuff, chars } = state
   const potentialPct = potential.reduce((sum, v) => sum + num(v), 0)

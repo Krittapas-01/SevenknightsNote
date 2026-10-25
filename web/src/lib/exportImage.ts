@@ -1,3 +1,4 @@
+import { track } from './usage'
 /**
  * บันทึกส่วนของหน้าเป็นรูป PNG (ชัด 2 เท่า)
  * - ใส่ data-noexport ที่ปุ่ม/ส่วนที่ไม่อยากให้ติดในรูป
@@ -18,6 +19,7 @@ export async function waitImages(el: HTMLElement, timeoutMs = 8000) {
 }
 
 export async function exportPng(el: HTMLElement, filename: string) {
+  track('export_image')
   // ไลบรารีจับภาพหน้าจอ (~50 kB) โหลดตอนกดบันทึกรูปเท่านั้น — ไม่ต้องติดมากับโค้ดหน้าบ้านศัตรู/แผน (เปิดหน้าเร็วขึ้น)
   const { domToPng } = await import('modern-screenshot')
   const url = await domToPng(el, {

@@ -1,5 +1,6 @@
 import { ChevronDown, Clock, Coins, KeyRound, Minus, Package, Plus, RotateCcw, Swords, Users } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useTrackFirstChange } from '../lib/usage'
 import ruby from '../assets/ui/ruby.webp'
 import packPowerUp from '../assets/packs/power-up.webp'
 import packRuby from '../assets/packs/ruby-support.webp'
@@ -98,6 +99,7 @@ function Stat({ icon, value, unit, sub }: { icon: ReactNode; value: ReactNode; u
 
 export default function RubyPage() {
   const [form, setForm] = useState(loadFarmForm)
+  useTrackFirstChange('ruby', form)
   const [more, setMore] = useState(false)
   const [keysOpen, setKeysOpen] = useState(false)
   const [baseOpen, setBaseOpen] = useState(false)
