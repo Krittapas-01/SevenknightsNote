@@ -27,56 +27,14 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
-    id: '2026-10-25s',
-    version: '1.5.4',
-    date: '25 ต.ค. 2026',
-    title: 'Team Speed',
-    summary: 'ทีมที่อัศวินทุกตัวมีความเร็วโจมตี ความเร็วทีมใส่ให้อัตโนมัติ และกดดูลำดับอัศวินตามความเร็วได้แบบในเกม',
-    sections: [
-      { kind: 'change', groups: [
-        g('ความเร็วทีม (ป้ายรูปรอยเท้า)',
-          'ทีมที่อัศวินทุกตัวมีความเร็วโจมตี (จากค่าความสามารถที่จดไว้): ความเร็วทีม = ผลรวมของทุกตัว ใส่ให้อัตโนมัติ (ไม่ต้องตอบหน้าต่าง "ใส่ความเร็วทีมไหม?" ตอนบันทึกแล้ว) และกดป้ายแล้วเห็นกล่องแบบในเกม: อัศวินเรียงตามความเร็วโจมตี เร็วสุดอยู่ซ้าย พร้อมตัวเลขของแต่ละตัว',
-          'ทีมที่ยังไม่ครบ ป้ายเหมือนเดิม พิมพ์ความเร็วทีมเองได้หรือเว้นไว้'),
-      ] },
-    ],
-  },
-  {
     id: '2026-10-25',
-    version: '1.5.4',
+    version: '1.6',
     date: '25 ต.ค. 2026',
-    title: 'Name Check',
-    summary: 'ชื่อกิลด์ต้องยาวอย่างน้อย 3 ตัวอักษร เหมือนในเกม',
-    sections: [
-      { kind: 'change', groups: [
-        g('ชื่อกิลด์',
-          'ตั้งชื่อกิลด์ เปลี่ยนชื่อกิลด์ และช่อง "กิลด์ที่เจอ" ตอนประกาศ ต้องยาวอย่างน้อย 3 ตัวอักษร เพราะในเกมตั้งชื่อสั้นกว่านี้ไม่ได้ · นับแบบในเกม: สระบน/ล่างและวรรณยุกต์ไม่นับ (เช่น "กี้" = 1 ตัว) · พิมพ์สั้นไปจะมีตัวหนังสือเตือนใต้ช่อง · กิลด์เดิมที่ชื่อสั้นอยู่แล้วยังใช้ได้ตามปกติ'),
-        g('รายละเอียดทั้งทีม',
-          'ข้อความของแต่ละอัศวินมีหัวข้อเล็ก "รายละเอียด" กำกับ แบบเดียวกับหัวข้อเครื่องประดับ/เซต อ่านแยกออกง่ายขึ้น (ไม่มีข้อความ = ไม่โชว์หัวข้อ)'),
-      ] },
-    ],
-  },
-  {
-    id: '2026-10-24e',
-    version: '1.5.4',
-    date: '24 ต.ค. 2026',
-    title: 'Skill Queue',
-    summary: 'ดูรายละเอียดทั้งทีม กดดูคิวออกสกิลของทีมได้แล้ว',
+    title: 'Formation',
+    summary: 'แพตช์ใหญ่สุดของเว็บ: หน้าคำนวณรูบี้ขายวิญญาณ · จัดทีมแบบในเกม · การ์ดเครื่องมือในหน้าแรก · ดูคิวสกิลในรายละเอียดทั้งทีม · ความเร็วทีมใส่ให้เอง · โหมดภาษาอังกฤษครบทุกหน้า · ลื่นขึ้นและหน้าไม่กระโดด',
     sections: [
       { kind: 'new', groups: [
-        g('ดูคิวออกสกิล (ดูรายละเอียดทั้งทีม ในหน้าบ้านศัตรูและแผนวอร์)',
-          'กดวงดาว "คิวสกิล" ในการ์ดทีมด้านซ้าย เปิดหน้าต่างลำดับการใช้สกิลของทีมนั้นได้เลย เห็นว่าอัศวินตัวไหนใช้สกิลไหนเป็นลำดับที่เท่าไหร่'),
-      ] },
-    ],
-  },
-  ...(RUBY_ON ? ([
-  {
-    id: '2026-10-24d',
-    version: '1.5.4',
-    date: '24 ต.ค. 2026',
-    title: 'Ruby Rush',
-    summary: 'หน้าใหม่: คำนวณรูบี้ขายวิญญาณ — ฟาร์มคุ้มสุดได้กี่รอบ ใช้เวลากี่ชั่วโมง ใช้อัศวิน Lv.1 กี่ตัว ได้รูบี้เท่าไหร่',
-    sections: [
-      { kind: 'new', groups: [
+        ...(RUBY_ON ? [
         g('คำนวณรูบี้ขายวิญญาณ (เมนู ☰ หรือการ์ดในหน้าแรก)',
           'เลือกแค่อัศวิน Lv.1 ในทีม (1–5 ตัว = 20–100 รูบี้ทุกครั้งที่อัศวินตัน: 11 รอบ หรือ 10 รอบถ้ามีแพ็ค Daily Ruby Support) แล้วเห็นเลยว่าฟาร์มได้กี่รอบ ใช้อัศวินกี่ตัว ได้รูบี้สุทธิเท่าไหร่ (หักค่ากล่องกุญแจแล้ว) และต้องซื้อกล่องกี่กล่อง',
           'เปิดมาเห็นตัวเลขเดียวเด่น ๆ: รูบี้สุทธิต่อวันของตัวเลือก "คุ้มสุด" พร้อมเวลา อัศวิน และกล่องที่ต้องซื้อ (ซื้อครบทั้งขั้นราคา กุญแจที่เหลือยกไปวันถัดไป) · อยากเล่นน้อยลงแตะกราฟแท่งกล่องฟรี / 50 / 80 / 100 รูบี้ แต่ละแท่งบอกรูบี้สุทธิ เวลา และจำนวนกล่อง · รายละเอียดอื่นซ่อนไว้ กดดูได้ · ตัวเลขวิ่งและกราฟขยับตามทุกครั้งที่เปลี่ยน · บนคอมเห็นครบในจอเดียว',
@@ -90,44 +48,25 @@ const CHANGELOG_TH: ChangelogEntry[] = [
           'คิดจาก "ค่าจริง" ที่ผู้เล่นให้ ไม่ใช่ราคาร้านรูบี้ที่แพงเกินจริง: ตั๋วพิคอัพ/คอลแลป 100 · ตั๋วถาวร 40 · ตั๋วสัตว์ 20 · Pet Wish 200 · กล่องกุญแจ 100 · ขวดเหลือง 70 · ขวดแดง 300 · หินสกิล 2,500 ฯลฯ แก้เองได้ทุกชิ้นในแท็บ "ค่าของแต่ละชิ้น"',
           'เลือกได้ว่าเป็นผู้เล่นเก่าหรือใหม่ (เช่น Awakening Stone ผู้เล่นเก่าไม่นับ) และเทียบต่อบาทหรือต่อปริซึม 💎 · เทียบเป็น % กับ Monthly Key Bundle (= 100%)',
           'กดดูวิธีคิดของแต่ละขั้นได้ พร้อมมูลค่าถ้าคิดตามราคาร้าน (แบบเว็บอื่น) ไว้เทียบ · ใส่งบแล้วแนะนำชุดแพ็คที่คุ้มสุด · กด + แพ็คที่ซื้อแล้ว')] : []),
-      ] },
-    ],
-  },
-  ] satisfies ChangelogEntry[]) : []),
-  {
-    id: '2026-10-24c',
-    version: '1.5.4',
-    date: '24 ต.ค. 2026',
-    title: 'Tool Belt',
-    summary: 'หน้าแรกมีการ์ดเครื่องมือ หาเช็กบัฟบิสกิต เทียบพลังโจมตี และคำนวณแต้มเบ็ดเสร็จเจอง่ายขึ้น',
-    sections: [
-      { kind: 'change', groups: [
-        g('หน้าแรก',
-          'มีการ์ดเครื่องมือใต้ช่องสร้างกิลด์: เช็กบัฟบิสกิต · เทียบพลังโจมตี · คำนวณแต้มเบ็ดเสร็จ ใช้ได้เลยไม่ต้องสร้างกิลด์ (เดิมอยู่แค่ในเมนู ☰)'),
-        g('แก้ค่าความสามารถ',
-          'ตอนแก้ทีมแก้/แผน แต่ละอัศวินในตาราง "อุปกรณ์/ค่าความสามารถรายตัว" มีปุ่ม "แก้ค่าความสามารถ" (ยังไม่มีค่า = "ใส่ค่าความสามารถ") กดแล้วเปิดช่องกรอกของตัวนั้นเลย ค่าเดิมขึ้นให้แก้ต่อ ไม่ต้องหาปุ่มข้ามเอง',
-          'ปุ่ม "กรอกค่าความสามารถเอง" เห็นชัดขึ้น: เป็นปุ่มใหญ่ใต้กรอบใส่รูป มีเส้น "หรือ" คั่น (เดิมเป็นลิงก์ตัวเล็ก "ไม่มีรูป? ข้ามไปกรอกเอง") ไม่มีรูปก็พิมพ์ตัวเลขเอง หรือแก้ค่าที่จดไว้ได้เลย'),
-        g('เมนู ☰',
-          'แต่งลายแบบเมนูในเกม: หน้าที่เปิดอยู่มีกรอบทอง · เส้นคั่นมีดาวตรงกลาง · อัปเดตล่าสุดมีป้าย ! สีแดงเมื่อมีอัปเดตใหม่ · โลโก้ดาวคมชัดบนไอแพด/ไอโฟน'),
-      ] },
-    ],
-  },
-  {
-    id: '2026-10-24',
-    version: '1.5.3',
-    date: '24 ต.ค. 2026',
-    title: 'Formation',
-    summary: 'จัดทีมแบบในเกม · โหมดภาษาอังกฤษครบทุกหน้า · หน้าไม่กระโดดตอนย้อนกลับ และลื่นขึ้นอีก',
-    sections: [
-      { kind: 'new', groups: [
+        ] : []),
         g('จัดทีมแบบในเกม',
           'แตะเลือกช่องแล้วกรอบเรืองแสงทอง · ใส่อัศวินแล้วแฟลชทอง · เอาออกแล้วการ์ดจางหายพร้อมประกายทอง · ลากการ์ดไปวาง ช่องปลายทางแฟลชทอง และการ์ดที่ลากยกขึ้นเอียงชัดขึ้น',
           'ทีมครบ 3 ตัวแล้ว ช่องว่างที่เหลือเป็นช่องแดงขีดเฉียงแบบในเกม (ใส่ตัวเพิ่มไม่ได้ แตะแล้วช่องสั่นบอก · ยังย้ายตัวในทีมลงช่องนั้นได้) · เอาตัวออกแล้วกลับเป็นช่อง + เหมือนเดิม',
           'ใช้ได้ทุกที่ที่จัดทีม: ทีมบ้านศัตรู/ทีมแก้/แผนวอร์ (อัศวิน สัตว์เลี้ยง สัตว์เลี้ยงเสริม) · หน้าบิสกิต (ลากสลับที่ก็เลื่อนตาม) · หน้าเทียบพลังโจมตี · ตัว OP และตัวแบนในแผนวอร์',
           'หน้าเช็กบัฟบิสกิตและหน้าเทียบพลังโจมตี: เลือก/เอาอัศวินออกจากหน้าต่างเลือกแล้ว หน้าต่างปิดก่อนค่อยเล่นการ์ดเด้ง+แฟลชทอง หรือจางหาย+ประกายทอง (เดิมเล่นอยู่หลังพื้นหลังมืด แทบมองไม่เห็น) · บิสกิต: สลับช่องแล้วช่องกรอกตัวเลขเลื่อนตามการ์ดไปด้วย · ใส่ตัวแล้วช่องกรอกเลื่อนลงมา เอาออกแล้วจางหาย · อันดับโจมตีในเกมเลื่อนสลับที่ให้เห็นตอนอันดับเปลี่ยน · เทียบพลังโจมตี: มีปุ่ม ⇄ สลับตัวที่ 1 กับตัวที่ 2 (ค่าที่กรอกและติ๊ก "ได้บัฟ" ย้ายตาม) กล่องเลื่อนข้ามฝั่ง · การ์ดที่เลื่อนย้ายช่องอยู่บนสุด ไม่ลอดใต้ช่องอื่น',
           'ตั้งลำดับการใช้สกิลแบบในเกม: กดเลือกสกิลแล้วไอคอนแฟลชทอง ป้ายลำดับเด้งขึ้น · กดเอาออกมีประกายทอง · กด "เสร็จ" แล้ววงลำดับสกิลขึ้นเป็นฟองแก้วขอบม่วง มีเส้นแสงหมุนจากกลางวงลงมาเป็นแนวนอน ดาวติดพร้อมกัน และเลขลำดับบนการ์ดเด้งตาม 1 → 2 → 3'),
+        g('การ์ดเครื่องมือในหน้าแรก',
+          'มีการ์ดเครื่องมือใต้ช่องสร้างกิลด์: เช็กบัฟบิสกิต · เทียบพลังโจมตี · คำนวณแต้มเบ็ดเสร็จ ใช้ได้เลยไม่ต้องสร้างกิลด์ (เดิมอยู่แค่ในเมนู ☰)'),
+        g('ดูคิวออกสกิล (ดูรายละเอียดทั้งทีม ในหน้าบ้านศัตรูและแผนวอร์)',
+          'กดวงดาว "คิวสกิล" ในการ์ดทีมด้านซ้าย เปิดหน้าต่างลำดับการใช้สกิลของทีมนั้นได้เลย เห็นว่าอัศวินตัวไหนใช้สกิลไหนเป็นลำดับที่เท่าไหร่'),
       ] },
       { kind: 'change', groups: [
+        g('แก้ค่าความสามารถ',
+          'ตอนแก้ทีมแก้/แผน แต่ละอัศวินในตาราง "อุปกรณ์/ค่าความสามารถรายตัว" มีปุ่ม "แก้ค่าความสามารถ" (ยังไม่มีค่า = "ใส่ค่าความสามารถ") กดแล้วเปิดช่องกรอกของตัวนั้นเลย ค่าเดิมขึ้นให้แก้ต่อ ไม่ต้องหาปุ่มข้ามเอง',
+          'ปุ่ม "กรอกค่าความสามารถเอง" เห็นชัดขึ้น: เป็นปุ่มใหญ่ใต้กรอบใส่รูป มีเส้น "หรือ" คั่น (เดิมเป็นลิงก์ตัวเล็ก "ไม่มีรูป? ข้ามไปกรอกเอง") ไม่มีรูปก็พิมพ์ตัวเลขเอง หรือแก้ค่าที่จดไว้ได้เลย'),
+        g('ความเร็วทีม (ป้ายรูปรอยเท้า)',
+          'ทีมที่อัศวินทุกตัวมีความเร็วโจมตี (จากค่าความสามารถที่จดไว้): ความเร็วทีม = ผลรวมของทุกตัว ใส่ให้อัตโนมัติ (ไม่ต้องตอบหน้าต่าง "ใส่ความเร็วทีมไหม?" ตอนบันทึกแล้ว) และกดป้ายแล้วเห็นกล่องแบบในเกม: อัศวินเรียงตามความเร็วโจมตี เร็วสุดอยู่ซ้าย พร้อมตัวเลขของแต่ละตัว',
+          'ทีมที่ยังไม่ครบ ป้ายเหมือนเดิม พิมพ์ความเร็วทีมเองได้หรือเว้นไว้'),
         g('หน้าเว็บภาษาอังกฤษ: ไม่มีภาษาไทยหลุดแล้ว',
           'แท็กกรองในหน้าต่าง "เลือกจากที่จดไว้" (ทั้งหมด / ทีมกายภาพ / ทีมเวท / ทีมแทงก์ / ทีมอื่นๆ) เป็นภาษาอังกฤษแล้ว',
           'ชื่อเซตอุปกรณ์และแหวนเป็นชื่อภาษาอังกฤษตามเกม (ข้อมูลที่จดไว้ไม่เปลี่ยน)',
@@ -139,8 +78,14 @@ const CHANGELOG_TH: ChangelogEntry[] = [
           'หน้ากิลด์ แท็บบ้านศัตรู: พิมพ์ค้นหาเร็ว ๆ บนมือถือแล้วตัวอักษรไม่หายแล้ว (เดิมพิมพ์ "rachel" อาจเหลือ "rl") · ตัวอักษร ปุ่มแท็ก และแท็บแผนสงคราม/บ้านศัตรู ขึ้นจอทันทีที่กด (มือถือช้าเร็วขึ้นราว 7–10 เท่า) รายการการ์ดค่อยตามมา'),
         g('หน้าอัปเดต', 'หน้าอัปเดตโฉมใหม่: แถบเลือกแพทช์ (คอม = เส้นเวลาด้านซ้าย · มือถือ = ปุ่มเลื่อนข้าง) · อัปเดตย่อยอยู่ในการ์ดแพทช์เดียวกัน เรียงตามวัน · นับให้ว่ามีใหม่/เปลี่ยน/แก้บั๊กกี่ข้อ · แพทช์เก่าย่อไว้ กดดูได้ · แชร์ลิงก์ไปแพทช์ที่ต้องการได้'),
         g('ตารางอุปกรณ์/ค่าความสามารถรายตัว',
-          'ตอนแก้ทีมแก้/แผน จอกว้าง ช่องอัศวินกว้างขึ้น เซต เครื่องประดับ และปุ่ม "ใช้ค่าความสามารถล่าสุดของฉัน" อยู่บรรทัดเดียว ไม่หักคำเป็น 2 บรรทัดแล้ว · มือถือ ปุ่มนี้อยู่ใต้รูปอัศวินแทน',
-          'รายละเอียดทั้งทีม: แหวนกับเซตของแต่ละอัศวินแยกเป็นแถว มีหัวข้อ "เครื่องประดับ" / "เซต" และช่องครบ 3 ช่องเหมือนในเกม ไม่ปนกันแล้ว'),
+          'ตอนแก้ทีมแก้/แผน จอกว้าง ช่องอัศวินกว้างขึ้น เซต เครื่องประดับ และปุ่ม "ใช้ค่าความสามารถล่าสุดของฉัน" อยู่บรรทัดเดียว ไม่หักคำเป็น 2 บรรทัดแล้ว · มือถือ ปุ่มนี้อยู่ใต้รูปอัศวินแทน'),
+        g('รายละเอียดทั้งทีม',
+          'แหวนกับเซตของแต่ละอัศวินแยกเป็นแถว มีหัวข้อ "เครื่องประดับ" / "เซต" และช่องครบ 3 ช่องเหมือนในเกม ไม่ปนกันแล้ว',
+          'ข้อความของแต่ละอัศวินมีหัวข้อเล็ก "รายละเอียด" กำกับ แบบเดียวกับหัวข้อเครื่องประดับ/เซต อ่านแยกออกง่ายขึ้น (ไม่มีข้อความ = ไม่โชว์หัวข้อ)'),
+        g('เมนู ☰',
+          'แต่งลายแบบเมนูในเกม: หน้าที่เปิดอยู่มีกรอบทอง · เส้นคั่นมีดาวตรงกลาง · อัปเดตล่าสุดมีป้าย ! สีแดงเมื่อมีอัปเดตใหม่ · โลโก้ดาวคมชัดบนไอแพด/ไอโฟน'),
+        g('ชื่อกิลด์',
+          'ตั้งชื่อกิลด์ เปลี่ยนชื่อกิลด์ และช่อง "กิลด์ที่เจอ" ตอนประกาศ ต้องยาวอย่างน้อย 3 ตัวอักษร เพราะในเกมตั้งชื่อสั้นกว่านี้ไม่ได้ · นับแบบในเกม: สระบน/ล่างและวรรณยุกต์ไม่นับ (เช่น "กี้" = 1 ตัว) · พิมพ์สั้นไปจะมีตัวหนังสือเตือนใต้ช่อง · กิลด์เดิมที่ชื่อสั้นอยู่แล้วยังใช้ได้ตามปกติ'),
       ] },
       { kind: 'fix', groups: [
         g('ทีมแก้',
@@ -441,44 +386,11 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
   {
-    id: '2026-10-25s', version: '1.5.4', date: '25 Oct 2026', title: 'Team Speed',
-    summary: 'Teams where every hero has attack speed get the team speed filled in automatically, with an in-game style speed order box',
-    sections: [
-      { kind: 'change', groups: [
-        g('Team speed (footprint pill)',
-          'Teams where every hero has attack speed (from saved stats): the team speed is their total, filled in automatically (no more "Add team speed?" window when saving), and tapping the pill shows an in-game style box with the heroes in attack speed order, fastest on the left, each with their number',
-          'Teams with missing speeds keep the old pill: type the team speed yourself or leave it empty'),
-      ] },
-    ],
-  },
-  {
-    id: '2026-10-25', version: '1.5.4', date: '25 Oct 2026', title: 'Name Check',
-    summary: 'Guild names must be at least 3 characters, same as in the game',
-    sections: [
-      { kind: 'change', groups: [
-        g('Guild names',
-          'New guild names, guild renames and the "Guilds found" box in announcements now need at least 3 characters, because the game does not allow shorter names · counted like the game: Thai vowel and tone marks above or below a letter do not count · a short name shows a warning under the box · existing guilds with short names keep working as before'),
-        g('Full team details',
-          'Each hero note now has a small "Notes" label, like the Accessories / Set labels, so it is easier to tell apart (no note = no label)'),
-      ] },
-    ],
-  },
-  {
-    id: '2026-10-24e', version: '1.5.4', date: '24 Oct 2026', title: 'Skill Queue',
-    summary: 'Full team details now lets you open the team\'s skill queue',
+    id: '2026-10-25', version: '1.6', date: '25 Oct 2026', title: 'Formation',
+    summary: 'The biggest patch yet: Ruby Farming Calculator · team building like in the game · tool cards on the home page · skill queue in full team details · automatic team speed · English mode on every page · smoother, with no page jumps',
     sections: [
       { kind: 'new', groups: [
-        g('Skill queue (full team details, on enemy defense and war plan pages)',
-          'Tap the "Queue" star orb on the team card on the left to open that team\'s skill queue: which hero uses which skill, in what order'),
-      ] },
-    ],
-  },
-  ...(RUBY_ON ? ([
-  {
-    id: '2026-10-24d', version: '1.5.4', date: '24 Oct 2026', title: 'Ruby Rush',
-    summary: 'New page: Ruby Farming Calculator — the best farm: how many battles, how many hours, how many Lv.1 heroes, how many rubies',
-    sections: [
-      { kind: 'new', groups: [
+        ...(RUBY_ON ? [
         g('Ruby Farming Calculator (menu ☰ or the home page card)',
           'Just pick the Lv.1 heroes in your team (1–5 = 20–100 rubies each time they max out: 11 battles, or 10 with Daily Ruby Support) to see your battles, heroes used, net rubies (after key box costs) and key boxes to buy',
           'Opens on one big number: net rubies a day for the "Best" option, with time, heroes and boxes to buy (always a whole price tier; leftover keys carry over) · want to play less? Tap the free / 50 / 80 / 100-ruby box bars, each showing net rubies, time and box count · other details stay folded away · numbers count and bars move whenever something changes · fits on one screen on desktop',
@@ -492,38 +404,25 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'Valued at what items are really worth to players, not the overpriced Ruby Shop: Rate Up/collab tickets 100 · hero tickets 40 · pet tickets 20 · Pet Wish 200 · key chest 100 · Chaos 70 · Oblivion 300 · Brilliant Skill Stone 2,500 and more, every item editable in the “Item values” tab',
           'Pick veteran or new player (e.g. Awakening Stones count 0 for veterans) and compare per baht or per prism 💎 · shown as a % of the Monthly Key Bundle (= 100%)',
           'Tap “Show math” on any tier, with the Ruby Shop-price value (like other sites) for comparison · enter a budget for the best combo · tap + on packs you’ve bought')] : []),
-      ] },
-    ],
-  },
-  ] satisfies ChangelogEntry[]) : []),
-  {
-    id: '2026-10-24c', version: '1.5.4', date: '24 Oct 2026', title: 'Tool Belt',
-    summary: 'Tool cards on the home page make Biscuit buff check, Attack Compare and Total War points easier to find',
-    sections: [
-      { kind: 'change', groups: [
-        g('Home page',
-          'Tool cards under the create-guild form: Biscuit buff check · Attack Compare · Total War points, usable without a guild (before, they were only in the ☰ menu)'),
-        g('Edit stats',
-          'When editing a counter or plan, each hero in the "Per-hero gear/stats" table has an "Edit stats" button ("Add stats" if none yet) that opens the number fields for that hero, with saved values filled in',
-          'The "Type stats yourself" button is easier to spot: a big button under the image box with an "or" divider (before, it was a small "No screenshot? Skip…" link) — no screenshot needed to type numbers or fix saved ones'),
-        g('☰ menu',
-          'In-game style touches: the open page has a gold frame · dividers have a star in the middle · Updates shows a red ! badge when there is a new update · the star logo looks sharp on iPad/iPhone'),
-      ] },
-    ],
-  },
-  {
-    id: '2026-10-24', version: '1.5.3', date: '24 Oct 2026', title: 'Formation',
-    summary: 'Team building like in the game, English mode on every page, no jumps when going back, and smoother still',
-    sections: [
-      { kind: 'new', groups: [
+        ] : []),
         g('Team building like in the game',
           'Tapping a slot gives it a gold glow · adding a hero flashes gold · removing one fades the card out with gold sparkles · dropping a dragged card flashes the slot it lands on, and the dragged card lifts and tilts more clearly',
           'Once a team has 3 heroes, the other empty slots turn red with a slash like in the game (no more heroes can go in; tapping one makes it shake, but you can still move a team hero there) · removing a hero turns them back into + slots',
           'Works everywhere you build a team: enemy defenses, counters and war plans (heroes, pet, backup pets) · Biscuit page (swapping by drag slides too) · Attack Compare page · OP and banned heroes in war plans',
           'Biscuit Buff Check and Attack Compare: after picking or removing a hero in the picker, the window closes first and then the card pops in with a gold flash, or fades out with gold sparkles (before, this played behind the dark backdrop and was hard to see) · Biscuit: swapping slots slides the number boxes along with the card · they slide in when a hero is added and fade out when removed · the in-game attack ranking slides rows into their new places when the order changes · Attack Compare: a ⇄ button swaps hero 1 and hero 2 (entered numbers and "Buffed by" ticks move too) and the boxes slide across · a card moving to another slot stays on top instead of passing under other slots',
           'Skill queue like in the game: picking a skill flashes its icon gold and pops its order badge · removing one gives gold sparkles · tapping "Done" turns the skill queue orb into a glass bubble with a purple rim, a light streak spins from the center down to horizontal as the stars light up, and the order badges on the cards pop in 1 → 2 → 3'),
+        g('Tool cards on the home page',
+          'Tool cards under the create-guild form: Biscuit buff check · Attack Compare · Total War points, usable without a guild (before, they were only in the ☰ menu)'),
+        g('Skill queue (full team details, on enemy defense and war plan pages)',
+          'Tap the "Queue" star orb on the team card on the left to open that team\'s skill queue: which hero uses which skill, in what order'),
       ] },
       { kind: 'change', groups: [
+        g('Edit stats',
+          'When editing a counter or plan, each hero in the "Per-hero gear/stats" table has an "Edit stats" button ("Add stats" if none yet) that opens the number fields for that hero, with saved values filled in',
+          'The "Type stats yourself" button is easier to spot: a big button under the image box with an "or" divider (before, it was a small "No screenshot? Skip…" link) — no screenshot needed to type numbers or fix saved ones'),
+        g('Team speed (footprint pill)',
+          'Teams where every hero has attack speed (from saved stats): the team speed is their total, filled in automatically (no more "Add team speed?" window when saving), and tapping the pill shows an in-game style box with the heroes in attack speed order, fastest on the left, each with their number',
+          'Teams with missing speeds keep the old pill: type the team speed yourself or leave it empty'),
         g('English mode: no more Thai text',
           'The filter chips in "Pick from saved" (All / Physical team / Magic team / Tank team / Other team) are now in English',
           'Gear set and ring names now use their English in-game names (saved notes are unchanged)',
@@ -535,8 +434,14 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'Guild page, Enemy defenses tab: typing fast on a phone no longer drops letters (typing "rachel" could end up as "rl") · letters, tag filters and the War plans / Enemy defenses tabs respond the moment you tap (about 7–10× faster on slow phones), the card list follows right after'),
         g('Updates page', 'Redesigned updates page: patch picker (desktop = timeline on the left · phone = scrollable chips) · small updates sit inside their patch card by date · counts of new/changed/fixed · older patches collapsed, tap to open · link straight to a patch'),
         g('Per-hero gear/stats table',
-          'Counter and plan editors: on wide screens the hero column is wider, so sets, accessories and the "Use my latest stats" button stay on one line instead of breaking onto two · on phones that button sits under the hero portrait',
-          'Full team details: each hero\'s rings and set now sit in their own labeled rows (Accessories / Set) with 3 slots like in the game, instead of one mixed row'),
+          'Counter and plan editors: on wide screens the hero column is wider, so sets, accessories and the "Use my latest stats" button stay on one line instead of breaking onto two · on phones that button sits under the hero portrait'),
+        g('Full team details',
+          'each hero\'s rings and set now sit in their own labeled rows (Accessories / Set) with 3 slots like in the game, instead of one mixed row',
+          'Each hero note now has a small "Notes" label, like the Accessories / Set labels, so it is easier to tell apart (no note = no label)'),
+        g('☰ menu',
+          'In-game style touches: the open page has a gold frame · dividers have a star in the middle · Updates shows a red ! badge when there is a new update · the star logo looks sharp on iPad/iPhone'),
+        g('Guild names',
+          'New guild names, guild renames and the "Guilds found" box in announcements now need at least 3 characters, because the game does not allow shorter names · counted like the game: Thai vowel and tone marks above or below a letter do not count · a short name shows a warning under the box · existing guilds with short names keep working as before'),
       ] },
       { kind: 'fix', groups: [
         g('Counters',
