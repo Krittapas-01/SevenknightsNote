@@ -462,6 +462,31 @@ app.get('/api/guild/:id', async (c) => {
   return c.json({ rev, guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce, autoText, season, discord })
 })
 
+// ข้อมูลสั้น ๆ สำหรับตัวอย่างลิงก์ (Discord ฯลฯ — web/functions) : ชื่อกิลด์ + ทีมบ้านศัตรู (?t=) หรือชื่อแผน (?p=)
+// ข้อมูลเดียวกับที่ทุกคนเปิดดูหน้ากิลด์ได้อยู่แล้ว · อ่าน D1 ไม่กี่แถว (ไม่โหลดทั้งกิลด์)
+app.get('/api/guild/:id/card', async (c) => {
+  const gid = c.req.param('id')
+  const tid = c.req.query('t') || ''
+  const pid = c.req.query('p') || ''
+  const [g, t, n, p] = await c.env.DB.batch([
+    c.env.DB.prepare('SELECT name FROM guilds WHERE id = ?').bind(gid),
+    c.env.DB.prepare('SELECT team, tags FROM targets WHERE id = ? AND guild_id = ?').bind(tid, gid),
+    c.env.DB.prepare('SELECT COUNT(*) AS n FROM counters WHERE target_id = ? AND guild_id = ?').bind(tid, gid),
+    c.env.DB.prepare('SELECT title FROM plans WHERE id = ? AND guild_id = ?').bind(pid, gid),
+  ])
+  const guild = (g.results as any[])[0]
+  if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
+  const tr = (t.results as any[])[0]
+  let target = null
+  if (tr) {
+    const team = JSON.parse(tr.team) as Team
+    target = { heroes: team.slots.filter(Boolean), pet: team.pet, tags: JSON.parse(tr.tags || '[]'), counters: (n.results as any[])[0]?.n ?? 0 }
+  }
+  const pr = (p.results as any[])[0]
+  c.header('Cache-Control', 'public, max-age=60')
+  return c.json({ name: guild.name, target, plan: pr ? { title: pr.title } : null })
+})
+
 // ตรวจว่า key ใช้แก้ไขได้ไหม
 app.get('/api/guild/:id/check', async (c) => {
   const r = await checkAuth(c, c.req.param('id'))

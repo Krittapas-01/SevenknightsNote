@@ -38,8 +38,34 @@ function guildBoot(): Plugin {
   }
 }
 
+/**
+ * ตัวอย่างลิงก์ใน Discord (web/functions): เขียน dist/og-manifest.json = ที่อยู่ API + ไฟล์รูปย่ออัศวิน (ชื่อไฟล์มีรหัสตามเนื้อหา)
+ * Pages Function อ่านไฟล์นี้เพื่อหารูปของอัศวินแต่ละตัว (คีย์ = ชื่อไฟล์ตัวพิมพ์เล็ก เหมือน keyOf ใน data/heroes.ts)
+ */
+function ogManifest(): Plugin {
+  let base = ''
+  return {
+    name: 'og-manifest',
+    apply: 'build',
+    configResolved(config) { base = (config.env.VITE_API_URL || '').replace(/\/$/, '') },
+    generateBundle(_options, bundle) {
+      const thumbs: Record<string, string> = {}
+      for (const f of Object.values(bundle)) {
+        if (f.type !== 'asset') continue
+        // รูปเดียวกันหลายชื่อ (เนื้อไฟล์ตรงกัน) = ไฟล์เดียว มีหลาย originalFileNames
+        for (const src of f.originalFileNames ?? []) {
+          if (!/assets\/units\/thumb\/[^/]+\.webp$/.test(src)) continue
+          const key = decodeURIComponent(src.split('/').pop()!.replace(/\.[^.]+$/, '')).normalize('NFC').trim().toLowerCase()
+          thumbs[key] = '/' + f.fileName
+        }
+      }
+      this.emitFile({ type: 'asset', fileName: 'og-manifest.json', source: JSON.stringify({ api: base, thumbs }) })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), apiPreconnect(), guildBoot()],
+  plugins: [react(), tailwindcss(), apiPreconnect(), guildBoot(), ogManifest()],
   build: {
     rollupOptions: {
       output: {
