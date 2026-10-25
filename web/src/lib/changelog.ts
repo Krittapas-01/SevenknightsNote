@@ -61,6 +61,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
           'กดวงดาว "คิวสกิล" ในการ์ดทีมด้านซ้าย เปิดหน้าต่างลำดับการใช้สกิลของทีมนั้นได้เลย เห็นว่าอัศวินตัวไหนใช้สกิลไหนเป็นลำดับที่เท่าไหร่'),
       ] },
       { kind: 'change', groups: [
+        g('หน้าแรก', 'สโลแกนใหม่: "เรื่องวอร์ยกให้เรา เรื่องดวงช่วยไม่ได้"'),
         g('แก้ค่าความสามารถ',
           'ตอนแก้ทีมแก้/แผน แต่ละอัศวินในตาราง "อุปกรณ์/ค่าความสามารถรายตัว" มีปุ่ม "แก้ค่าความสามารถ" (ยังไม่มีค่า = "ใส่ค่าความสามารถ") กดแล้วเปิดช่องกรอกของตัวนั้นเลย ค่าเดิมขึ้นให้แก้ต่อ ไม่ต้องหาปุ่มข้ามเอง',
           'ปุ่ม "กรอกค่าความสามารถเอง" เห็นชัดขึ้น: เป็นปุ่มใหญ่ใต้กรอบใส่รูป มีเส้น "หรือ" คั่น (เดิมเป็นลิงก์ตัวเล็ก "ไม่มีรูป? ข้ามไปกรอกเอง") ไม่มีรูปก็พิมพ์ตัวเลขเอง หรือแก้ค่าที่จดไว้ได้เลย'),
@@ -417,6 +418,7 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'Tap the "Queue" star orb on the team card on the left to open that team\'s skill queue: which hero uses which skill, in what order'),
       ] },
       { kind: 'change', groups: [
+        g('Home page', 'New slogan: "Leave the war to us, luck is on you"'),
         g('Edit stats',
           'When editing a counter or plan, each hero in the "Per-hero gear/stats" table has an "Edit stats" button ("Add stats" if none yet) that opens the number fields for that hero, with saved values filled in',
           'The "Type stats yourself" button is easier to spot: a big button under the image box with an "or" divider (before, it was a small "No screenshot? Skip…" link) — no screenshot needed to type numbers or fix saved ones'),

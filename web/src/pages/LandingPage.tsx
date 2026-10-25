@@ -73,8 +73,8 @@ export default function LandingPage() {
         <p className="eyebrow relative">SEVEN KNIGHTS RE:BIRTH</p>
         <div className="hero-crest mx-auto mt-6" aria-hidden="true"><Swords className="h-7 w-7" strokeWidth={1.3} /></div>
         <h1 className="relative mt-5 text-[2.65rem] font-extrabold leading-[1.15] sm:text-7xl">
-          {tx('ทุกแผนพร้อมรบ')}
-          <span className="gold-title mt-2 block">{tx('ทั้งกิลด์พร้อมลุย')}</span>
+          {L('เรื่องวอร์ยกให้เรา', 'Leave the war to us')}
+          <span className="gold-title mt-2 block">{L('เรื่องดวงช่วยไม่ได้', 'luck is on you')}</span>
         </h1>
         <p className="relative mx-auto mt-5 max-w-lg text-sm leading-relaxed text-white/60 sm:text-base">{tx('จดทีม Guild War จัดทีมแก้และลำดับสกิล')}<br className="sm:hidden" />{' '}{tx('แชร์ให้ทั้งกิลด์ดูได้ในลิงก์เดียว')}</p>
 
