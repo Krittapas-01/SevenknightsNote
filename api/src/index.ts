@@ -678,7 +678,7 @@ app.delete('/api/guild/:id/plans/:pid', async (c) => {
   return c.json({ ok: true })
 })
 
-// ---- pulse: ข้อมูลเล็ก ๆ สำหรับแถบประกาศ (เว็บเรียกทุก 60 วิ — ให้เบาที่สุด) ----
+// ---- pulse: ข้อมูลเล็ก ๆ สำหรับแถบประกาศ (เว็บเรียกทุก 30 วิ — ให้เบาที่สุด) ----
 app.get('/api/guild/:id/pulse', async (c) => {
   const gid = c.req.param('id')
   c.header('Cache-Control', 'no-store')

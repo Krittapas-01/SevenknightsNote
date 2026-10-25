@@ -7,7 +7,7 @@ const displayDate = (key: string) => new Date(`${key}T00:00:00+07:00`).toLocaleD
   timeZone: 'Asia/Bangkok', day: 'numeric', month: 'short',
 })
 
-/** แถบ Season บนสุด (ข้อมูลมากับ pulse ที่แถบประกาศโหลดทุก 60 วิอยู่แล้ว) */
+/** แถบ Season บนสุด (ข้อมูลมากับ pulse ที่แถบประกาศโหลดทุก 30 วิอยู่แล้ว) */
 export default function SeasonBanner({ season: dates, schedule, now }: { season?: { start: string; end: string }; schedule: string[]; now: number }) {
   const season = dates ? currentSeason(dates.start, dates.end, dateKey(now)) : null
   if (!season) return null
