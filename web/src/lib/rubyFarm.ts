@@ -1,7 +1,7 @@
 /**
  * คำนวณรูบี้ขายวิญญาณ — ฟาร์มรูบี้ด้วยการต่อสู้ซ้ำ (Ruby Farming) แล้วดูว่าซื้อกล่องกุญแจถึงขั้นไหนถึงคุ้ม
  * ค่าเริ่มต้นจากที่ Krit เล่นจริง (24 ต.ค. 2026):
- * - 1 รอบใช้ 6 กุญแจ ~22 วิ ได้ ~6,800 ทอง (500 รอบ = 3,000 กุญแจ 3.4M ทอง)
+ * - 1 รอบใช้ 6 กุญแจ สู้ 21 วิ (เกมบอกเฉลี่ย) + โหลด ~16 วิ = ~37 วิ ได้ ~6,800 ทอง (500 รอบ = 3,000 กุญแจ 3.4M ทอง)
  * - อัศวินดรอป: 500 รอบได้ 2–3★ 140 ตัว (ใช้ฟาร์มต่อได้ = 28 ตัว/100 รอบ) + 1★ 26 ตัว (ไม่นับ)
  * - อัศวิน Lv.1 5 ตัวเต็มเลเวลทุก 11 รอบ (มีแพ็ค Daily Ruby Support = EXP เพิ่ม → 10 รอบ) ได้ตัวละ 20 รูบี้ = 100 รูบี้ (นับเฉพาะชุดครบ)
  * - กุญแจฟื้น 1 ดอก/3 นาที = 480/วัน (แพ็ค Daily Power Up Support: เร็วขึ้น 60 วิ → 2 นาที = 720/วัน + 80 ดอก/วัน) · ไม่มีเพดาน → ที่เหลือเก็บไว้วันถัดไปได้
@@ -10,6 +10,27 @@
  * - เควสต์ทำซ้ำ: ทุก 160 รอบ ได้ 20 กุญแจ + 60,000 ทอง
  * - กล่องกุญแจ 60 ดอก ราคาต่อวัน: กล่องแรกฟรี · 20 กล่องถัดไป 50 · 50 กล่องถัดไป 80 · 50 กล่องถัดไป 100 รูบี้
  */
+
+/**
+ * ด่าน Ruby Farming ที่เลือกได้ (ค่าจากหน้าต่าง Repeat Battle ในเกม 500 รอบ, Krit 25 ต.ค. 2026)
+ * - ด่านปกติ: 3,000 กุญแจ · ทอง 3.3M · รูบี้ 5,000 · อัศวิน 1–3★ 139 (ทองใช้ที่ Krit วัดจริง 6,800/รอบ · ดรอปที่ใช้ได้จริง 140/500)
+ * - ด่านฝันร้าย (ด่านล่าสุด): เล่น 2 ทีม (12 กุญแจ/รอบ) · 10 ช่อง ต้องมีตัวแบกทีมละ 1 → อัศวิน Lv.1 ได้ 8 ตัว (ตัวละ 20 รูบี้ · 500 รอบ = 50 ชุด × 8 × 20 = 8,000) · ทอง 15.6M · อัศวิน 3–4★ 303 · สู้ 6 วิ/รอบ (+ โหลด)
+ * secPerBattle ในด่าน/ฟอร์ม = เวลาสู้ที่เกมบอก · เว็บบวกโหลด LOAD_SEC ให้เอง (Krit: โหลด 15–17 วิ ไม่ต้องให้คนปรับเอง)
+ * เลือกด่าน = ตั้งค่าในฟอร์มตามนี้ + จำนวนอัศวินเต็มทีม (ยังแก้เองต่อได้)
+ */
+/** เวลาโหลดต่อรอบ (เริ่มรอบใหม่) ที่บวกให้เอง · Krit วัด 15–17 วิ */
+export const LOAD_SEC = 16
+
+export const STAGES = [
+  { id: 'first', th: 'ด่านปกติ', en: 'Normal', keysPerBattle: 6, goldPerBattle: 6800, rubyPerHero: 20, heroDrop: 28, secPerBattle: 21, maxTeam: 5 },
+  { id: 'latest', th: 'ด่านฝันร้าย', en: 'Nightmare', keysPerBattle: 12, goldPerBattle: 31200, rubyPerHero: 20, heroDrop: 60, secPerBattle: 6, maxTeam: 8 },
+] as const
+export type StageId = (typeof STAGES)[number]['id']
+export const stageOf = (id: string) => STAGES.find((x) => x.id === id) ?? STAGES[0]
+export const stageForm = (id: StageId) => {
+  const st = stageOf(id)
+  return { stage: st.id as StageId, team: st.maxTeam as number, keysPerBattle: String(st.keysPerBattle), goldPerBattle: String(st.goldPerBattle), rubyPerHero: String(st.rubyPerHero), heroDrop: String(st.heroDrop), secPerBattle: String(st.secPerBattle) }
+}
 
 /** แสดงหน้าคำนวณรูบี้ในเมนูและบันทึกอัปเดต (ปิด = ยังเข้าได้ทางลิงก์ /ruby เท่านั้น · Krit: รอสมบูรณ์ก่อน) */
 export const RUBY_ON = true
@@ -38,7 +59,7 @@ export type FarmInput = {
 export const FARM_DEFAULTS: FarmInput = {
   freeKeys: 950, // ≈ กุญแจพื้นฐาน + เช็กอินกิลด์ 80 (หน้า /ruby คิดจริงจาก dailyKeys)
   keysPerBattle: 6,
-  secPerBattle: 22,
+  secPerBattle: 37,
   battlesPerSet: 10,
   heroesPerSet: 5,
   rubyPerHero: 20,
@@ -241,7 +262,8 @@ export function planFarm(input: FarmInput, soulPrice: number): FarmPlan {
     const end = days[r.to].timeCapped ? pick : r.to
     const addNet = days[end].net - days[best].net
     const addHours = (days[end].seconds - days[best].seconds) / 3600
-    if (!(addNet > 0 && (addHours <= 0 || addNet / addHours >= soulPrice))) break
+    // กล่องฟรีรับไว้เสมอ (ไม่เสียอะไร กุญแจที่เหลือยกไปวันถัดไป)
+    if (!(r.price === 0 && addNet >= 0) && !(addNet > 0 && (addHours <= 0 || addNet / addHours >= soulPrice))) break
     best = end
     bestTier = r.tier
     if (days[r.to].timeCapped) break
@@ -288,6 +310,8 @@ export type FarmForm = Record<NumKey, string> & {
   battlesPerSetBase: string
   /** เล่นได้วันละกี่ชั่วโมง (ว่าง = เท่าที่กุญแจฟรีพอ) */
   hours: string
+  /** ด่านที่เลือก (ตั้งค่าต่อรอบตาม STAGES) */
+  stage: StageId
   /** ส่วนที่แต่ละคนต่างกัน: เช็กอินกิลด์ · กุญแจอื่น ๆ · แพ็ค */
   powerUp: boolean; guildKeys: number; extraKeys: string
   passPremium: boolean; premiumCheckin: boolean; rubySupport: boolean
@@ -295,13 +319,13 @@ export type FarmForm = Record<NumKey, string> & {
 
 const s = (n: number) => String(n)
 export const DEFAULT_FARM_FORM: FarmForm = {
-  keysPerBattle: s(FARM_DEFAULTS.keysPerBattle), secPerBattle: s(FARM_DEFAULTS.secPerBattle),
+  keysPerBattle: s(FARM_DEFAULTS.keysPerBattle), secPerBattle: s(FARM_DEFAULTS.secPerBattle - LOAD_SEC),
   battlesPerSet: s(FARM_DEFAULTS.battlesPerSet), rubyPerHero: s(FARM_DEFAULTS.rubyPerHero), goldPerBattle: s(FARM_DEFAULTS.goldPerBattle),
   questEvery: s(FARM_DEFAULTS.questEvery), questKeys: s(FARM_DEFAULTS.questKeys), questGold: s(FARM_DEFAULTS.questGold),
   keysPerBox: s(FARM_DEFAULTS.keysPerBox), heroDrop: s(Math.round(FARM_DEFAULTS.heroDrop * 100)),
   team: FARM_DEFAULTS.heroesPerSet,
   tiers: FARM_DEFAULTS.tiers.map((t) => ({ boxes: s(t.boxes), price: s(t.price) })),
-  hours: '', battlesPerSetBase: s(RUBY_SUPPORT.battlesPerSetWithout),
+  hours: '', stage: 'first', battlesPerSetBase: s(RUBY_SUPPORT.battlesPerSetWithout),
   powerUp: false, guildKeys: 80, extraKeys: '', passPremium: false, premiumCheckin: false, rubySupport: false,
 }
 
@@ -315,10 +339,11 @@ export function loadFarmForm(): FarmForm {
         if (typeof v[k] === 'string' && typeof DEFAULT_FARM_FORM[k] === 'string') (out as Record<string, unknown>)[k] = v[k]
         if (typeof v[k] === 'boolean' && typeof DEFAULT_FARM_FORM[k] === 'boolean') (out as Record<string, unknown>)[k] = v[k]
       }
-      // ค่าเก่าที่เคยบันทึก → ค่าที่ Krit วัดใหม่ (500 รอบ)
-      if (out.secPerBattle === '21') out.secPerBattle = DEFAULT_FARM_FORM.secPerBattle
+      // ค่าเก่าที่เคยบันทึก (22 = เวลาเก่า · 37/24 = เวลารวมโหลด) → เวลาสู้ที่เกมบอก (เว็บบวกโหลดให้เอง)
+      if (['22', '37', '24'].includes(out.secPerBattle)) out.secPerBattle = out.secPerBattle === '24' ? '6' : DEFAULT_FARM_FORM.secPerBattle
       if (out.heroDrop.trim() === '') out.heroDrop = DEFAULT_FARM_FORM.heroDrop
-      if (typeof v.team === 'number' && v.team >= 1 && v.team <= 5) out.team = Math.round(v.team)
+      if (STAGES.some((x) => x.id === v.stage)) out.stage = v.stage
+      if (typeof v.team === 'number' && v.team >= 1 && v.team <= stageOf(out.stage).maxTeam) out.team = Math.round(v.team)
       if (GUILD_CHECKIN.includes(v.guildKeys)) out.guildKeys = v.guildKeys
       if (Array.isArray(v.tiers) && v.tiers.length) {
         out.tiers = v.tiers.slice(0, 6).map((t: { boxes?: unknown; price?: unknown } | null) => ({
@@ -356,7 +381,7 @@ export function dailyKeys(f: FarmForm) {
 export function farmInputOf(f: FarmForm): FarmInput {
   const D = FARM_DEFAULTS
   return {
-    freeKeys: dailyKeys(f).total, keysPerBattle: val(f.keysPerBattle, D.keysPerBattle), secPerBattle: val(f.secPerBattle, D.secPerBattle),
+    freeKeys: dailyKeys(f).total, keysPerBattle: val(f.keysPerBattle, D.keysPerBattle), secPerBattle: val(f.secPerBattle, D.secPerBattle - LOAD_SEC) + LOAD_SEC,
     battlesPerSet: f.rubySupport ? val(f.battlesPerSet, RUBY_SUPPORT.battlesPerSet) : val(f.battlesPerSetBase, RUBY_SUPPORT.battlesPerSetWithout), heroesPerSet: f.team, rubyPerHero: val(f.rubyPerHero, 0),
     goldPerBattle: val(f.goldPerBattle, 0), questEvery: val(f.questEvery, 0), questKeys: val(f.questKeys, 0), questGold: val(f.questGold, 0),
     keysPerBox: val(f.keysPerBox, 0), heroDrop: val(f.heroDrop, D.heroDrop * 100) / 100, maxHours: D.maxHours,

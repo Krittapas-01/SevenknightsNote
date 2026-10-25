@@ -62,6 +62,9 @@ const CHANGELOG_TH: ChangelogEntry[] = [
           'กดวงดาว "คิวสกิล" ในการ์ดทีมด้านซ้าย เปิดหน้าต่างลำดับการใช้สกิลของทีมนั้นได้เลย เห็นว่าอัศวินตัวไหนใช้สกิลไหนเป็นลำดับที่เท่าไหร่'),
       ] },
       { kind: 'change', groups: [
+        ...(RUBY_ON ? [
+        g('คำนวณรูบี้ขายวิญญาณ', 'เลือกด่านได้: ด่านปกติ (6 กุญแจ) หรือด่านฝันร้าย (2 ทีม 12 กุญแจ อัศวิน Lv.1 ได้ถึง 8 ตัว) กดแล้วตั้งค่ากุญแจ ทอง ดรอป และเวลาให้เอง', 'เวลาเล่นแม่นขึ้น: ใส่เวลาสู้ตามที่เกมบอก แล้วเว็บบวกเวลาโหลดรอบใหม่ ~16 วิให้เอง'),
+        ] : []),
         g('หน้าแรก', 'สโลแกนใหม่: "เรื่องวอร์ยกให้เรา เรื่องดวงช่วยไม่ได้"'),
         g('แก้ค่าความสามารถ',
           'ตอนแก้ทีมแก้/แผน แต่ละอัศวินในตาราง "อุปกรณ์/ค่าความสามารถรายตัว" มีปุ่ม "แก้ค่าความสามารถ" (ยังไม่มีค่า = "ใส่ค่าความสามารถ") กดแล้วเปิดช่องกรอกของตัวนั้นเลย ค่าเดิมขึ้นให้แก้ต่อ ไม่ต้องหาปุ่มข้ามเอง',
@@ -420,6 +423,9 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'Tap the "Queue" star orb on the team card on the left to open that team\'s skill queue: which hero uses which skill, in what order'),
       ] },
       { kind: 'change', groups: [
+        ...(RUBY_ON ? [
+        g('Ruby Farming Calculator', 'Pick the stage: Normal (6 keys) or Nightmare (2 teams, 12 keys, up to 8 Lv.1 heroes); keys, gold, drops and time fill in for you', 'More accurate play time: enter the fight time the game shows and the site adds ~16 s loading per battle'),
+        ] : []),
         g('Home page', 'New slogan: "Leave the war to us, luck is on you"'),
         g('Edit stats',
           'When editing a counter or plan, each hero in the "Per-hero gear/stats" table has an "Edit stats" button ("Add stats" if none yet) that opens the number fields for that hero, with saved values filled in',

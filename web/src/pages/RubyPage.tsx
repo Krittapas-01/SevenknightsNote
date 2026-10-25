@@ -6,14 +6,13 @@ import packRuby from '../assets/packs/ruby-support.webp'
 import packPass from '../assets/packs/7k-pass.webp'
 import packCheckin from '../assets/packs/premium-checkin.webp'
 import keyBox from '../assets/packs/items/chests.webp'
-import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
+import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, LOAD_SEC, STAGES, stageForm, stageOf, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 import RubyIcon from '../components/RubyIcon'
 import { motionOK } from '../lib/overlayMotion'
 
 // คำนวณรูบี้ขายวิญญาณ: เปิดมาเห็นตัวเลขเดียว (รูบี้สุทธิต่อวันของตัวเลือกคุ้มสุด) · อยากเล่นน้อยลงเลือกจากกราฟแท่งราคากล่อง · รายละเอียดซ่อนไว้ · ข้อมูลเก็บในเครื่องนี้เท่านั้น
 const MAX_TIERS = 6
-const MAX_TEAM = 5
 
 const num = (v: string, d = 0) => { const n = parseNum(v); return Number.isFinite(n) ? n : d }
 const bad = (v: string) => v.trim() !== '' && (!Number.isFinite(parseNum(v)) || parseNum(v) < 0)
@@ -150,7 +149,18 @@ export default function RubyPage() {
   return (
     <div className="mx-auto max-w-xl lg:max-w-none">
       <p className="eyebrow mb-1.5">RUBY FARMING</p>
-      <h1 className="gold-title flex items-center gap-2 pt-1.5 text-2xl font-extrabold leading-normal sm:text-3xl lg:text-3xl lg:leading-normal"><RubyIcon className="h-7 w-7 shrink-0 text-gold lg:h-9 lg:w-9" />{L('คำนวณรูบี้ขายวิญญาณ', 'Ruby Farming Calculator')}</h1>
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <h1 className="gold-title flex items-center gap-2 pt-1.5 text-2xl font-extrabold leading-normal sm:text-3xl lg:text-3xl lg:leading-normal"><RubyIcon className="h-7 w-7 shrink-0 text-gold lg:h-9 lg:w-9" />{L('คำนวณรูบี้ขายวิญญาณ', 'Ruby Farming Calculator')}</h1>
+        {/* ด่าน: เลือกแล้วตั้งค่ากุญแจ/ทอง/รูบี้/ดรอปต่อรอบให้ */}
+        <div className="grid w-full grid-cols-2 gap-1 rounded-xl bg-white/[.05] p-1 sm:w-auto" role="radiogroup" aria-label={L('ด่าน', 'Stage')}>
+          {STAGES.map((st) => (
+            <button key={st.id} type="button" role="radio" aria-checked={form.stage === st.id} onClick={() => setForm((f) => ({ ...f, ...stageForm(st.id) }))}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition active:scale-95 ${form.stage === st.id ? 'bg-gold text-ink' : 'text-white/60 hover:text-white'}`}>
+              {L(st.th, st.en)}<span className={`inline-flex items-center gap-0.5 text-xs font-normal tabular-nums ${form.stage === st.id ? 'text-ink/70' : 'text-white/40'}`}><KeyRound className="h-3 w-3" />{st.keysPerBattle}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* มือถือ: เรียงลงมาตาม order · คอม (lg): ซ้าย = ตั้งค่า/รายละเอียด, ขวา = ผลลัพธ์/กราฟ */}
       <div className="flex flex-col lg:mt-5 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-x-5">
@@ -159,7 +169,7 @@ export default function RubyPage() {
           <section className="panel order-1 mt-4 p-3.5 sm:p-4 lg:mt-0 lg:p-4">
             <div className="flex items-center gap-3">
               <span className="shrink-0 text-sm text-white/65 lg:text-base">{L('อัศวิน Lv.1', 'Lv.1 heroes')}</span>
-              <input type="range" min={1} max={MAX_TEAM} step={1} value={form.team} onChange={(e) => setForm((f) => ({ ...f, team: Number(e.target.value) }))}
+              <input type="range" min={1} max={stageOf(form.stage).maxTeam} step={1} value={form.team} onChange={(e) => setForm((f) => ({ ...f, team: Number(e.target.value) }))}
                 aria-label={L('อัศวิน Lv.1 ในทีม', 'Lv.1 heroes in the team')} className="h-2 min-w-0 flex-1 cursor-pointer accent-gold" />
               <b className="w-12 shrink-0 text-right tabular-nums lg:w-16 lg:text-xl">{L(`${form.team} ตัว`, `${form.team}`)}</b>
             </div>
@@ -248,7 +258,7 @@ export default function RubyPage() {
                 <li className="flex items-center gap-2"><Coins className="h-4 w-4 text-white/45" /><span className="text-white/65">{L('ได้ทอง', 'Gold')}</span><b className="ml-auto">{big(r.gold)}</b></li>
                 {r.dropped > 0 && r.heroes > 0 && (
                   <li className="flex items-center gap-2"><Users className="h-4 w-4 text-white/45" /><span className="min-w-0 text-white/65">{L('อัศวินที่ต้องเตรียมเอง', 'Heroes to prepare')}</span>
-                    <b className="ml-auto shrink-0">{fmt(Math.max(0, r.heroes - dropHi))}–{fmt(Math.max(0, r.heroes - dropLo))}</b></li>
+                    <b className="ml-auto shrink-0">{r.heroes - dropLo <= 0 ? L('ไม่ต้อง', 'None') : `${fmt(Math.max(0, r.heroes - dropHi))}–${fmt(r.heroes - dropLo)}`}</b></li>
                 )}
               </ul>
             )}
@@ -267,13 +277,13 @@ export default function RubyPage() {
                   <Field label={L('รูบี้ต่อตัวที่เต็ม', 'Rubies per maxed hero')} value={form.rubyPerHero} onChange={(v) => set('rubyPerHero', v)} unit={<Ruby />} />
                   <Field label={L('รอบจนเต็ม (ไม่มีแพ็ค)', 'Battles to max (no pack)')} value={form.battlesPerSetBase} onChange={(v) => set('battlesPerSetBase', v)} unit={L('รอบ', 'battles')} />
                   <Field label={L('รอบจนเต็ม (Daily Ruby)', 'Battles to max (Daily Ruby)')} value={form.battlesPerSet} onChange={(v) => set('battlesPerSet', v)} unit={L('รอบ', 'battles')} />
-                  <Field label={L('ดรอป 2–3★ ต่อ 100 รอบ', '2–3★ drops per 100 battles')} value={form.heroDrop} onChange={(v) => set('heroDrop', v)} unit={L('ตัว', 'heroes')} />
+                  <Field label={L('ดรอปที่ใช้ฟาร์มต่อได้ ต่อ 100 รอบ', 'Usable drops per 100 battles')} value={form.heroDrop} onChange={(v) => set('heroDrop', v)} unit={L('ตัว', 'heroes')} />
                 </div>
 
                 <p className="mt-5 text-sm font-medium text-gold">{L('กุญแจและการต่อสู้', 'Keys and battles')}</p>
                 <div className="mt-2 flex flex-wrap gap-3">
                   <Field label={L('กุญแจต่อรอบ', 'Keys per battle')} value={form.keysPerBattle} onChange={(v) => set('keysPerBattle', v)} unit={<KeyRound className="h-4 w-4" />} />
-                  <Field label={L('เวลาต่อรอบ', 'Time per battle')} value={form.secPerBattle} onChange={(v) => set('secPerBattle', v)} unit={L('วิ', 's')} />
+                  <Field label={L('เวลาสู้ต่อรอบ (ตามเกม)', 'Fight time (in game)')} value={form.secPerBattle} onChange={(v) => set('secPerBattle', v)} unit={L(`วิ + โหลด ${LOAD_SEC}`, `s + ${LOAD_SEC} load`)} />
                   <Field label={L('ทองต่อรอบ', 'Gold per battle')} value={form.goldPerBattle} onChange={(v) => set('goldPerBattle', v)} unit={<Coins className="h-4 w-4" />} wide />
                 </div>
 
@@ -306,7 +316,7 @@ export default function RubyPage() {
                     className="pill mt-2 flex items-center gap-1 px-3 py-1.5 text-sm hover:border-gold"><Plus className="h-4 w-4" />{L('เพิ่มขั้นราคา', 'Add price tier')}</button>
                 )}
 
-                <button type="button" onClick={() => setForm(DEFAULT_FARM_FORM)}
+                <button type="button" onClick={() => setForm((f) => ({ ...DEFAULT_FARM_FORM, ...stageForm(f.stage) }))}
                   className="mt-5 flex items-center gap-1.5 text-xs text-white/55 hover:text-gold"><RotateCcw className="h-3.5 w-3.5" />{L('ค่าเริ่มต้น', 'Reset')}</button>
               </div>
             )}
