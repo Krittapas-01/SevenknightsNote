@@ -82,7 +82,7 @@ const BASE_ITEMS: Record<PackBaseKey, ItemDef> = {
   skillStone: { th: 'หินสกิล Brilliant', en: 'Brilliant Skill Stone', shop: 3000, worth: 2500, note: ['หายากมาก ส่วนใหญ่จากร้านรายเดือน', 'Very rare, mostly from the monthly shop'] },
   raid: { th: 'ตั๋วเรด', en: 'Raid ticket', worth: 0, note: ['ไม่นับ', 'Not counted'] },
   ore: { th: 'Topaz', en: 'Topaz', worth: 0, unknown: true },
-  star: { th: 'Star Crystal', en: 'Star Crystal', worth: 0, unknown: true },
+  star: { th: 'Star Crystal', en: 'Star Crystal', worth: 1650, note: ['ตู้สัตว์รอบละ 100 รูบี้ · ทองเฉลี่ยทุก ~63 รอบ (3 อัน) + ม่วง 9% (ตัวละ 3 หินเล็ก, 20 หินเล็ก = 1 อัน)', 'Pet pulls 100 rubies each · Legendary every ~63 pulls on average (3) + Rare 9% (3 shards each, 20 shards = 1)'] },
 }
 /** ค่าตั้งต้นของไอเท็ม Atlas บางตัวที่เทียบกับของหลักได้ (ที่เหลือ = ยังไม่รู้ค่า ไม่นับ) */
 const ATLAS_WORTH: Partial<Record<PackItemKey, [number, [string, string]]>> = {
