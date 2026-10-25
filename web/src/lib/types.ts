@@ -137,7 +137,7 @@ export type GuildData = {
   /** ช่วง Season (วันในเกม YYYY-MM-DD, ว่าง = ไม่ได้ตั้ง) */
   season?: { start: string; end: string }
   /** แจ้งเตือนเข้า Discord (ไม่มี URL — เป็นความลับ) */
-  discord?: { connected: boolean; mention: string; /** เซิร์ฟเวอร์ Discord + ยศที่แก้แผนได้ */ serverId: string; editRoles: string[]; /** ชื่อยศที่แสดงหลังชื่อคนประกาศ เรียงตามความสำคัญ */ roleNames?: { id: string; name: string }[]; /** ห้องที่ 2 แจ้งเตือนบอสจุติ (มีเฉพาะกิลด์ที่เปิดไว้) */ bossConnected?: boolean; /** null = ข้อความเริ่มต้น, '' = ไม่ส่ง */ bossText?: { start: string | null; end: string | null } }
+  discord?: { connected: boolean; mention: string; /** เซิร์ฟเวอร์ Discord + ยศที่แก้แผนได้ */ serverId: string; editRoles: string[]; /** ชื่อยศที่แสดงหลังชื่อคนประกาศ เรียงตามความสำคัญ */ roleNames?: { id: string; name: string }[]; /** ห้องที่ 2 แจ้งเตือนบอสจุติ (มีเฉพาะกิลด์ที่เปิดไว้) */ bossConnected?: boolean; /** null = ข้อความเริ่มต้น, '' = ไม่ส่ง */ bossText?: { start: string | null; end: string | null }; /** แจ้งเตือน Discord ก่อนหมดเวลา 1 ชม. (วันตี 23:00 · วันจัดบ้าน 17:00) */ warReminder?: boolean }
 }
 
 export const emptyPlan = (kind: PlanKind = 'attack'): PlanData => ({

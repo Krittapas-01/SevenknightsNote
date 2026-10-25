@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { currentSeason } from '../../shared/season'
 import { MAX_PACK_ITEMS, PACK_ITEM_KEYS, PACK_PERIODS, PACK_TABS } from '../../shared/packs'
-import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT, bossRevivalDay, fillBoss, DAY_NAMES, DAY_PLACEHOLDER, DAY_PLACEHOLDER_EN, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay, MIN_GAME_NAME, isShortGameName } from '../../shared/game'
+import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT, bossRevivalDay, fillBoss, DAY_NAMES, DAY_PLACEHOLDER, DAY_PLACEHOLDER_EN, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay, MIN_GAME_NAME, isShortGameName, WAR_REMINDER_TEXT, warReminderDue } from '../../shared/game'
 
 type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string; /** Discord user ID ที่เข้าหน้า /admin ได้ (คั่นด้วย ,) */ ADMIN_DISCORD_IDS?: string
   /** R2 (private) เก็บไฟล์สำรองฐานข้อมูลทุกคืน */ BACKUP?: R2Bucket }
@@ -419,7 +419,7 @@ app.get('/api/guild/:id', async (c) => {
     c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ?').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
-    c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(id),
+    c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end, war_reminder FROM guild_settings WHERE guild_id = ?').bind(id),
     // ประกาศล่าสุดที่เลือกแผน แยกแผนบุก/แผนกัน (= แผนที่ใช้อยู่ของแต่ละชนิด) — ต้องมีเสมอ แม้จะเก่ากว่า 30 อันล่าสุด
     c.env.DB.prepare(
       `SELECT * FROM (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY COALESCE(json_extract(p.data, '$.kind'), json_extract(p.data, '$.slots[0].kind')) ORDER BY a.created_at DESC) AS rn
@@ -441,6 +441,7 @@ app.get('/api/guild/:id', async (c) => {
     connected: !!settings?.discord_webhook, mention: settings?.discord_mention ?? '',
     serverId: settings?.discord_guild_id ?? '', editRoles: JSON.parse(settings?.discord_edit_roles || '[]') as string[],
     roleNames: JSON.parse(settings?.discord_role_names || '[]') as { id: string; name: string }[],
+    warReminder: !!settings?.war_reminder, // แจ้งเตือนก่อนหมดเวลา 1 ชม.
     // ห้องที่ 2 (บอสจุติ) — มีเฉพาะกิลด์ที่เปิดไว้
     ...(id === BOSS_GUILD ? { bossConnected: !!settings?.boss_webhook, bossText: { start: settings?.boss_text_start ?? null, end: settings?.boss_text_end ?? null } } : {}),
   }
@@ -809,14 +810,17 @@ app.put('/api/guild/:id/discord', async (c) => {
   const bossEnd = bossText('end')
   if (bossStart !== undefined) sets.push('boss_text_start = excluded.boss_text_start')
   if (bossEnd !== undefined) sets.push('boss_text_end = excluded.boss_text_end')
+  // แจ้งเตือนก่อนหมดเวลา 1 ชม.: undefined = ไม่เปลี่ยน
+  const warReminder = typeof body.warReminder === 'boolean' ? body.warReminder : undefined
+  if (warReminder !== undefined) sets.push('war_reminder = excluded.war_reminder')
   await c.env.DB.prepare(
-    `INSERT INTO guild_settings (guild_id, schedule, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO guild_settings (guild_id, schedule, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end, war_reminder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(guild_id) DO UPDATE SET ${sets.join(', ')}`,
-  ).bind(gid, JSON.stringify(GAME_SCHEDULE), webhook ?? '', mention, serverId ?? '', JSON.stringify(editRoles ?? []), JSON.stringify(roleNames ?? []), bossWebhook ?? '', bossStart ?? null, bossEnd ?? null).run()
-  const row = await c.env.DB.prepare('SELECT discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
+  ).bind(gid, JSON.stringify(GAME_SCHEDULE), webhook ?? '', mention, serverId ?? '', JSON.stringify(editRoles ?? []), JSON.stringify(roleNames ?? []), bossWebhook ?? '', bossStart ?? null, bossEnd ?? null, warReminder ? 1 : 0).run()
+  const row = await c.env.DB.prepare('SELECT discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end, war_reminder FROM guild_settings WHERE guild_id = ?').bind(gid).first<any>()
   return c.json({
     connected: !!row?.discord_webhook, mention: row?.discord_mention ?? '', serverId: row?.discord_guild_id ?? '',
-    editRoles: JSON.parse(row?.discord_edit_roles || '[]'), roleNames: JSON.parse(row?.discord_role_names || '[]'),
+    editRoles: JSON.parse(row?.discord_edit_roles || '[]'), roleNames: JSON.parse(row?.discord_role_names || '[]'), warReminder: !!row?.war_reminder,
     ...(gid === BOSS_GUILD ? { bossConnected: !!row?.boss_webhook, bossText: { start: row?.boss_text_start ?? null, end: row?.boss_text_end ?? null } } : {}),
   })
 })
@@ -1364,6 +1368,43 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   return posted
 }
 
+// ---------- แจ้งเตือนก่อนหมดเวลา 1 ชม. (Cron "0 10,16 * * *" = 17:00 / 23:00 ไทย) ----------
+// เฉพาะกิลด์ที่เปิดไว้ + ต่อ Discord · ไม่เขียนข้อมูลกิลด์ (ไม่ได้เพิ่มประกาศ) จึงไม่ต้องขยับ rev · ช่วงพัก Season ไม่ส่ง
+const WAR_REMINDER_CRON = '0 10,16 * * *'
+/** แผน Paid: fetch ภายนอกได้ 1000 ครั้ง/รอบ (เหลือที่ไว้ให้ webhook ที่ 2 + query D1) */
+const REMINDER_PER_RUN = 400
+
+export async function runWarReminders(env: Env, now = Date.now()) {
+  const type = warReminderDue(now)
+  if (!type) return 'skip'
+  const s = currentSeason(GAME_SEASON.start, GAME_SEASON.end, gameDayKey(now))
+  if (s && s.phase !== 'in') return 'off-season'
+  const { results } = await env.DB.prepare(
+    `SELECT s.guild_id AS gid, g.name, s.discord_webhook AS url, s.discord_mention AS mention
+     FROM guild_settings s JOIN guilds g ON g.id = s.guild_id
+     WHERE s.war_reminder = 1 AND s.discord_webhook <> ''
+     ORDER BY CASE WHEN s.guild_id IN (${DISCORD_PRIORITY.map(() => '?').join(',')}) THEN 0 ELSE 1 END`,
+  ).bind(...DISCORD_PRIORITY).all<{ gid: string; name: string; url: string; mention: string }>()
+  if (results.length > REMINDER_PER_RUN) console.warn(`war reminder: ${results.length} webhooks, sending first ${REMINDER_PER_RUN}`)
+  const site = (env.SITE_URL || '').replace(/\/$/, '')
+  let sent = 0
+  await Promise.all(results.slice(0, REMINDER_PER_RUN).map(async (r) => {
+    const content = [
+      `⏰ ${WAR_REMINDER_TEXT[type]}`,
+      `-# แจ้งเตือนก่อนหมดเวลา · ${site ? `[${mdEscape(r.name)} · 7K Note](${site}/g/${r.gid})` : mdEscape(r.name)}`,
+    ].join('\n')
+    const body = discordPayload(env, r.mention, content)
+    const send = (url: string) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+    const extra = r.gid === EXTRA_WEBHOOK_GUILD && env.EXTRA_WEBHOOK && (WEBHOOK_RE.test(env.EXTRA_WEBHOOK) || env.DISCORD_ALLOW_ANY) ? env.EXTRA_WEBHOOK : ''
+    try {
+      const [res] = await Promise.all([send(r.url), extra && send(extra).catch(() => null)])
+      if (res.ok) sent++
+      else console.error('war reminder', r.gid, res.status)
+    } catch (e) { console.error('war reminder', r.gid, String(e)) }
+  }))
+  return `${type}: ${sent}/${results.length}`
+}
+
 // ---------- สำรองฐานข้อมูลทุกคืน → R2 (Cron "0 20 * * *" = 03:00 เวลาไทย) ----------
 // ไฟล์ d1/YYYY-MM-DD.json.gz (วันในเกม) = ทุกตาราง (+ คำสั่งสร้างตาราง) เป็น JSON · เก็บ BACKUP_KEEP_DAYS วัน
 // ข้อมูลมี webhook / edit hash → bucket ต้องเป็น private และห้าม log เนื้อหา (log แค่จำนวน)
@@ -1440,6 +1481,10 @@ export default {
     if (event.cron === BACKUP_CRON) {
       // log แค่จำนวนแถว/ขนาด — ห้าม log เนื้อหา (มี webhook / edit hash)
       ctx.waitUntil(runBackup(env).then((r) => console.log('backup', JSON.stringify(r)), (e) => console.error('backup failed', String(e))))
+      return
+    }
+    if (event.cron === WAR_REMINDER_CRON) {
+      ctx.waitUntil(runWarReminders(env, event.scheduledTime).then((r) => console.log(`war reminder: ${r}`), (e) => console.error('war reminder', e)))
       return
     }
     // "0 0 * * *" (07:00 ไทย): ประกาศอัตโนมัติ + บอสจุติ (เหมือนเดิม)

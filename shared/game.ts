@@ -37,6 +37,29 @@ export const DAY_PHASES: Partial<Record<DayType, { switchHour: number; first: st
 /** 7 → "07:00", 24 → "00:00" */
 export const hhmm = (h: number) => `${String(h % 24).padStart(2, '0')}:00`
 
+/**
+ * แจ้งเตือน Discord ก่อนหมดช่วงแรกของวัน (กิลด์เปิดเองในหน้า "เชื่อม Discord")
+ * วันตี: 23:00 (ตีได้ถึง 00:00) · วันจัดบ้าน: 17:00 (แก้ทีมได้ถึง 18:00) — คิดจาก DAY_PHASES แก้เวลาเฟสแล้วเวลาแจ้งเตือนเปลี่ยนตาม
+ * (cron ใน api/wrangler.toml ต้องรันตรงชั่วโมงนี้ด้วย: เวลา UTC = ชั่วโมงไทย − 7)
+ */
+export const WAR_REMINDER_BEFORE_HOURS = 1
+export const warReminderHour = (type: 'attack' | 'defense') => (DAY_PHASES[type]!.switchHour - WAR_REMINDER_BEFORE_HOURS) % 24
+export const WAR_REMINDER_TEXT: Record<'attack' | 'defense', string> = {
+  attack: `อีก ${WAR_REMINDER_BEFORE_HOURS} ชั่วโมงหมดช่วงตี (${hhmm(DAY_PHASES.attack!.switchHour)}) · ใครยังมีไม้เหลือ ตีให้ครบ`,
+  defense: `อีก ${WAR_REMINDER_BEFORE_HOURS} ชั่วโมงหมดช่วงแก้ทีม (${hhmm(DAY_PHASES.defense!.switchHour)}) · ใครยังไม่ได้แก้ทีมกัน รีบแก้ก่อนเริ่มจัดบ้าน`,
+}
+/**
+ * เวลานี้ (ts) ถึงเวลาแจ้งเตือนของวันไหม → 'attack' | 'defense' | null
+ * วันในเกมเริ่ม 07:00 ไทย = 00:00 UTC → วันในเกม = วันที่ UTC และ "ชั่วโมงไทยนับจาก 07:00" = ชั่วโมง UTC
+ */
+export function warReminderDue(ts: number): 'attack' | 'defense' | null {
+  const d = new Date(ts)
+  const type = GAME_SCHEDULE[(d.getUTCDay() + 6) % 7]
+  if (type !== 'attack' && type !== 'defense') return null
+  const sinceReset = (warReminderHour(type) - RESET_HOUR + 24) % 24
+  return d.getUTCHours() === sinceReset ? type : null
+}
+
 /** ใส่ในข้อความประกาศที่ตั้งเอง → แทนด้วยชื่อวัน */
 export const DAY_PLACEHOLDER = '{วัน}'
 /** ข้อความประกาศอัตโนมัติที่กิลด์ตั้งเอง ยาวสุด (ตัวอักษร) */

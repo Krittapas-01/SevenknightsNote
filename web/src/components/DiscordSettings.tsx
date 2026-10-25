@@ -1,8 +1,8 @@
-import { BellRing, Check, Plus, Send, ShieldCheck, Trash2, Unlink } from 'lucide-react'
+import { AlarmClock, BellRing, Check, Plus, Send, ShieldCheck, Trash2, Unlink } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../lib/api'
 import type { GuildData } from '../lib/types'
-import { BOSS_DEFAULT_TEXT, BOSS_PLACEHOLDER_EN, BOSS_REVIVAL, MAX_BOSS_TEXT } from '../../../shared/game'
+import { BOSS_DEFAULT_TEXT, BOSS_PLACEHOLDER_EN, BOSS_REVIVAL, DAY_PHASES, MAX_BOSS_TEXT, hhmm, warReminderHour } from '../../../shared/game'
 import Modal from './Modal'
 import { DiscordIcon } from './ContactFab'
 import { EN, tx, L } from '../lib/i18n'
@@ -26,6 +26,7 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
   const [mode, setMode] = useState<Mode>('')
   const [role, setRole] = useState('')
   const [serverId, setServerId] = useState('')
+  const [warReminder, setWarReminder] = useState(false)
   const [rows, setRows] = useState<RoleRow[]>([])
   const setRow = (i: number, r: Partial<RoleRow>) => setRows((x) => x.map((v, j) => (j === i ? { ...v, ...r } : v)))
   const [busy, setBusy] = useState(false)
@@ -40,6 +41,7 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
     setMode(modeOf(m))
     setRole(modeOf(m) === 'role' ? m : '')
     setServerId(discord?.serverId ?? '')
+    setWarReminder(!!discord?.warReminder)
     // รวมยศที่ตั้งชื่อไว้ (ตามลำดับ) + ยศที่แก้ได้แต่ยังไม่ตั้งชื่อ
     const edit = discord?.editRoles ?? []
     const named = discord?.roleNames ?? []
@@ -72,7 +74,7 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
       if (list.some((r) => !/^\d{5,25}$/.test(r.id))) throw new Error(tx('Role ID ต้องเป็นตัวเลข'))
       if (list.length && !serverId.trim()) throw new Error(tx('ใส่ Server ID ด้วย'))
       await api.saveDiscord(gid, {
-        mention, serverId: serverId.trim(),
+        mention, serverId: serverId.trim(), warReminder,
         editRoles: list.filter((r) => r.edit).map((r) => r.id),
         roleNames: list.filter((r) => r.name).map((r) => ({ id: r.id, name: r.name })),
         ...(url.trim() ? { webhook: url.trim() } : {}),
@@ -128,6 +130,20 @@ export default function DiscordSettings({ gid, discord, reload }: { gid: string;
             <p className="mt-1 text-xs text-white/40">{tx('เปิด Developer Mode (ตั้งค่าผู้ใช้ → Advanced) แล้วกดชื่อคนที่มียศนั้น → คลิกขวาที่ป้ายยศ → Copy Role ID (ไม่ต้องเป็นแอดมิน)')}</p>
           </>
         )}
+
+        <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-xl bg-black/20 p-3">
+          <input type="checkbox" checked={warReminder} onChange={(e) => setWarReminder(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#e2bf72]" />
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5 text-sm font-semibold"><AlarmClock className="h-4 w-4 shrink-0 text-gold" />{' '}{L('แจ้งเตือนก่อนหมดเวลา 1 ชั่วโมง', 'Remind 1 hour before time runs out')}</span>
+            <span className="mt-0.5 block text-xs text-white/45">
+              {L(
+                `วันตี ${hhmm(warReminderHour('attack'))} (ตีได้ถึง ${hhmm(DAY_PHASES.attack!.switchHour)}) · วันจัดบ้าน ${hhmm(warReminderHour('defense'))} (แก้ทีมได้ถึง ${hhmm(DAY_PHASES.defense!.switchHour)}) · ช่วงพัก Season ไม่ส่ง · แท็กยศเดียวกับด้านบน`,
+                `Attack days ${hhmm(warReminderHour('attack'))} (attacks close ${hhmm(DAY_PHASES.attack!.switchHour)}) · defense days ${hhmm(warReminderHour('defense'))} (team edits close ${hhmm(DAY_PHASES.defense!.switchHour)}) · not sent between Seasons · same tag as above · message is in Thai`,
+              )}
+            </span>
+            {!connected && <span className="mt-1 block text-xs text-amber-300">{L('ต้องใส่ลิงก์ Webhook ด้านบนก่อน ถึงจะส่งได้', 'Add a webhook link above first')}</span>}
+          </span>
+        </label>
 
         {hasBoss && (
           <div className="mt-6 border-t border-white/10 pt-4">

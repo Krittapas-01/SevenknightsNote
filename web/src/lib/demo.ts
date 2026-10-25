@@ -173,6 +173,7 @@ export async function demoRequest(path: string, init: RequestInit = {}): Promise
       serverId: serverId ?? cur.serverId,
       editRoles: editRoles ?? cur.editRoles,
       roleNames: Array.isArray(body.roleNames) ? body.roleNames : cur.roleNames,
+      warReminder: typeof body.warReminder === 'boolean' ? body.warReminder : cur.warReminder,
     }
     out = clone(d.discord)
   } else if (a === 'schedule') {
