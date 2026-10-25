@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { currentSeason } from '../../shared/season'
 import { MAX_PACK_ITEMS, PACK_ITEM_KEYS, PACK_PERIODS, PACK_TABS } from '../../shared/packs'
-import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT, bossRevivalDay, fillBoss, DAY_NAMES, DAY_PLACEHOLDER, DAY_PLACEHOLDER_EN, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay } from '../../shared/game'
+import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT, bossRevivalDay, fillBoss, DAY_NAMES, DAY_PLACEHOLDER, DAY_PLACEHOLDER_EN, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay, MIN_GAME_NAME, isShortGameName } from '../../shared/game'
 
 type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string; /** Discord user ID ที่เข้าหน้า /admin ได้ (คั่นด้วย ,) */ ADMIN_DISCORD_IDS?: string }
 
@@ -337,6 +337,9 @@ const toCounter = (r: any) => ({
   updatedAt: r.updated_at,
 })
 
+// ชื่อในเกมสั้นกว่า 3 ตัวไม่ได้ (เกมไม่ให้ตั้ง) — กิลด์เก่าที่ชื่อสั้นอยู่แล้วยังใช้ได้ตามเดิม แค่ตั้ง/เปลี่ยนใหม่ไม่ได้
+const SHORT_GUILD_NAME = `ชื่อกิลด์ต้องยาวอย่างน้อย ${MIN_GAME_NAME} ตัวอักษร (ในเกมตั้งชื่อสั้นกว่านี้ไม่ได้)`
+
 // ---------- routes ----------
 app.get('/api/health', (c) => c.json({ ok: true }))
 
@@ -345,6 +348,7 @@ app.post('/api/guild', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const name = str(body.name, 50)
   if (!name) return c.json({ error: 'กรุณาใส่ชื่อกิลด์' }, 400)
+  if (isShortGameName(name)) return c.json({ error: SHORT_GUILD_NAME }, 400)
   // ชื่อกิลด์ห้ามซ้ำ (ไม่สนตัวพิมพ์เล็ก/ใหญ่ และช่องว่างหัวท้าย)
   const taken = await c.env.DB.prepare('SELECT 1 FROM guilds WHERE lower(trim(name)) = lower(?) LIMIT 1').bind(name.trim()).first()
   if (taken) return c.json({ error: `มีกิลด์ชื่อ "${name.trim()}" อยู่แล้ว ลองใช้ชื่ออื่น` }, 409)
@@ -478,6 +482,7 @@ app.put('/api/guild/:id/name', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const name = str(body.name, 50).trim()
   if (!name) return c.json({ error: 'กรุณาใส่ชื่อกิลด์' }, 400)
+  if (isShortGameName(name)) return c.json({ error: SHORT_GUILD_NAME }, 400)
   const taken = await c.env.DB.prepare('SELECT 1 FROM guilds WHERE lower(trim(name)) = lower(?) AND id <> ? LIMIT 1').bind(name, gid).first()
   if (taken) return c.json({ error: `มีกิลด์ชื่อ "${name}" อยู่แล้ว ลองใช้ชื่ออื่น` }, 409)
   const r = await c.env.DB.prepare('UPDATE guilds SET name = ? WHERE id = ?').bind(name, gid).run()
@@ -722,6 +727,7 @@ app.post('/api/guild/:id/announcements', async (c) => {
   const text = str(body.body, 1000)
   const planId = idOrNull(body.planId)
   const opponent = str(body.opponent, 50)
+  if (opponent && isShortGameName(opponent)) return c.json({ error: `ชื่อกิลด์ที่เจอต้องยาวอย่างน้อย ${MIN_GAME_NAME} ตัวอักษร (ในเกมตั้งชื่อสั้นกว่านี้ไม่ได้)` }, 400)
   if (!text && !planId) return c.json({ error: 'พิมพ์ประกาศหรือเลือกแผนอย่างน้อย 1 อย่าง' }, 400)
   if (planId) {
     const ok = await c.env.DB.prepare('SELECT id FROM plans WHERE id = ? AND guild_id = ?').bind(planId, gid).first()

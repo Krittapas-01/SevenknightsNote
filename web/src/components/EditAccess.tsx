@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import { api, forgetEditKey, forgetRecent, saveEditKey } from '../lib/api'
 import { loginWithDiscord, useAuth } from '../lib/auth'
 import Modal from './Modal'
+import { MIN_GAME_NAME, isShortGameName } from '../../../shared/game'
 import { tx, L } from '../lib/i18n'
 
 const input = 'w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 pr-10 outline-none focus:border-gold'
@@ -166,10 +167,11 @@ function RenameGuild({ gid, guildName, onRenamed }: { gid: string; guildName: st
   useEffect(() => setName(guildName), [guildName])
   const next = name.trim()
   const same = next === guildName.trim()
+  const short = !!next && isShortGameName(next)
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (!next || same) return
+    if (!next || same || short) return
     setBusy(true)
     setErr('')
     setDone(false)
@@ -192,9 +194,10 @@ function RenameGuild({ gid, guildName, onRenamed }: { gid: string; guildName: st
         <input value={name} onChange={(e) => { setName(e.target.value); setDone(false); setErr('') }} maxLength={50}
           className="mt-1 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 outline-none focus:border-gold" />
       </label>
+      {short && !same && <p className="text-xs text-amber-300">{L(`อย่างน้อย ${MIN_GAME_NAME} ตัวอักษร (ในเกมตั้งชื่อสั้นกว่านี้ไม่ได้)`, `At least ${MIN_GAME_NAME} characters (the game doesn't allow shorter names)`)}</p>}
       {err && <p className="text-sm text-red-400">{err}</p>}
       {done && <p className="flex items-center gap-1.5 text-sm text-green-400"><Check className="h-4 w-4" />{' '}{tx('เปลี่ยนชื่อแล้ว · ลิงก์กิลด์ใช้ได้เหมือนเดิม')}</p>}
-      <button disabled={busy || !next || same} className="pill w-full py-2 text-sm hover:border-gold disabled:opacity-50">{busy ? tx('กำลังบันทึก...') : tx('เปลี่ยนชื่อ')}</button>
+      <button disabled={busy || !next || same || short} className="pill w-full py-2 text-sm hover:border-gold disabled:opacity-50">{busy ? tx('กำลังบันทึก...') : tx('เปลี่ยนชื่อ')}</button>
     </form>
   )
 }

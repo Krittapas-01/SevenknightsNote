@@ -7,7 +7,7 @@ import { notifyGuildChanged } from '../lib/usePulse'
 import type { Announcement, DayType, GuildData, PlanKind } from '../lib/types'
 import { DAYS, DAYS_SHORT, DAY_TYPE, activePlanId, dateKey, dayIndex, fmtTime, isToday } from '../lib/war'
 import { currentSeason } from '../lib/season'
-import { DAY_NAMES, DAY_PLACEHOLDER, DAY_PLACEHOLDER_EN, MAX_AUTO_TEXT, defaultAutoText, fillDay } from '../../../shared/game'
+import { DAY_NAMES, DAY_PLACEHOLDER, DAY_PLACEHOLDER_EN, MAX_AUTO_TEXT, defaultAutoText, fillDay, MIN_GAME_NAME, isShortGameName } from '../../../shared/game'
 
 const fmtDate = (key: string) => new Date(`${key}T00:00:00+07:00`).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: '2-digit' })
 import DiscordSettings from './DiscordSettings'
@@ -168,6 +168,7 @@ function ComposeModal({ open, onClose, gid, data, activeIds, todayType, reload }
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const shortOpp = !!opponent.trim() && isShortGameName(opponent)
 
   const titleOf = (id: string | null) => data.plans.find((p) => p.id === id)?.title
   const today = DAYS[dayIndex()]
@@ -229,6 +230,7 @@ function ComposeModal({ open, onClose, gid, data, activeIds, todayType, reload }
         placeholder={tx('เช่น pandoara')}
         className="mt-1 w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 outline-none focus:border-gold"
       />
+      {shortOpp && <p className="mt-1 text-xs text-amber-300">{L(`อย่างน้อย ${MIN_GAME_NAME} ตัวอักษร (ในเกมตั้งชื่อสั้นกว่านี้ไม่ได้)`, `At least ${MIN_GAME_NAME} characters (the game doesn't allow shorter names)`)}</p>}
 
       <label className="mt-4 block text-sm text-white/70">{tx('ข้อความ')}</label>
       <div className="mt-1 flex flex-wrap gap-1.5">
@@ -248,7 +250,7 @@ function ComposeModal({ open, onClose, gid, data, activeIds, todayType, reload }
       />
       {err && <p className="mt-2 text-sm text-red-300">{err}</p>}
       <div className="mt-4 flex gap-2">
-        <button disabled={busy || (!body.trim() && !planId)} onClick={submit} className="btn-gold px-6 py-2">
+        <button disabled={busy || (!body.trim() && !planId) || shortOpp} onClick={submit} className="btn-gold px-6 py-2">
           {busy ? tx('กำลังประกาศ...') : tx('ประกาศ')}
         </button>
         <button onClick={onClose} className="pill px-5 py-2">{tx('ยกเลิก')}</button>
