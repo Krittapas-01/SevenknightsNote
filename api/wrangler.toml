@@ -2,9 +2,11 @@ name = "7k-note-api"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
-# ประกาศอัตโนมัติทุกวัน 07:00 เวลาไทย (= 00:00 UTC)
+# เวลาเป็น UTC (ไทย = UTC+7) · scheduled() ใน src/index.ts แยกงานตาม cron
+#   "0 0 * * *"  = 07:00 ไทย  ประกาศอัตโนมัติ + บอสจุติ
+#   "0 20 * * *" = 03:00 ไทย  สำรองฐานข้อมูลเข้า R2 (BACKUP)
 [triggers]
-crons = ["0 0 * * *"]
+crons = ["0 0 * * *", "0 20 * * *"]
 
 [vars]
 # โดเมนของเว็บที่อนุญาตให้เรียก API (ใส่ * ตอน dev ได้)
@@ -23,6 +25,12 @@ database_name = "7k-note"
 database_id = "0452d0ac-94bf-4c7d-b2da-820406af4ce6"
 # ตอน dev แบบ local ใช้ฐานข้อมูลเดิมในเครื่อง (ข้อมูล local ผูกกับ id นี้)
 preview_database_id = "00000000-0000-0000-0000-000000000000"
+
+# ไฟล์สำรองฐานข้อมูลทุกคืน (private — ห้ามเปิด public access: มี webhook / edit hash)
+# deploy.ps1 สร้าง bucket ให้เองถ้ายังไม่มี (npx wrangler r2 bucket create 7k-note-backup)
+[[r2_buckets]]
+binding = "BACKUP"
+bucket_name = "7k-note-backup"
 
 # Workers Logs (ดู log ใน dashboard → 7k-note-api → Observability) — ต้องตรงกับที่ตั้งใน dashboard
 # ไม่งั้น deploy.cmd รอบหน้าจะปิด log กลับไปเอง · ห้าม console.log ข้อมูลลับ (webhook, edit key, token) เพราะ log ถูกเก็บไว้

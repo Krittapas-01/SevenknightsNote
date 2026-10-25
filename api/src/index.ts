@@ -4,7 +4,8 @@ import { currentSeason } from '../../shared/season'
 import { MAX_PACK_ITEMS, PACK_ITEM_KEYS, PACK_PERIODS, PACK_TABS } from '../../shared/packs'
 import { BOSS_DEFAULT_TEXT, BOSS_REVIVAL, MAX_BOSS_TEXT, bossRevivalDay, fillBoss, DAY_NAMES, DAY_PLACEHOLDER, DAY_PLACEHOLDER_EN, GAME_SCHEDULE, GAME_SEASON, MAX_AUTO_TEXT, defaultAutoText, fillDay, MIN_GAME_NAME, isShortGameName } from '../../shared/game'
 
-type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string; /** Discord user ID ที่เข้าหน้า /admin ได้ (คั่นด้วย ,) */ ADMIN_DISCORD_IDS?: string }
+type Env = { DB: D1Database; ALLOWED_ORIGIN: string; SITE_URL?: string; DISCORD_CLIENT_ID?: string; /** wrangler secret */ DISCORD_CLIENT_SECRET?: string; /** dev เท่านั้น: ยอม webhook URL อะไรก็ได้ (ไว้ทดสอบกับ mock) */ DISCORD_ALLOW_ANY?: string; /** dev เท่านั้น: ชี้ Discord API ไป mock */ DISCORD_API_BASE?: string; /** wrangler secret: webhook ที่ 2 ของ EXTRA_WEBHOOK_GUILD */ EXTRA_WEBHOOK?: string; /** Discord user ID ที่เข้าหน้า /admin ได้ (คั่นด้วย ,) */ ADMIN_DISCORD_IDS?: string
+  /** R2 (private) เก็บไฟล์สำรองฐานข้อมูลทุกคืน */ BACKUP?: R2Bucket }
 
 type Team = {
   front: number // จำนวนช่องแถวหน้า (1-4) ที่เหลือเป็นแถวหลัง รวม 5 ช่อง
@@ -1363,9 +1364,85 @@ export async function runDailyAnnouncements(env: Env, now = Date.now()) {
   return posted
 }
 
+// ---------- สำรองฐานข้อมูลทุกคืน → R2 (Cron "0 20 * * *" = 03:00 เวลาไทย) ----------
+// ไฟล์ d1/YYYY-MM-DD.json.gz (วันในเกม) = ทุกตาราง (+ คำสั่งสร้างตาราง) เป็น JSON · เก็บ BACKUP_KEEP_DAYS วัน
+// ข้อมูลมี webhook / edit hash → bucket ต้องเป็น private และห้าม log เนื้อหา (log แค่จำนวน)
+const BACKUP_CRON = '0 20 * * *'
+const BACKUP_KEEP_DAYS = 90
+const BACKUP_PAGE = 500
+/** ตารางชั่วคราว/แคชที่สร้างใหม่เองได้ ไม่ต้องสำรอง (sessions มี access token ของ Discord — ไม่เก็บค้างไว้ 90 วัน) */
+const BACKUP_SKIP = new Set(['auth_fails', 'member_cache', 'oauth_states', 'sessions'])
+
+export async function runBackup(env: Env, now = Date.now()) {
+  if (!env.BACKUP) return { skipped: 'no BACKUP bucket' }
+  const key = `d1/${gameDayKey(now)}.json.gz`
+  const { results: tables } = await env.DB.prepare(
+    "SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND substr(name, 1, 4) <> '_cf_' ORDER BY name",
+  ).all<{ name: string; sql: string }>()
+  const { results: indexes } = await env.DB.prepare(
+    "SELECT sql FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY name",
+  ).all<{ sql: string }>()
+  // เขียน JSON ทีละส่วนผ่าน gzip (ไม่ต้องถือทั้งฐานเป็น string ก้อนเดียว)
+  const gz = new CompressionStream('gzip')
+  const done = new Response(gz.readable).arrayBuffer()
+  const w = gz.writable.getWriter()
+  const enc = new TextEncoder()
+  const put = (text: string) => w.write(enc.encode(text))
+  const counts: Record<string, number> = {}
+  try {
+    await put(`{"version":1,"createdAt":${now},"indexes":${JSON.stringify(indexes.map((i) => i.sql))},"tables":{`)
+    let firstTable = true
+    for (const t of tables) {
+      if (BACKUP_SKIP.has(t.name)) continue
+      await put(`${firstTable ? '' : ','}${JSON.stringify(t.name)}:{"sql":${JSON.stringify(t.sql)},"rows":[`)
+      firstTable = false
+      const q = `SELECT rowid AS "__rowid", * FROM "${t.name.replace(/"/g, '""')}" WHERE rowid > ? ORDER BY rowid LIMIT ${BACKUP_PAGE}`
+      let after = Number.MIN_SAFE_INTEGER, n = 0
+      for (;;) {
+        const { results } = await env.DB.prepare(q).bind(after).all<Record<string, unknown>>()
+        for (const r of results) {
+          after = Number(r.__rowid)
+          delete r.__rowid
+          await put(`${n++ ? ',' : ''}${JSON.stringify(r)}`)
+        }
+        if (results.length < BACKUP_PAGE) break
+      }
+      counts[t.name] = n
+      await put(']}')
+    }
+    await put('}}')
+    await w.close()
+  } catch (e) {
+    await w.abort(e).catch(() => {})
+    throw e
+  }
+  const body = await done
+  await env.BACKUP.put(key, body, { httpMetadata: { contentType: 'application/json', contentEncoding: 'gzip' }, customMetadata: { rows: String(Object.values(counts).reduce((a, b) => a + b, 0)) } })
+  // ลบไฟล์ที่เก่ากว่า BACKUP_KEEP_DAYS วัน (ดูจากวันที่ในชื่อไฟล์)
+  const oldest = gameDayKey(now - BACKUP_KEEP_DAYS * 86400_000)
+  const old: string[] = []
+  let cursor: string | undefined
+  do {
+    const list = await env.BACKUP.list({ prefix: 'd1/', cursor })
+    for (const o of list.objects) {
+      const day = o.key.slice(3, 13)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(day) && day < oldest) old.push(o.key)
+    }
+    cursor = list.truncated ? list.cursor : undefined
+  } while (cursor)
+  for (let i = 0; i < old.length; i += 1000) await env.BACKUP.delete(old.slice(i, i + 1000))
+  return { key, bytes: body.byteLength, tables: counts, deleted: old.length }
+}
+
 export default {
   fetch: app.fetch,
-  scheduled: (_event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
+  scheduled: (event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
+    if (event.cron === BACKUP_CRON) {
+      // log แค่จำนวนแถว/ขนาด — ห้าม log เนื้อหา (มี webhook / edit hash)
+      ctx.waitUntil(runBackup(env).then((r) => console.log('backup', JSON.stringify(r)), (e) => console.error('backup failed', String(e))))
+      return
+    }
+    // "0 0 * * *" (07:00 ไทย): ประกาศอัตโนมัติ + บอสจุติ (เหมือนเดิม)
     ctx.waitUntil(runDailyAnnouncements(env).then((n) => console.log(`daily announcements: ${n}`)))
     ctx.waitUntil(runBossReminder(env).then((r) => console.log(`boss reminder: ${r}`), (e) => console.error('boss reminder', e)))
   },

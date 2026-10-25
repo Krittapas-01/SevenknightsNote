@@ -50,6 +50,17 @@ Remove-Item Env:CI
 # Manual only, if ever needed: cd api ; node ..\scripts\seed-pandoara.mjs ; npx wrangler d1 execute 7k-note --remote --file=seed-pandoara.sql
 $pandoaraKey = if (Test-Path "$root\api\.pandoara-key") { (Get-Content "$root\api\.pandoara-key" -Raw).Trim() } else { "" }
 
+# Nightly database backup bucket (private). Create it once if it is missing - the API deploy fails without it.
+Step "Checking backup bucket (R2)"
+$bucket = "7k-note-backup"
+$r2 = Capture -Quiet { npx wrangler r2 bucket list }
+if ($r2 -notmatch "(?m)name:\s+$bucket\s*$") {
+  $made = Capture { npx wrangler r2 bucket create $bucket }
+  if ($made -notmatch "(?i)created|already exists|10004") {
+    throw "Could not create the R2 bucket '$bucket'. Open the Cloudflare dashboard -> R2 once (enable R2), then run deploy again."
+  }
+}
+
 Step "Deploying API"
 $dep = Capture { npx wrangler deploy }
 if ($dep -notmatch '(https://[\w\.-]+\.workers\.dev)') {
