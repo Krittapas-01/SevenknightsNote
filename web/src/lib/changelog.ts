@@ -25,6 +25,22 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
+    id: '2026-10-26b',
+    version: '1.6.1',
+    date: '26 ต.ค. 2026',
+    title: 'Guild Lock',
+    summary: 'ล็อกหน้ากิลด์ด้วยรหัสเข้ากิลด์ กันคนที่ออกกิลด์ไปแล้วแต่ยังมีลิงก์',
+    sections: [
+      { kind: 'new', groups: [
+        g('รหัสเข้ากิลด์ (ล็อกหน้ากิลด์)',
+          'หัวกิลด์กด "ล็อกหน้ากิลด์" ในหน้ากิลด์ แล้วตั้งรหัส (4–32 ตัว หรือกดสุ่ม) · คนเปิดลิงก์จะต้องใส่รหัสก่อนถึงจะเห็นแผน บ้านศัตรู ทีมแก้ และประกาศ',
+          'คัดลอก "ลิงก์เชิญ" ที่มีรหัสในตัวไปแปะในห้อง Discord ของกิลด์ สมาชิกกดทีเดียวเข้าได้เลย · ใส่รหัสครั้งเดียว เครื่องจำไว้',
+          'มีคนออกกิลด์ → เปลี่ยนรหัส คนที่ใช้รหัสเดิมเข้าไม่ได้ทันที และข้อมูลกิลด์ที่ค้างในเครื่องเขาถูกลบ · สมาชิกที่เหลือใส่รหัสใหม่ครั้งเดียว',
+          'คนที่มีรหัสแก้ไข หรือยศ Discord ที่แก้ได้ เข้าได้เลยไม่ต้องใส่ · กิลด์ที่ไม่ได้ล็อก ใช้ได้เหมือนเดิมทุกอย่าง'),
+      ] },
+    ],
+  },
+  {
     id: '2026-10-16',
     version: '1.5',
     date: '16 ต.ค. 2026',
@@ -287,6 +303,22 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
+  {
+    id: '2026-10-26b',
+    version: '1.6.1',
+    date: 'Oct 26, 2026',
+    title: 'Guild Lock',
+    summary: 'Lock your guild page with a guild code to keep out people who left but still have the link',
+    sections: [
+      { kind: 'new', groups: [
+        g('Guild code (lock the guild page)',
+          'Guild leaders tap "Lock guild" on the guild page and set a code (4–32 characters, or tap Random). Anyone opening the link must enter it before they see plans, enemy defenses, counters and announcements.',
+          'Copy the "invite link" with the code built in and post it in your guild Discord. Members tap it once and they are in. The device remembers the code.',
+          'Someone left? Change the code. The old code stops working right away and the guild data saved on their device is cleared. Remaining members enter the new code once.',
+          'People with the edit password or an edit role in Discord get in without the code. Guilds that are not locked work exactly as before.'),
+      ] },
+    ],
+  },
   {
     id: '2026-10-16', version: '1.5', date: '16 Oct 2026', title: 'Swift Blade',
     summary: 'New heroes Giyu and Shinobu, Attack Compare, attack plans from saved enemy defenses, a smoother site and a long list of fixes',

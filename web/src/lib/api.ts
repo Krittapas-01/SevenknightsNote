@@ -54,6 +54,34 @@ export function forgetEditKey(gid: string) {
   writeJson(KEYS, all)
 }
 
+// ---------- รหัสเข้ากิลด์ (กิลด์ที่หัวกิลด์ล็อกไว้ — กันคนที่ออกกิลด์ไปแล้วแต่ยังมีลิงก์) ----------
+const VIEW_KEYS = '7knote:view-keys'
+export const getViewKey = (gid: string) => readJson<Record<string, string>>(VIEW_KEYS, {})[gid] ?? null
+export function saveViewKey(gid: string, code: string) {
+  staleViewKey.delete(gid)
+  writeJson(VIEW_KEYS, { ...readJson<Record<string, string>>(VIEW_KEYS, {}), [gid]: code })
+}
+/** กิลด์ที่รหัสในเครื่องเพิ่งใช้ไม่ได้ (หัวกิลด์เปลี่ยนรหัส) — หน้าใส่รหัสบอกว่า "เปลี่ยนรหัสแล้ว" */
+export const staleViewKey = new Set<string>()
+export function forgetViewKey(gid: string, stale = false) {
+  if (stale) staleViewKey.add(gid)
+  const all = readJson<Record<string, string>>(VIEW_KEYS, {})
+  if (!(gid in all)) return
+  delete all[gid]
+  writeJson(VIEW_KEYS, all)
+}
+/** ลิงก์เชิญ = ลิงก์กิลด์ + #code=รหัส (ส่วนหลัง # ไม่ถูกส่งไปเซิร์ฟเวอร์/ไม่ติด log) */
+export const inviteLink = (gid: string, code: string | null) =>
+  `${location.origin}/g/${gid}${code ? `#code=${encodeURIComponent(code)}` : ''}`
+/** เปิดจากลิงก์เชิญ → จำรหัสไว้ในเครื่อง แล้วลบออกจากแถบที่อยู่ (ไม่ค้างในประวัติ/ตอนแคปจอ) */
+export function captureInvite(gid: string) {
+  const h = new URLSearchParams(location.hash.slice(1))
+  const code = h.get('code')?.trim()
+  if (!code) return
+  saveViewKey(gid, code)
+  history.replaceState(history.state, '', location.pathname + location.search)
+}
+
 export type Recent = { id: string; name: string }
 /** อัปเดตรายการที่เคยเปิดให้ตรงกับเซิร์ฟเวอร์: ชื่อใหม่ + เอากิลด์ที่ถูกลบออก (ลำดับเดิม) */
 export async function refreshRecent(): Promise<Recent[]> {
@@ -75,7 +103,7 @@ export function pushRecent(r: Recent) {
 }
 
 // ---------- fetch ----------
-async function req<T>(path: string, init: RequestInit & { gid?: string; key?: string } = {}): Promise<T> {
+async function req<T>(path: string, init: RequestInit & { gid?: string; key?: string; viewGid?: string } = {}): Promise<T> {
   // กิลด์ทดลอง: ข้อมูลอยู่ในเครื่อง ไม่ยิง API
   if (path === `/api/guild/${DEMO_ID}` || path.startsWith(`/api/guild/${DEMO_ID}/`)) return demoRequest(path, init) as Promise<T>
   // ส่ง Content-Type เฉพาะตอนมีข้อมูล — GET ธรรมดาจะได้ไม่ต้องมี preflight (OPTIONS) ทุกครั้ง (API อยู่คนละโดเมน)
@@ -85,11 +113,14 @@ async function req<T>(path: string, init: RequestInit & { gid?: string; key?: st
     // encode: header ใส่ภาษาไทยตรง ๆ ไม่ได้ (API decode กลับ)
     if (key) headers['X-Edit-Key'] = encodeURIComponent(key)
   }
+  // กิลด์ที่ล็อกไว้: ส่งรหัสเข้ากิลด์ที่เครื่องจำไว้ (ไม่มี = ไม่ส่ง header → GET ธรรมดาไม่ต้อง preflight)
+  const view = init.viewGid ? getViewKey(init.viewGid) : null
+  if (view) headers['X-View-Key'] = encodeURIComponent(view)
   const session = getSession() // ล็อกอิน Discord (ใช้เช็คยศ + ขึ้นชื่อคนประกาศ)
   if (session) headers.Authorization = `Bearer ${session}`
   const res = await fetch(BASE + path, { ...init, headers })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw Object.assign(new Error((data as any).error ?? `HTTP ${res.status}`), { status: res.status })
+  if (!res.ok) throw Object.assign(new Error((data as any).error ?? `HTTP ${res.status}`), { status: res.status, data })
   return data as T
 }
 
@@ -98,17 +129,21 @@ export const api = {
     req<{ id: string; name: string; editKey: string }>('/api/guild', { method: 'POST', body: JSON.stringify({ name, password }) }),
   // แท็กหลัก (กายภาพ/เวท/แทงก์) ขึ้นก่อนเสมอ — ข้อมูลเก่าที่ลำดับต่างกันก็เรียงให้ตอนโหลด
   /** rev = เวอร์ชันที่มีในเครื่อง → ถ้าบนเซิร์ฟเวอร์ยังเท่าเดิมได้ null (ใช้ของเดิมต่อ ไม่ต้องโหลดทั้งกิลด์) */
-  getGuild: (gid: string, rev?: string) => req<GuildData | { unchanged: true; rev: string }>(`/api/guild/${gid}${rev && gid !== DEMO_ID ? `?rev=${encodeURIComponent(rev)}` : ''}`).then((d) => 'unchanged' in d ? null : ({ ...d, targets: d.targets.map((t) => ({ ...t, tags: sortTags(t.tags) })) })),
+  getGuild: (gid: string, rev?: string) => req<GuildData | { unchanged: true; rev: string }>(`/api/guild/${gid}${rev && gid !== DEMO_ID ? `?rev=${encodeURIComponent(rev)}` : ''}`, { viewGid: gid }).then((d) => 'unchanged' in d ? null : ({ ...d, targets: d.targets.map((t) => ({ ...t, tags: sortTags(t.tags) })) })),
   /** prev = แถบประกาศที่มีอยู่ → ส่งเลขเวอร์ชันไป ถ้าบนเซิร์ฟเวอร์ยังเท่าเดิมได้ prev ตัวเดิมกลับมา (API อ่านแค่ 1 แถว) */
   pulse: (gid: string, prev?: Pulse | null) =>
-    req<Pulse | { unchanged: true; rev: string; schedule: DayType[]; season?: Pulse['season'] }>(`/api/guild/${gid}/pulse${prev?.rev && gid !== DEMO_ID ? `?rev=${encodeURIComponent(prev.rev)}` : ''}`)
+    req<Pulse | { unchanged: true; rev: string; schedule: DayType[]; season?: Pulse['season'] }>(`/api/guild/${gid}/pulse${prev?.rev && gid !== DEMO_ID ? `?rev=${encodeURIComponent(prev.rev)}` : ''}`, { viewGid: gid })
       .then((p): Pulse => {
         if (!('unchanged' in p) || !prev) return p as Pulse
         // ตาราง/Season มาจากโค้ด API (ไม่อ่านฐานข้อมูล) — ส่งมาทุกครั้ง เผื่อ deploy ใหม่เปลี่ยน
         const same = JSON.stringify([p.schedule, p.season]) === JSON.stringify([prev.schedule, prev.season])
         return same ? prev : { ...prev, schedule: p.schedule, season: p.season }
       }),
-  checkEdit: (gid: string, key?: string) => req<{ canEdit: boolean; owner?: boolean; locked?: boolean }>(`/api/guild/${gid}/check`, { gid, key }),
+  /** viewCode = รหัสเข้ากิลด์ (เฉพาะคนที่แก้ได้ · null = ไม่ได้ล็อก · ไม่มี = ไม่มีสิทธิ์เห็น/API เก่า) */
+  checkEdit: (gid: string, key?: string) => req<{ canEdit: boolean; owner?: boolean; locked?: boolean; viewCode?: string | null }>(`/api/guild/${gid}/check`, { gid, key }),
+  /** ตั้ง/เปลี่ยน/ปิดรหัสเข้ากิลด์ (เจ้าของ) · code ว่าง = ปิดล็อก */
+  setViewCode: (gid: string, code: string) =>
+    req<{ viewCode: string | null }>(`/api/guild/${gid}/view`, { method: 'PUT', body: JSON.stringify({ code }), gid }),
   setPassword: (gid: string, password: string) =>
     req<{ ok: true }>(`/api/guild/${gid}/password`, { method: 'PUT', body: JSON.stringify({ password }), gid }),
 

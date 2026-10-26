@@ -39,6 +39,7 @@ import { lockScroll } from '../lib/scrollLock'
 import { UNSAVED_MSG, useUnsavedGuard } from '../lib/unsaved'
 import { activePlanId } from '../lib/war'
 import NotFound from './NotFound'
+import GuildGate from '../components/GuildGate'
 import { tx, L, LOCALE } from '../lib/i18n'
 import { useTour } from '../lib/tour'
 import { flashSaved, savedToast } from '../lib/celebrate'
@@ -79,7 +80,7 @@ export default function PlanPage() {
   const newKind: PlanKind = search.get('kind') === 'defense' ? 'defense' : 'attack'
   const nav = useNavigate()
   const isNew = pid === 'new'
-  const { data, error, canEdit, reload } = useGuild(gid)
+  const { data, error, gate, unlock, recheck, canEdit, reload } = useGuild(gid)
   /** กิลด์มีบ้านศัตรูที่จดไว้ → ขั้น ① เลือกจากที่จดไว้ได้ */
   const hasLib = PICK_TARGET && (data?.targets.length ?? 0) > 0
   const plan = data?.plans.find((p) => p.id === pid)
@@ -234,6 +235,7 @@ export default function PlanPage() {
   useTour('plan-edit', live && editing && !wiz)
   useTour('plan-wizard', live && !!wiz)
 
+  if (gate) return <GuildGate gid={gid} name={gate.name} msg={gate.msg} onUnlock={unlock} onLogin={recheck} />
   if (error) return <NotFound message={error} />
   if (!data) return <PageSkeleton kind="plan" />
   if (!isNew && !plan) return <NotFound message="ไม่พบแผนนี้" />

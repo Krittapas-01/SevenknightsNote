@@ -21,6 +21,7 @@ import { MAX_HEROES, addHeroToTeam, changeFormation, compKey, emptyTeam, heroCou
 import { useGuild } from '../lib/useGuild'
 import { notifyGuildChanged } from '../lib/usePulse'
 import NotFound from './NotFound'
+import GuildGate from '../components/GuildGate'
 
 /** "เมื่อสักครู่" / "5 นาทีที่แล้ว" / "3 ชม. ที่แล้ว" / "2 วันที่แล้ว" */
 function edited(ts: number) {
@@ -61,7 +62,7 @@ export default function TargetPage() {
   const { gid = '', tid = '' } = useParams()
   const nav = useNavigate()
   const isNew = tid === 'new'
-  const { data, error, canEdit, reload, patch } = useGuild(gid)
+  const { data, error, gate, unlock, recheck, canEdit, reload, patch } = useGuild(gid)
   const [dropOver, setDropOver] = useState(false)
   const [editMenu, setEditMenu] = useState(false) // ลากคอมพ์เป้าหมายมาวางบนทีมแก้
   const wide = useMediaQuery('(min-width: 1024px)') // จอคอม: ฟอร์มบ้านศัตรูอยู่ข้างคอมพ์
@@ -122,6 +123,7 @@ export default function TargetPage() {
   // สอนเรียงทีมแก้ (คนที่เคยดูการสอนหน้านี้ไปแล้วก็ได้เห็น) — เมื่อมีทีมแก้ 2 ทีมขึ้นไป
   useTour('counter-order', live && mode === 'view' && !isNew && serverCounters.length > 1 && tourSeen('target-view'))
 
+  if (gate) return <GuildGate gid={gid} name={gate.name} msg={gate.msg} onUnlock={unlock} onLogin={recheck} />
   if (error) return <NotFound message={error} />
   if (!data) return <PageSkeleton kind="target" />
   if (!isNew && !target) return <NotFound message="ไม่พบบ้านศัตรูนี้" />

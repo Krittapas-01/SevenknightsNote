@@ -14,6 +14,9 @@ import { activePlanId } from '../lib/war'
 import { useSlideDir, useSlidePill } from '../lib/slide'
 import { getUnit, englishOf, unitBase } from '../data/heroes'
 import { EditLogin, EditSettings } from '../components/EditAccess'
+import GuildGate from '../components/GuildGate'
+import { inviteLink } from '../lib/api'
+import ViewLock from '../components/ViewLock'
 import { PLAN_KIND_LABEL, planKind, type Plan, type PlanKind, type Target, type Team, slotLabel } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import HelpLink from '../components/HelpLink'
@@ -35,7 +38,7 @@ const matches = (t: Target, q: string) =>
 
 export default function GuildPage() {
   const { gid = '' } = useParams()
-  const { data, error, canEdit, realCanEdit, isOwner, setCanEdit, recheck, reload } = useGuild(gid)
+  const { data, error, gate, unlock, viewCode, changeViewCode, canEdit, realCanEdit, isOwner, setCanEdit, recheck, reload } = useGuild(gid)
   const [copied, setCopied] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
   // ค้นหา/แท็กเก็บใน URL → กดเข้าบ้านแล้วกดย้อนกลับ ยังเป็นตัวกรองเดิม (ไม่เด้งกลับเป็น "ทั้งหมด")
@@ -137,11 +140,14 @@ export default function GuildPage() {
     requestAnimationFrame(again)
   }, [navType, data, scrollKey])
 
+  if (gate) return <GuildGate gid={gid} name={gate.name} msg={gate.msg} onUnlock={unlock} onLogin={recheck} />
   if (error) return <NotFound message={error} />
   if (!data) return <PageSkeleton kind="guild" />
+  // กิลด์ล็อกอยู่ + รู้รหัส (คนที่แก้ได้) → ปุ่มแชร์คัดลอกลิงก์เชิญที่มีรหัสในตัว
+  const invite = data.guild.viewLock && viewCode ? viewCode : null
 
   async function copy(kind: 'view') {
-    const url = `${location.origin}/g/${gid}`
+    const url = inviteLink(gid, invite)
     await navigator.clipboard.writeText(url).catch(() => prompt(tx('คัดลอกลิงก์นี้'), url))
     markShared(gid)
     setCopied(kind)
@@ -162,13 +168,16 @@ export default function GuildPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button data-onboard="share" onClick={() => copy('view')} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
-            {copied === 'view' ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}{' '}{tx('ลิงก์ดูอย่างเดียว')}
+            {copied === 'view' ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}{' '}{invite ? L('ลิงก์เชิญ (มีรหัส)', 'Invite link (with code)') : tx('ลิงก์ดูอย่างเดียว')}
           </button>
           {/* คนที่แก้ได้: สลับมุมมองคนแก้/คนดู */}
           {realCanEdit && !isDemo(gid) && <ViewAsToggle gid={gid} />}
           {realCanEdit
             // ตั้งรหัส/ลบกิลด์/ออกจากโหมดแก้ = ของคนที่ใช้รหัสเท่านั้น (คนที่แก้ได้เพราะยศ Discord ไม่เห็น)
-            ? canEdit && isOwner && <EditSettings gid={gid} guildName={data.guild.name} onLogout={recheck} />
+            ? canEdit && isOwner && <>
+              {!isDemo(gid) && <ViewLock gid={gid} locked={!!data.guild.viewLock} code={viewCode} onChange={changeViewCode} />}
+              <EditSettings gid={gid} guildName={data.guild.name} onLogout={recheck} />
+            </>
             : <EditLogin gid={gid} onLogin={() => setCanEdit(true)} />}
         </div>
       </div>
