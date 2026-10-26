@@ -26,6 +26,8 @@ export const LOAD_SEC = 16
  * - Mick (สัตว์เลี้ยง): +20% · เสริมสกิล 22/24/26% (แก้ได้ในค่าในเกม) · ซ้ำกันไม่ซ้อน
  * - Elena's Blessing (Unlimited): +10% · นับให้ทุกคน (Krit: ทุกคนซื้อ) */
 export const GOLD_BONUS = { mick: 20, elena: 10 }
+/** สัตว์เลี้ยง Eri: อัศวินดรอปจาก Ruby Farming +10% · เสริมสกิล 11/12/13% (เกมประมาณ 500 รอบด่านปกติ 139 → 151 ตัว) */
+export const ERI_DROP = 10
 
 export const STAGES = [
   { id: 'first', th: 'ด่านปกติ', en: 'Normal', keysPerBattle: 6, goldPerBattle: 6000, rubyPerHero: 20, heroDrop: 28, secPerBattle: 21, maxTeam: 5 },
@@ -323,6 +325,8 @@ export type FarmForm = Record<NumKey, string> & {
   passPremium: boolean; premiumCheckin: boolean; rubySupport: boolean
   /** โบนัสทองจาก Mick (mickPct %) · Elena's Blessing นับให้เสมอ */
   mick: boolean; mickPct: string
+  /** สัตว์เลี้ยง Eri: ดรอปอัศวินเพิ่ม eriPct % */
+  eri: boolean; eriPct: string
 }
 
 const s = (n: number) => String(n)
@@ -335,7 +339,7 @@ export const DEFAULT_FARM_FORM: FarmForm = {
   tiers: FARM_DEFAULTS.tiers.map((t) => ({ boxes: s(t.boxes), price: s(t.price) })),
   hours: '', stage: 'first', battlesPerSetBase: s(RUBY_SUPPORT.battlesPerSetWithout),
   powerUp: false, guildKeys: 80, extraKeys: '', passPremium: false, premiumCheckin: false, rubySupport: false,
-  mick: false, mickPct: s(GOLD_BONUS.mick),
+  mick: false, mickPct: s(GOLD_BONUS.mick), eri: false, eriPct: s(ERI_DROP),
 }
 
 /** อ่านฟอร์มที่จำไว้ (รวมกับค่าเริ่มต้นทีละช่อง → ข้อมูลเก่าที่ขาดบางช่องไม่ทำให้หน้าพัง) */
@@ -393,13 +397,16 @@ export function dailyKeys(f: FarmForm) {
 /** ตัวคูณทอง (โบนัสบวกกัน): Elena เสมอ + Mick ถ้าเปิด */
 export const goldMultiplier = (f: FarmForm) => 1 + ((f.mick ? Math.max(0, val(f.mickPct, GOLD_BONUS.mick)) : 0) + GOLD_BONUS.elena) / 100
 
+/** ตัวคูณดรอปอัศวินจาก Eri */
+export const dropMultiplier = (f: FarmForm) => 1 + (f.eri ? Math.max(0, val(f.eriPct, ERI_DROP)) : 0) / 100
+
 export function farmInputOf(f: FarmForm): FarmInput {
   const D = FARM_DEFAULTS
   return {
     freeKeys: dailyKeys(f).total, keysPerBattle: val(f.keysPerBattle, D.keysPerBattle), secPerBattle: val(f.secPerBattle, D.secPerBattle - LOAD_SEC) + LOAD_SEC,
     battlesPerSet: f.rubySupport ? val(f.battlesPerSet, RUBY_SUPPORT.battlesPerSet) : val(f.battlesPerSetBase, RUBY_SUPPORT.battlesPerSetWithout), heroesPerSet: f.team, rubyPerHero: val(f.rubyPerHero, 0),
     goldPerBattle: val(f.goldPerBattle, 0) * goldMultiplier(f), questEvery: val(f.questEvery, 0), questKeys: val(f.questKeys, 0), questGold: val(f.questGold, 0),
-    keysPerBox: val(f.keysPerBox, 0), heroDrop: val(f.heroDrop, D.heroDrop * 100) / 100, maxHours: D.maxHours,
+    keysPerBox: val(f.keysPerBox, 0), heroDrop: (val(f.heroDrop, D.heroDrop * 100) / 100) * dropMultiplier(f), maxHours: D.maxHours,
     tiers: f.tiers.map((t) => ({ boxes: val(t.boxes, 0), price: val(t.price, 0) })),
   }
 }

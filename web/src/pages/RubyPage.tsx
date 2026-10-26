@@ -7,7 +7,7 @@ import packRuby from '../assets/packs/ruby-support.webp'
 import packPass from '../assets/packs/7k-pass.webp'
 import packCheckin from '../assets/packs/premium-checkin.webp'
 import keyBox from '../assets/packs/items/chests.webp'
-import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, LOAD_SEC, GOLD_BONUS, STAGES, goldMultiplier, stageForm, stageOf, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
+import { DEFAULT_FARM_FORM, FARM_DEFAULTS, FARM_STORE_KEY, BASE_KEYS, GUILD_CHECKIN, PAID_KEYS, POWER_UP, RUBY_SUPPORT, LOAD_SEC, GOLD_BONUS, STAGES, goldMultiplier, dropMultiplier, stageForm, stageOf, dailyKeys, farmBattles, farmInputOf, loadFarmForm, parseNum, planFarm, type FarmForm, type TierRow } from '../lib/rubyFarm'
 import { L } from '../lib/i18n'
 import RubyIcon from '../components/RubyIcon'
 import { motionOK } from '../lib/overlayMotion'
@@ -76,7 +76,7 @@ function PackTile({ on, onClick, img, label, value, title }: { on: boolean; onCl
     <button type="button" role="switch" aria-checked={on} onClick={onClick} title={title} aria-label={title}
       className={`relative min-w-0 overflow-hidden rounded-xl border text-left transition duration-300 active:scale-95 ${on ? 'border-gold bg-gold/10' : 'border-white/10 bg-white/[.03] hover:border-gold/40'}`}>
       <img src={img} alt="" draggable={false} loading="lazy"
-        className={`block h-16 w-full object-cover object-right transition duration-300 sm:h-20 lg:h-20 ${on ? '' : 'opacity-35 grayscale'}`} />
+        className={`block h-16 w-full object-cover object-right transition duration-300 sm:h-20 lg:h-[4.25rem] ${on ? '' : 'opacity-35 grayscale'}`} />
       {on && <span className="tag-pop absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-gold text-xs font-bold text-ink shadow lg:h-6 lg:w-6 lg:text-sm">✓</span>}
       <span className="flex flex-col gap-0.5 px-2.5 py-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2 lg:px-3 lg:py-2">
         <span className={`min-w-0 truncate text-sm font-semibold leading-tight lg:text-base ${on ? '' : 'text-white/60'}`}>{label}</span>
@@ -108,11 +108,12 @@ export default function RubyPage() {
   const set = (k: { [K in keyof FarmForm]: FarmForm[K] extends string ? K : never }[keyof FarmForm], v: string) => setForm((f) => ({ ...f, [k]: v }))
   const setTier = (i: number, patch: Partial<{ boxes: string; price: string }>) =>
     setForm((f) => ({ ...f, tiers: f.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)) }))
-  const toggle = (k: 'powerUp' | 'rubySupport' | 'passPremium' | 'premiumCheckin' | 'mick') => setForm((f) => ({ ...f, [k]: !f[k] }))
+  const toggle = (k: 'powerUp' | 'rubySupport' | 'passPremium' | 'premiumCheckin' | 'mick' | 'eri') => setForm((f) => ({ ...f, [k]: !f[k] }))
 
   const input = useMemo(() => farmInputOf(form), [form])
   const keys = dailyKeys(form)
   const mickPct = Math.round((goldMultiplier({ ...form, mick: true }) - 1) * 100 - GOLD_BONUS.elena)
+  const eriPct = Math.round((dropMultiplier({ ...form, eri: true }) - 1) * 100)
   const plan = useMemo(() => planFarm(input, 0), [input])
   const setSize = Math.max(1, Math.floor(input.battlesPerSet))
   // ซื้อกล่องทีละขั้นราคา และซื้อให้ครบทั้งขั้นเสมอ (กุญแจที่เหลือยกไปวันถัดไป) · ผลของแต่ละขั้น = ซื้อถึงท้ายขั้นนั้น
@@ -177,13 +178,7 @@ export default function RubyPage() {
               <b className="w-12 shrink-0 text-right tabular-nums lg:w-16 lg:text-xl">{L(`${form.team} ตัว`, `${form.team}`)}</b>
             </div>
 
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold text-white/55 lg:text-sm">{L('แพ็ครายเดือน', 'Monthly packs')}</p>
-              {/* สัตว์เลี้ยง Mick: ทองเพิ่ม (ไม่กระทบรูบี้) · วางบรรทัดเดียวกับหัวข้อ ให้คอมยังพอดีจอเดียว */}
-              <button type="button" role="switch" aria-checked={form.mick} onClick={() => toggle('mick')}
-                title={L(`สัตว์เลี้ยง Mick: ทองจาก Ruby Farming +${mickPct}%`, `Mick pet: +${mickPct}% gold from Ruby Farming`)}
-                className={`${CHIP(form.mick)} flex shrink-0 items-center gap-1`}><Coins className="h-3.5 w-3.5" />{L(`มี Mick · ทอง +${mickPct}%`, `Mick pet · gold +${mickPct}%`)}</button>
-            </div>
+            <p className="mt-3 text-xs font-semibold text-white/55 lg:text-sm">{L('แพ็ครายเดือน', 'Monthly packs')}</p>
             <div className="mt-1.5 grid grid-cols-2 gap-2 lg:mt-2 lg:gap-3">
               <PackTile on={form.powerUp} onClick={() => toggle('powerUp')} img={packPowerUp} label="Power Up"
                 title={L(`Daily Power Up Support (฿149 / 28 วัน): กุญแจฟื้นเร็วขึ้น + ${POWER_UP.dailyKeys} ดอก/วัน`, `Daily Power Up Support (฿149 / 28 days): faster key regen + ${POWER_UP.dailyKeys}/day`)}
@@ -197,6 +192,17 @@ export default function RubyPage() {
               <PackTile on={form.premiumCheckin} onClick={() => toggle('premiumCheckin')} img={packCheckin} label="Check-in Prem"
                 title={L(`${PAID_KEYS.premiumCheckin.th}: ${fmt(PAID_KEYS.premiumCheckin.keys)} กุญแจต่อ ${PAID_KEYS.premiumCheckin.days} วัน`, `${PAID_KEYS.premiumCheckin.en}: ${fmt(PAID_KEYS.premiumCheckin.keys)} keys per ${PAID_KEYS.premiumCheckin.days} days`)}
                 value={<><KeyRound className="h-3.5 w-3.5" />+{fmt(PAID_KEYS.premiumCheckin.keys / PAID_KEYS.premiumCheckin.days)}</>} />
+            </div>
+
+            {/* สัตว์เลี้ยง: Mick = ทองเพิ่ม · Eri = ดรอปอัศวินเพิ่ม (ไม่กระทบรูบี้ต่อวัน) */}
+            <div className="mt-2 flex items-center gap-1.5 text-sm lg:text-base">
+              <span className="min-w-0 flex-1 whitespace-nowrap text-xs font-semibold text-white/55 lg:text-sm">{L('สัตว์เลี้ยง', 'Pets')}</span>
+              <button type="button" role="switch" aria-checked={form.mick} onClick={() => toggle('mick')}
+                title={L(`Mick: ทองจาก Ruby Farming +${mickPct}%`, `Mick: +${mickPct}% gold from Ruby Farming`)}
+                className={`${CHIP(form.mick)} flex shrink-0 items-center gap-1`}><Coins className="hidden h-3.5 w-3.5 min-[400px]:block" />{L(`Mick ทอง +${mickPct}%`, `Mick gold +${mickPct}%`)}</button>
+              <button type="button" role="switch" aria-checked={form.eri} onClick={() => toggle('eri')}
+                title={L(`Eri: อัศวินดรอปจาก Ruby Farming +${eriPct}%`, `Eri: +${eriPct}% hero drops from Ruby Farming`)}
+                className={`${CHIP(form.eri)} flex shrink-0 items-center gap-1`}><Users className="hidden h-3.5 w-3.5 min-[400px]:block" />{L(`Eri ดรอป +${eriPct}%`, `Eri drops +${eriPct}%`)}</button>
             </div>
 
             <div className="mt-3 border-t border-white/10 pt-1">
@@ -287,6 +293,7 @@ export default function RubyPage() {
                   <Field label={L('รอบจนเต็ม (ไม่มีแพ็ค)', 'Battles to max (no pack)')} value={form.battlesPerSetBase} onChange={(v) => set('battlesPerSetBase', v)} unit={L('รอบ', 'battles')} />
                   <Field label={L('รอบจนเต็ม (Daily Ruby)', 'Battles to max (Daily Ruby)')} value={form.battlesPerSet} onChange={(v) => set('battlesPerSet', v)} unit={L('รอบ', 'battles')} />
                   <Field label={L('ดรอปที่ใช้ฟาร์มต่อได้ ต่อ 100 รอบ', 'Usable drops per 100 battles')} value={form.heroDrop} onChange={(v) => set('heroDrop', v)} unit={L('ตัว', 'heroes')} />
+                  <Field label={L('Eri ดรอปเพิ่ม', 'Eri drop bonus')} value={form.eriPct} onChange={(v) => set('eriPct', v)} unit="%" />
                 </div>
 
                 <p className="mt-5 text-sm font-medium text-gold">{L('กุญแจและการต่อสู้', 'Keys and battles')}</p>
