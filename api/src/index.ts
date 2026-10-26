@@ -51,7 +51,7 @@ const guildRev = (n: unknown) => `${Number(n) || 0}.${GUILD_SHAPE}.${GAME_SEASON
 app.use('/api/*', async (c, next) =>
   cors({
     origin: (origin) => (allowedOrigin(origin, c.env) ? origin : null),
-    allowHeaders: ['Content-Type', 'X-Edit-Key', 'Authorization'],
+    allowHeaders: ['Content-Type', 'X-Edit-Key', 'X-View-Key', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     // ให้เบราว์เซอร์จำผล preflight ไว้ 2 ชม. (ไม่งั้น Chrome จำแค่ 5 วิ → ทุก request กลายเป็น 2 ครั้ง กินโควตา Worker)
     maxAge: 7200,
@@ -310,6 +310,37 @@ async function checkOwner(c: any, guildId: string): Promise<'ok' | 'notfound' | 
   const r = await checkAuth(c, guildId, true)
   return r === 'key' ? 'ok' : r === 'role' ? 'forbidden' : r
 }
+/**
+ * รหัสเข้ากิลด์ (guilds.view_code): ตั้งไว้ = ต้องส่ง X-View-Key ตรงถึงจะดูข้อมูลกิลด์ได้ · ไม่ตั้ง = ผ่านเสมอ (แบบเดิม)
+ * ใส่ผิดนับในตาราง auth_fails เฉพาะตอนผิด (ตอนถูกไม่เขียนอะไร — แถบประกาศเช็กทุกนาที ห้ามเขียนทุกครั้ง)
+ * ผิดเกิน MAX_FAILS ใน 15 นาที → IP นั้นลองต่อไม่ได้ (รหัสถูกก็รอ ไม่งั้นคนเดาจะรู้ว่าเดาถูก)
+ * row มาจากคำสั่งที่อ่านแถวกิลด์อยู่แล้ว + VIEW_FAILS_SQL (ไม่ต้องยิงฐานข้อมูลเพิ่ม)
+ */
+const VIEW_MIN = 4
+const VIEW_MAX = 32
+const viewFailKey = (c: any, gid: string) => `${gid}:view:${ipBucket(c.req.header('CF-Connecting-IP') || 'local')}`
+/** ใส่ท้าย SELECT ของแถวกิลด์: จำนวนครั้งที่ IP นี้ใส่รหัสเข้ากิลด์ผิดในช่วงล็อก · bind (failKey, now - LOCK_MS) */
+const VIEW_FAILS_SQL = '(SELECT count FROM auth_fails WHERE k = ? AND since > ?) AS vfails'
+function viewKeyOf(c: any) {
+  const raw = c.req.header('X-View-Key') || ''
+  try { return decodeURIComponent(raw).trim() } catch { return raw.trim() }
+}
+async function viewGate(c: any, gid: string, row: { name: string; view_code: string | null; vfails: number | null }) {
+  if (!row.view_code) return null
+  const key = viewKeyOf(c)
+  const body = { viewLocked: true, guildName: row.name }
+  if ((row.vfails ?? 0) >= MAX_FAILS) return c.json({ ...body, error: 'ใส่รหัสผิดหลายครั้ง ลองใหม่ในอีก 15 นาที' }, 429)
+  if (key && key === row.view_code) return null
+  if (key) {
+    const now = Date.now()
+    await c.env.DB.prepare(
+      'INSERT INTO auth_fails (k, count, since) VALUES (?, 1, ?) ON CONFLICT(k) DO UPDATE SET count = CASE WHEN ? - since < ? THEN count + 1 ELSE 1 END, since = CASE WHEN ? - since < ? THEN since ELSE ? END',
+    ).bind(viewFailKey(c, gid), now, now, LOCK_MS, now, LOCK_MS, now).run()
+  }
+  c.header('Cache-Control', 'no-store')
+  return c.json({ ...body, wrong: !!key, error: key ? 'รหัสเข้ากิลด์ไม่ถูกต้อง' : 'กิลด์นี้ต้องใส่รหัสเข้ากิลด์ก่อน' }, 401)
+}
+
 function deny(c: any, r: string) {
   if (r === 'notfound') return c.json({ error: 'ไม่พบกิลด์' }, 404)
   if (r === 'locked') return c.json({ error: 'ใส่รหัสผิดหลายครั้ง ลองใหม่ในอีก 15 นาที' }, 429)
@@ -401,16 +432,19 @@ async function deleteGuildData(env: Env, gid: string) {
 // ข้อมูลทั้งกิลด์ (บ้านศัตรู + ทีมแก้) ในครั้งเดียว
 app.get('/api/guild/:id', async (c) => {
   const id = c.req.param('id')
-  const guild = await c.env.DB.prepare('SELECT id, name, created_at, rev FROM guilds WHERE id = ?').bind(id).first<any>()
+  const guild = await c.env.DB.prepare(`SELECT id, name, created_at, rev, view_code, ${VIEW_FAILS_SQL} FROM guilds WHERE id = ?`)
+    .bind(viewFailKey(c, id), Date.now() - LOCK_MS, id).first<any>()
   if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
+  const gate = await viewGate(c, id, guild)
+  if (gate) return gate
   c.header('Cache-Control', 'no-store')
   // เว็บส่งเวอร์ชันที่มีอยู่มา → ยังเท่าเดิม = ไม่ต้องอ่านทั้งกิลด์ (อ่านแค่แถวกิลด์ 1 แถว)
   const rev = guildRev(guild.rev)
   if (c.req.query('rev') === rev) return c.json({ unchanged: true, rev })
   const [t, k, p, a, st, ap, lk] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT * FROM targets WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
-    // ลำดับที่หัวกิลด์เรียงไว้ก่อน (sort) · ยังไม่เคยเรียง/เพิ่มใหม่ = ต่อท้ายตามเวลาที่จด
-    c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ? ORDER BY sort IS NULL, sort, created_at ASC').bind(id),
+    // ไม่ใส่ ORDER BY: D1 นับแถวที่ใช้เรียงเป็น rows read ด้วย (อ่าน x2) → ไปเรียงใน JS ข้างล่างแทน
+    c.env.DB.prepare('SELECT * FROM counters WHERE guild_id = ?').bind(id),
     c.env.DB.prepare('SELECT * FROM plans WHERE guild_id = ? ORDER BY updated_at DESC').bind(id),
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 30').bind(id),
     c.env.DB.prepare('SELECT schedule, auto_announce, auto_text_attack, auto_text_defense, season_start, season_end, discord_webhook, discord_mention, discord_guild_id, discord_edit_roles, discord_role_names, boss_webhook, boss_text_start, boss_text_end FROM guild_settings WHERE guild_id = ?').bind(id),
@@ -439,19 +473,39 @@ app.get('/api/guild/:id', async (c) => {
     ...(id === BOSS_GUILD ? { bossConnected: !!settings?.boss_webhook, bossText: { start: settings?.boss_text_start ?? null, end: settings?.boss_text_end ?? null } } : {}),
   }
   const likeCount = new Map((lk.results as any[]).map((r) => [r.counter_id as string, r.n as number]))
-  const counters = (k.results as any[]).map((r) => ({ ...toCounter(r), likes: likeCount.get(r.id) ?? 0 }))
+  // ลำดับที่หัวกิลด์เรียงไว้ก่อน (sort) · ยังไม่เคยเรียง/เพิ่มใหม่ = ต่อท้ายตามเวลาที่จด
+  const counters = (k.results as any[])
+    .sort((x, y) => (x.sort == null ? 1 : 0) - (y.sort == null ? 1 : 0) || (x.sort ?? 0) - (y.sort ?? 0) || x.created_at - y.created_at)
+    .map((r) => ({ ...toCounter(r), likes: likeCount.get(r.id) ?? 0 }))
   const targets = (t.results as any[]).map((r) => ({
     ...toTarget(r),
     counters: counters.filter((x) => x.targetId === r.id),
   }))
-  return c.json({ rev, guild: { id: guild.id, name: guild.name, createdAt: guild.created_at }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce, autoText, season, discord })
+  return c.json({ rev, guild: { id: guild.id, name: guild.name, createdAt: guild.created_at, ...(guild.view_code ? { viewLock: true } : {}) }, targets, plans: (p.results as any[]).map(toPlan), announcements, schedule, autoAnnounce, autoText, season, discord })
 })
 
 // ตรวจว่า key ใช้แก้ไขได้ไหม
 app.get('/api/guild/:id/check', async (c) => {
-  const r = await checkAuth(c, c.req.param('id'))
+  const gid = c.req.param('id')
+  const r = await checkAuth(c, gid)
+  const canEdit = r === 'key' || r === 'role'
+  // คนที่แก้ได้เห็นรหัสเข้ากิลด์ (คัดลอกลิงก์เชิญ · เครื่องจำไว้ใช้เปิดหน้ากิลด์ได้เลยไม่ต้องพิมพ์)
+  const view = canEdit ? await c.env.DB.prepare('SELECT view_code FROM guilds WHERE id = ?').bind(gid).first<{ view_code: string | null }>() : null
+  c.header('Cache-Control', 'no-store')
   // owner = ใช้รหัสแก้ไข (เห็นปุ่มตั้งรหัส/ลบกิลด์/ตั้งค่า Discord) · สิทธิ์จากยศ Discord แก้ได้แต่ไม่ใช่เจ้าของ
-  return c.json({ canEdit: r === 'key' || r === 'role', owner: r === 'key', locked: r === 'locked' })
+  return c.json({ canEdit, owner: r === 'key', locked: r === 'locked', ...(view ? { viewCode: view.view_code ?? null } : {}) })
+})
+
+// รหัสเข้ากิลด์: ตั้ง/เปลี่ยน/ปิด (เจ้าของเท่านั้น) — เปลี่ยนแล้วคนที่ใช้รหัสเดิม (เช่น คนที่ออกกิลด์ไป) เข้าไม่ได้อีก
+app.put('/api/guild/:id/view', async (c) => {
+  const gid = c.req.param('id')
+  const auth = await checkOwner(c, gid)
+  if (auth !== 'ok') return deny(c, auth)
+  const body = await c.req.json().catch(() => ({}))
+  const code = typeof body.code === 'string' ? body.code.trim() : ''
+  if (code && (code.length < VIEW_MIN || code.length > VIEW_MAX)) return c.json({ error: `รหัสเข้ากิลด์ต้องยาว ${VIEW_MIN}–${VIEW_MAX} ตัวอักษร` }, 400)
+  await c.env.DB.prepare('UPDATE guilds SET view_code = ? WHERE id = ?').bind(code || null, gid).run()
+  return c.json({ viewCode: code || null })
 })
 
 // ตั้งรหัสแก้ไขใหม่ (ต้องมีรหัสเดิม) → รหัส/ลิงก์แก้ไขเดิมใช้ไม่ได้อีก
@@ -657,8 +711,19 @@ app.delete('/api/guild/:id/plans/:pid', async (c) => {
 // ---- pulse: ข้อมูลเล็ก ๆ สำหรับแถบประกาศ (เว็บเรียกทุก 60 วิ — ให้เบาที่สุด) ----
 app.get('/api/guild/:id/pulse', async (c) => {
   const gid = c.req.param('id')
-  const [g, latest, withPlan, perKind] = await c.env.DB.batch([
-    c.env.DB.prepare('SELECT name, rev FROM guilds WHERE id = ?').bind(gid),
+  c.header('Cache-Control', 'no-store')
+  // เว็บส่งเลขเวอร์ชันที่มีอยู่มา → ยังเท่าเดิม = ประกาศ/แผนไม่เปลี่ยน (ทุกการเขียนขยับ rev) อ่านแค่แถวกิลด์ 1 แถว
+  // (เรียกวันละหลายหมื่นครั้ง เดิมยิง 4 query ทุกครั้ง)
+  // แถวกิลด์ก่อนเสมอ (เช็กรหัสเข้ากิลด์) · เว็บส่งเลขเวอร์ชันที่มีอยู่มา → ยังเท่าเดิม = ประกาศ/แผนไม่เปลี่ยน
+  // (ทุกการเขียนขยับ rev) จบที่ 1 แถว — เรียกวันละหลายหมื่นครั้ง เดิมยิง 4 query ทุกครั้ง
+  const guild = await c.env.DB.prepare(`SELECT name, rev, view_code, ${VIEW_FAILS_SQL} FROM guilds WHERE id = ?`)
+    .bind(viewFailKey(c, gid), Date.now() - LOCK_MS, gid).first<any>()
+  if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
+  const gate = await viewGate(c, gid, guild)
+  if (gate) return gate
+  const known = c.req.query('rev')
+  if (known && guildRev(guild.rev) === known) return c.json({ unchanged: true, rev: known, schedule: GAME_SCHEDULE, season: GAME_SEASON })
+  const [latest, withPlan, perKind] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT * FROM announcements WHERE guild_id = ? ORDER BY created_at DESC LIMIT 1').bind(gid),
     c.env.DB.prepare(
       'SELECT a.plan_id, p.title FROM announcements a JOIN plans p ON p.id = a.plan_id WHERE a.guild_id = ? ORDER BY a.created_at DESC LIMIT 1',
@@ -670,11 +735,8 @@ app.get('/api/guild/:id/pulse', async (c) => {
        FROM announcements a JOIN plans p ON p.id = a.plan_id WHERE a.guild_id = ?) WHERE rn = 1`,
     ).bind(gid),
   ])
-  const guild = (g.results as any[])[0]
-  if (!guild) return c.json({ error: 'ไม่พบกิลด์' }, 404)
   const a = (latest.results as any[])[0]
   const p = (withPlan.results as any[])[0]
-  c.header('Cache-Control', 'no-store')
   return c.json({
     guildName: guild.name,
     rev: guildRev(guild.rev),
