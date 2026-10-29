@@ -23,3 +23,26 @@ database_name = "7k-note"
 database_id = "0452d0ac-94bf-4c7d-b2da-820406af4ce6"
 # ตอน dev แบบ local ใช้ฐานข้อมูลเดิมในเครื่อง (ข้อมูล local ผูกกับ id นี้)
 preview_database_id = "00000000-0000-0000-0000-000000000000"
+
+# Observability: Logs + Issues (ดูใน dashboard → 7k-note-api → Observability / Issues) — ต้องตรงกับที่ตั้งใน dashboard
+# ไม่งั้น deploy.cmd รอบหน้าจะปิดกลับไปเอง · ห้าม console.log ข้อมูลลับ (webhook, edit key, token) เพราะ log ถูกเก็บไว้
+# traces ปิดไว้ (ถ้าเปิดจะเก็บ URL ที่ worker เรียกออกไป รวมถึง webhook Discord)
+[observability]
+enabled = false
+head_sampling_rate = 1
+redact_query_string = false
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
+
+[observability.traces]
+enabled = false
+head_sampling_rate = 1
+persist = true
+
+# dashboard เรียกว่า "issue_detection" แต่ใน wrangler ใช้ชื่อ issues (ต้อง wrangler 4.134+)
+[observability.issues]
+enabled = true
