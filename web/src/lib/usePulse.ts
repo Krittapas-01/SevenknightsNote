@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, type Pulse } from './api'
+import { api, forgetViewKey, type Pulse } from './api'
 
 // Workers Paid: 10M request/เดือน + D1 อ่าน 25B แถว/เดือน — pulse ที่ไม่มีอะไรเปลี่ยนอ่าน D1 แค่ 1 แถว (?rev=)
 // ตัวกินหลักยังเป็นแท็บที่เปิดทิ้งไว้บนคอมทั้งวัน → พัก/หน้าต่างอยู่ข้างหลัง ยังเช็กห่าง ๆ เหมือนเดิม
@@ -26,7 +26,8 @@ function cachedPulse(gid: string | undefined): Pulse | null {
 
 export function usePulse(gid: string | undefined) {
   const [pulse, setPulseState] = useState<Pulse | null>(() => cachedPulse(gid))
-  const pulseRef = useRef(pulse) // ตัวที่โชว์อยู่ (ส่งเลขเวอร์ชันไปให้ API ตอบสั้น ๆ ถ้าไม่มีอะไรเปลี่ยน)
+  const pulseRef = useRef(pulse)
+  const [locked, setLocked] = useState(false) // กิลด์ล็อกด้วยรหัสเข้ากิลด์ และเครื่องนี้ยังไม่มีรหัส → ไม่โชว์แถบ // ตัวที่โชว์อยู่ (ส่งเลขเวอร์ชันไปให้ API ตอบสั้น ๆ ถ้าไม่มีอะไรเปลี่ยน)
   const setPulse = (p: Pulse) => {
     if (p === pulseRef.current) return // ไม่เปลี่ยน = ไม่ต้อง render/เขียนเครื่องใหม่
     pulseRef.current = p
@@ -59,6 +60,19 @@ export function usePulse(gid: string | undefined) {
       lastId.current = id
     } catch (e) {
       if ((e as { status?: number }).status === 404) gone.current = true
+      // หัวกิลด์ล็อก/เปลี่ยนรหัสเข้ากิลด์ → หยุดเช็ก ซ่อนแถบ แล้วให้หน้ากิลด์โหลดใหม่ (จะขึ้นหน้าใส่รหัส)
+      const d = (e as { data?: { viewLocked?: boolean; wrong?: boolean } }).data
+      if (d?.viewLocked) {
+        gone.current = true
+        if (d.wrong) forgetViewKey(gid, true)
+        pulseRef.current = null
+        setPulseState(null)
+        setLocked(true)
+        try { localStorage.removeItem(PKEY(gid)) } catch { /* ignore */ }
+        selfNotify.current = true
+        notifyGuildChanged(gid)
+        selfNotify.current = false
+      }
       /* อื่น ๆ: เน็ตหลุดชั่วคราว รอบหน้าค่อยลองใหม่ */
     }
   }, [gid])
@@ -69,6 +83,7 @@ export function usePulse(gid: string | undefined) {
     lastRev.current = undefined
     lastAt.current = 0
     gone.current = false
+    setLocked(false)
     pulseRef.current = cachedPulse(gid)
     setPulseState(pulseRef.current)
     check()
@@ -87,6 +102,9 @@ export function usePulse(gid: string | undefined) {
     const onVisible = () => { if (document.visibilityState === 'visible') { activeAt = Date.now(); check() } }
     // มีคนในหน้านี้โพสต์/แก้ → เช็กทันที (ไม่สนช่วงกันซ้อน) · ถ้าเป็น event ที่ตัวเองยิงก็ข้าม
     const onChanged = (e: Event) => (e as CustomEvent).detail === gid && !selfNotify.current && check(true)
+    // ใส่รหัสเข้ากิลด์ผ่านแล้ว → กลับมาเช็กต่อ
+    const onUnlocked = (e: Event) => { if ((e as CustomEvent).detail === gid) { gone.current = false; setLocked(false); check(true) } }
+    window.addEventListener('7knote:view-unlocked', onUnlocked)
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('focus', onVisible)
     window.addEventListener('7knote:changed', onChanged)
@@ -96,8 +114,9 @@ export function usePulse(gid: string | undefined) {
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('focus', onVisible)
       window.removeEventListener('7knote:changed', onChanged)
+      window.removeEventListener('7knote:view-unlocked', onUnlocked)
     }
   }, [gid, check])
 
-  return pulse
+  return { pulse, locked }
 }

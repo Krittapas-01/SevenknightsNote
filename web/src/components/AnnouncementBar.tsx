@@ -25,7 +25,7 @@ function ago(ts: number, now: number) {
 
 /** แถบประกาศติดใต้หัวเว็บ ทุกหน้าของกิลด์ อัปเดตเองทุก 30 วิ */
 export default function AnnouncementBar({ gid }: { gid: string }) {
-  const pulse = usePulse(gid)
+  const { pulse, locked } = usePulse(gid)
   const [now, setNow] = useState(Date.now())
   const [open, setOpen] = useState(false)
   const [seen, setSeen] = useState<string | null>(() => readSeen(gid))
@@ -39,6 +39,7 @@ export default function AnnouncementBar({ gid }: { gid: string }) {
   // ยังไม่เคยโหลด (เปิดกิลด์นี้ครั้งแรก) → จองที่ไว้ก่อน ไม่ให้เนื้อหาด้านล่างกระโดดตอนแถบโผล่
   // จอ sm ขึ้นไป แถบจริงมีแถวเดียว = py-2 + บรรทัด text-sm = 2.25rem (h-9) ทุกขนาดจอ
   // (เดิมจอคอมตั้ง 30px ตามที่วัดได้บนจอที่ย่อ 80% — ของจริง 36px → เนื้อหาโดนดันลงตอนแถบโผล่)
+  if (locked) return null // กิลด์ล็อกด้วยรหัสเข้ากิลด์ (หน้ากิลด์ขึ้นช่องใส่รหัสแทน)
   if (!pulse) return (
     <div aria-hidden className="border-b border-white/10 bg-[var(--surface-2)]/90">
       <div className="mx-auto flex h-[63px] max-w-6xl items-center gap-3 px-4 sm:h-9">

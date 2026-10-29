@@ -14,6 +14,9 @@ import { activePlanId } from '../lib/war'
 import { useSlideDir, useSlidePill } from '../lib/slide'
 import { getUnit, englishOf, unitBase } from '../data/heroes'
 import { EditLogin, EditSettings } from '../components/EditAccess'
+import GuildGate from '../components/GuildGate'
+import { inviteLink } from '../lib/api'
+import ViewLock from '../components/ViewLock'
 import { PLAN_KIND_LABEL, planKind, type GuildData, type Plan, type PlanKind, type Target, type Team, slotLabel } from '../lib/types'
 import { useGuild } from '../lib/useGuild'
 import HelpLink from '../components/HelpLink'
@@ -37,7 +40,7 @@ const matches = (t: Target, q: string) =>
 
 export default function GuildPage() {
   const { gid = '' } = useParams()
-  const { data, error, canEdit, realCanEdit, isOwner, setCanEdit, recheck, reload } = useGuild(gid)
+  const { data, error, gate, unlock, viewCode, changeViewCode, canEdit, realCanEdit, isOwner, setCanEdit, recheck, reload } = useGuild(gid)
   const [params, setParams] = useSearchParams()
   // ค้นหา/แท็ก/แท็บเก็บใน URL → กดเข้าบ้านแล้วกดย้อนกลับ ยังเป็นตัวกรองเดิม (ไม่เด้งกลับเป็น "ทั้งหมด")
   // แต่จอใช้ค่าในเครื่องก่อน (useParam): พิมพ์/กดแล้วขึ้นจอทันที URL ตามไปทีหลัง
@@ -142,13 +145,13 @@ export default function GuildPage() {
     requestAnimationFrame(again)
   }, [navType, data, scrollKey])
 
+  if (gate) return <GuildGate gid={gid} name={gate.name} msg={gate.msg} onUnlock={unlock} onLogin={recheck} />
   if (error) return <NotFound message={error} />
   if (!data) return <PageSkeleton kind="guild" />
-
   return (
     <div>
       {/* ส่วนบน (แบนเนอร์ + กระดานวอร์) และเนื้อหาแท็บ แยกเป็น memo: พิมพ์ค้นหา/กดแท็ก/กดแท็บ วาดใหม่แค่แถบแท็บ ช่องค้นหา และปุ่มแท็ก (INP) */}
-      <GuildHead gid={gid} data={data} canEdit={canEdit} realCanEdit={realCanEdit} isOwner={isOwner} setCanEdit={setCanEdit} recheck={recheck} reload={reload} />
+      <GuildHead gid={gid} data={data} canEdit={canEdit} realCanEdit={realCanEdit} isOwner={isOwner} setCanEdit={setCanEdit} recheck={recheck} reload={reload} viewCode={viewCode} changeViewCode={changeViewCode} />
 
       {/* แท็บ */}
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -221,13 +224,16 @@ function TagChip({ active, onClick, children }: { active: boolean; onClick: () =
 const readTab = (p: URLSearchParams): 'plans' | 'targets' => (p.get('tab') === 'targets' ? 'targets' : 'plans')
 
 /** แบนเนอร์กิลด์ + กระดานวอร์ (memo: ไม่วาดใหม่ตอนพิมพ์ค้นหา/กดแท็ก/สลับแท็บ) */
-const GuildHead = memo(function GuildHead({ gid, data, canEdit, realCanEdit, isOwner, setCanEdit, recheck, reload }: {
+const GuildHead = memo(function GuildHead({ gid, data, canEdit, realCanEdit, isOwner, setCanEdit, recheck, reload, viewCode, changeViewCode }: {
   gid: string; data: GuildData; canEdit: boolean; realCanEdit: boolean; isOwner: boolean
   setCanEdit: (v: boolean) => void; recheck: () => Promise<void>; reload: () => Promise<void>
+  viewCode: string | null | undefined; changeViewCode: (code: string | null) => void
 }) {
   const [copied, setCopied] = useState<string | null>(null)
+  // กิลด์ล็อกอยู่ + รู้รหัส (คนที่แก้ได้) → ปุ่มแชร์คัดลอกลิงก์เชิญที่มีรหัสในตัว
+  const invite = data.guild.viewLock && viewCode ? viewCode : null
   async function copy(kind: 'view') {
-    const url = `${location.origin}/g/${gid}`
+    const url = inviteLink(gid, invite)
     await navigator.clipboard.writeText(url).catch(() => prompt(tx('คัดลอกลิงก์นี้'), url))
     markShared(gid)
     setCopied(kind)
@@ -247,13 +253,16 @@ const GuildHead = memo(function GuildHead({ gid, data, canEdit, realCanEdit, isO
         </div>
         <div className="flex flex-wrap gap-2">
           <button data-onboard="share" onClick={() => copy('view')} className="pill flex items-center gap-1.5 px-4 py-2 text-sm hover:border-gold">
-            {copied === 'view' ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}{' '}{tx('ลิงก์ดูอย่างเดียว')}
+            {copied === 'view' ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}{' '}{invite ? L('ลิงก์เชิญ (มีรหัส)', 'Invite link (with code)') : tx('ลิงก์ดูอย่างเดียว')}
           </button>
           {/* คนที่แก้ได้: สลับมุมมองคนแก้/คนดู */}
           {realCanEdit && !isDemo(gid) && <ViewAsToggle gid={gid} />}
           {realCanEdit
             // ตั้งรหัส/ลบกิลด์/ออกจากโหมดแก้ = ของคนที่ใช้รหัสเท่านั้น (คนที่แก้ได้เพราะยศ Discord ไม่เห็น)
-            ? canEdit && isOwner && <EditSettings gid={gid} guildName={data.guild.name} onLogout={recheck} onRenamed={reload} />
+            ? canEdit && isOwner && <>
+              {!isDemo(gid) && <ViewLock gid={gid} locked={!!data.guild.viewLock} code={viewCode} onChange={changeViewCode} />}
+              <EditSettings gid={gid} guildName={data.guild.name} onLogout={recheck} onRenamed={reload} />
+            </>
             : <EditLogin gid={gid} onLogin={() => setCanEdit(true)} />}
         </div>
       </div>

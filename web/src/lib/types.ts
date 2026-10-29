@@ -50,7 +50,8 @@ export type Target = {
   editedAt?: number
 }
 
-export type Guild = { id: string; name: string; createdAt: number }
+/** viewLock = หัวกิลด์ตั้งรหัสเข้ากิลด์ไว้ (ต้องใส่รหัสก่อนดู) */
+export type Guild = { id: string; name: string; createdAt: number; viewLock?: boolean }
 /** โน้ตรายตัว: อุปกรณ์/เครื่องประดับ/ค่าความสามารถ */
 import type { HeroStats } from './stats'
 export type HeroNote = { hero: string; text: string; sets: string[]; rings: string[]; stats?: HeroStats }

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
-import { api, forgetEditKey, getEditKey, pushRecent, saveEditKey } from './api'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { L } from './i18n'
+import { api, captureInvite, staleViewKey, forgetEditKey, forgetViewKey, getEditKey, getViewKey, pushRecent, saveEditKey, saveViewKey } from './api'
 import { DEMO_ID } from './demo'
 import { getSession, onAuthChange } from './auth'
 import type { GuildData } from './types'
@@ -12,6 +13,8 @@ const mem = new Map<string, GuildData>()
 const editMem = new Map<string, boolean>()
 /** เจ้าของ = ใช้รหัสแก้ไข (ตั้งรหัสใหม่/ลบกิลด์/ตั้งค่า Discord ได้) · แก้ได้เพราะยศ Discord = ไม่ใช่เจ้าของ */
 const ownerMem = new Map<string, boolean>()
+/** รหัสเข้ากิลด์ที่ได้จาก /check (คนที่แก้ได้) — จำข้ามหน้า เพราะเปลี่ยนหน้าภายใน 1 นาทีไม่เช็กสิทธิ์ซ้ำ */
+const viewMem = new Map<string, string | null>()
 // เปลี่ยนหน้าภายในกิลด์ (บ้านศัตรู ↔ แผน ↔ หน้ากิลด์) → ถ้าเพิ่งโหลด/เช็กสิทธิ์ไปไม่ถึง 1 นาที ไม่ต้องยิงซ้ำ
 // (ถ้ามีคนแก้ แถบประกาศเช็กเลขเวอร์ชันทุกรอบอยู่แล้ว เจอเปลี่ยน = สั่งโหลดใหม่เอง) · ประหยัดโควตา API
 const FRESH_MS = 60_000
@@ -85,6 +88,22 @@ function store(gid: string, data: GuildData) {
   } catch { /* เต็ม/โหมดส่วนตัว — ใช้แค่ในหน่วยความจำ */ }
 }
 
+/**
+ * กิลด์ล็อกด้วยรหัสเข้ากิลด์แล้วเครื่องนี้ไม่มีรหัส/รหัสเก่า (เช่น คนที่ออกกิลด์ไป หลังหัวกิลด์เปลี่ยนรหัส)
+ * → ลบข้อมูลกิลด์นี้ที่จำไว้ในเครื่องทิ้งทั้งหมด ไม่ให้เปิดดูของเก่าที่ค้างอยู่ได้
+ */
+export function forgetGuildData(gid: string) {
+  mem.delete(gid)
+  loadedAt.delete(gid)
+  try {
+    const rest = readStored().filter((x) => x.gid !== gid)
+    localStorage.setItem(LS, JSON.stringify(rest))
+    localStorage.removeItem(`7knote:pulse:${gid}`)
+  } catch { /* ignore */ }
+}
+export type ViewGate = { name: string; msg: string }
+const isViewLocked = (e: unknown) => !!(e as { data?: { viewLocked?: boolean } }).data?.viewLocked
+
 // สิทธิ์แก้ไขล่าสุดที่เช็กได้ (เก็บในเครื่อง) — เปิดเว็บใหม่ = ขึ้นหน้าแบบคนแก้ทันทีตามผลครั้งก่อน แล้วค่อยเช็กจริงเบื้องหลัง
 // ไม่งั้นทุกครั้งที่เปิด หน้าขึ้นแบบดูอย่างเดียวก่อน แล้วปุ่ม/แถบของคนแก้โผล่ทีหลัง → เนื้อหาทั้งหน้าถูกดันลง (CLS)
 // แค่เรื่องหน้าตา: เซิร์ฟเวอร์เช็กสิทธิ์จริงทุกครั้งที่บันทึก · ไม่มีรหัสในเครื่องและไม่ได้ล็อกอิน = ไม่ใช้ค่าที่จำไว้
@@ -129,6 +148,7 @@ function fetchGuild(gid: string) {
  * ไม่ต้องรอโค้ดหน้าโหลด+วาดเสร็จก่อนค่อยยิง (รูปอัศวินบนจอขึ้นเร็วขึ้น — LCP) · หน้าที่เปิดขึ้นมารอผลเดียวกันนี้ ไม่ยิงซ้ำ
  */
 export function prefetchGuild(gid: string): Promise<GuildData> | null {
+  captureInvite(gid)
   if (gid === DEMO_ID || loading.has(gid) || (isFresh(loadedAt, gid) && peek(gid))) return null
   const run = fetchGuild(gid)
   run.catch(() => { /* หน้ากิลด์จัดการเอง (ขึ้นไม่พบ/โหลดใหม่ไม่สำเร็จ) */ })
@@ -141,6 +161,13 @@ export function useGuild(gid: string) {
   const [error, setError] = useState<string | null>(null)
   const [canEdit, setCanEditState] = useState(() => editMem.get(gid) ?? lastEdit(gid)?.canEdit ?? false)
   const [owner, setOwnerState] = useState(() => ownerMem.get(gid) ?? lastEdit(gid)?.owner ?? false)
+  // ล็อกด้วยรหัสเข้ากิลด์ → หน้าใส่รหัส (แทนข้อมูลกิลด์)
+  const [gate, setGate] = useState<ViewGate | null>(null)
+  const gated = useRef(false)
+  const typed = useRef(false) // รหัสที่เพิ่งพิมพ์เอง (ผิด = "รหัสไม่ถูกต้อง") ไม่ใช่รหัสเก่าที่เครื่องจำไว้
+  // รหัสเข้ากิลด์ปัจจุบัน (เฉพาะคนที่แก้ได้ — ได้จาก /check) · null = ไม่ได้ล็อก · undefined = ไม่รู้
+  const [viewCode, setViewCodeState] = useState<string | null | undefined>(() => viewMem.get(gid))
+  const setViewCode = useCallback((v: string | null) => { viewMem.set(gid, v); setViewCodeState(v) }, [gid])
   const setCanEdit = useCallback((v: boolean, isOwner = v) => {
     editMem.set(gid, v); setCanEditState(v)
     ownerMem.set(gid, v && isOwner); setOwnerState(v && isOwner)
@@ -152,6 +179,8 @@ export function useGuild(gid: string) {
     setData(peek(gid))
     setCanEditState(editMem.get(gid) ?? lastEdit(gid)?.canEdit ?? false)
     setOwnerState(ownerMem.get(gid) ?? lastEdit(gid)?.owner ?? false)
+    setGate(null)
+    setViewCodeState(viewMem.get(gid))
   }, [gid])
 
   const reload = useCallback(async () => {
@@ -160,6 +189,11 @@ export function useGuild(gid: string) {
       const d = await run
       setData(d)
       setError(null)
+      setGate(null)
+      typed.current = false
+      // เพิ่งผ่านหน้าใส่รหัส (พิมพ์เอง/ได้รหัสจากสิทธิ์แก้ไข) → แถบประกาศกลับมาเช็กต่อ
+      if (gated.current) window.dispatchEvent(new CustomEvent('7knote:view-unlocked', { detail: gid }))
+      gated.current = false
       window.dispatchEvent(new Event('7knote:refresh-ok'))
       pushRecent({ id: d.guild.id, name: d.guild.name })
     } catch (e) {
@@ -172,6 +206,23 @@ export function useGuild(gid: string) {
    */
   const failed = useCallback((id: string, e: unknown) => {
     const status = (e as { status?: number }).status
+    if (isViewLocked(e)) {
+      const d = (e as { data: { guildName?: string; wrong?: boolean; error?: string } }).data
+      if (d.wrong && !typed.current) forgetViewKey(id, true) // รหัสในเครื่องใช้ไม่ได้แล้ว → ลบ ไม่งั้นทุกรอบนับเป็นใส่ผิด (IP เดียวกันโดนล็อกไปด้วย)
+      else if (d.wrong) forgetViewKey(id)
+      forgetGuildData(id)
+      gated.current = true
+      setData(null)
+      setGate({
+        name: d.guildName ?? '',
+        msg: status === 429 ? (d.error ?? '')
+          : d.wrong && typed.current ? L('รหัสเข้ากิลด์ไม่ถูกต้อง', 'Wrong guild code')
+          : staleViewKey.has(id) ? L('หัวกิลด์เปลี่ยนรหัสเข้ากิลด์แล้ว ขอรหัสใหม่จากหัวกิลด์', 'The guild code was changed. Ask your guild leader for the new one.')
+          : '',
+      })
+      typed.current = false
+      return
+    }
     if (status !== 404 && peek(id)) {
       window.dispatchEvent(new CustomEvent('7knote:refresh-failed', { detail: id }))
       return
@@ -189,6 +240,14 @@ export function useGuild(gid: string) {
       const r = await run
       checkedAt.set(gid, Date.now())
       setCanEdit(r.canEdit, r.owner ?? r.canEdit) // API เก่าที่ยังไม่ส่ง owner = ถือว่าเจ้าของ (เหมือนเดิม)
+      // คนที่แก้ได้ (รหัสแก้ไข/ยศ Discord) ได้รหัสเข้ากิลด์มาด้วย → เครื่องจำไว้ เปิดหน้ากิลด์ได้เลยไม่ต้องพิมพ์
+      if (r.viewCode !== undefined) {
+        setViewCode(r.viewCode)
+        if (r.viewCode && getViewKey(gid) !== r.viewCode) {
+          saveViewKey(gid, r.viewCode)
+          reload() // อาจเพิ่งเจอหน้าใส่รหัส (โหลดพร้อมกับเช็กสิทธิ์) → โหลดใหม่ด้วยรหัสนี้
+        }
+      }
       // รหัสในเครื่องใช้ไม่ได้แล้ว (หัวกิลด์เปลี่ยนรหัส) → ลบทิ้ง ไม่งั้นทุกครั้งที่เปิดหน้าจะนับเป็นใส่รหัสผิด
       // และอาจทำให้คนอื่นที่ใช้ IP เดียวกัน (เน็ตมือถือ) โดนล็อกไปด้วย
       if (!r.canEdit && !r.locked && getEditKey(gid)) forgetEditKey(gid)
@@ -197,11 +256,24 @@ export function useGuild(gid: string) {
     } finally {
       if (checking.get(gid) === run) checking.delete(gid)
     }
-  }, [gid, setCanEdit])
+  }, [gid, setCanEdit, setViewCode, reload])
 
   useEffect(() => onAuthChange(() => void recheck()), [recheck])
 
+  /** หน้าใส่รหัสเข้ากิลด์: จำรหัสไว้ในเครื่องแล้วโหลดใหม่ (ผิด = failed() ขึ้นข้อความ) */
+  const unlock = useCallback(async (code: string) => {
+    saveViewKey(gid, code)
+    typed.current = true
+    await reload()
+  }, [gid, reload])
+  /** หัวกิลด์ตั้ง/เปลี่ยน/ปิดรหัส (หน้าตั้งค่า) → จำรหัสใหม่ในเครื่องนี้ */
+  const changeViewCode = useCallback((code: string | null) => {
+    setViewCode(code)
+    if (code) saveViewKey(gid, code); else forgetViewKey(gid)
+  }, [gid, setViewCode])
+
   useEffect(() => {
+    captureInvite(gid) // ลิงก์เชิญ #code=... (เปลี่ยนหน้าภายในเว็บมาที่ลิงก์เชิญ ไม่ผ่าน prefetchGuild)
     const url = new URL(window.location.href)
     const key = url.searchParams.get('key')
     if (key) {
@@ -237,5 +309,5 @@ export function useGuild(gid: string) {
 
   // ตั้งค่า → มุมมองคนดู: ซ่อนปุ่มแก้ทุกหน้า (สิทธิ์จริงยังอยู่ = realCanEdit)
   const viewer = useViewer(gid)
-  return { data, error, canEdit: canEdit && !viewer, realCanEdit: canEdit, isOwner: owner && !viewer, setCanEdit, recheck, reload, patch }
+  return { data, error, gate, unlock, viewCode, changeViewCode, canEdit: canEdit && !viewer, realCanEdit: canEdit, isOwner: owner && !viewer, setCanEdit, recheck, reload, patch }
 }
