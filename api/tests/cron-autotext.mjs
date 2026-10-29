@@ -4,8 +4,8 @@ import { readFile, readdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
-let hits = 0; const paths = []; const bodies = []
-const srv = http.createServer((req, res) => { hits++; paths.push(req.url); let d=''; req.on('data', (c) => d += c); req.on('end', () => { bodies.push(d); res.end('{}') }) }).listen(0)
+let hits = 0; const paths = []; const bodies = []; const byPath = {}
+const srv = http.createServer((req, res) => { hits++; paths.push(req.url); let d=''; req.on('data', (c) => d += c); req.on('end', () => { bodies.push(d); byPath[req.url] ??= JSON.parse(d); res.end('{}') }) }).listen(0)
 const port = srv.address().port
 const root = fileURLToPath(new URL('../', import.meta.url))
 const bundle = await build({ stdin: { resolveDir: root, contents: `
@@ -24,7 +24,7 @@ const st = []; for (const f of files) st.push(...(await readFile(root + f, 'utf8
 await sql(st)
 
 // 2026-10-06 = อังคาร = defense (GAME_SCHEDULE[1])
-const ids = ['gA', 'gB', 'gC', 'gD', 'gE']
+const ids = ['gA', 'gB', 'gC', 'gD', 'gE', 'gF']
 const seed = []
 for (const id of ids) {
   seed.push(`INSERT INTO guilds (id,name,edit_hash,created_at) VALUES ('${id}','${id}','x',0)`)
@@ -32,6 +32,8 @@ for (const id of ids) {
 }
 seed.push(`INSERT INTO guild_settings (guild_id,schedule,discord_webhook,auto_text_defense) VALUES ('gA','[]','http://127.0.0.1:${port}/gA','จัดบ้านด่วน! วัน{วัน} ใส่ทีมกันด้วย')`)
 seed.push(`INSERT INTO guild_settings (guild_id,schedule,discord_webhook,auto_text_attack) VALUES ('gB','[]','http://127.0.0.1:${port}/gB','ตีๆ')`)
+// แท็กยศ @here: ข้อความที่พิมพ์ @everyone มาเองต้องไม่แท็ก
+seed.push(`INSERT INTO guild_settings (guild_id,schedule,discord_webhook,discord_mention,auto_text_defense) VALUES ('gF','[]','http://127.0.0.1:${port}/gF','here','@everyone มาจัดบ้าน {วัน}')`)
 // {day} (หน้าตั้งค่าภาษาอังกฤษ) ต้องถูกแทนเหมือน {วัน}
 seed.push(`INSERT INTO guild_settings (guild_id,schedule,auto_text_attack) VALUES ('gD','[]','Attack day ({day}) · {วัน}')`)
 // แผนที่ใช้อยู่ (ประกาศเก่าที่ผูกแผน) ต้องไม่ถูกลบตอนตัดประกาศเหลือ 200
@@ -49,6 +51,13 @@ assert.equal(rows.find((x) => x.guild_id === 'gC').body, 'วันนี้ (�
 console.log('discord bodies', JSON.stringify(bodies))
 assert.ok(bodies.some((b) => b.includes('จัดบ้านด่วน! วันอังคาร')))
 assert.ok(bodies.some((b) => b.includes('วันนี้ (อังคาร) วันจัดบ้านกัน · ช่วงแก้ทีม 07:00–18:00 (18:00 เริ่มจัดบ้าน)')))
+// ส่งเป็นข้อความธรรมดา (แจ้งเตือนมือถือโชว์แค่ content) ไม่มีกล่อง embed / กล่องตัวอย่างลิงก์
+const sent = bodies.map((b) => JSON.parse(b))
+assert.ok(sent.every((m) => !m.embeds && m.flags === 4 && m.content.length <= 2000))
+assert.equal(byPath['/gA'].content, '📢 จัดบ้านด่วน! วันอังคาร ใส่ทีมกันด้วย\n-# ประกาศอัตโนมัติ 07:00 · [gA · 7K Note](http://x/g/gA)')
+const gF = byPath['/gF']
+assert.equal(gF.content.split('\n')[0], '@here 📢 @\u200beveryone มาจัดบ้าน อังคาร')
+assert.deepEqual(gF.allowed_mentions, { parse: ['everyone'] })
 // Wednesday = attack → gB custom
 const r2 = await (await fetch(new URL('/__cron?now=' + Date.parse('2026-10-07T00:00:30Z'), url))).json()
 const [rows2] = await sql(["SELECT guild_id, body FROM announcements WHERE auto = 1 AND created_at = " + Date.parse('2026-10-07T00:00:30Z') + " ORDER BY guild_id"])
