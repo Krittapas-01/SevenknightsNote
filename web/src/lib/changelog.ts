@@ -27,6 +27,20 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
+    id: '2026-10-30',
+    version: '1.6.1',
+    date: '30 ต.ค. 2026',
+    title: 'New Knight',
+    summary: 'อัศวินใหม่ จูดาส และร่าง awake ของลี',
+    sections: [
+      { kind: 'new', groups: [
+        g('อัศวินใหม่',
+          'จูดาส (ทองบน ธาตุสมดุล) ทั้งร่างปกติและร่าง awake: รูป ชื่อสกิล วันเข้าเกม และค่าโจมตีพื้นฐาน (หน้าบิสกิต)',
+          'ลี awake (ม่วง ธาตุป้องกัน): รูป สกิล awake และค่าโจมตีพื้นฐานของร่าง awake'),
+      ] },
+    ],
+  },
+  {
     id: '2026-10-25',
     version: '1.6',
     date: '25 ต.ค. 2026',
@@ -390,6 +404,17 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
+  {
+    id: '2026-10-30', version: '1.6.1', date: '30 Oct 2026', title: 'New Knight',
+    summary: 'New hero Judas and Li\'s awakened form',
+    sections: [
+      { kind: 'new', groups: [
+        g('New heroes',
+          'Judas (L+, Universal), base and awakened: portraits, skill names, release date and base attack (Biscuit page)',
+          'Li awakened (Rare, Defense): portrait, awakened skill and awakened base attack'),
+      ] },
+    ],
+  },
   {
     id: '2026-10-25', version: '1.6', date: '25 Oct 2026', title: 'Formation',
     summary: 'The biggest patch yet: Ruby Farming Calculator · pack value checker · team building like in the game · tool cards on the home page · skill queue in full team details · automatic team speed · English mode on every page · smoother, with no page jumps',
