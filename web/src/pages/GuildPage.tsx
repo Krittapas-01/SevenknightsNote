@@ -231,7 +231,8 @@ const GuildHead = memo(function GuildHead({ gid, data, canEdit, realCanEdit, isO
 }) {
   const [copied, setCopied] = useState<string | null>(null)
   // กิลด์ล็อกอยู่ + รู้รหัส (คนที่แก้ได้) → ปุ่มแชร์คัดลอกลิงก์เชิญที่มีรหัสในตัว
-  const invite = data.guild.viewLock && viewCode ? viewCode : null
+  // viewCode มาจาก /check หรือเพิ่งตั้งเอง (null = ไม่ได้ล็อก) → ปุ่มเปลี่ยนทันทีหลังล็อก ไม่ต้องรอข้อมูลกิลด์รอบถัดไป
+  const invite = viewCode || null
   async function copy(kind: 'view') {
     const url = inviteLink(gid, invite)
     await navigator.clipboard.writeText(url).catch(() => prompt(tx('คัดลอกลิงก์นี้'), url))
