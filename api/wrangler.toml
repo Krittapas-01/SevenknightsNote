@@ -39,8 +39,25 @@ bucket_name = "7k-note-backup"
 binding = "USAGE"
 dataset = "usage_7knote"
 
-# Workers Logs (ดู log ใน dashboard → 7k-note-api → Observability) — ต้องตรงกับที่ตั้งใน dashboard
-# ไม่งั้น deploy.cmd รอบหน้าจะปิด log กลับไปเอง · ห้าม console.log ข้อมูลลับ (webhook, edit key, token) เพราะ log ถูกเก็บไว้
+# Observability: Logs + Issues (ดูใน dashboard → 7k-note-api → Observability / Issues) — ต้องตรงกับที่ตั้งใน dashboard
+# ไม่งั้น deploy.cmd รอบหน้าจะปิดกลับไปเอง · ห้าม console.log ข้อมูลลับ (webhook, edit key, token) เพราะ log ถูกเก็บไว้
+# traces ปิดไว้ (ถ้าเปิดจะเก็บ URL ที่ worker เรียกออกไป รวมถึง webhook Discord)
+[observability]
+enabled = false
+head_sampling_rate = 1
+redact_query_string = false
+
 [observability.logs]
 enabled = true
+head_sampling_rate = 1
 invocation_logs = true
+persist = true
+
+[observability.traces]
+enabled = false
+head_sampling_rate = 1
+persist = true
+
+# dashboard เรียกว่า "issue_detection" แต่ใน wrangler ใช้ชื่อ issues (ต้อง wrangler 4.134+)
+[observability.issues]
+enabled = true
