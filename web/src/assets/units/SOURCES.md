@@ -246,3 +246,13 @@ Matched to `portraits.s6` in [Legendary+ metadata](https://7katlas.com/COMBINE/h
 | --- | --- | --- |
 | Giyu.webp | กิยู / base | [WebP](https://7katlas.com/images/heroes/thumb/L+/6/Tex_HeroIcon_102016Big.webp) |
 | Shinobu.webp | ชิโนบุ / base | [WebP](https://7katlas.com/images/heroes/thumb/L+/6/Tex_HeroIcon_102006Big.webp) |
+
+## Judas and Li awakened portraits (2026-10-30)
+
+Judas is a new Legendary+ hero (released 2026-10-29, base and awakened), and Li (Rare) got an awakened form the same day. Matched to `portraits.s6` / `portraits.awk` in [Legendary+ metadata](https://7katlas.com/COMBINE/heroes-Lplus.js) and [Rare metadata](https://7katlas.com/COMBINE/heroes-R.js), using the compressed transparent thumbnail variants. Local 256px copies in `thumb/` use the same artwork.
+
+| Local file | Hero / form | Source |
+| --- | --- | --- |
+| Judas.webp | จูดาส / base | [WebP](https://7katlas.com/images/heroes/thumb/L+/6/Tex_HeroIcon_102046Big.webp) |
+| Judas awake.webp | จูดาส / awakened | [WebP](https://7katlas.com/images/heroes/thumb/L+/AWK/Tex_HeroIcon_402047Big.webp) |
+| ลี awake.webp | ลี / awakened | [WebP](https://7katlas.com/images/heroes/thumb/R/AWK/Tex_HeroIcon_400647Big.webp) |

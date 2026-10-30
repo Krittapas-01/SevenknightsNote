@@ -62,6 +62,7 @@ export const GOLD_EN: Record<string, string> = {
   'ซุนหงอคง': "Sun Wukong",
   'ซองจินอู': "Sung Jinwoo",
   'ซอรัน': "Sunran",
+  'จูดาส': "Judas",
   'กิยู': "Giyu",
   'ชิโนบุ': "Shinobu",
   'ทันจิโร่': "Tanjiro",

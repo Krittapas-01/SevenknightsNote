@@ -27,13 +27,16 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
-    id: '2026-11-01',
-    version: '1.7',
-    date: '1 พ.ย. 2026',
+    id: '2026-10-30',
+    version: '1.6.1',
+    date: '30 ต.ค. 2026',
     title: 'Heads Up',
-    summary: 'ล็อกหน้ากิลด์ด้วยรหัสเข้ากิลด์ · แจ้งเตือน Discord ก่อนหมดเวลา 1 ชม. · แชร์ลิงก์ใน Discord แล้วเห็นชื่อกิลด์และรูปทีม · ประกาศใหม่ขึ้นเร็วขึ้น · สำรองข้อมูลทุกคืน',
+    summary: 'อัศวินใหม่ จูดาส และลี awake · ล็อกหน้ากิลด์ด้วยรหัสเข้ากิลด์ · แจ้งเตือน Discord ก่อนหมดเวลา 1 ชม. · แชร์ลิงก์ใน Discord แล้วเห็นชื่อกิลด์และรูปทีม · ประกาศใหม่ขึ้นเร็วขึ้น · สำรองข้อมูลทุกคืน',
     sections: [
       { kind: 'new', groups: [
+        g('อัศวินใหม่',
+          'จูดาส (ทองบน ธาตุสมดุล) ทั้งร่างปกติและร่าง awake: รูป ชื่อสกิล วันเข้าเกม และค่าโจมตีพื้นฐาน (หน้าบิสกิต)',
+          'ลี awake (ม่วง ธาตุป้องกัน): รูป สกิล awake และค่าโจมตีพื้นฐานของร่าง awake'),
         g('รหัสเข้ากิลด์ (ล็อกหน้ากิลด์)',
           'หัวกิลด์กด "ล็อกหน้ากิลด์" ในหน้ากิลด์ แล้วตั้งรหัส (4–32 ตัว หรือกดสุ่ม) · คนเปิดลิงก์จะต้องใส่รหัสก่อนถึงจะเห็นแผน บ้านศัตรู ทีมแก้ และประกาศ',
           'คัดลอก "ลิงก์เชิญ" ที่มีรหัสในตัวไปแปะในห้อง Discord ของกิลด์ สมาชิกกดทีเดียวเข้าได้เลย · ใส่รหัสครั้งเดียว เครื่องจำไว้',
@@ -417,10 +420,13 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
   {
-    id: '2026-11-01', version: '1.7', date: '1 Nov 2026', title: 'Heads Up',
-    summary: 'Lock your guild page with a guild code · Discord reminder 1 hour before time runs out · guild links show the guild and team in Discord · new announcements show up faster · nightly backups',
+    id: '2026-10-30', version: '1.6.1', date: '30 Oct 2026', title: 'Heads Up',
+    summary: 'New hero Judas and Li awakened · lock your guild page with a guild code · Discord reminder 1 hour before time runs out · guild links show the guild and team in Discord · new announcements show up faster · nightly backups',
     sections: [
       { kind: 'new', groups: [
+        g('New heroes',
+          'Judas (L+, Universal), base and awakened: portraits, skill names, release date and base attack (Biscuit page)',
+          'Li awakened (Rare, Defense): portrait, awakened skill and awakened base attack'),
         g('Guild code (lock the guild page)',
           'Guild leaders tap "Lock guild" on the guild page and set a code (4–32 characters, or tap Random). Anyone opening the link must enter it before they see plans, enemy defenses, counters and announcements.',
           'Copy the "invite link" with the code built in and post it in your guild Discord. Members tap it once and they are in. The device remembers the code.',

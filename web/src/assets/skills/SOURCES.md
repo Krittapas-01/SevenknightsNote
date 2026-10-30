@@ -305,3 +305,14 @@ Matched the existing skill entries to `skills` in [Atlas Legendary+ metadata](ht
 | ชิโนบุ / active | [Tex_Skill_1020002.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1020002.webp) |
 | ชิโนบุ / active | [Tex_Skill_1020003.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1020003.webp) |
 | ชิโนบุ / awakened | [Tex_Skill_4020006.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4020006.webp) |
+
+## Judas and Li awakened skill icons (2026-10-30)
+
+Matched the new skill entries to `skills` in [Atlas Legendary+ metadata](https://7katlas.com/COMBINE/heroes-Lplus.js) and [Rare metadata](https://7katlas.com/COMBINE/heroes-R.js). Li's two active icons were already here.
+
+| Hero | Local file / source |
+| --- | --- |
+| จูดาส / active | [Tex_Skill_1020402.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1020402.webp) |
+| จูดาส / active | [Tex_Skill_1020403.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_1020403.webp) |
+| จูดาส / awakened | [Tex_Skill_4020406.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4020406.webp) |
+| ลี / awakened | [Tex_Skill_4006406.webp](https://7katlas.com/images/skillsraw/heroes/Tex_Skill_4006406.webp) |
