@@ -27,6 +27,19 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
+    id: '2026-10-30b',
+    version: '1.6.2',
+    date: '30 ต.ค. 2026',
+    title: 'Safe Keeping',
+    summary: 'ดูแลการสำรองข้อมูลทุกคืนให้ชัดขึ้น',
+    sections: [
+      { kind: 'change', groups: [
+        g(undefined,
+          'ผู้ดูแลเว็บเห็นได้ทุกวันว่าการสำรองข้อมูลตอนตี 3 สำเร็จไหม ถ้าคืนไหนพลาดจะรู้ทันที ข้อมูลกิลด์จึงกู้คืนได้เสมอ'),
+      ] },
+    ],
+  },
+  {
     id: '2026-10-30',
     version: '1.6.1',
     date: '30 ต.ค. 2026',
@@ -419,6 +432,16 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
+  {
+    id: '2026-10-30b', version: '1.6.2', date: '30 Oct 2026', title: 'Safe Keeping',
+    summary: 'Closer watch on the nightly backups',
+    sections: [
+      { kind: 'change', groups: [
+        g(undefined,
+          'The site admin now sees every day whether the 03:00 backup worked, so a missed night is caught right away and guild data can always be restored'),
+      ] },
+    ],
+  },
   {
     id: '2026-10-30', version: '1.6.1', date: '30 Oct 2026', title: 'Heads Up',
     summary: 'New hero Judas and Li awakened · lock your guild page with a guild code · Discord reminder 1 hour before time runs out · guild links show the guild and team in Discord · new announcements show up faster · nightly backups',

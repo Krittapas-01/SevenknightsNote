@@ -291,12 +291,21 @@ export type AdminGuild = {
   id: string; name: string; createdAt: number; lastActive: number
   targets: number; counters: number; plans: number; announcements: number; autoAnnouncements: number
   webhook: number; discordLogin: number
+  /** เปิดแจ้งเตือน Discord ก่อนหมดเวลา 1 ชม. */
+  warReminder: number
+  /** ตั้งรหัสเข้ากิลด์ไว้ (ไม่ส่งตัวรหัสมา) */
+  locked: number
 }
+/** ไฟล์สำรองฐานข้อมูลใน R2 (configured:false = ไม่มี bucket เช่นตอน dev) */
+export type AdminBackup =
+  | { configured: false }
+  | { configured: true; error: string }
+  | { configured: true; error?: undefined; keepDays: number; count: number; totalBytes: number; latest: { day: string; bytes: number; rows: number | null; uploadedAt: number } | null; recent: string[] }
 export type PresetInput = { name: string; team: Team; skills: SkillStep[]; note: string; heroNotes: HeroNote[] }
 export type Preset = PresetInput & { id: string; createdAt: number; updatedAt: number }
 export type LikedCounter = {
   counterId: string; guildId: string; guildName: string; targetId: string; likedAt: number; likes: number
   team: Team; skills: SkillStep[]; note: string; targetTeam: Team; targetTags: string[]
 }
-export type AdminStats = { now: number; guilds: AdminGuild[]; discordUsers: number }
+export type AdminStats = { now: number; guilds: AdminGuild[]; discordUsers: number; backup?: AdminBackup }
 export type AdminUsage = { configured: boolean; error?: string; rows?: { event: string; today: number; d7: number; d30: number }[] }

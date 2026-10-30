@@ -1282,6 +1282,7 @@ app.get('/api/admin/stats', async (c) => {
         COALESCE(t.n, 0) AS targets, COALESCE(k.n, 0) AS counters, COALESCE(p.n, 0) AS plans,
         COALESCE(a.manual, 0) AS announcements, COALESCE(a.auto, 0) AS autoAnnouncements,
         COALESCE(s.discord_webhook, '') <> '' AS webhook, COALESCE(s.discord_guild_id, '') <> '' AS discordLogin,
+        COALESCE(s.war_reminder, 0) <> 0 AS warReminder, COALESCE(g.view_code, '') <> '' AS locked,
         MAX(g.created_at, COALESCE(t.last, 0), COALESCE(k.last, 0), COALESCE(p.last, 0), COALESCE(a.last, 0)) AS lastActive
       FROM guilds g
       LEFT JOIN t ON t.guild_id = g.id LEFT JOIN k ON k.guild_id = g.id LEFT JOIN p ON p.guild_id = g.id
@@ -1289,8 +1290,34 @@ app.get('/api/admin/stats', async (c) => {
       ORDER BY lastActive DESC`),
     c.env.DB.prepare('SELECT COUNT(DISTINCT user_id) AS n FROM sessions WHERE expires_at > ?').bind(now),
   ])
-  return c.json({ now, guilds: guilds.results, discordUsers: (users.results[0] as any)?.n ?? 0 })
+  return c.json({ now, guilds: guilds.results, discordUsers: (users.results[0] as any)?.n ?? 0, backup: await backupStatus(c.env) })
 })
+
+/** หน้าแอดมิน: ไฟล์สำรองใน R2 (คืนล่าสุด / จำนวน / ขนาดรวม) — ดูแค่ชื่อไฟล์กับขนาด ไม่เปิดอ่านเนื้อหา */
+async function backupStatus(env: Env) {
+  if (!env.BACKUP) return { configured: false as const }
+  try {
+    const files: { day: string; bytes: number; rows: number | null; uploadedAt: number }[] = []
+    let cursor: string | undefined
+    do {
+      const list = await env.BACKUP.list({ prefix: 'd1/', cursor, include: ['customMetadata'] })
+      for (const o of list.objects) {
+        const day = o.key.slice(3, 13)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) continue
+        const rows = o.customMetadata?.rows ? Number(o.customMetadata.rows) : NaN
+        files.push({ day, bytes: o.size, rows: Number.isFinite(rows) ? rows : null, uploadedAt: o.uploaded.getTime() })
+      }
+      cursor = list.truncated ? list.cursor : undefined
+    } while (cursor)
+    files.sort((a, b) => (a.day < b.day ? 1 : -1))
+    return {
+      configured: true as const, keepDays: BACKUP_KEEP_DAYS, count: files.length, totalBytes: files.reduce((s, f) => s + f.bytes, 0),
+      latest: files[0] ?? null, recent: files.slice(0, 14).map((f) => f.day),
+    }
+  } catch {
+    return { configured: true as const, error: 'list failed' }
+  }
+}
 
 // ---------- สถิติการใช้ปุ่ม/ฟีเจอร์ (Workers Analytics Engine) ----------
 // เว็บส่ง { events: { ocr: 2, ... } } ตอนปิด/ซ่อนแท็บ (sendBeacon, text/plain) · รับเฉพาะชื่อใน USAGE_EVENTS · ไม่เก็บ URL/IP/กิลด์
