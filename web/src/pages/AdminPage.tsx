@@ -9,6 +9,7 @@ import { useAuth } from '../lib/auth'
 import NotFound from './NotFound'
 import AdminPacks from '../components/AdminPacks'
 import AdminUsage from '../components/AdminUsage'
+import AdminUsers from '../components/AdminUsers'
 
 const DAY = 86_400_000
 type SortKey = 'lastActive' | 'createdAt' | 'targets' | 'counters' | 'name'
@@ -170,6 +171,7 @@ export default function AdminPage() {
         )}
       </Modal>
       <p className="mt-2 text-xs text-white/35">{L('เห็นแค่ตัวเลข — ไม่แสดง webhook URL, รหัส หรือเนื้อหาในกิลด์', 'Numbers only — no webhook URLs, codes or guild content')}</p>
+      <AdminUsers />
       <AdminUsage />
       <AdminPacks />
     </div>

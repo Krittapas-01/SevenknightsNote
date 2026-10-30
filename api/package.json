@@ -12,7 +12,7 @@
     "db:migrate": "wrangler d1 migrations apply 7k-note --local",
     "db:migrate:remote": "wrangler d1 migrations apply 7k-note --remote",
     "pandoara:heronotes": "node ../scripts/seed-pandoara.mjs && wrangler d1 execute 7k-note --local --file=upgrade-pandoara-heronotes.sql",
-    "test": "node tests/audit.mjs && node tests/owner.mjs && node tests/limits.mjs && node tests/autotext-api.mjs && node tests/cron.mjs && node tests/cron-autotext.mjs && node tests/backup.mjs && node tests/reminder.mjs && node tests/usage.mjs && node tests/card.mjs && node tests/view-lock.mjs && node tests/admin.mjs"
+    "test": "node tests/audit.mjs && node tests/owner.mjs && node tests/limits.mjs && node tests/autotext-api.mjs && node tests/cron.mjs && node tests/cron-autotext.mjs && node tests/backup.mjs && node tests/reminder.mjs && node tests/usage.mjs && node tests/card.mjs && node tests/view-lock.mjs && node tests/admin.mjs && node tests/session.mjs"
   },
   "dependencies": {
     "hono": "^4.13.9"

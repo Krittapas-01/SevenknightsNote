@@ -27,6 +27,24 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
+    id: '2026-11-01',
+    version: '1.7',
+    date: '1 พ.ย. 2026',
+    title: 'Stay Signed In',
+    summary: 'ล็อกอิน Discord ไม่หลุดทุก 7 วันแล้ว: ใช้เว็บอยู่เรื่อย ๆ ต่ออายุให้เอง · ยศ Discord ที่แก้ได้เปิดกิลด์ที่ล็อกไว้ได้ทันที',
+    sections: [
+      { kind: 'change', groups: [
+        g('ล็อกอิน Discord',
+          'ต่ออายุเอง: เข้าเว็บตอนเหลือไม่ถึง 3 วัน ต่อเป็น 7 วันให้ทันที (เดิมครบ 7 วันหลุดเสมอ แม้ใช้ทุกวัน) · หายไปเกิน 7 วันยังต้องล็อกอินใหม่เหมือนเดิม',
+          'ล็อกอินครบ 30 วันต้องล็อกอินใหม่ 1 ครั้ง เผื่อเครื่องหายหรือลืมออกจากระบบในเครื่องคนอื่น',
+          'ยศ "แก้แผนได้" ยังเช็กกับ Discord ทุก 5 นาทีเหมือนเดิม ถอดยศแล้วแก้ไม่ได้ภายใน 5 นาที',
+          'คนที่ล็อกอินไว้ก่อนแพตช์นี้ ต้องล็อกอินใหม่อีกครั้งเดียว (ตอนครบ 7 วันของรอบเดิม) แล้วจะต่ออายุเองหลังจากนั้น'),
+        g('รหัสเข้ากิลด์',
+          'คนที่ล็อกอิน Discord และมียศที่แก้ได้ เปิดกิลด์ที่ล็อกไว้ได้ทันที แม้หัวกิลด์เพิ่งเปลี่ยนรหัส (ไม่ขึ้นหน้าใส่รหัสแวบหนึ่งก่อน และแถบประกาศไม่หยุดเช็ก)'),
+      ] },
+    ],
+  },
+  {
     id: '2026-10-30b',
     version: '1.6.2',
     date: '30 ต.ค. 2026',
@@ -432,6 +450,21 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
+  {
+    id: '2026-11-01', version: '1.7', date: '1 Nov 2026', title: 'Stay Signed In',
+    summary: 'Discord login no longer drops you every 7 days: keep using the site and it renews itself · Discord edit roles open locked guilds right away',
+    sections: [
+      { kind: 'change', groups: [
+        g('Discord login',
+          'Renews itself: visit the site when less than 3 days are left and it extends to 7 days right away (before, it always ended after 7 days, even if you used it daily) · away for more than 7 days = log in again, as before',
+          'After 30 days you log in once more, in case a phone is lost or you forgot to log out on someone else\'s device',
+          'The "can edit plans" role is still checked with Discord every 5 minutes. Remove the role and editing stops within 5 minutes.',
+          'If you logged in before this patch, log in once more when that login ends (7 days after you logged in). After that it renews itself.'),
+        g('Guild code',
+          'People logged in with an edit role in Discord open a locked guild right away, even just after the leader changed the code (no code box flashing first, and the announcement bar keeps updating)'),
+      ] },
+    ],
+  },
   {
     id: '2026-10-30b', version: '1.6.2', date: '30 Oct 2026', title: 'Safe Keeping',
     summary: 'Closer watch on the nightly backups',

@@ -260,6 +260,10 @@ const MAX_FAILS = 10
 const CREATE_PER_HOUR = 5
 const LOCK_MS = 15 * 60 * 1000
 
+// ---------- สิทธิ์ในหน้ากิลด์ (แบบเดียวทั้งเว็บ · แผนภาพ docs/systems/auth.md) ----------
+// เจ้าของ = รหัสแก้ไข (checkOwner) · คนแก้ = รหัสแก้ไขหรือยศ Discord ที่ติ๊กไว้ (checkKey) · คนดู = มีลิงก์ + รหัสเข้ากิลด์ถ้าตั้งไว้ (viewGate)
+// สิทธิ์สูงกว่าทำสิ่งที่สิทธิ์ต่ำกว่าทำได้เสมอ (คนแก้เปิดกิลด์ที่ล็อกได้โดยไม่ต้องใช้รหัสเข้ากิลด์)
+
 /**
  * สิทธิ์แก้ไขกิลด์: รหัสแก้ไข (เจ้าของ/คนที่ได้ลิงก์) หรือ ล็อกอิน Discord + มียศที่กิลด์ตั้งให้แก้ได้
  * ownerOnly = ต้องใช้รหัสแก้ไขเท่านั้น (ตั้งรหัสใหม่ · ลบกิลด์ · ตั้งค่า Discord) — คนที่ได้สิทธิ์จากยศทำไม่ได้
@@ -307,10 +311,11 @@ function ipBucket(ip: string) {
   if (!ip.includes(':')) return ip
   return ip.split(':').slice(0, 4).join(':') + '::/64'
 }
+const isEditor = (r: Awaited<ReturnType<typeof checkAuth>>) => r === 'key' || r === 'role'
 /** แก้ข้อมูลทั่วไป (ทีม/แผน/ประกาศ) — รหัสหรือยศ Discord ก็ได้ */
 async function checkKey(c: any, guildId: string): Promise<'ok' | 'notfound' | 'forbidden' | 'locked'> {
   const r = await checkAuth(c, guildId)
-  return r === 'key' || r === 'role' ? 'ok' : r
+  return isEditor(r) ? 'ok' : r
 }
 /** เรื่องของเจ้าของกิลด์ — ต้องใช้รหัสแก้ไขเท่านั้น */
 async function checkOwner(c: any, guildId: string): Promise<'ok' | 'notfound' | 'forbidden' | 'locked'> {
@@ -336,8 +341,12 @@ async function viewGate(c: any, gid: string, row: { name: string; view_code: str
   if (!row.view_code) return null
   const key = viewKeyOf(c)
   const body = { viewLocked: true, guildName: row.name }
-  if ((row.vfails ?? 0) >= MAX_FAILS) return c.json({ ...body, error: 'ใส่รหัสผิดหลายครั้ง ลองใหม่ในอีก 15 นาที' }, 429)
-  if (key && key === row.view_code) return null
+  const tooMany = (row.vfails ?? 0) >= MAX_FAILS
+  if (!tooMany && key && key === row.view_code) return null
+  // 1.7: คนที่แก้ได้ (รหัสแก้ไข / ยศ Discord) ผ่านเลยไม่ต้องใช้รหัสเข้ากิลด์ — เช่น หัวกิลด์เพิ่งเปลี่ยนรหัสแล้วเครื่องคนแก้ยังจำรหัสเก่า
+  // เช็กเฉพาะคำขอที่ส่งรหัสแก้ไข/ล็อกอินมา (คนทั่วไปไม่เสียการอ่านฐานข้อมูลเพิ่ม) · ไม่นับเป็นใส่รหัสเข้ากิลด์ผิด
+  if ((c.req.header('X-Edit-Key') || c.req.header('Authorization')) && isEditor(await checkAuth(c, gid))) return null
+  if (tooMany) return c.json({ ...body, error: 'ใส่รหัสผิดหลายครั้ง ลองใหม่ในอีก 15 นาที' }, 429)
   if (key) {
     const now = Date.now()
     await c.env.DB.prepare(
@@ -1051,19 +1060,65 @@ app.onError((err, c) => {
 // เว็บ (pages.dev) กับ API (workers.dev) คนละโดเมน → ใช้ session token ใน header Authorization แทน cookie
 const discordApi = (env: Env) => env.DISCORD_API_BASE || 'https://discord.com/api/v10'
 const SESSION_MS = 7 * 24 * 3600 * 1000
+// 1.7 ต่ออายุเมื่อใช้งาน: เข้าเว็บตอนเหลือไม่ถึง 3 วัน → ต่อเป็น 7 วัน (ขอ token Discord ใหม่ด้วย ไม่งั้นเช็กยศไม่ได้หลังวันที่ 7)
+// เพดาน 30 วันนับจากล็อกอินครั้งแรก แล้วต้องล็อกอินใหม่ · เขียนฐานข้อมูลแค่ ~4 วันครั้ง + last_seen วันละครั้งต่อคน
+const RENEW_WHEN_MS = 3 * 24 * 3600 * 1000
+const SESSION_MAX_MS = 30 * 24 * 3600 * 1000
+const SEEN_EVERY_MS = 24 * 3600 * 1000
 const MEMBER_CACHE_MS = 5 * 60 * 1000
 type User = { id: string; name: string; avatar: string; accessToken: string }
+type SessionRow = { user_id: string; name: string; avatar: string; access_token: string; expires_at: number; refresh_token: string | null; created_at: number | null; last_seen: number | null }
 
 async function currentUser(c: any): Promise<User | null> {
   if (c.get?.('user') !== undefined) return c.get('user')
   const token = (c.req.header('Authorization') || '').replace(/^Bearer\s+/i, '')
   let user: User | null = null
   if (token) {
-    const r = await c.env.DB.prepare('SELECT user_id, name, avatar, access_token, expires_at FROM sessions WHERE token_hash = ?').bind(await sha256(token)).first()
-    if (r && r.expires_at > Date.now()) user = { id: r.user_id, name: r.name, avatar: r.avatar, accessToken: r.access_token }
+    const hash = await sha256(token)
+    const r = await c.env.DB.prepare('SELECT user_id, name, avatar, access_token, expires_at, refresh_token, created_at, last_seen FROM sessions WHERE token_hash = ?').bind(hash).first() as SessionRow | null
+    const now = Date.now()
+    if (r && r.expires_at > now) {
+      user = { id: r.user_id, name: r.name, avatar: r.avatar, accessToken: r.access_token }
+      const renew = canRenew(r, now)
+      // ทำเบื้องหลัง (หน้าไม่ต้องรอ Discord) · คำขอนี้ยังใช้ token เดิมได้ (เหลืออย่างน้อยหลายชั่วโมง)
+      if (renew || now - (r.last_seen ?? 0) > SEEN_EVERY_MS) {
+        const job = touchSession(c.env, hash, r, renew, now).catch((e) => console.error('session renew', e))
+        try { c.executionCtx.waitUntil(job) } catch { /* ไม่มี ctx (เทสต์บางแบบ) — job ยังวิ่งต่อ */ }
+      }
+    }
   }
   c.set?.('user', user)
   return user
+}
+
+/** ต่ออายุได้ไหม: มี refresh_token (session ก่อน 1.7 ไม่มี → ล็อกอินใหม่ครั้งเดียว) · เหลือไม่ถึง 3 วัน · ยังไม่ชนเพดาน 30 วัน */
+const canRenew = (r: SessionRow, now: number) =>
+  !!r.refresh_token && r.created_at != null && r.expires_at - now < RENEW_WHEN_MS && r.expires_at < r.created_at + SESSION_MAX_MS
+
+/**
+ * จด last_seen + ต่ออายุ (ถ้าถึงเวลา)
+ * เปิดหน้าทีเดียวยิงหลายคำขอพร้อมกัน → จองก่อนด้วย last_seen (ภายใน 1 นาทีทำได้คำขอเดียว) กันขอ token ซ้อน
+ * (Discord ให้ refresh_token ใหม่ทุกครั้ง ตัวเก่าใช้ไม่ได้ ถ้าขอซ้อนกันอีกคำขอจะพัง)
+ */
+async function touchSession(env: Env, hash: string, r: SessionRow, renew: boolean, now: number) {
+  const claimed = await env.DB.prepare('UPDATE sessions SET last_seen = ? WHERE token_hash = ? AND COALESCE(last_seen, 0) < ? RETURNING refresh_token')
+    .bind(now, hash, now - 60_000).first<{ refresh_token: string | null }>()
+  if (!claimed || !renew || !claimed.refresh_token || !env.DISCORD_CLIENT_ID || !env.DISCORD_CLIENT_SECRET) return
+  const res = await fetch(`${discordApi(env)}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: claimed.refresh_token, client_id: env.DISCORD_CLIENT_ID, client_secret: env.DISCORD_CLIENT_SECRET }),
+  })
+  if (!res.ok) {
+    // 400/401 = ถอนสิทธิ์แอปใน Discord / token ใช้ไม่ได้แล้ว → เลิกลอง ใช้จนหมดอายุแล้วล็อกอินใหม่ · 429/ล่ม = ลองใหม่รอบหน้า
+    if (res.status === 400 || res.status === 401) await env.DB.prepare('UPDATE sessions SET refresh_token = NULL WHERE token_hash = ? AND refresh_token = ?').bind(hash, claimed.refresh_token).run()
+    return
+  }
+  const t: any = await res.json()
+  if (!t?.access_token) return
+  const expires = Math.min(now + SESSION_MS, now + (Number(t.expires_in) || 604800) * 1000, (r.created_at ?? now) + SESSION_MAX_MS)
+  await env.DB.prepare('UPDATE sessions SET access_token = ?, refresh_token = ?, expires_at = ? WHERE token_hash = ? AND refresh_token = ?')
+    .bind(t.access_token, t.refresh_token || claimed.refresh_token, expires, hash, claimed.refresh_token).run()
 }
 
 /** ยศของผู้ใช้ในเซิร์ฟเวอร์ Discord (แคช 5 นาที) */
@@ -1138,8 +1193,9 @@ app.get('/api/auth/discord/callback', async (c) => {
   const now = Date.now()
   await c.env.DB.batch([
     c.env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now),
-    c.env.DB.prepare('INSERT INTO sessions (token_hash, user_id, name, avatar, access_token, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(await sha256(token), u.id, str(u.global_name || u.username, 64), avatar, t.access_token, now + Math.min(SESSION_MS, (t.expires_in || 604800) * 1000)),
+    // refresh_token + created_at ใช้ต่ออายุ (1.7) · last_seen = เข้าใช้ครั้งล่าสุด (หน้า admin)
+    c.env.DB.prepare('INSERT INTO sessions (token_hash, user_id, name, avatar, access_token, expires_at, refresh_token, created_at, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(await sha256(token), u.id, str(u.global_name || u.username, 64), avatar, t.access_token, now + Math.min(SESSION_MS, (t.expires_in || 604800) * 1000), typeof t.refresh_token === 'string' ? t.refresh_token : null, now, now),
   ])
   return c.redirect(`${st.return_to}#discord=${token}`)
 })
@@ -1318,6 +1374,21 @@ async function backupStatus(env: Env) {
     return { configured: true as const, error: 'list failed' }
   }
 }
+
+// ---------- แอดมิน: คนที่ล็อกอิน Discord + เข้าใช้ครั้งล่าสุด (1.7) ----------
+// มาจาก sessions ที่ยังไม่หมดอายุ (หมดอายุแล้วถูกลบทุกคืน → เห็นแค่คนที่เข้ามาใน ~7 วันล่าสุด) · 1 แถวต่อคน (หลายเครื่อง = เอาล่าสุด)
+// last_seen เขียนไม่เกินวันละครั้ง → ละเอียดระดับวัน · session ก่อน 1.7 ไม่มี last_seen/created_at = null
+app.get('/api/admin/users', async (c) => {
+  c.header('Cache-Control', 'no-store')
+  if (!(await isAdmin(c))) return c.json({ error: 'not found' }, 404)
+  const now = Date.now()
+  const r = await c.env.DB.prepare(`
+    SELECT user_id AS id, name, avatar, MAX(COALESCE(last_seen, created_at, 0)) AS lastSeen, MIN(created_at) AS loginAt,
+      COUNT(*) AS devices, MAX(refresh_token IS NOT NULL) AS renews
+    FROM sessions WHERE expires_at > ? GROUP BY user_id ORDER BY lastSeen DESC LIMIT 300`).bind(now).all()
+  const users = (r.results as any[]).map((u) => ({ ...u, lastSeen: u.lastSeen || null, renews: !!u.renews }))
+  return c.json({ now, users })
+})
 
 // ---------- สถิติการใช้ปุ่ม/ฟีเจอร์ (Workers Analytics Engine) ----------
 // เว็บส่ง { events: { ocr: 2, ... } } ตอนปิด/ซ่อนแท็บ (sendBeacon, text/plain) · รับเฉพาะชื่อใน USAGE_EVENTS · ไม่เก็บ URL/IP/กิลด์

@@ -274,6 +274,8 @@ export const api = {
   adminStats: () => req<AdminStats>('/api/admin/stats'),
   /** สถิติปุ่ม/ฟีเจอร์ (Analytics Engine) — configured:false = ยังไม่ได้ตั้ง CF_API_TOKEN */
   adminUsage: () => req<AdminUsage>('/api/admin/usage'),
+  /** คนที่ล็อกอิน Discord อยู่ + เข้าใช้ครั้งล่าสุด (1.7) */
+  adminUsers: () => req<AdminUsers>('/api/admin/users'),
   /** แอดมินลบกิลด์ (ต้องพิมพ์ชื่อกิลด์ยืนยัน) */
   adminDeleteGuild: (gid: string, confirmName: string) =>
     req<{ ok: true }>(`/api/admin/guilds/${gid}`, { method: 'DELETE', body: JSON.stringify({ confirmName }) }),
@@ -308,4 +310,6 @@ export type LikedCounter = {
   team: Team; skills: SkillStep[]; note: string; targetTeam: Team; targetTags: string[]
 }
 export type AdminStats = { now: number; guilds: AdminGuild[]; discordUsers: number; backup?: AdminBackup }
+/** lastSeen ละเอียดระดับวัน (จดวันละครั้ง) · loginAt/lastSeen = null สำหรับ session ก่อน 1.7 · renews = ต่ออายุเองได้ */
+export type AdminUsers = { now: number; users: { id: string; name: string; avatar: string; lastSeen: number | null; loginAt: number | null; devices: number; renews: boolean }[] }
 export type AdminUsage = { configured: boolean; error?: string; rows?: { event: string; today: number; d7: number; d30: number }[] }
