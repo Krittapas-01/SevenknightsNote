@@ -1,7 +1,7 @@
 import { BookOpen, ChevronLeft, ChevronRight, ClipboardList, KeyRound, MessageCircle, Sparkles, Users, type LucideIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { LATEST_UPDATE, seenUpdate } from '../lib/changelog'
+import { seenLatest } from '../lib/changelog'
 import Modal from './Modal'
 
 const KEY = '7k-note:tour-guild'
@@ -24,9 +24,10 @@ function TourInner() {
     try { if (localStorage.getItem(KEY)) return } catch { return }
     let t: ReturnType<typeof setTimeout> | undefined
     const show = () => { t = setTimeout(() => setOpen(true), 400) }
-    if (seenUpdate() === LATEST_UPDATE) show()
-    else window.addEventListener('7k-note:update-seen', show, { once: true })
-    return () => { clearTimeout(t); window.removeEventListener('7k-note:update-seen', show) }
+    const onSeen = () => { if (!seenLatest()) return; window.removeEventListener('7k-note:update-seen', onSeen); show() }
+    if (seenLatest()) show()
+    else window.addEventListener('7k-note:update-seen', onSeen)
+    return () => { clearTimeout(t); window.removeEventListener('7k-note:update-seen', onSeen) }
   }, [])
 
   const close = () => {
