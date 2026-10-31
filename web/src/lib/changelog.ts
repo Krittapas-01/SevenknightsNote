@@ -42,10 +42,19 @@ const CHANGELOG_TH: ChangelogEntry[] = [
         g('รหัสเข้ากิลด์',
           'คนที่ล็อกอิน Discord และมียศที่แก้ได้ เปิดกิลด์ที่ล็อกไว้ได้ทันที แม้หัวกิลด์เพิ่งเปลี่ยนรหัส (ไม่ขึ้นหน้าใส่รหัสแวบหนึ่งก่อน และแถบประกาศไม่หยุดเช็ก)'),
       ] },
+    ],
+  },
+  {
+    id: '2026-10-31',
+    version: '1.6.3',
+    date: '31 ต.ค. 2026',
+    title: 'Tidy Up',
+    summary: 'ป๊อปอัป "มีอะไรใหม่" ไม่เด้งซ้ำแล้ว · การ์ดทีมทุกใบขนาดและตำแหน่งเท่ากัน',
+    sections: [
       { kind: 'fix', groups: [
         g(undefined,
-          'การ์ดทีม (แผนวอร์ และบ้านศัตรูในหน้ากิลด์) ที่มีอัศวินเรียง 4 ช่องในแถวเดียว สัตว์เลี้ยงกับวงรูปแบบ/คิวสกิลเล็กลงและเลื่อนต่ำกว่าการ์ดใบอื่น · ตอนนี้ทุกใบขนาดและตำแหน่งเท่ากันหมด เรียงดูเทียบกันได้ตรง',
-          'ป๊อปอัป "มีอะไรใหม่" เด้งซ้ำไม่หยุด เมื่อเปิดเว็บค้างไว้หลายแท็บ (มีแท็บเก่าที่เปิดไว้ก่อนอัปเดต) · ตอนนี้กด "เข้าใจแล้ว" ครั้งเดียวพอ และแท็บอื่นที่เปิดอยู่ปิดป๊อปอัปตามให้ด้วย'),
+          'ป๊อปอัป "มีอะไรใหม่" เด้งซ้ำไม่หยุด เมื่อเปิดเว็บค้างไว้หลายแท็บ (มีแท็บเก่าที่เปิดไว้ก่อนอัปเดต) · ตอนนี้กด "เข้าใจแล้ว" ครั้งเดียวพอ และแท็บอื่นที่เปิดอยู่ปิดป๊อปอัปตามให้ด้วย',
+          'การ์ดทีม (แผนวอร์ และบ้านศัตรูในหน้ากิลด์) ที่มีอัศวินเรียง 4 ช่องในแถวเดียว สัตว์เลี้ยงกับวงรูปแบบ/คิวสกิลเล็กลงและเลื่อนต่ำกว่าการ์ดใบอื่น · ตอนนี้ทุกใบขนาดและตำแหน่งเท่ากันหมด เรียงดูเทียบกันได้ตรง'),
       ] },
     ],
   },
@@ -455,10 +464,16 @@ const CHANGELOG_EN: ChangelogEntry[] = [
         g('Guild code',
           'People logged in with an edit role in Discord open a locked guild right away, even just after the leader changed the code (no code box flashing first, and the announcement bar keeps updating)'),
       ] },
+    ],
+  },
+  {
+    id: '2026-10-31', version: '1.6.3', date: '31 Oct 2026', title: 'Tidy Up',
+    summary: 'The "What\'s new" popup no longer keeps coming back · every team card has the same size and layout',
+    sections: [
       { kind: 'fix', groups: [
         g(undefined,
-          'Team cards (war plans and enemy teams on the guild page) with 4 knights in one row showed a smaller pet and smaller formation/skill queue circles, sitting lower than on other cards · every card now uses the same size and position, so they line up side by side',
-          'The "What\'s new" popup kept coming back when the site was open in several tabs (one of them opened before the update) · now one "Got it" is enough, and other open tabs close the popup too'),
+          'The "What\'s new" popup kept coming back when the site was open in several tabs (one of them opened before the update) · now one "Got it" is enough, and other open tabs close the popup too',
+          'Team cards (war plans and enemy teams on the guild page) with 4 knights in one row showed a smaller pet and smaller formation/skill queue circles, sitting lower than on other cards · every card now uses the same size and position, so they line up side by side'),
       ] },
     ],
   },
