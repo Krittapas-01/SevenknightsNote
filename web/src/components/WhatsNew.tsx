@@ -2,16 +2,16 @@ import { Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { getRecent } from '../lib/api'
-import { LATEST_UPDATE, markUpdateSeen, seenUpdate, unseenUpdates } from '../lib/changelog'
+import { markUpdateSeen, seenLatest, seenUpdate, unseenUpdates } from '../lib/changelog'
 import Modal from './Modal'
 import PatchNotes, { PatchHeader } from './PatchNotes'
 import { tx } from '../lib/i18n'
 
 /** มีอัปเดตที่เครื่องนี้ยังไม่เห็น? (ใช้ทำจุดแดงที่เมนู) */
 export function useHasUpdate() {
-  const [has, setHas] = useState(() => seenUpdate() !== LATEST_UPDATE)
+  const [has, setHas] = useState(() => !seenLatest())
   useEffect(() => {
-    const on = () => setHas(seenUpdate() !== LATEST_UPDATE)
+    const on = () => setHas(!seenLatest())
     window.addEventListener('7k-note:update-seen', on)
     return () => window.removeEventListener('7k-note:update-seen', on)
   }, [])
@@ -28,12 +28,19 @@ export default function WhatsNew() {
   const [items] = useState(() => unseenUpdates())
 
   useEffect(() => {
-    if (seenUpdate() === LATEST_UPDATE) return
+    if (seenLatest()) return
     if (seenUpdate() === null && getRecent().length === 0) { markUpdateSeen(); return }
     if (pathname === '/updates') return
-    const t = setTimeout(() => setOpen(true), 600) // ให้หน้าโหลดเสร็จก่อน
+    const t = setTimeout(() => { if (!seenLatest()) setOpen(true) }, 600) // ให้หน้าโหลดเสร็จก่อน
     return () => clearTimeout(t)
   }, [pathname])
+
+  // กด "เข้าใจแล้ว" ในแท็บอื่น → ปิดป๊อปอัปที่ค้างในแท็บนี้ด้วย
+  useEffect(() => {
+    const on = () => { if (seenLatest()) setOpen(false) }
+    window.addEventListener('7k-note:update-seen', on)
+    return () => window.removeEventListener('7k-note:update-seen', on)
+  }, [])
 
   const close = () => { setOpen(false); markUpdateSeen() }
 

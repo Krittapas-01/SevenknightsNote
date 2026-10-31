@@ -27,15 +27,16 @@ const g = (title: string | undefined, ...items: (string | PatchItem)[]): PatchGr
 
 const CHANGELOG_TH: ChangelogEntry[] = [
   {
-    id: '2026-10-30b',
-    version: '1.6.2',
-    date: '30 ต.ค. 2026',
-    title: 'Safe Keeping',
-    summary: 'ดูแลการสำรองข้อมูลทุกคืนให้ชัดขึ้น',
+    id: '2026-10-31',
+    version: '1.6.3',
+    date: '31 ต.ค. 2026',
+    title: 'Tidy Up',
+    summary: 'ป๊อปอัป "มีอะไรใหม่" ไม่เด้งซ้ำแล้ว · การ์ดทีมทุกใบขนาดและตำแหน่งเท่ากัน',
     sections: [
-      { kind: 'change', groups: [
+      { kind: 'fix', groups: [
         g(undefined,
-          'ผู้ดูแลเว็บเห็นได้ทุกวันว่าการสำรองข้อมูลตอนตี 3 สำเร็จไหม ถ้าคืนไหนพลาดจะรู้ทันที ข้อมูลกิลด์จึงกู้คืนได้เสมอ'),
+          'ป๊อปอัป "มีอะไรใหม่" เด้งซ้ำไม่หยุด เมื่อเปิดเว็บค้างไว้หลายแท็บ (มีแท็บเก่าที่เปิดไว้ก่อนอัปเดต) · ตอนนี้กด "เข้าใจแล้ว" ครั้งเดียวพอ และแท็บอื่นที่เปิดอยู่ปิดป๊อปอัปตามให้ด้วย',
+          'การ์ดทีม (แผนวอร์ และบ้านศัตรูในหน้ากิลด์) ที่มีอัศวินเรียง 4 ช่องในแถวเดียว สัตว์เลี้ยงกับวงรูปแบบ/คิวสกิลเล็กลงและเลื่อนต่ำกว่าการ์ดใบอื่น · ตอนนี้ทุกใบขนาดและตำแหน่งเท่ากันหมด เรียงดูเทียบกันได้ตรง'),
       ] },
     ],
   },
@@ -433,12 +434,13 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
   {
-    id: '2026-10-30b', version: '1.6.2', date: '30 Oct 2026', title: 'Safe Keeping',
-    summary: 'Closer watch on the nightly backups',
+    id: '2026-10-31', version: '1.6.3', date: '31 Oct 2026', title: 'Tidy Up',
+    summary: 'The "What\'s new" popup no longer keeps coming back · every team card has the same size and layout',
     sections: [
-      { kind: 'change', groups: [
+      { kind: 'fix', groups: [
         g(undefined,
-          'The site admin now sees every day whether the 03:00 backup worked, so a missed night is caught right away and guild data can always be restored'),
+          'The "What\'s new" popup kept coming back when the site was open in several tabs (one of them opened before the update) · now one "Got it" is enough, and other open tabs close the popup too',
+          'Team cards (war plans and enemy teams on the guild page) with 4 knights in one row showed a smaller pet and smaller formation/skill queue circles, sitting lower than on other cards · every card now uses the same size and position, so they line up side by side'),
       ] },
     ],
   },
@@ -773,18 +775,50 @@ const CHANGELOG_EN: ChangelogEntry[] = [
 export const CHANGELOG = EN ? CHANGELOG_EN : CHANGELOG_TH
 
 export const LATEST_UPDATE = CHANGELOG[0]?.id ?? ''
+
+/*
+ * จำว่าเครื่องนี้เห็นแพตช์ไหนแล้ว
+ * id เป็นวันที่ (YYYY-MM-DD + ตัวอักษร) → เทียบแบบสตริงได้เลยว่าอันไหนใหม่กว่า
+ * - KEY เดิม: แท็บที่เปิดค้างจากเวอร์ชันก่อน ๆ ยังอ่าน/เขียนคีย์นี้ (ถ้าค่าไม่ตรงกับแพตช์ของมัน มันจะเด้งแล้วเขียนทับ)
+ * - KEY2 ใหม่: เขียนเฉพาะคีย์นี้ ไม่แตะ KEY เดิม → แท็บเก่ากับแท็บใหม่ไม่เขียนทับกันไปมาจนป๊อปอัปเด้งไม่หยุด
+ * - อ่านเอาค่าที่ใหม่สุดจากทั้งสองคีย์ · ไม่เขียนค่าที่เก่ากว่าทับของใหม่
+ * - memSeen: ปิดแล้วในแท็บนี้ก็ไม่เด้งซ้ำ แม้ localStorage เขียนไม่ได้ (เต็ม / โหมดส่วนตัว)
+ */
 const KEY = '7k-note:seen-update'
+const KEY2 = '7k-note:seen-update-2'
+const EVENT = '7k-note:update-seen'
+let memSeen: string | null = null
 
 export function seenUpdate(): string | null {
-  try { return localStorage.getItem(KEY) } catch { return LATEST_UPDATE }
+  let best = memSeen
+  try {
+    for (const k of [KEY2, KEY]) {
+      const v = localStorage.getItem(k)
+      if (v && (!best || v > best)) best = v
+    }
+  } catch { return LATEST_UPDATE }
+  return best
+}
+/** เครื่องนี้เห็นแพตช์ล่าสุด (หรือใหม่กว่า จากแท็บเวอร์ชันใหม่) แล้วหรือยัง */
+export function seenLatest(seen = seenUpdate()) {
+  return !!seen && seen >= LATEST_UPDATE
 }
 export function markUpdateSeen() {
-  try { localStorage.setItem(KEY, LATEST_UPDATE) } catch { /* ไม่มี storage ก็ไม่เป็นไร */ }
-  window.dispatchEvent(new Event('7k-note:update-seen'))
+  if (!memSeen || memSeen < LATEST_UPDATE) memSeen = LATEST_UPDATE
+  try {
+    const cur = localStorage.getItem(KEY2)
+    if (!cur || cur < LATEST_UPDATE) localStorage.setItem(KEY2, LATEST_UPDATE)
+  } catch { /* ไม่มี storage ก็ไม่เป็นไร (memSeen กันเด้งซ้ำในแท็บนี้) */ }
+  window.dispatchEvent(new Event(EVENT))
 }
-/** อัปเดตที่ผู้ใช้ยังไม่เห็น (ใหม่กว่า id ที่เห็นล่าสุด) */
+/** อัปเดตที่ผู้ใช้ยังไม่เห็น (id ใหม่กว่าที่เห็นล่าสุด ใหม่สุดก่อน) */
 export function unseenUpdates(seen = seenUpdate()) {
   if (!seen) return CHANGELOG.slice(0, 1)
-  const i = CHANGELOG.findIndex((c) => c.id === seen)
-  return i < 0 ? CHANGELOG.slice(0, 1) : CHANGELOG.slice(0, i)
+  return CHANGELOG.filter((c) => c.id > seen)
+}
+// แท็บอื่นกด "เข้าใจแล้ว" → แจ้งแท็บนี้ด้วย (ปิดป๊อปอัป/จุดแดงที่ค้างอยู่)
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === KEY || e.key === KEY2 || e.key === null) window.dispatchEvent(new Event(EVENT))
+  })
 }
