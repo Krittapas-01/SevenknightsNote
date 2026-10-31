@@ -42,6 +42,10 @@ const CHANGELOG_TH: ChangelogEntry[] = [
         g('รหัสเข้ากิลด์',
           'คนที่ล็อกอิน Discord และมียศที่แก้ได้ เปิดกิลด์ที่ล็อกไว้ได้ทันที แม้หัวกิลด์เพิ่งเปลี่ยนรหัส (ไม่ขึ้นหน้าใส่รหัสแวบหนึ่งก่อน และแถบประกาศไม่หยุดเช็ก)'),
       ] },
+      { kind: 'fix', groups: [
+        g(undefined,
+          'การ์ดทีม (แผนวอร์ และบ้านศัตรูในหน้ากิลด์) ที่มีอัศวินเรียง 4 ช่องในแถวเดียว สัตว์เลี้ยงกับวงรูปแบบ/คิวสกิลเล็กลงและเลื่อนต่ำกว่าการ์ดใบอื่น · ตอนนี้ทุกใบขนาดและตำแหน่งเท่ากันหมด เรียงดูเทียบกันได้ตรง'),
+      ] },
     ],
   },
   {
@@ -449,6 +453,10 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'If you logged in before this patch, log in once more when that login ends (7 days after you logged in). After that it renews itself.'),
         g('Guild code',
           'People logged in with an edit role in Discord open a locked guild right away, even just after the leader changed the code (no code box flashing first, and the announcement bar keeps updating)'),
+      ] },
+      { kind: 'fix', groups: [
+        g(undefined,
+          'Team cards (war plans and enemy teams on the guild page) with 4 knights in one row showed a smaller pet and smaller formation/skill queue circles, sitting lower than on other cards · every card now uses the same size and position, so they line up side by side'),
       ] },
     ],
   },

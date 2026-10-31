@@ -11,6 +11,8 @@ import { tx, L } from '../lib/i18n'
  * แต่ไม่มีลากวาง/state/modal → เบาเครื่องตอนมีหลายสิบทีม
  */
 const ROW_GAP = 8
+/** แถว 4 ช่องยืดเลยพื้นที่อัศวินได้ข้างละเท่านี้ (บน = แถวความเร็ว ซึ่งปุ่มอยู่ชิดขวาเหนือสัตว์เลี้ยง · ล่าง = ที่ว่างของแถวสัตว์เลี้ยงสำรอง) */
+const BLEED = 24
 const S = 'clamp(54px, 15vw, 68px)'
 /** ขนาดมาตรฐานของการ์ดทีมแบบดูอย่างเดียว (ใช้ทุกที่ ให้การ์ดหน้าตา/สูงเท่ากันหมด) */
 export const CARD_UNIT = S
@@ -38,7 +40,9 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
   const fourCol = Math.max(frontIdx.length, backIdx.length) > 3
 
   return (
-    <div style={{ '--s': unit ?? S, '--s-px': 'var(--s)', ...(!fluid ? { height: `calc(var(--s) * 3 + ${CARD_EXTRA}px)`, flex: '0 0 auto' } : {}) } as CSSProperties} className={`team-panel panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col px-3 pb-3 pt-2.5 ${className}`}>
+    // --s-px (ลงทะเบียน @property เป็น <length> ใน index.css) = แปลงขนาดช่องเป็น px ครั้งเดียวที่ตัวการ์ด
+    // แล้ว --s อ้างค่านั้น → ช่องในพื้นที่ที่เป็น container (รูปแบบ 4 ช่อง) ไม่คิด cqw ใหม่จากกล่องที่แคบกว่า (สัตว์เลี้ยง/วงเล็กลง)
+    <div style={{ '--s-px': unit ?? S, '--s': 'var(--s-px)', ...(!fluid ? { height: `calc(var(--s) * 3 + ${CARD_EXTRA}px)`, flex: '0 0 auto' } : {}) } as CSSProperties} className={`team-panel panel ${variant === 'ally' ? 'panel-gold' : 'panel-enemy'} flex flex-col px-3 pb-3 pt-2.5 ${className}`}>
       <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
         <div className="min-w-0 flex-1 truncate text-center text-sm font-semibold">{title}</div>
       </div>
@@ -50,11 +54,13 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
         </span>
       </div>
 
-      {/* จองความสูงเท่าแถวขวา (สัตว์เลี้ยง + 2 วง) — รูปแบบ 4 ช่องแถวเดียวจะสูงขึ้นเอง และการ์ดในแถวเดียวกันยืดให้เท่ากัน */}
-      {/* รูปแบบที่มี 4 ตัวในแถวเดียว (บุก/ป้องกัน): ขนาดเต็มถ้าที่พอ · มีสัตว์เลี้ยงสำรองจนที่ไม่พอ → ย่อเท่าที่จำเป็น
-          (วัดจากความสูงพื้นที่จริง cqh) ไม่ให้ล้นทับแถวสัตว์เลี้ยงสำรอง · การ์ดแบบ fluid ไม่ล็อกความสูง ไม่ต้องย่อ */}
+      {/* จองความสูงเท่าแถวขวา (สัตว์เลี้ยง + 2 วง) · พื้นที่นี้สูงเท่ากันทุกการ์ด (แถวสัตว์เลี้ยงสำรองจองที่ไว้เสมอ)
+          → สัตว์เลี้ยง/วงรูปแบบ/วงคิว และแนวกลางของแถวอัศวิน อยู่ตำแหน่งเดียวกันทุกใบ ไม่ว่ารูปแบบไหน */}
+      {/* รูปแบบที่มี 4 ตัวในแถวเดียว (บุก/ป้องกัน): แถวนั้นยืดเลยขอบบน/ล่างได้ (BLEED) เท่ากันสองข้าง แนวกลางไม่เลื่อน
+          · มีสัตว์เลี้ยงสำรอง → ห้ามยืดทับแถวนั้น ย่อช่องเท่าที่จำเป็น (วัดจากความสูงพื้นที่จริง cqh)
+          · การ์ดแบบ fluid ไม่ล็อกความสูง ไม่ต้องย่อ */}
       <div className="mt-1 flex flex-1 items-center justify-center gap-2" style={{ minHeight: `calc(var(--s) * 3 + ${ROW_GAP * 2 + 22}px)`,
-        ...(!fluid && fourCol ? { containerType: 'size', '--hs': `min(var(--s-px), calc((100cqh - ${ROW_GAP * 3}px) / 4))` } : {}) } as CSSProperties}>
+        ...(!fluid && fourCol ? { containerType: 'size', '--hs': `min(var(--s-px), calc((100cqh + ${hasExtras ? 0 : BLEED * 2}px - ${ROW_GAP * 3}px) / 4))` } : {}) } as CSSProperties}>
         {/* ฝั่งเรา: [หลัง][หน้า] (หน้าอยู่ติดคอลัมน์สัตว์เลี้ยง เหมือน TeamPanel/ในเกม) · ฝั่งศัตรู: [หน้า][หลัง] */}
         {(variant === 'ally' ? [backIdx, frontIdx] : [frontIdx, backIdx]).map((idx, c) => (
           <div key={c} className="flex flex-col items-center" style={{ gap: ROW_GAP }}>
@@ -91,8 +97,8 @@ function TeamCardLite({ team, skills = [], title, className = '', variant = 'ene
         </div>
       </div>
 
-      {/* ไม่มีสัตว์เลี้ยงสำรอง: ปกติเว้นที่ไว้ (การ์ดเรียงตรงกัน) · การ์ด 4 ตัวในแถวให้อัศวินใช้ที่ตรงนี้แทน (ขนาดเต็มเหมือนเดิม) */}
-      <div className={`mt-2 items-center justify-center gap-1.5 ${hasExtras ? 'flex' : fourCol ? 'hidden' : 'invisible flex'}`} aria-hidden={!hasExtras}>
+      {/* ไม่มีสัตว์เลี้ยงสำรอง: เว้นที่ไว้เสมอ (การ์ดเรียงตรงกัน) · การ์ด 4 ตัวในแถวยืดลงมาในที่ว่างนี้ได้ */}
+      <div className={`mt-2 flex items-center justify-center gap-1.5 ${hasExtras ? '' : 'invisible'}`} aria-hidden={!hasExtras}>
         <span className="text-[11px] text-white/45">{tx('สัตว์เลี้ยงสำรอง')}</span>
         {Array.from({ length: EXTRA_COUNT }, (_, i) => team.extras[i] ?? null).map((x, i) => (
           <div key={i} className="aspect-square" style={{ width: 28, fontSize: 8 }}>
