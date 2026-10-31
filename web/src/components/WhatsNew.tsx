@@ -25,11 +25,12 @@ export function useHasUpdate() {
 export default function WhatsNew() {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
-  const [items] = useState(() => unseenUpdates())
+  const [items] = useState(() => unseenUpdates().filter((c) => !c.quiet))
 
   useEffect(() => {
     if (seenLatest()) return
     if (seenUpdate() === null && getRecent().length === 0) { markUpdateSeen(); return }
+    if (!items.length) { markUpdateSeen(); return } // มีแต่แพตช์ quiet ที่ยังไม่เห็น → ไม่ต้องเด้ง
     if (pathname === '/updates') return
     const t = setTimeout(() => { if (!seenLatest()) setOpen(true) }, 600) // ให้หน้าโหลดเสร็จก่อน
     return () => clearTimeout(t)

@@ -16,6 +16,8 @@ export type ChangelogEntry = {
   title: string
   /** สรุป 1–2 บรรทัด */
   summary?: string
+  /** true = อยู่ในหน้าอัปเดตอย่างเดียว ไม่เด้งป๊อปอัป "มีอะไรใหม่" และไม่มีจุดแดงที่เมนู (เช่น แพตช์แก้บั๊กเล็ก ๆ) */
+  quiet?: boolean
   sections: { kind: PatchKind; groups: PatchGroup[] }[]
 }
 export const PATCH_KIND: Record<PatchKind, string> = EN
@@ -31,6 +33,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     version: '1.6.3',
     date: '31 ต.ค. 2026',
     title: 'Tidy Up',
+    quiet: true,
     summary: 'ป๊อปอัป "มีอะไรใหม่" ไม่เด้งซ้ำแล้ว · การ์ดทีมทุกใบขนาดและตำแหน่งเท่ากัน',
     sections: [
       { kind: 'fix', groups: [
@@ -434,7 +437,7 @@ const CHANGELOG_TH: ChangelogEntry[] = [
 /** แพทช์โน้ตภาษาอังกฤษ (id/version ตรงกับฝั่งไทย) */
 const CHANGELOG_EN: ChangelogEntry[] = [
   {
-    id: '2026-10-31', version: '1.6.3', date: '31 Oct 2026', title: 'Tidy Up',
+    id: '2026-10-31', version: '1.6.3', date: '31 Oct 2026', title: 'Tidy Up', quiet: true,
     summary: 'The "What\'s new" popup no longer keeps coming back · every team card has the same size and layout',
     sections: [
       { kind: 'fix', groups: [
@@ -775,6 +778,8 @@ const CHANGELOG_EN: ChangelogEntry[] = [
 export const CHANGELOG = EN ? CHANGELOG_EN : CHANGELOG_TH
 
 export const LATEST_UPDATE = CHANGELOG[0]?.id ?? ''
+/** แพตช์ล่าสุดที่ต้องแจ้ง (ข้ามแพตช์ quiet) — ป๊อปอัปและจุดแดงดูตัวนี้ */
+const LATEST_NOTIFY = CHANGELOG.find((c) => !c.quiet)?.id ?? LATEST_UPDATE
 
 /*
  * จำว่าเครื่องนี้เห็นแพตช์ไหนแล้ว
@@ -799,9 +804,9 @@ export function seenUpdate(): string | null {
   } catch { return LATEST_UPDATE }
   return best
 }
-/** เครื่องนี้เห็นแพตช์ล่าสุด (หรือใหม่กว่า จากแท็บเวอร์ชันใหม่) แล้วหรือยัง */
+/** เครื่องนี้เห็นแพตช์ล่าสุดที่ต้องแจ้ง (หรือใหม่กว่า จากแท็บเวอร์ชันใหม่) แล้วหรือยัง */
 export function seenLatest(seen = seenUpdate()) {
-  return !!seen && seen >= LATEST_UPDATE
+  return !!seen && seen >= LATEST_NOTIFY
 }
 export function markUpdateSeen() {
   if (!memSeen || memSeen < LATEST_UPDATE) memSeen = LATEST_UPDATE
