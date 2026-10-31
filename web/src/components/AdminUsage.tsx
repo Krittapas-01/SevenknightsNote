@@ -37,7 +37,16 @@ export default function AdminUsage() {
           </ol>
         </div>
       )}
-      {data?.configured && data.error && <p className="mt-3 text-sm text-red-300">{L('อ่านสถิติไม่ได้', 'Could not read stats')} ({data.error}) — {L('เช็กสิทธิ์ของ token (Account Analytics: Read)', 'check the token permission (Account Analytics: Read)')}</p>}
+      {data?.configured && data.error === 'no-account' && (
+        <div className="mt-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+          <p>{L('token นี้มองไม่เห็นรายชื่อบัญชี Cloudflare เลยไม่รู้ว่าต้องอ่านสถิติจากบัญชีไหน — ตั้ง Account ID ให้เอง:', 'This token cannot see the Cloudflare account list, so the page does not know which account to read — set the Account ID yourself:')}</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-amber-100/80">
+            <li>{L('Cloudflare dashboard → Workers & Pages → คัดลอก Account ID (แถบขวา)', 'Cloudflare dashboard → Workers & Pages → copy the Account ID (right side)')}</li>
+            <li>{L('ในโฟลเดอร์ api รัน', 'In the api folder run')}{' '}<code className="rounded bg-black/30 px-1.5 py-0.5">npx wrangler secret put CF_ACCOUNT_ID</code>{' '}{L('แล้ววาง Account ID', 'and paste the Account ID')}</li>
+          </ol>
+        </div>
+      )}
+      {data?.configured && data.error && data.error !== 'no-account' && <p className="mt-3 text-sm text-red-300">{L('อ่านสถิติไม่ได้', 'Could not read stats')} ({data.error}) — {L('เช็กสิทธิ์ของ token (Account Analytics: Read)', 'check the token permission (Account Analytics: Read)')}</p>}
       {data?.configured && data.rows && (
         <div className="mt-3 overflow-x-auto rounded-2xl border border-white/10">
           <table className="w-full min-w-[340px] text-sm">

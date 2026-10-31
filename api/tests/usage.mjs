@@ -8,12 +8,13 @@ import { build } from 'esbuild'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
 
 const sqlSeen = []
+let emptyAccounts = false // token ที่เห็นแค่ Analytics: /accounts ได้ 200 แต่รายการว่าง
 const today = new Date().toISOString().slice(0, 10)
 const old = new Date(Date.now() - 20 * 86400_000).toISOString().slice(0, 10)
 const cf = http.createServer((req, res) => {
   let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => {
     res.setHeader('Content-Type', 'application/json')
-    if (req.url.startsWith('/accounts?')) return res.end(JSON.stringify({ result: [{ id: 'acc123' }] }))
+    if (req.url.startsWith('/accounts?')) return res.end(JSON.stringify({ result: emptyAccounts ? [] : [{ id: 'acc123' }] }))
     if (req.url === '/accounts/acc123/analytics_engine/sql') {
       sqlSeen.push({ auth: req.headers.authorization, sql: b })
       return res.end(JSON.stringify({ data: [
@@ -74,5 +75,8 @@ assert.deepEqual(d.rows.find((x) => x.event === 'announce'), { event: 'announce'
 assert.ok(!d.rows.some((x) => x.event === 'evil'))
 assert.equal(sqlSeen[0].auth, 'Bearer test-token')
 assert.match(sqlSeen[0].sql, /FROM usage_7knote/)
+emptyAccounts = true
+assert.deepEqual(await (await admin('admin-session')).json(), { configured: true, error: 'no-account' })
+emptyAccounts = false
 console.log('USAGE OK')
 await mf.dispose(); cf.close()

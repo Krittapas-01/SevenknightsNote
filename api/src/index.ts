@@ -1418,7 +1418,8 @@ app.get('/api/admin/usage', async (c) => {
     const r = await fetch(`${base}/accounts?per_page=5`, { headers })
     const d: any = r.ok ? await r.json() : null
     account = d?.result?.[0]?.id || ''
-    if (!account) return c.json({ configured: true, error: `accounts ${r.status}` })
+    // token ที่มีแค่ Account Analytics: Read ได้ 200 แต่รายการว่าง → บอกให้ตั้ง CF_ACCOUNT_ID แทน (หน้าแอดมินขึ้นวิธีตั้ง)
+    if (!account) return c.json({ configured: true, error: r.ok ? 'no-account' : `accounts ${r.status}` })
   }
   const sqlText = `SELECT blob1 AS event, toStartOfInterval(timestamp, INTERVAL '1' DAY) AS day, SUM(_sample_interval * double1) AS n
     FROM ${USAGE_DATASET} WHERE timestamp > NOW() - INTERVAL '30' DAY GROUP BY event, day`
