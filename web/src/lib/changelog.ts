@@ -45,19 +45,6 @@ const CHANGELOG_TH: ChangelogEntry[] = [
     ],
   },
   {
-    id: '2026-10-30b',
-    version: '1.6.2',
-    date: '30 ต.ค. 2026',
-    title: 'Safe Keeping',
-    summary: 'ดูแลการสำรองข้อมูลทุกคืนให้ชัดขึ้น',
-    sections: [
-      { kind: 'change', groups: [
-        g(undefined,
-          'ผู้ดูแลเว็บเห็นได้ทุกวันว่าการสำรองข้อมูลตอนตี 3 สำเร็จไหม ถ้าคืนไหนพลาดจะรู้ทันที ข้อมูลกิลด์จึงกู้คืนได้เสมอ'),
-      ] },
-    ],
-  },
-  {
     id: '2026-10-30',
     version: '1.6.1',
     date: '30 ต.ค. 2026',
@@ -462,16 +449,6 @@ const CHANGELOG_EN: ChangelogEntry[] = [
           'If you logged in before this patch, log in once more when that login ends (7 days after you logged in). After that it renews itself.'),
         g('Guild code',
           'People logged in with an edit role in Discord open a locked guild right away, even just after the leader changed the code (no code box flashing first, and the announcement bar keeps updating)'),
-      ] },
-    ],
-  },
-  {
-    id: '2026-10-30b', version: '1.6.2', date: '30 Oct 2026', title: 'Safe Keeping',
-    summary: 'Closer watch on the nightly backups',
-    sections: [
-      { kind: 'change', groups: [
-        g(undefined,
-          'The site admin now sees every day whether the 03:00 backup worked, so a missed night is caught right away and guild data can always be restored'),
       ] },
     ],
   },
