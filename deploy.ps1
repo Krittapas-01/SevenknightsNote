@@ -7,7 +7,8 @@ $OutputEncoding = [Text.Encoding]::UTF8
 $root = $PSScriptRoot
 $project = "7k-note"
 
-function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Yellow }
+$script:step = "start"
+function Step($msg) { $script:step = $msg; Write-Host "`n==> $msg" -ForegroundColor Yellow }
 
 # Run a command, show its output live (so prompts/progress are visible) and
 # return it as text. Windows PowerShell treats anything a tool prints to stderr
@@ -17,6 +18,32 @@ function Capture([scriptblock]$cmd, [switch]$Quiet) {
   $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
   try { (& $cmd 2>&1 | ForEach-Object { $l = "$_"; if (-not $Quiet) { Write-Host $l }; $l }) -join "`n" } finally { $ErrorActionPreference = $old }
 }
+
+# ---------- deploy.log (not committed: *.log) ----------
+# One line per run: time, git commit (+ changed files), patch version, and what went live or where it failed.
+# Lets Claude check what is live without asking (read C:\Dev\7k-note\deploy.log).
+$logFile = "$root\deploy.log"
+function GitOut($gitArgs) {
+  $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+  try { $o = (& git -C $root @gitArgs 2>$null) -join "`n"; if ($LASTEXITCODE -eq 0) { $o.Trim() } else { "" } } catch { "" } finally { $ErrorActionPreference = $old }
+}
+function DeployInfo {
+  $commit = GitOut @('rev-parse', '--short', 'HEAD'); if (-not $commit) { $commit = "?" }
+  $dirty = @((GitOut @('status', '--porcelain', '--untracked-files=no')) -split "`n" | Where-Object { $_.Trim() }).Count
+  $v = Select-String -Path "$root\web\src\lib\changelog.ts" -Pattern "version: '([^']+)'" -ErrorAction SilentlyContinue | Select-Object -First 1
+  $ver = if ($v) { $v.Matches[0].Groups[1].Value } else { "?" }
+  $d = if ($dirty) { " (+$dirty changed files)" } else { "" }
+  "commit $commit$d | patch $ver"
+}
+function LogLine([string]$status, [string]$detail) {
+  try {
+    $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')  $status  $(DeployInfo)"
+    if ($detail) { $line += " | $detail" }
+    Add-Content -Path $logFile -Value $line -Encoding UTF8
+  } catch { Write-Host "Could not write deploy.log: $_" -ForegroundColor DarkYellow }
+}
+# Any error below stops the script: note where in deploy.log, then stop.
+trap { LogLine "FAILED" "at '$($script:step)': $($_.Exception.Message)"; break }
 
 # ---------- API ----------
 Set-Location "$root\api"
@@ -43,7 +70,9 @@ npx wrangler d1 execute $project --remote --file=schema.sql -y
 Step "Applying database updates (migrations)"
 $env:CI = "true"   # skip the y/n prompt
 npx wrangler d1 migrations apply $project --remote
+$migrateExit = $LASTEXITCODE
 Remove-Item Env:CI
+if ($migrateExit -ne 0) { throw "Database migration failed - stopped before deploying the API (nothing new is live)" }
 
 # Starter data (ThousandSunny + Pandoara/Drinkeenassu) is already in production - no automatic seeding any more.
 # (Before: if a marker file went missing, deploy re-seeded - wiping edited teams and resetting the guild password.)
@@ -68,6 +97,7 @@ if ($dep -notmatch '(https://[\w\.-]+\.workers\.dev)') {
   throw "API deploy failed (see above)"
 }
 $apiUrl = $Matches[1]
+$apiVersion = if ($dep -match 'Version ID:\s*([0-9a-f-]+)') { $Matches[1] } else { "?" }
 Write-Host "API: $apiUrl" -ForegroundColor Green
 
 # ---------- WEB ----------
@@ -76,6 +106,8 @@ Step "Building web"
 [IO.File]::WriteAllText("$root\web\.env.production", "VITE_API_URL=$apiUrl`n")
 npm install --no-audit --no-fund | Out-Null
 npm run build
+# Without this check a failed build still uploads the OLD dist and looks like a successful deploy.
+if ($LASTEXITCODE -ne 0) { throw "Web build failed - the website was NOT uploaded (old website still live; the API above is already new)" }
 
 Step "Deploying web to Cloudflare Pages"
 # Deploy straight away (no hidden "project list" check - it could hang silently).
@@ -86,6 +118,10 @@ if ($pages -match "(?i)project not found|could not find project|8000007") {
   Capture { npx --yes wrangler pages project create $project --production-branch main } | Out-Null
   $pages = Capture { npx --yes wrangler pages deploy dist --project-name $project --branch main --commit-dirty=true }
 }
+if ($pages -notmatch "(?i)deployment complete|https://[\w-]+\.$project\.pages\.dev") { throw "Website upload failed (see above)" }
+$a = Select-String -Path "$root\web\dist\index.html" -Pattern 'assets/(index-[^"]+\.js)' -ErrorAction SilentlyContinue | Select-Object -First 1
+$webAsset = if ($a) { $a.Matches[0].Groups[1].Value } else { "?" }
+LogLine "OK" "web $webAsset | api version $apiVersion"
 
 Set-Location $root
 Write-Host "`nDONE!" -ForegroundColor Green

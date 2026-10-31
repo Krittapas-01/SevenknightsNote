@@ -46,6 +46,7 @@ cd web && npm install && npm run dev                                            
 - ตรวจก่อนส่งงานทุกครั้ง: `cd web && npx tsc -b && npm run build` · `cd api && npx tsc --noEmit && npm test`
 - เทสต์ API (`api/tests/*.mjs`) รันใน Miniflare กับ D1 ชั่วคราว ไม่แตะของจริง
 - **deploy:** ผู้ใช้ดับเบิลคลิก `deploy.cmd` (= `deploy.ps1`: npm install → migration ฐานจริง → deploy API → build + deploy เว็บเป็น production branch `main`)
+- เช็กว่าอะไรขึ้นเว็บแล้ว: อ่าน `deploy.log` ในโฟลเดอร์โปรเจกต์บนเครื่องผู้ใช้ (`deploy.ps1` เขียนบรรทัดละครั้ง: เวลา · commit · เวอร์ชันแพตช์ · OK หรือ FAILED พร้อมขั้นที่พัง · ไม่ถูก commit เพราะ `*.log`)
 - branch หลักคือ `main` (โค้ดเว็บจริง) · tag `v1` = เวอร์ชันแรก · `before-premium` = ก่อนแต่งหน้าตา
 
 ## มาตรฐานโค้ดที่ต้องทำตาม
